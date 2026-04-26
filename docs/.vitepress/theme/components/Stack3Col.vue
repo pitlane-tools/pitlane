@@ -12,34 +12,28 @@
             </h3>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
-            <div class="stack-card">
-                <a href="https://remix.run">
-                    <h5 class="stack-title">Remix</h5>
-                </a>
+            <a target="_blank" class="stack-card" href="https://remix.run">
+                <h5 class="stack-title">Remix</h5>
                 <p class="stack-body">
                     Routing, middleware, and component framework your app actually runs on.
                 </p>
                 <span class="stack-tag">runtime</span>
-            </div>
-            <div class="stack-card">
-                <a href="https://viteplus.dev">
-                    <h5 class="stack-title">Vite+</h5>
-                </a>
+            </a>
+            <a target="_blank" class="stack-card" href="https://viteplus.dev">
+                <h5 class="stack-title">Vite+</h5>
                 <p class="stack-body">
                     Unified <code>vp</code> workflow for create, install, dev, format, lint,
                     typecheck, test, build, and preview.
                 </p>
                 <span class="stack-tag">tooling</span>
-            </div>
-            <div class="stack-card">
-                <a href="https://workers.cloudflare.com">
-                    <h5 class="stack-title">Cloudflare</h5>
-                </a>
+            </a>
+            <a target="_blank" class="stack-card" href="https://workers.cloudflare.com">
+                <h5 class="stack-title">Cloudflare</h5>
                 <p class="stack-body">
                     Workers, D1, R2, KV, queues, and cron — bound through typed config.
                 </p>
                 <span class="stack-tag">platform</span>
-            </div>
+            </a>
         </div>
     </section>
 </template>
@@ -56,7 +50,7 @@
     transition: border-color 160ms ease;
 }
 
-.stack-card:has(a:hover) {
+a.stack-card:hover {
     border-color: var(--vp-c-brand-1);
 }
 

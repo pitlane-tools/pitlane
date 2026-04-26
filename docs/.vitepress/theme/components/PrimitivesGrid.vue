@@ -148,7 +148,6 @@ for (const [key, code] of Object.entries(snippets)) {
    We pick which set to apply based on the html.dark class. */
 .prim-code :deep(.shiki),
 .prim-code :deep(pre.shiki) {
-    /* background: var(--shiki-light-bg) !important; */
     color: var(--shiki-light) !important;
     margin: 0;
     padding: 0;
@@ -163,7 +162,6 @@ for (const [key, code] of Object.entries(snippets)) {
 :root.dark .prim-code :deep(pre.shiki),
 :root[data-theme="dark"] .prim-code :deep(.shiki),
 :root[data-theme="dark"] .prim-code :deep(pre.shiki) {
-    /* background: var(--shiki-dark-bg) !important; */
     color: var(--shiki-dark) !important;
 }
 

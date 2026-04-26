@@ -130,7 +130,16 @@ html:not(.dark) .VPContent kbd {
 :root[data-theme="dark"] .marketing-layout .button:not(.button--primary):not(.button--white) {
     background-color: transparent;
     color: var(--vp-c-text-1);
-    outline-color: var(--color-nickel);
+    outline-color: var(--vp-c-divider);
+}
+
+.marketing-layout {
+    & code {
+        .dark:not([data-theme]) &,
+        [data-theme="dark"] & {
+            outline-color: var(--vp-c-divider);
+        }
+    }
 }
 
 /* Racing-livery accents */
