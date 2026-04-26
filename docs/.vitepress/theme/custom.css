@@ -7,7 +7,7 @@ img[src*='logo'] {
 }
 
 .button.button--primary::before {
-    background-image: url('@voidzero-dev/vitepress-theme/src/assets/vitest/primary-button-background.jpg');
+    background-image: url('/media/pitlane-racecar.png');
 }
 
 /* Brand colors — light mode */

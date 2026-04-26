@@ -48,8 +48,8 @@
 <style scoped>
 .hero-background {
     background:
-        linear-gradient(135deg, rgba(18, 24, 38, 0.9), rgba(23, 56, 48, 0.72)),
-        url('@assets/vitest/hero-background.jpg');
+        linear-gradient(135deg, rgba(7, 10, 18, 0.28), rgba(4, 12, 20, 0.56)),
+        url('/media/pitlane-race-track.png');
     background-size: cover;
     background-position: center;
 }
