@@ -4,10 +4,10 @@
             <div
                 class="flex flex-col gap-5 max-w-[31rem] text-center md:text-left items-center md:items-start"
             >
-                <h1 class="text-pretty">Pitlane</h1>
+                <h1 class="text-pretty">Platform Integration for Remix Apps</h1>
                 <p class="text-lg max-w-md text-pretty opacity-80">
-                    Platform integration for Remix apps running on Cloudflare, built around Vite+,
-                    explicit config, and typed runtime primitives.
+                    Running on Cloudflare and built around Vite+, explicit config, and typed runtime
+                    primitives.
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
                     <a
