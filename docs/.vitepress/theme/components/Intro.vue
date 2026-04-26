@@ -8,33 +8,36 @@
                     <span
                         class="text-grey text-xs font-medium font-mono uppercase tracking-wide"
                     >
-                        Why My Project
+                        Why Pitlane
                     </span>
                 </div>
                 <h3 class="text-white max-w-xl text-balance">
-                    A heading that explains your core value proposition.
+                    Cloudflare primitives that fit Remix instead of fighting it.
                 </h3>
                 <a
-                    href="/guides/getting-started"
+                    href="/guides/vite-plus"
                     class="button w-fit mt-8 hidden lg:block"
                 >
-                    Learn more
+                    Learn the workflow
                 </a>
             </div>
             <div class="lg:max-w-lg">
                 <p class="text-pretty mb-5">
-                    Describe what makes your project unique and why developers should use
-                    it. This is the first detailed section visitors see after the hero.
+                    Pitlane keeps the platform visible and typed. Configure resources
+                    in `platform()`, let Pitlane generate Wrangler config and worker
+                    types, then read D1, R2, KV sessions, queues, and cron through
+                    explicit Remix middleware.
                 </p>
                 <p class="text-pretty">
-                    Add a second paragraph for additional context, technical details, or
-                    to highlight compatibility with other tools in the ecosystem.
+                    Vite+ runs the application lifecycle. Pitlane handles the
+                    Cloudflare platform work around it: provisioning, migrations,
+                    secrets, generated configuration, and deploys.
                 </p>
                 <a
-                    href="/guides/getting-started"
+                    href="/guides/vite-plus"
                     class="button w-fit mt-8 block lg:hidden"
                 >
-                    Learn more
+                    Learn the workflow
                 </a>
             </div>
         </div>

@@ -10,12 +10,12 @@ import FeatureGrid from '../components/FeatureGrid.vue';
 <template>
     <Hero />
     <Intro />
-    <HeadingSection heading="Built for the modern web." />
+    <HeadingSection heading="The Remix platform layer for Cloudflare." />
     <FeatureGrid />
     <Spacer />
     <Footer
-        heading="Get started with My Project"
-        subheading="The fastest way to build for the modern web"
+        heading="Start with Pitlane"
+        subheading="Create a Remix 3 app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."
         button-text="Get started"
         button-link="/guides/getting-started"
     />

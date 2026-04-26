@@ -1,25 +1,17 @@
-<script setup>
-// import logoLight from '@assets/logos/voidzero-light.svg';
-</script>
-
 <template>
     <div class="wrapper wrapper--ticks grid md:grid-cols-2 w-full border-nickel divide-x">
         <div class="flex flex-col p-10 justify-center items-center md:items-start">
             <div
-                class="flex flex-col gap-5 max-w-[30rem] text-center md:text-left items-center md:items-start"
+                class="flex flex-col gap-5 max-w-[31rem] text-center md:text-left items-center md:items-start"
             >
-                <!-- Optional "By" attribution link -->
-                <!-- <a class="flex items-center gap-2" href="https://voidzero.dev" target="_blank">
-                    <span class="text-grey text-xs font-mono uppercase tracking-wide">By</span>
-                    <img :src="logoLight" alt="VoidZero" class="h-2.5">
-                </a> -->
                 <h1 class="text-white text-pretty">
-                    My Project
+                    Pitlane
                 </h1>
-                <p class="text-white/70 text-lg max-w-[25rem] text-pretty">
-                    A brief description of your project.
+                <p class="text-white/70 text-lg max-w-[28rem] text-pretty">
+                    Platform integration for Remix 3 apps running on Cloudflare,
+                    built around Vite+, explicit config, and typed runtime primitives.
                 </p>
-                <div class="flex items-center gap-5 mt-8">
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
                     <a
                         href="/guides/getting-started"
                         class="button button--primary inline-block w-fit"
@@ -27,7 +19,7 @@
                         <span>Get Started</span>
                     </a>
                     <a
-                        href="https://github.com/"
+                        href="https://github.com/pitlane-tools"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="button inline-block w-fit"
@@ -39,9 +31,15 @@
         </div>
         <div class="flex flex-col min-h-[22rem] sm:min-h-[30rem]">
             <div
-                class="relative pl-6 sm:pl-16 h-full flex flex-col justify-center overflow-clip py-8 sm:py-16 hero-background"
+                class="relative px-6 sm:px-16 h-full flex flex-col justify-center overflow-clip py-8 sm:py-16 hero-background"
             >
-                <!-- Hero right-side content (terminal screenshot, animation, etc.) -->
+                <div class="terminal-panel">
+                    <div class="terminal-row">$ vp create pitlane my-app</div>
+                    <div class="terminal-row">$ vp install</div>
+                    <div class="terminal-row">$ vp dev</div>
+                    <div class="terminal-row">$ pitlane resources create</div>
+                    <div class="terminal-row terminal-row--accent">$ pitlane deploy</div>
+                </div>
             </div>
         </div>
     </div>
@@ -49,8 +47,32 @@
 
 <style scoped>
 .hero-background {
-    background-image: url('@assets/vitest/hero-background.jpg');
+    background:
+        linear-gradient(135deg, rgba(18, 24, 38, 0.9), rgba(23, 56, 48, 0.72)),
+        url('@assets/vitest/hero-background.jpg');
     background-size: cover;
     background-position: center;
+}
+
+.terminal-panel {
+    border: 1px solid rgba(153, 246, 228, 0.22);
+    background: rgba(4, 12, 20, 0.82);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+    padding: 1.25rem;
+    display: grid;
+    gap: 0.75rem;
+    max-width: 28rem;
+}
+
+.terminal-row {
+    color: rgba(226, 232, 240, 0.82);
+    font-family: var(--vp-font-family-mono);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.terminal-row--accent {
+    color: #7dd3fc;
 }
 </style>
