@@ -1,8 +1,8 @@
 ---
-title: Vite+ and Pitlane
+title: Vite+
 ---
 
-# Vite+ And Pitlane
+# Vite+
 
 Pitlane is built for Vite+ projects. Vite+ is the unified command surface for the application lifecycle; Pitlane handles Cloudflare platform operations around that lifecycle.
 

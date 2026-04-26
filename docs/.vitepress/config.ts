@@ -8,7 +8,7 @@ const guides: DefaultTheme.SidebarItem[] = [
         text: "Start",
         items: [
             { text: "Getting Started", link: "/guides/getting-started" },
-            { text: "Vite+ and Pitlane", link: "/guides/vite-plus" },
+            { text: "Vite+", link: "/guides/vite-plus" },
         ],
     },
     {
