@@ -2,9 +2,14 @@
     <section class="wrapper wrapper--ticks border-t grid lg:grid-cols-2 divide-x divide-nickel">
         <div class="art-pane">
             <img
-                src="/media/pitlane-racecar.png"
+                src="/media/pitlane-racecar-day.png"
                 alt="Pitlane pit crew servicing a Pitlane-branded race car"
-                class="art-img"
+                class="art-img art-img--light"
+            />
+            <img
+                src="/media/pitlane-racecar-night.png"
+                alt="Pitlane pit crew servicing a Pitlane-branded race car"
+                class="art-img art-img--dark"
             />
         </div>
         <div class="copy-pane flex flex-col justify-center gap-4 p-8 sm:p-12 lg:p-16">
@@ -41,5 +46,19 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
+}
+
+.art-img--dark {
+    display: none;
+}
+
+:root.dark .art-img--dark,
+:root[data-theme="dark"] .art-img--dark {
+    display: block;
+}
+
+:root.dark .art-img--light,
+:root[data-theme="dark"] .art-img--light {
+    display: none;
 }
 </style>

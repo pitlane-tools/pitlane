@@ -71,7 +71,7 @@
 }
 
 :root:not(.dark) .terminal-panel {
-    border-color: rgba(120, 16, 19, 0.28);
+    border-color: rgba(0, 0, 0, 0.5);
     /* background: rgba(15, 18, 26, 0.94); */
     background: rgba(226, 232, 240, 0.96);
     box-shadow: 0 24px 60px rgba(120, 16, 19, 0.18);
