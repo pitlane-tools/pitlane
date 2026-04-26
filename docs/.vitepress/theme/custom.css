@@ -13,7 +13,7 @@ img[src*='logo'] {
 /* Brand colors — light mode */
 :root {
     --color-brand: #0f766e;
-    --color-grey: #87909a;
+    --color-grey: #6b7280;
 
     --vp-c-brand-1: #0f766e;
     --vp-c-brand-2: #0e7490;
@@ -42,6 +42,7 @@ img[src*='logo'] {
 :root.dark:not([data-theme]),
 :root[data-theme='dark'] {
     --color-brand: #2dd4bf;
+    --color-grey: #87909a;
     --vp-c-brand-1: #2dd4bf;
     --vp-c-brand-2: #38bdf8;
     --vp-c-brand-3: #0f766e;
