@@ -1,5 +1,5 @@
 <template>
-    <div class="wrapper wrapper--ticks grid md:grid-cols-2 w-full border-nickel divide-x">
+    <div class="wrapper wrapper--ticks grid md:grid-cols-2 w-full divide-x">
         <div class="flex flex-col p-10 justify-center items-center md:items-start">
             <div
                 class="flex flex-col gap-5 max-w-[31rem] text-center md:text-left items-center md:items-start"
