@@ -888,7 +888,8 @@ Pitlane exposes Cloudflare bindings through Remix middleware and context keys. R
 
 ```ts
 import { env } from "cloudflare:workers";
-import { database, Database } from "pitlane/platform";
+import { Database } from "remix/data-table";
+import { database } from "pitlane/data-table-middleware";
 
 database(env.DB);
 
@@ -905,7 +906,8 @@ router.get("/contacts", async ctx => {
 
 ```ts
 import { env } from "cloudflare:workers";
-import { fileStorage, FileStorage } from "pitlane/platform";
+import { FileStorage } from "pitlane/file-storage";
+import { fileStorage } from "pitlane/file-storage-middleware";
 
 fileStorage(env.FILES);
 
@@ -925,7 +927,7 @@ import { env } from "cloudflare:workers";
 import { createCookie } from "remix/cookie";
 import { Session } from "remix/session";
 import { session } from "remix/session-middleware";
-import { createKvSessionStorage } from "pitlane/platform";
+import { createKvSessionStorage } from "pitlane/session-storage";
 
 let sessionCookie = createCookie("__session", {
     secrets: ["s3cr3t"],
@@ -952,7 +954,8 @@ router.get("/", ctx => {
 ```ts
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
-import { createJobs, createJobQueue, scheduler, Scheduler } from "pitlane/platform";
+import { createJobs, createJobQueue, Scheduler } from "pitlane/jobs";
+import { scheduler } from "pitlane/jobs-middleware";
 
 let jobs = createJobs({
     sendEmail: {
@@ -1004,7 +1007,7 @@ await queue.enqueue(
 ## Cron
 
 ```ts
-import { createCron } from "pitlane/platform";
+import { createCron } from "pitlane/cron";
 
 let cron = createCron({
     "0 * * * *": {
@@ -1363,4 +1366,4 @@ If no files changed, do not create an empty commit.
 
 - Spec coverage: the plan covers Vite+ project setup, VitePress config, home content, guide pages, Vite+ public messaging, Pitlane/Vite+ command boundaries, and final verification.
 - Placeholder scan: tasks include concrete file paths, file contents, commands, and expected results.
-- API consistency: examples use `defineConfig` from `vite-plus`, `remix` from `pitlane/remix`, and platform runtime exports from `pitlane/platform`, matching the approved design and source material.
+- API consistency: examples use `defineConfig` from `vite-plus`, `remix` from `pitlane/remix`, and platform runtime exports from their respective subpaths (`pitlane/data-table-middleware`, `pitlane/file-storage-middleware`, `pitlane/session-storage`, `pitlane/jobs`, `pitlane/jobs-middleware`, `pitlane/cron`), matching the approved design and source material.
