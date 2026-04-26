@@ -185,17 +185,26 @@ html:not(.dark) .VPContent kbd {
     color: inherit;
 }
 
-/* Footer CTA — dim the race-track image so the heading copy stays legible */
+/* Footer CTA background — dim the checkered-flag image so the heading copy stays legible.
+   The voidzero Footer accepts a single image, so we swap the rendered <img> source via
+   `content:` based on html.dark instead of forking the component. */
 footer[data-theme="dark"] section.wrapper > .relative > img {
-    filter: brightness(0.65) saturate(0.8);
-    opacity: 0.7;
+    filter: brightness(0.65) saturate(0.85);
+    opacity: 0.55;
+}
+
+:root.dark footer[data-theme="dark"] section.wrapper > .relative > img,
+:root[data-theme="dark"] footer[data-theme="dark"] section.wrapper > .relative > img {
+    content: url("/media/pitlane-checkered-flag-night.png");
+    filter: brightness(0.6) saturate(0.85);
+    opacity: 0.6;
 }
 
 footer[data-theme="dark"] section.wrapper > .relative::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(8, 6, 13, 0.6), rgba(8, 6, 13, 0.85));
+    background: linear-gradient(180deg, rgba(8, 6, 13, 0.55), rgba(8, 6, 13, 0.8));
     z-index: 1;
     pointer-events: none;
 }

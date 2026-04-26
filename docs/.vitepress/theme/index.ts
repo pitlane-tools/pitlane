@@ -8,7 +8,7 @@ import "virtual:group-icons.css";
 
 const logoDark = "/logo-light.svg";
 const logoLight = "/logo-dark.svg";
-const footerBg = "/media/checkered-flag.png";
+const footerBg = "/media/pitlane-checkered-flag-day.png";
 const monoIcon = "/favicon.svg";
 
 export default {
