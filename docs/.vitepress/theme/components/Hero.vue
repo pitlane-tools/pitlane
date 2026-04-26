@@ -4,8 +4,8 @@
             <div
                 class="flex flex-col gap-5 max-w-[31rem] text-center md:text-left items-center md:items-start"
             >
-                <h1 class="text-white text-pretty">Pitlane</h1>
-                <p class="text-white/70 text-lg max-w-[28rem] text-pretty">
+                <h1 class="text-pretty">Pitlane</h1>
+                <p class="text-lg max-w-md text-pretty opacity-80">
                     Platform integration for Remix 3 apps running on Cloudflare, built around Vite+,
                     explicit config, and typed runtime primitives.
                 </p>
@@ -52,6 +52,15 @@
     background-position: center;
 }
 
+:root:not(.dark) .hero-background {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(245, 245, 248, 0.55)),
+        url("/media/pitlane-race-track.png");
+    background-size: cover;
+    background-position: center;
+    filter: saturate(0.2);
+}
+
 .terminal-panel {
     border: 1px solid rgba(153, 246, 228, 0.22);
     background: rgba(4, 12, 20, 0.82);
@@ -60,6 +69,12 @@
     display: grid;
     gap: 0.75rem;
     max-width: 28rem;
+}
+
+:root:not(.dark) .terminal-panel {
+    border-color: rgba(120, 16, 19, 0.18);
+    background: rgba(15, 18, 26, 0.94);
+    box-shadow: 0 24px 60px rgba(120, 16, 19, 0.12);
 }
 
 .terminal-row {
