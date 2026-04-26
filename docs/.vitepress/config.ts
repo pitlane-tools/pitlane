@@ -32,6 +32,7 @@ const config = defineConfig({
     title: 'Pitlane',
     titleTemplate: ':title | Pitlane',
     description: 'Platform integration for Remix 3 apps on Cloudflare.',
+    srcExclude: ['superpowers/**'],
     markdown: {
         theme: {
             dark: 'github-dark',
