@@ -4,7 +4,7 @@ import CheckerDivider from "./CheckerDivider.vue";
 
 <template>
     <section class="wrapper wrapper--ticks border-t py-12 lg:py-16 px-5 sm:px-10 lg:px-20">
-        <div class="flex flex-col items-center gap-6">
+        <div class="flex flex-col items-center gap-8">
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
                 <span class="text-xs font-medium font-mono uppercase tracking-wide opacity-70">
@@ -12,11 +12,62 @@ import CheckerDivider from "./CheckerDivider.vue";
                 </span>
             </div>
             <div class="partners">
-                <span class="partner">Remix 3</span>
-                <span class="partner-sep">+</span>
-                <span class="partner">Vite+</span>
-                <span class="partner-sep">+</span>
-                <span class="partner">Cloudflare</span>
+                <a
+                    class="partner"
+                    href="https://remix.run"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Remix"
+                >
+                    <img
+                        src="/media/remix-logo-full-black.svg"
+                        alt="Remix"
+                        class="partner-logo partner-logo--light"
+                    />
+                    <img
+                        src="/media/remix-logo-full-white.svg"
+                        alt="Remix"
+                        class="partner-logo partner-logo--dark"
+                    />
+                </a>
+                <span class="partner-sep" aria-hidden="true">+</span>
+                <a
+                    class="partner"
+                    href="https://viteplus.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Vite+"
+                >
+                    <img
+                        src="/media/vite-plus-full-black.svg"
+                        alt="Vite+"
+                        class="partner-logo partner-logo--light"
+                    />
+                    <img
+                        src="/media/vite-plus-full-white.svg"
+                        alt="Vite+"
+                        class="partner-logo partner-logo--dark"
+                    />
+                </a>
+                <span class="partner-sep" aria-hidden="true">+</span>
+                <a
+                    class="partner"
+                    href="https://workers.cloudflare.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Cloudflare"
+                >
+                    <img
+                        src="/media/cloudflare-full-black.svg"
+                        alt="Cloudflare"
+                        class="partner-logo partner-logo--light"
+                    />
+                    <img
+                        src="/media/cloudflare-full-white.svg"
+                        alt="Cloudflare"
+                        class="partner-logo partner-logo--dark"
+                    />
+                </a>
             </div>
         </div>
         <CheckerDivider class="mt-12" />
@@ -27,22 +78,45 @@ import CheckerDivider from "./CheckerDivider.vue";
 .partners {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 2rem;
     flex-wrap: wrap;
     justify-content: center;
-    font-family: var(--vp-font-family-mono);
-    font-size: 1.05rem;
-    letter-spacing: 0.02em;
-    color: var(--vp-c-text-2);
 }
 
 .partner {
-    font-weight: 600;
-    color: var(--vp-c-text-1);
+    display: inline-flex;
+    align-items: center;
+    transition: opacity 160ms ease;
+    opacity: 0.75;
+}
+
+.partner:hover {
+    opacity: 1;
+}
+
+.partner-logo {
+    height: 28px;
+    width: auto;
+}
+
+.partner-logo--dark {
+    display: none;
+}
+
+:root.dark .partner-logo--dark,
+:root[data-theme="dark"] .partner-logo--dark {
+    display: block;
+}
+
+:root.dark .partner-logo--light,
+:root[data-theme="dark"] .partner-logo--light {
+    display: none;
 }
 
 .partner-sep {
     color: var(--vp-c-brand-1);
     font-weight: 700;
+    font-family: var(--vp-font-family-mono);
+    font-size: 1.25rem;
 }
 </style>

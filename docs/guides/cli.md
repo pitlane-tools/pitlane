@@ -4,7 +4,7 @@ title: CLI
 
 # CLI
 
-The `pitlane` CLI wraps Cloudflare platform operations for Remix 3 apps. It reads Cloudflare resources from the `platform()` plugin in `vite.config.ts`.
+The `pitlane` CLI wraps Cloudflare platform operations for Remix apps. It reads Cloudflare resources from the `platform()` plugin in `vite.config.ts`.
 
 Pitlane does not replace Vite+ lifecycle commands. Use `vp dev`, `vp check`, `vp test`, and `vp build` for application work.
 

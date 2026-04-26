@@ -33,7 +33,7 @@ async function copy() {
                 </button>
             </div>
             <p class="opacity-70 text-sm">
-                Scaffolds a Remix 3 app wired for Vite+ and Pitlane on Cloudflare.
+                Scaffolds a Remix app wired for Vite+ and Pitlane on Cloudflare.
             </p>
         </div>
     </section>

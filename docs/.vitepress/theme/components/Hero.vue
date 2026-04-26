@@ -6,7 +6,7 @@
             >
                 <h1 class="text-pretty">Pitlane</h1>
                 <p class="text-lg max-w-md text-pretty opacity-80">
-                    Platform integration for Remix 3 apps running on Cloudflare, built around Vite+,
+                    Platform integration for Remix apps running on Cloudflare, built around Vite+,
                     explicit config, and typed runtime primitives.
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
@@ -46,24 +46,23 @@
 <style scoped>
 .hero-background {
     background:
-        linear-gradient(135deg, rgba(7, 10, 18, 0.28), rgba(4, 12, 20, 0.56)),
-        url("/media/pitlane-race-track.png");
+        linear-gradient(135deg, rgba(7, 10, 18, 0.32), rgba(4, 12, 20, 0.6)),
+        url("/media/pitlane-race-track-night.png");
     background-size: cover;
     background-position: center;
 }
 
 :root:not(.dark) .hero-background {
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(245, 245, 248, 0.55)),
-        url("/media/pitlane-race-track.png");
+        linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(245, 245, 248, 0.32)),
+        url("/media/pitlane-race-track-day.png");
     background-size: cover;
     background-position: center;
-    filter: saturate(0.2);
 }
 
 .terminal-panel {
-    border: 1px solid rgba(153, 246, 228, 0.22);
-    background: rgba(4, 12, 20, 0.82);
+    border: 1px solid rgba(255, 90, 97, 0.32);
+    background: rgba(4, 12, 20, 0.86);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
     padding: 1.25rem;
     display: grid;
@@ -72,9 +71,9 @@
 }
 
 :root:not(.dark) .terminal-panel {
-    border-color: rgba(120, 16, 19, 0.18);
+    border-color: rgba(120, 16, 19, 0.28);
     background: rgba(15, 18, 26, 0.94);
-    box-shadow: 0 24px 60px rgba(120, 16, 19, 0.12);
+    box-shadow: 0 24px 60px rgba(120, 16, 19, 0.18);
 }
 
 .terminal-row {
@@ -86,6 +85,6 @@
 }
 
 .terminal-row--accent {
-    color: #7dd3fc;
+    color: #ff5a61;
 }
 </style>

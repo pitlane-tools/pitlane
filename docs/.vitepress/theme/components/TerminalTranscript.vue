@@ -81,7 +81,8 @@ onUnmounted(() => clearInterval(timer));
 }
 
 .transcript-row--on.transcript-row--accent {
-    color: #7dd3fc;
+    color: #ff5a61;
+    text-shadow: 0 0 18px rgba(255, 90, 97, 0.5);
 }
 
 .transcript-ts {

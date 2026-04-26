@@ -13,16 +13,17 @@
         </div>
         <div class="grid gap-6 md:grid-cols-3">
             <div class="stack-card">
-                <h5 class="stack-title">Remix 3</h5>
+                <h5 class="stack-title">Remix</h5>
                 <p class="stack-body">
                     Routing, middleware, and the runtime contract your app actually runs on.
                 </p>
                 <span class="stack-tag">runtime</span>
             </div>
-            <div class="stack-card stack-card--accent">
+            <div class="stack-card">
                 <h5 class="stack-title">Vite+</h5>
                 <p class="stack-body">
-                    Unified `vp` workflow for create, install, dev, check, test, build, preview.
+                    Unified <code>vp</code> workflow for create, install, dev, check, test, build,
+                    preview.
                 </p>
                 <span class="stack-tag">tooling</span>
             </div>
@@ -34,11 +35,16 @@
                 <span class="stack-tag">platform</span>
             </div>
         </div>
-        <div class="flex justify-center mt-12">
+        <div class="flex justify-center mt-14">
             <img
-                src="/media/pitlane-combo.png"
+                src="/media/pitlane-combo-black.png"
                 alt="Pitlane = Remix + Vite+ + Cloudflare"
-                class="combo-art"
+                class="combo-art combo-art--dark"
+            />
+            <img
+                src="/media/pitlane-combo-white.png"
+                alt="Pitlane = Remix + Vite+ + Cloudflare"
+                class="combo-art combo-art--light"
             />
         </div>
     </section>
@@ -53,15 +59,6 @@
     flex-direction: column;
     gap: 0.75rem;
     position: relative;
-}
-
-.stack-card--accent::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 4px;
-    height: 100%;
-    background: var(--vp-c-brand-1);
 }
 
 .stack-title {
@@ -88,11 +85,23 @@
 .combo-art {
     max-width: min(540px, 80%);
     height: auto;
-    border: 1px solid var(--vp-c-divider);
-    background: #000;
 }
 
-:root:not(.dark) .combo-art {
-    opacity: 0.92;
+.combo-art--dark {
+    display: none;
+}
+
+.combo-art--light {
+    display: block;
+}
+
+:root.dark .combo-art--light,
+:root[data-theme="dark"] .combo-art--light {
+    display: none;
+}
+
+:root.dark .combo-art--dark,
+:root[data-theme="dark"] .combo-art--dark {
+    display: block;
 }
 </style>

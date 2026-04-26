@@ -28,7 +28,7 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
     <Spacer />
     <Footer
         heading="Start with Pitlane"
-        subheading="Create a Remix 3 app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."
+        subheading="Create a Remix app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."
         button-text="Get started"
         button-link="/guides/getting-started"
     />

@@ -4,7 +4,7 @@ title: Getting Started
 
 # Getting Started
 
-Pitlane creates Remix 3 applications for Cloudflare with Vite+ as the project workflow and Pitlane as the platform layer.
+Pitlane creates Remix applications for Cloudflare with Vite+ as the project workflow and Pitlane as the platform layer.
 
 ## Create A Project
 

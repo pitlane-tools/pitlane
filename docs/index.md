@@ -1,6 +1,6 @@
 ---
 title: Pitlane
-titleTemplate: Platform integration for Remix 3
+titleTemplate: Platform integration for Remix
 layout: home
 ---
 

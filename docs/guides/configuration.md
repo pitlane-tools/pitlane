@@ -8,7 +8,7 @@ Pitlane configuration starts in `vite.config.ts`.
 
 ## Remix Plugin
 
-`remix()` configures the Remix 3 framework build for Vite+:
+`remix()` configures the Remix framework build for Vite+:
 
 ```ts
 import { defineConfig } from "vite-plus";

@@ -31,7 +31,7 @@ const guides: DefaultTheme.SidebarItem[] = [
 const config = defineConfig({
     title: "Pitlane",
     titleTemplate: ":title | Pitlane",
-    description: "Platform integration for Remix 3 apps on Cloudflare.",
+    description: "Platform integration for Remix apps on Cloudflare.",
     srcExclude: ["superpowers/**"],
     markdown: {
         theme: {
@@ -52,6 +52,9 @@ const config = defineConfig({
         nav: [{ text: "Docs", link: "/guides/getting-started", activeMatch: "/guides/" }],
         sidebar: {
             "/guides/": guides,
+        },
+        footer: {
+            copyright: `© ${new Date().getFullYear()} Pitlane. Released under the MIT License.`,
         },
     },
     head: [

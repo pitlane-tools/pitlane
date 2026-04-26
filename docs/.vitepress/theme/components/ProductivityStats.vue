@@ -13,27 +13,37 @@
         <div class="stats">
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>1
+                    <span class="lap-stat__dot">·</span>100<span class="stat-unit">%</span>
                 </div>
-                <div class="stat-label">Config file (<code>vite.config.ts</code>)</div>
+                <div class="stat-label">
+                    Typed Cloudflare bindings — no <code>any</code>, no drift between config and
+                    runtime.
+                </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
                     <span class="lap-stat__dot">·</span>5
                 </div>
-                <div class="stat-label">Platform primitives</div>
+                <div class="stat-label">
+                    First-class primitives — D1, R2, KV, Queues, Cron — exposed as Remix
+                    middleware.
+                </div>
+            </div>
+            <div class="stat">
+                <div class="lap-stat stat-value">
+                    <span class="lap-stat__dot">·</span>1
+                </div>
+                <div class="stat-label">
+                    Source of truth — <code>platform()</code> in <code>vite.config.ts</code>.
+                </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
                     <span class="lap-stat__dot">·</span>0
                 </div>
-                <div class="stat-label">Hand-edited <code>wrangler.toml</code> files</div>
-            </div>
-            <div class="stat">
-                <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>&lt;1m
+                <div class="stat-label">
+                    <code>wrangler.toml</code> files to maintain by hand. Pitlane generates them.
                 </div>
-                <div class="stat-label">From scaffold to deploy</div>
             </div>
         </div>
     </section>
@@ -57,10 +67,11 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.5rem;
-    padding: 1.25rem;
+    gap: 0.75rem;
+    padding: 1.5rem 1.25rem;
     border: 1px solid var(--vp-c-divider);
     background: var(--vp-c-bg-soft);
+    min-height: 12rem;
 }
 
 .stat-value {
@@ -69,8 +80,17 @@
     color: var(--vp-c-text-1);
 }
 
+.stat-unit {
+    font-size: 0.6em;
+    margin-left: 0.05em;
+    color: var(--vp-c-text-2);
+    font-weight: 600;
+}
+
 .stat-label {
     font-size: 0.875rem;
     color: var(--vp-c-text-2);
+    line-height: 1.5;
+    max-width: 16rem;
 }
 </style>

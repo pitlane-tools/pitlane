@@ -32,24 +32,16 @@
 <style scoped>
 .art-pane {
     position: relative;
-    background:
-        radial-gradient(circle at 30% 30%, rgba(205, 28, 34, 0.08), transparent 65%),
-        var(--vp-c-bg-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2.5rem 2rem;
-    min-height: 22rem;
+    overflow: hidden;
+    min-height: 24rem;
 }
 
 .art-img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 6px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.18);
-}
-
-:root:not(.dark) .art-img {
-    box-shadow: 0 30px 60px rgba(120, 16, 19, 0.14);
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
 }
 </style>

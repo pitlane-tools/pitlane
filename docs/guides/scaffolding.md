@@ -65,4 +65,4 @@ my-app/
 └── vite.config.ts
 ```
 
-With no optional features selected, the project is a minimal Remix 3 app on Cloudflare with Vite+ and Pitlane platform configuration.
+With no optional features selected, the project is a minimal Remix app on Cloudflare with Vite+ and Pitlane platform configuration.

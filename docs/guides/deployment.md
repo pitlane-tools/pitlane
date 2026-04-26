@@ -4,7 +4,7 @@ title: Deployment
 
 # Deployment
 
-Pitlane deploys Remix 3 apps to Cloudflare using configuration generated from `platform()`.
+Pitlane deploys Remix apps to Cloudflare using configuration generated from `platform()`.
 
 ## Local Deploy
 
