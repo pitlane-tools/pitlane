@@ -11,21 +11,21 @@ const footerBg = '/media/pitlane-race-track.png';
 const monoIcon = '/favicon.svg';
 
 export default {
-    ...VoidZeroTheme,
-    Layout() {
-        return h((VoidZeroTheme as any).Layout, null, {
-            'home-hero-before': () => h(Home),
-        });
-    },
-    enhanceApp(ctx) {
-        ctx.app.provide(themeContextKey, {
-            logoDark,
-            logoLight,
-            logoAlt: 'Pitlane',
-            footerBg,
-            monoIcon,
-        });
+  ...VoidZeroTheme,
+  Layout() {
+    return h((VoidZeroTheme as any).Layout, null, {
+      'home-hero-before': () => h(Home),
+    });
+  },
+  enhanceApp(ctx) {
+    ctx.app.provide(themeContextKey, {
+      logoDark,
+      logoLight,
+      logoAlt: 'Pitlane',
+      footerBg,
+      monoIcon,
+    });
 
-        VoidZeroTheme.enhanceApp(ctx);
-    },
+    VoidZeroTheme.enhanceApp(ctx);
+  },
 } satisfies Theme;

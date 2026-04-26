@@ -29,21 +29,21 @@ vp dev
 Declare Cloudflare resources in `vite.config.ts`:
 
 ```ts
-import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
-import { platform } from "pitlane/platform";
+import { defineConfig } from 'vite-plus';
+import { remix } from 'pitlane/remix';
+import { platform } from 'pitlane/platform';
 
 export default defineConfig({
-    plugins: [
-        remix(),
-        platform({
-            d1: { binding: "DB", database: "contacts" },
-            kv: { binding: "SESSIONS" },
-            r2: { binding: "FILES" },
-            queues: { binding: "TASKS", queue: "task-queue" },
-            cron: "0 * * * *",
-        }),
-    ],
+  plugins: [
+    remix(),
+    platform({
+      d1: { binding: 'DB', database: 'contacts' },
+      kv: { binding: 'SESSIONS' },
+      r2: { binding: 'FILES' },
+      queues: { binding: 'TASKS', queue: 'task-queue' },
+      cron: '0 * * * *',
+    }),
+  ],
 });
 ```
 

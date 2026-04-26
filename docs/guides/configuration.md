@@ -11,18 +11,18 @@ Pitlane configuration starts in `vite.config.ts`.
 `remix()` configures the Remix 3 framework build for Vite+:
 
 ```ts
-import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
+import { defineConfig } from 'vite-plus';
+import { remix } from 'pitlane/remix';
 
 export default defineConfig({
-    plugins: [
-        remix({
-            clientEntry: "app/entry.browser",
-            serverEntry: "app/entry.server",
-            serverEnvironments: ["ssr"],
-            serverHandler: false,
-        }),
-    ],
+  plugins: [
+    remix({
+      clientEntry: 'app/entry.browser',
+      serverEntry: 'app/entry.server',
+      serverEnvironments: ['ssr'],
+      serverHandler: false,
+    }),
+  ],
 });
 ```
 
@@ -33,23 +33,23 @@ All options are optional. The plugin configures SSR and client Vite environments
 `platform()` is the source of truth for Cloudflare resources:
 
 ```ts
-import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
-import { platform } from "pitlane/platform";
+import { defineConfig } from 'vite-plus';
+import { remix } from 'pitlane/remix';
+import { platform } from 'pitlane/platform';
 
 export default defineConfig({
-    plugins: [
-        remix(),
-        platform({
-            name: "contacts",
-            compatibilityDate: "2026-04-08",
-            d1: { binding: "DB", database: "contacts" },
-            kv: { binding: "SESSIONS" },
-            r2: { binding: "FILES" },
-            queues: { binding: "TASKS", queue: "task-queue" },
-            cron: "0 * * * *",
-        }),
-    ],
+  plugins: [
+    remix(),
+    platform({
+      name: 'contacts',
+      compatibilityDate: '2026-04-08',
+      d1: { binding: 'DB', database: 'contacts' },
+      kv: { binding: 'SESSIONS' },
+      r2: { binding: 'FILES' },
+      queues: { binding: 'TASKS', queue: 'task-queue' },
+      cron: '0 * * * *',
+    }),
+  ],
 });
 ```
 
@@ -61,17 +61,17 @@ Binding resource types (`d1`, `kv`, `r2`, and `queues`) accept one object or an 
 
 ```ts
 platform({
-    d1: [
-        { binding: "DB", database: "primary" },
-        { binding: "ANALYTICS_DB", database: "analytics" },
-    ],
-    kv: [{ binding: "CACHE" }, { binding: "SESSIONS" }],
-    r2: [{ binding: "UPLOADS" }, { binding: "ASSETS" }],
-    queues: [
-        { binding: "TASKS", queue: "task-queue" },
-        { binding: "EMAILS", queue: "email-queue" },
-    ],
-    cron: ["0 * * * *", "0 0 * * *"],
+  d1: [
+    { binding: 'DB', database: 'primary' },
+    { binding: 'ANALYTICS_DB', database: 'analytics' },
+  ],
+  kv: [{ binding: 'CACHE' }, { binding: 'SESSIONS' }],
+  r2: [{ binding: 'UPLOADS' }, { binding: 'ASSETS' }],
+  queues: [
+    { binding: 'TASKS', queue: 'task-queue' },
+    { binding: 'EMAILS', queue: 'email-queue' },
+  ],
+  cron: ['0 * * * *', '0 0 * * *'],
 });
 ```
 

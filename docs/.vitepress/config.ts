@@ -4,92 +4,82 @@ import { groupIconMdPlugin, groupIconVitePlugin } from 'vitepress-plugin-group-i
 import { extendConfig } from '@voidzero-dev/vitepress-theme/config';
 
 const guides: DefaultTheme.SidebarItem[] = [
-    {
-        text: 'Start',
-        items: [
-            { text: 'Getting Started', link: '/guides/getting-started' },
-            { text: 'Vite+ and Pitlane', link: '/guides/vite-plus' },
-        ],
-    },
-    {
-        text: 'Build',
-        items: [
-            { text: 'Configuration', link: '/guides/configuration' },
-            { text: 'Platform Primitives', link: '/guides/platform-primitives' },
-            { text: 'Scaffolding', link: '/guides/scaffolding' },
-        ],
-    },
-    {
-        text: 'Ship',
-        items: [
-            { text: 'CLI', link: '/guides/cli' },
-            { text: 'Deployment', link: '/guides/deployment' },
-        ],
-    },
+  {
+    text: 'Start',
+    items: [
+      { text: 'Getting Started', link: '/guides/getting-started' },
+      { text: 'Vite+ and Pitlane', link: '/guides/vite-plus' },
+    ],
+  },
+  {
+    text: 'Build',
+    items: [
+      { text: 'Configuration', link: '/guides/configuration' },
+      { text: 'Platform Primitives', link: '/guides/platform-primitives' },
+      { text: 'Scaffolding', link: '/guides/scaffolding' },
+    ],
+  },
+  {
+    text: 'Ship',
+    items: [
+      { text: 'CLI', link: '/guides/cli' },
+      { text: 'Deployment', link: '/guides/deployment' },
+    ],
+  },
 ];
 
 const config = defineConfig({
-    title: 'Pitlane',
-    titleTemplate: ':title | Pitlane',
-    description: 'Platform integration for Remix 3 apps on Cloudflare.',
-    srcExclude: ['superpowers/**'],
-    markdown: {
-        theme: {
-            dark: 'github-dark',
-            light: 'github-light',
-        },
-        config(md) {
-            md.use(groupIconMdPlugin);
-        },
+  title: 'Pitlane',
+  titleTemplate: ':title | Pitlane',
+  description: 'Platform integration for Remix 3 apps on Cloudflare.',
+  srcExclude: ['superpowers/**'],
+  markdown: {
+    theme: {
+      dark: 'github-dark',
+      light: 'github-light',
     },
-    vite: {
-        plugins: [groupIconVitePlugin() as any],
+    config(md) {
+      md.use(groupIconMdPlugin);
     },
-    themeConfig: {
-        logo: '/favicon.svg',
-        socialLinks: [
-            { icon: 'github', link: 'https://github.com/pitlane-tools' },
-        ],
-        outline: { level: 'deep' },
-        nav: [
-            { text: 'Docs', link: '/guides/getting-started', activeMatch: '/guides/' },
-        ],
-        sidebar: {
-            '/guides/': guides,
-        },
+  },
+  vite: {
+    plugins: [groupIconVitePlugin() as any],
+  },
+  themeConfig: {
+    logo: '/favicon.svg',
+    socialLinks: [{ icon: 'github', link: 'https://github.com/pitlane-tools' }],
+    outline: { level: 'deep' },
+    nav: [{ text: 'Docs', link: '/guides/getting-started', activeMatch: '/guides/' }],
+    sidebar: {
+      '/guides/': guides,
     },
-    head: [
-        ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
-        ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-        [
-            'link',
-            { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
-        ],
-        [
-            'link',
-            {
-                rel: 'stylesheet',
-                href:
-                    'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&display=swap',
-            },
-        ],
-        [
-            'link',
-            {
-                rel: 'stylesheet',
-                href:
-                    'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap',
-            },
-        ],
-        [
-            'link',
-            {
-                rel: 'stylesheet',
-                href:
-                    'https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap',
-            },
-        ],
+  },
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' }],
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700;1,800;1,900&display=swap',
+      },
     ],
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap',
+      },
+    ],
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap',
+      },
+    ],
+  ],
 });
 
 export default extendConfig(config);
