@@ -10,9 +10,12 @@ Pitlane exposes Cloudflare bindings through Remix middleware and context keys. R
 
 ```ts
 import { env } from "cloudflare:workers";
+import { createRouter } from "remix/fetch-router";
 import { database, Database } from "pitlane/platform";
 
-database(env.DB);
+let router = createRouter({
+    middleware: [database(env.DB)],
+});
 
 router.get("/contacts", async ctx => {
     let db = ctx.get(Database);
@@ -27,9 +30,12 @@ router.get("/contacts", async ctx => {
 
 ```ts
 import { env } from "cloudflare:workers";
+import { createRouter } from "remix/fetch-router";
 import { fileStorage, FileStorage } from "pitlane/platform";
 
-fileStorage(env.FILES);
+let router = createRouter({
+    middleware: [fileStorage(env.FILES)],
+});
 
 router.post("/avatar", async ctx => {
     let files = ctx.get(FileStorage);
@@ -45,6 +51,7 @@ router.post("/avatar", async ctx => {
 ```ts
 import { env } from "cloudflare:workers";
 import { createCookie } from "remix/cookie";
+import { createRouter } from "remix/fetch-router";
 import { Session } from "remix/session";
 import { session } from "remix/session-middleware";
 import { createKvSessionStorage } from "pitlane/platform";
@@ -61,7 +68,9 @@ let sessionStorage = createKvSessionStorage(env.SESSIONS, {
     ttl: 60 * 60 * 24,
 });
 
-session(sessionCookie, sessionStorage);
+let router = createRouter({
+    middleware: [session(sessionCookie, sessionStorage)],
+});
 
 router.get("/", ctx => {
     let userSession = ctx.get(Session);
@@ -74,11 +83,12 @@ router.get("/", ctx => {
 ```ts
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
+import { createRouter } from "remix/fetch-router";
 import { createJobs, createJobQueue, scheduler, Scheduler } from "pitlane/platform";
 
 let jobs = createJobs({
     sendEmail: {
-        binding: env.EMAIL_QUEUE,
+        binding: env.TASKS,
         schema: s.object({ to: s.string(), subject: s.string() }),
         async handle(payload) {
             await sendEmail(payload.to, payload.subject);
@@ -86,7 +96,9 @@ let jobs = createJobs({
     },
 });
 
-scheduler(jobs);
+let router = createRouter({
+    middleware: [scheduler(jobs)],
+});
 
 router.post("/emails", async ctx => {
     let queue = ctx.get(Scheduler);

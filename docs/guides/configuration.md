@@ -57,7 +57,7 @@ Pitlane generates `.pitlane/wrangler.jsonc` from this config and runs Wrangler t
 
 ## Multiple Bindings
 
-Every resource type accepts one object or an array:
+Binding resource types (`d1`, `kv`, `r2`, and `queues`) accept one object or an array. `cron` accepts one cron string or an array of cron strings:
 
 ```ts
 platform({

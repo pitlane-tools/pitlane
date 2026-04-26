@@ -38,7 +38,7 @@ pitlane resources create
 pitlane resources link
 ```
 
-Resource provisioning is explicit. `pitlane resources create` reads `platform()` and creates the configured D1, KV, R2, queue, and cron resources.
+Resource provisioning is explicit. `pitlane resources create` reads `platform()` and creates the configured D1, KV, R2, and queue resources. Cron triggers are generated into Wrangler config and applied during deploy.
 
 ## Deploy
 

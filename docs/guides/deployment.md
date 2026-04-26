@@ -10,7 +10,6 @@ Pitlane deploys Remix 3 apps to Cloudflare using configuration generated from `p
 
 ```bash
 vp check
-vp build
 pitlane deploy
 ```
 

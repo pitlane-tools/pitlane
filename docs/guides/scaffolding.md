@@ -57,7 +57,9 @@ Pitlane wires selected platform features into `platform()` and the server entry.
 
 Project features add framework-level setup such as auth, tests, prerendering, MDX content, Tailwind, and deployment workflows.
 
-## Generated Shape
+## Example With Optional Features
+
+This tree shows a project with optional features selected:
 
 ```text
 my-app/
