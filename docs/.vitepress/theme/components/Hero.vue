@@ -78,15 +78,24 @@
 }
 
 .terminal-row {
-    /* color: rgba(226, 232, 240, 0.82); */
-    color: rgba(15, 18, 26, 0.82);
+    color: rgba(226, 232, 240, 0.85);
     font-family: var(--vp-font-family-mono);
     font-size: 0.875rem;
     line-height: 1.5;
     overflow-wrap: anywhere;
 }
 
+:root:not(.dark) .terminal-row {
+    color: rgba(15, 18, 26, 0.82);
+}
+
 .terminal-row--accent {
-    color: #e3242e;
+    color: #ff5a61;
+    text-shadow: 0 0 14px rgba(255, 90, 97, 0.4);
+}
+
+:root:not(.dark) .terminal-row--accent {
+    color: #c01016;
+    text-shadow: none;
 }
 </style>
