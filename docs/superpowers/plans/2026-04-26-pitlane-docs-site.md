@@ -1366,4 +1366,4 @@ If no files changed, do not create an empty commit.
 
 - Spec coverage: the plan covers Vite+ project setup, VitePress config, home content, guide pages, Vite+ public messaging, Pitlane/Vite+ command boundaries, and final verification.
 - Placeholder scan: tasks include concrete file paths, file contents, commands, and expected results.
-- API consistency: examples use `defineConfig` from `vite-plus`, `remix` from `pitlane/remix`, and platform runtime exports from their respective subpaths (`pitlane/data-table-middleware`, `pitlane/file-storage-middleware`, `pitlane/session-storage`, `pitlane/jobs`, `pitlane/jobs-middleware`, `pitlane/cron`), matching the approved design and source material.
+- API consistency: examples use `defineConfig` from `vite-plus`, `remix` from `pitlane/remix`, and platform runtime exports from `pitlane/platform`, matching the approved design and source material.
