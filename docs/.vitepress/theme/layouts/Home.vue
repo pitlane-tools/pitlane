@@ -1,18 +1,30 @@
 <script setup>
 import Footer from "@components/oss/Footer.vue";
-import HeadingSection from "@components/oss/HeadingSection.vue";
 import Spacer from "@components/shared/Spacer.vue";
 
-import FeatureGrid from "../components/FeatureGrid.vue";
+import CheckerDivider from "../components/CheckerDivider.vue";
 import Hero from "../components/Hero.vue";
+import InstallCommand from "../components/InstallCommand.vue";
 import Intro from "../components/Intro.vue";
+import OperationsArt from "../components/OperationsArt.vue";
+import PartnerLogos from "../components/PartnerLogos.vue";
+import PrimitivesGrid from "../components/PrimitivesGrid.vue";
+import ProductivityStats from "../components/ProductivityStats.vue";
+import Stack3Col from "../components/Stack3Col.vue";
+import TerminalTranscript from "../components/TerminalTranscript.vue";
 </script>
 
 <template>
     <Hero />
+    <InstallCommand />
+    <Stack3Col />
     <Intro />
-    <HeadingSection heading="The Remix platform layer for Cloudflare." />
-    <FeatureGrid />
+    <PrimitivesGrid />
+    <CheckerDivider />
+    <TerminalTranscript />
+    <OperationsArt />
+    <ProductivityStats />
+    <PartnerLogos />
     <Spacer />
     <Footer
         heading="Start with Pitlane"
