@@ -35,34 +35,34 @@ Use `pitlane-tools/deploy-action` after the app is built:
 name: Build & Deploy
 
 on:
-  push:
-    branches: [main]
+    push:
+        branches: [main]
 
 permissions:
-  contents: read
-  deployments: write
+    contents: read
+    deployments: write
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://my-app.example.com
-    steps:
-      - uses: actions/checkout@v4
+    deploy:
+        runs-on: ubuntu-latest
+        environment:
+            name: production
+            url: https://my-app.example.com
+        steps:
+            - uses: actions/checkout@v4
 
-      - uses: voidzero-dev/setup-vp@v1
-        with:
-          node-version: '24'
-          cache: true
+            - uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
 
-      - run: vp install --frozen-lockfile
-      - run: vp check
-      - run: vp build
+            - run: vp install --frozen-lockfile
+            - run: vp check
+            - run: vp build
 
-      - uses: pitlane-tools/deploy-action@v1
-        with:
-          cloudflareApiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            - uses: pitlane-tools/deploy-action@v1
+              with:
+                  cloudflareApiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 ```
 
 The action handles Pitlane's platform deploy steps. Your workflow remains responsible for checkout, Vite+ setup, dependency installation, checks, and build.

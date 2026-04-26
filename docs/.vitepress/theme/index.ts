@@ -1,6 +1,8 @@
-import { h } from "vue";
 import type { Theme } from "vitepress";
+
 import { themeContextKey, VoidZeroTheme } from "@voidzero-dev/vitepress-theme";
+import { h } from "vue";
+
 import Home from "./layouts/Home.vue";
 import "./custom.css";
 import "virtual:group-icons.css";
