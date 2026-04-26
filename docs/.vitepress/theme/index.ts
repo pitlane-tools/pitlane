@@ -20,7 +20,7 @@ export default {
         ctx.app.provide(themeContextKey, {
             logoDark,
             logoLight,
-            logoAlt: 'My Project',
+            logoAlt: 'Pitlane',
             footerBg,
             monoIcon,
         });

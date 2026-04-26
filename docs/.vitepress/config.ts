@@ -5,15 +5,33 @@ import { extendConfig } from '@voidzero-dev/vitepress-theme/config';
 
 const guides: DefaultTheme.SidebarItem[] = [
     {
-        text: 'Introduction',
+        text: 'Start',
         items: [
             { text: 'Getting Started', link: '/guides/getting-started' },
+            { text: 'Vite+ and Pitlane', link: '/guides/vite-plus' },
+        ],
+    },
+    {
+        text: 'Build',
+        items: [
+            { text: 'Configuration', link: '/guides/configuration' },
+            { text: 'Platform Primitives', link: '/guides/platform-primitives' },
+            { text: 'Scaffolding', link: '/guides/scaffolding' },
+        ],
+    },
+    {
+        text: 'Ship',
+        items: [
+            { text: 'CLI', link: '/guides/cli' },
+            { text: 'Deployment', link: '/guides/deployment' },
         ],
     },
 ];
 
 const config = defineConfig({
-    title: 'My Project',
+    title: 'Pitlane',
+    titleTemplate: ':title | Pitlane',
+    description: 'Platform integration for Remix 3 apps on Cloudflare.',
     markdown: {
         theme: {
             dark: 'github-dark',
@@ -29,11 +47,11 @@ const config = defineConfig({
     themeConfig: {
         logo: '/favicon.svg',
         socialLinks: [
-            { icon: 'github', link: 'https://github.com/' },
+            { icon: 'github', link: 'https://github.com/pitlane-tools' },
         ],
         outline: { level: 'deep' },
         nav: [
-            { text: 'Guides', link: '/guides/getting-started', activeMatch: '/guides/' },
+            { text: 'Docs', link: '/guides/getting-started', activeMatch: '/guides/' },
         ],
         sidebar: {
             '/guides/': guides,
