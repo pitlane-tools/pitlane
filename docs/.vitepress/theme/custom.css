@@ -102,6 +102,37 @@ html:not(.dark) .VPContent kbd {
     top: -1px;
 }
 
+/* Dark-mode flip for marketing-layout — voidzero pins .marketing-layout to white bg /
+   primary text and only flips it when frontmatter has `theme: dark`. We want it to follow
+   the standard VitePress html.dark toggle instead, so we override here. These rules live
+   outside @layer marketing so they beat the layered @apply rules. */
+:root.dark .marketing-layout:not([data-theme="light"]),
+:root[data-theme="dark"] .marketing-layout {
+    background-color: var(--vp-c-bg);
+    color: var(--vp-c-text-1);
+    color-scheme: dark;
+}
+
+:root.dark .marketing-layout:not([data-theme="light"]) :is(h1, h2, h3, h4, h5, h6),
+:root[data-theme="dark"] .marketing-layout :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--vp-c-text-1);
+}
+
+:root.dark .marketing-layout:not([data-theme="light"]) p,
+:root[data-theme="dark"] .marketing-layout p {
+    color: var(--vp-c-text-2);
+}
+
+/* The voidzero default `.button` is `bg-white dark:bg-transparent` — but `dark:` here
+   targets the Tailwind `.dark` class on a *parent*. When we toggle html.dark via VitePress,
+   buttons keep `bg-white`. Re-flip them. */
+:root.dark .marketing-layout .button:not(.button--primary):not(.button--white),
+:root[data-theme="dark"] .marketing-layout .button:not(.button--primary):not(.button--white) {
+    background-color: transparent;
+    color: var(--vp-c-text-1);
+    outline-color: var(--color-nickel);
+}
+
 /* Racing-livery accents */
 .section-eyebrow {
     display: inline-flex;

@@ -1,3 +1,47 @@
+<script setup>
+import { codeToHtml } from "shiki";
+
+const snippets = {
+    database: `import { Database } from "remix/data-table";
+import { database } from "pitlane/data-table-middleware";
+
+router.use(database(env.DB));
+let db = ctx.get(Database);`,
+    fileStorage: `import { FileStorage } from "pitlane/file-storage";
+import { fileStorage } from "pitlane/file-storage-middleware";
+
+router.use(fileStorage(env.FILES));
+let files = ctx.get(FileStorage);`,
+    sessions: `import { createKvSessionStorage } from "pitlane/session-storage";
+
+let storage = createKvSessionStorage(env.SESSIONS, {
+    keyPrefix: "session:",
+    ttl: 60 * 60 * 24,
+});`,
+    jobs: `import { createJobs, Scheduler } from "pitlane/jobs";
+import { scheduler } from "pitlane/jobs-middleware";
+
+router.use(scheduler(jobs));
+let queue = ctx.get(Scheduler);`,
+    cron: `import { createCron } from "pitlane/cron";
+
+let cron = createCron({
+    "0 * * * *": { handle: refreshHourlyData },
+});
+
+export default { scheduled: cron.handler };`,
+};
+
+const highlighted = {};
+for (const [key, code] of Object.entries(snippets)) {
+    highlighted[key] = await codeToHtml(code, {
+        lang: "ts",
+        themes: { light: "github-light", dark: "github-dark" },
+        defaultColor: false,
+    });
+}
+</script>
+
 <template>
     <section class="wrapper wrapper--ticks border-t py-14 lg:py-20 px-5 sm:px-10 lg:px-20">
         <div class="flex flex-col items-center text-center gap-3 mb-12">
@@ -7,9 +51,7 @@
                     Primitives
                 </span>
             </div>
-            <h3 class="text-balance max-w-2xl">
-                Five typed primitives, each one middleware away.
-            </h3>
+            <h3 class="text-balance max-w-2xl">Five typed primitives, each one middleware away.</h3>
         </div>
 
         <div class="grid gap-5 lg:grid-cols-2">
@@ -18,11 +60,7 @@
                     <h5>D1 Database</h5>
                     <span class="prim-tag">data-table</span>
                 </header>
-                <pre class="prim-code"><code>import { Database } from "remix/data-table";
-import { database } from "pitlane/data-table-middleware";
-
-router.use(database(env.DB));
-let db = ctx.get(Database);</code></pre>
+                <div class="prim-code" v-html="highlighted.database" />
             </article>
 
             <article class="prim-card">
@@ -30,11 +68,7 @@ let db = ctx.get(Database);</code></pre>
                     <h5>R2 File Storage</h5>
                     <span class="prim-tag">file-storage</span>
                 </header>
-                <pre class="prim-code"><code>import { FileStorage } from "pitlane/file-storage";
-import { fileStorage } from "pitlane/file-storage-middleware";
-
-router.use(fileStorage(env.FILES));
-let files = ctx.get(FileStorage);</code></pre>
+                <div class="prim-code" v-html="highlighted.fileStorage" />
             </article>
 
             <article class="prim-card">
@@ -42,12 +76,7 @@ let files = ctx.get(FileStorage);</code></pre>
                     <h5>KV Sessions</h5>
                     <span class="prim-tag">session-storage</span>
                 </header>
-                <pre class="prim-code"><code>import { createKvSessionStorage } from "pitlane/session-storage";
-
-let storage = createKvSessionStorage(env.SESSIONS, {
-    keyPrefix: "session:",
-    ttl: 60 * 60 * 24,
-});</code></pre>
+                <div class="prim-code" v-html="highlighted.sessions" />
             </article>
 
             <article class="prim-card">
@@ -55,11 +84,7 @@ let storage = createKvSessionStorage(env.SESSIONS, {
                     <h5>Queues + Jobs</h5>
                     <span class="prim-tag">jobs</span>
                 </header>
-                <pre class="prim-code"><code>import { createJobs, Scheduler } from "pitlane/jobs";
-import { scheduler } from "pitlane/jobs-middleware";
-
-router.use(scheduler(jobs));
-let queue = ctx.get(Scheduler);</code></pre>
+                <div class="prim-code" v-html="highlighted.jobs" />
             </article>
 
             <article class="prim-card prim-card--wide">
@@ -67,13 +92,7 @@ let queue = ctx.get(Scheduler);</code></pre>
                     <h5>Cron</h5>
                     <span class="prim-tag">cron</span>
                 </header>
-                <pre class="prim-code"><code>import { createCron } from "pitlane/cron";
-
-let cron = createCron({
-    "0 * * * *": { handle: refreshHourlyData },
-});
-
-export default { scheduled: cron.handler };</code></pre>
+                <div class="prim-code" v-html="highlighted.cron" />
             </article>
         </div>
     </section>
@@ -118,12 +137,38 @@ export default { scheduled: cron.handler };</code></pre>
 .prim-code {
     font-family: var(--vp-font-family-mono);
     font-size: 0.8rem;
-    line-height: 1.55;
-    color: var(--vp-c-text-2);
-    background: var(--vp-c-bg);
+    line-height: 1.6;
+    border: 1px solid var(--vp-c-divider);
     padding: 0.85rem 1rem;
     overflow-x: auto;
-    border: 1px solid var(--vp-c-divider);
     margin: 0;
+}
+
+/* Shiki dual-theme: shiki injects --shiki-light / --shiki-dark CSS variables on every span.
+   We pick which set to apply based on the html.dark class. */
+.prim-code :deep(.shiki),
+.prim-code :deep(pre.shiki) {
+    /* background: var(--shiki-light-bg) !important; */
+    color: var(--shiki-light) !important;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+}
+
+.prim-code :deep(.shiki span) {
+    color: var(--shiki-light);
+}
+
+:root.dark .prim-code :deep(.shiki),
+:root.dark .prim-code :deep(pre.shiki),
+:root[data-theme="dark"] .prim-code :deep(.shiki),
+:root[data-theme="dark"] .prim-code :deep(pre.shiki) {
+    /* background: var(--shiki-dark-bg) !important; */
+    color: var(--shiki-dark) !important;
+}
+
+:root.dark .prim-code :deep(.shiki span),
+:root[data-theme="dark"] .prim-code :deep(.shiki span) {
+    color: var(--shiki-dark);
 }
 </style>

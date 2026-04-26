@@ -19,7 +19,9 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
     <InstallCommand />
     <Stack3Col />
     <Intro />
-    <PrimitivesGrid />
+    <Suspense>
+        <PrimitivesGrid />
+    </Suspense>
     <CheckerDivider />
     <TerminalTranscript />
     <OperationsArt />

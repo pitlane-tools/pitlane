@@ -13,28 +13,28 @@
         <div class="stats">
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>100<span class="stat-unit">%</span>
+                    <span class="lap-stat__dot">·</span>3<span class="stat-unit">lines</span>
                 </div>
                 <div class="stat-label">
-                    Typed Cloudflare bindings — no <code>any</code>, no drift between config and
-                    runtime.
+                    To wire a Cloudflare primitive into a Remix route — import, mount middleware,
+                    read from context.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>5
+                    <span class="lap-stat__dot">·</span>330<span class="stat-unit">+</span>
                 </div>
                 <div class="stat-label">
-                    First-class primitives — D1, R2, KV, Queues, Cron — exposed as Remix
-                    middleware.
+                    Edge cities your app runs in by default, on Cloudflare's global Workers
+                    network.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>1
+                    <span class="lap-stat__dot">·</span>0<span class="stat-unit">ms</span>
                 </div>
                 <div class="stat-label">
-                    Source of truth — <code>platform()</code> in <code>vite.config.ts</code>.
+                    Cold start. V8 isolates, not containers — your routes are warm everywhere.
                 </div>
             </div>
             <div class="stat">
@@ -42,7 +42,8 @@
                     <span class="lap-stat__dot">·</span>0
                 </div>
                 <div class="stat-label">
-                    <code>wrangler.toml</code> files to maintain by hand. Pitlane generates them.
+                    <code>wrangler.toml</code> files to maintain by hand. Pitlane generates them
+                    from <code>platform()</code>.
                 </div>
             </div>
         </div>
@@ -81,10 +82,13 @@
 }
 
 .stat-unit {
-    font-size: 0.6em;
-    margin-left: 0.05em;
+    font-size: 0.34em;
+    margin-left: 0.25em;
     color: var(--vp-c-text-2);
     font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+    vertical-align: 0.25em;
 }
 
 .stat-label {

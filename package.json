@@ -9,6 +9,7 @@
     },
     "devDependencies": {
         "@voidzero-dev/vitepress-theme": "latest",
+        "shiki": "^4.0.2",
         "vite-plus": "latest",
         "vitepress": "latest",
         "vitepress-plugin-group-icons": "latest",

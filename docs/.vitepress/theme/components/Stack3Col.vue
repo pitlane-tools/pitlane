@@ -45,11 +45,6 @@
 </template>
 
 <style scoped>
-/* FIXME: Why isn't this applying?? */
-a:hover {
-    color: var(--color-brand);
-}
-
 .stack-card {
     border: 1px solid var(--vp-c-divider);
     background: var(--vp-c-bg-soft);
@@ -58,11 +53,26 @@ a:hover {
     flex-direction: column;
     gap: 0.75rem;
     position: relative;
+    transition: border-color 160ms ease;
+}
+
+.stack-card:has(a:hover) {
+    border-color: var(--vp-c-brand-1);
+}
+
+.stack-card a {
+    text-decoration: none;
+    transition: color 160ms ease;
+}
+
+.stack-card a:hover .stack-title {
+    color: var(--vp-c-brand-1);
 }
 
 .stack-title {
     font-weight: 700;
     color: var(--vp-c-text-1);
+    transition: color 160ms ease;
 }
 
 .stack-body {
