@@ -23,7 +23,6 @@ img[src*="logo"] {
     --vp-font-family-mono:
         "JetBrains Mono", ui-monospace, SFMono-Regular, "Andale Mono", "Ubuntu Mono", Menlo,
         Consolas, Monaco, "Liberation Mono", "Lucida Console", monospace;
-
 }
 
 /* Brand colors — dark mode */
@@ -148,7 +147,7 @@ html:not(.dark) .VPContent kbd {
 
 /* Footer CTA — dim the race-track image so the heading copy stays legible */
 footer[data-theme="dark"] section.wrapper > .relative > img {
-    filter: brightness(0.45) saturate(0.8);
+    filter: brightness(0.65) saturate(0.8);
     opacity: 0.7;
 }
 
@@ -161,6 +160,10 @@ footer[data-theme="dark"] section.wrapper > .relative::before {
     pointer-events: none;
 }
 
+footer > div > section:first-of-type {
+    display: none;
+}
+
 .lap-stat {
     font-family: var(--vp-font-family-mono);
     font-feature-settings: "tnum" 1;
@@ -171,4 +174,9 @@ footer[data-theme="dark"] section.wrapper > .relative::before {
 .lap-stat__dot {
     color: var(--vp-c-brand-1);
     margin-right: 0.4em;
+}
+
+.button.button--primary::before {
+    background-image: unset;
+    background-color: var(--vp-c-brand-1);
 }

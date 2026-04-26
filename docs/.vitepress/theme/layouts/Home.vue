@@ -25,7 +25,6 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
     <OperationsArt />
     <ProductivityStats />
     <PartnerLogos />
-    <Spacer />
     <Footer
         heading="Start with Pitlane"
         subheading="Create a Remix app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."

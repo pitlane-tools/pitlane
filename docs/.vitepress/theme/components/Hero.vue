@@ -72,12 +72,14 @@
 
 :root:not(.dark) .terminal-panel {
     border-color: rgba(120, 16, 19, 0.28);
-    background: rgba(15, 18, 26, 0.94);
+    /* background: rgba(15, 18, 26, 0.94); */
+    background: rgba(226, 232, 240, 0.96);
     box-shadow: 0 24px 60px rgba(120, 16, 19, 0.18);
 }
 
 .terminal-row {
-    color: rgba(226, 232, 240, 0.82);
+    /* color: rgba(226, 232, 240, 0.82); */
+    color: rgba(15, 18, 26, 0.82);
     font-family: var(--vp-font-family-mono);
     font-size: 0.875rem;
     line-height: 1.5;
@@ -85,6 +87,6 @@
 }
 
 .terminal-row--accent {
-    color: #ff5a61;
+    color: #e3242e;
 }
 </style>

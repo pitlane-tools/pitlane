@@ -8,7 +8,7 @@ import CheckerDivider from "./CheckerDivider.vue";
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
                 <span class="text-xs font-medium font-mono uppercase tracking-wide opacity-70">
-                    Built With
+                    Build With
                 </span>
             </div>
             <div class="partners">
@@ -20,12 +20,12 @@ import CheckerDivider from "./CheckerDivider.vue";
                     aria-label="Remix"
                 >
                     <img
-                        src="/media/remix-logo-full-black.svg"
+                        src="/media/remix-logo-black.svg"
                         alt="Remix"
                         class="partner-logo partner-logo--light"
                     />
                     <img
-                        src="/media/remix-logo-full-white.svg"
+                        src="/media/remix-logo-white.svg"
                         alt="Remix"
                         class="partner-logo partner-logo--dark"
                     />
@@ -39,12 +39,12 @@ import CheckerDivider from "./CheckerDivider.vue";
                     aria-label="Vite+"
                 >
                     <img
-                        src="/media/vite-plus-full-black.svg"
+                        src="/media/vite-plus-black.svg"
                         alt="Vite+"
                         class="partner-logo partner-logo--light"
                     />
                     <img
-                        src="/media/vite-plus-full-white.svg"
+                        src="/media/vite-plus-white.svg"
                         alt="Vite+"
                         class="partner-logo partner-logo--dark"
                     />
@@ -58,12 +58,12 @@ import CheckerDivider from "./CheckerDivider.vue";
                     aria-label="Cloudflare"
                 >
                     <img
-                        src="/media/cloudflare-full-black.svg"
+                        src="/media/cloudflare.svg"
                         alt="Cloudflare"
                         class="partner-logo partner-logo--light"
                     />
                     <img
-                        src="/media/cloudflare-full-white.svg"
+                        src="/media/cloudflare.svg"
                         alt="Cloudflare"
                         class="partner-logo partner-logo--dark"
                     />
@@ -87,15 +87,15 @@ import CheckerDivider from "./CheckerDivider.vue";
     display: inline-flex;
     align-items: center;
     transition: opacity 160ms ease;
-    opacity: 0.75;
-}
-
-.partner:hover {
     opacity: 1;
 }
 
+.partner:hover {
+    opacity: 0.75;
+}
+
 .partner-logo {
-    height: 28px;
+    height: 3rem;
     width: auto;
 }
 

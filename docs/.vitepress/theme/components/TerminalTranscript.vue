@@ -6,7 +6,12 @@ const lines = [
     { ts: "00:04.21", cmd: "cd my-app && vp install", out: "Installed 412 packages" },
     { ts: "00:18.07", cmd: "pitlane resources create", out: "D1, KV, R2, Queue ready" },
     { ts: "00:22.55", cmd: "vp dev", out: "Local server on :5173" },
-    { ts: "00:24.10", cmd: "pitlane deploy", out: "Live at https://my-app.workers.dev", accent: true },
+    {
+        ts: "00:24.10",
+        cmd: "pitlane deploy",
+        out: "Live at https://my-app.workers.dev",
+        accent: true,
+    },
 ];
 
 const visible = ref(0);
@@ -22,7 +27,7 @@ onUnmounted(() => clearInterval(timer));
 </script>
 
 <template>
-    <section class="wrapper wrapper--ticks border-t py-14 lg:py-20 px-5 sm:px-10 lg:px-20">
+    <section class="wrapper py-14 lg:py-20 px-5 sm:px-10 lg:px-20">
         <div class="flex flex-col items-center text-center gap-3 mb-10">
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />

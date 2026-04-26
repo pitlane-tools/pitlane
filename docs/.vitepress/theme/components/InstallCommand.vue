@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from "vue";
 
-const command = "npx vp create pitlane my-app";
+const command = "vp create pitlane my-app";
 const copied = ref(false);
 
 async function copy() {
@@ -50,17 +50,6 @@ async function copy() {
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
     position: relative;
-}
-
-.install-row::after {
-    content: "";
-    position: absolute;
-    left: 1rem;
-    right: 1rem;
-    bottom: -2px;
-    height: 2px;
-    background: var(--vp-c-brand-1);
-    opacity: 0.85;
 }
 
 .install-prompt {

@@ -8,49 +8,48 @@
                 </span>
             </div>
             <h3 class="text-balance max-w-xl">
-                One stack: Remix runtime, Vite+ tooling, Cloudflare platform.
+                One stack: Remix framework, Vite+ tooling, Cloudflare platform.
             </h3>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
             <div class="stack-card">
-                <h5 class="stack-title">Remix</h5>
+                <a href="https://remix.run">
+                    <h5 class="stack-title">Remix</h5>
+                </a>
                 <p class="stack-body">
-                    Routing, middleware, and the runtime contract your app actually runs on.
+                    Routing, middleware, and component framework your app actually runs on.
                 </p>
                 <span class="stack-tag">runtime</span>
             </div>
             <div class="stack-card">
-                <h5 class="stack-title">Vite+</h5>
+                <a href="https://viteplus.dev">
+                    <h5 class="stack-title">Vite+</h5>
+                </a>
                 <p class="stack-body">
-                    Unified <code>vp</code> workflow for create, install, dev, check, test, build,
-                    preview.
+                    Unified <code>vp</code> workflow for create, install, dev, format, lint,
+                    typecheck, test, build, and preview.
                 </p>
                 <span class="stack-tag">tooling</span>
             </div>
             <div class="stack-card">
-                <h5 class="stack-title">Cloudflare</h5>
+                <a href="https://workers.cloudflare.com">
+                    <h5 class="stack-title">Cloudflare</h5>
+                </a>
                 <p class="stack-body">
                     Workers, D1, R2, KV, queues, and cron — bound through typed config.
                 </p>
                 <span class="stack-tag">platform</span>
             </div>
         </div>
-        <div class="flex justify-center mt-14">
-            <img
-                src="/media/pitlane-combo-black.png"
-                alt="Pitlane = Remix + Vite+ + Cloudflare"
-                class="combo-art combo-art--dark"
-            />
-            <img
-                src="/media/pitlane-combo-white.png"
-                alt="Pitlane = Remix + Vite+ + Cloudflare"
-                class="combo-art combo-art--light"
-            />
-        </div>
     </section>
 </template>
 
 <style scoped>
+/* FIXME: Why isn't this applying?? */
+a:hover {
+    color: var(--color-brand);
+}
+
 .stack-card {
     border: 1px solid var(--vp-c-divider);
     background: var(--vp-c-bg-soft);

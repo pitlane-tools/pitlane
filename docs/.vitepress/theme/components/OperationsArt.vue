@@ -1,7 +1,5 @@
 <template>
-    <section
-        class="wrapper wrapper--ticks border-t grid lg:grid-cols-2 divide-x divide-nickel"
-    >
+    <section class="wrapper wrapper--ticks border-t grid lg:grid-cols-2 divide-x divide-nickel">
         <div class="art-pane">
             <img
                 src="/media/pitlane-racecar.png"
@@ -21,8 +19,8 @@
                 <code>pitlane resources create</code> reads <code>platform()</code> and provisions
                 D1, KV, R2, queues, and cron triggers in one pass.
                 <code>pitlane db migrate</code> runs pending D1 migrations.
-                <code>pitlane secrets push</code> syncs secrets from <code>.dev.vars</code> to
-                Wrangler. <code>pitlane deploy</code> ties it all together.
+                <code>pitlane secrets push</code> syncs secrets from <code>.env</code> to Wrangler.
+                <code>pitlane deploy</code> ties it all together.
             </p>
             <a href="/guides/cli" class="button w-fit mt-4">CLI reference</a>
         </div>
