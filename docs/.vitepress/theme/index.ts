@@ -1,7 +1,6 @@
 import type { Theme } from "vitepress";
 
 import { themeContextKey, VoidZeroTheme } from "@voidzero-dev/vitepress-theme";
-import { h } from "vue";
 
 import Home from "./layouts/Home.vue";
 import "./custom.css";
@@ -14,11 +13,6 @@ const monoIcon = "/favicon.svg";
 
 export default {
     ...VoidZeroTheme,
-    Layout() {
-        return h((VoidZeroTheme as any).Layout, null, {
-            "home-hero-before": () => h(Home),
-        });
-    },
     enhanceApp(ctx) {
         ctx.app.provide(themeContextKey, {
             logoDark,
@@ -27,6 +21,8 @@ export default {
             footerBg,
             monoIcon,
         });
+
+        ctx.app.component("Home", Home);
 
         VoidZeroTheme.enhanceApp(ctx);
     },
