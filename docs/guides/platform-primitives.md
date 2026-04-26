@@ -11,7 +11,8 @@ Pitlane exposes Cloudflare bindings through Remix middleware and context keys. R
 ```ts
 import { env } from "cloudflare:workers";
 import { createRouter } from "remix/fetch-router";
-import { database, Database } from "pitlane/platform";
+import { Database } from "remix/data-table";
+import { database } from "pitlane/data-table-middleware";
 
 let router = createRouter({
     middleware: [database(env.DB)],
@@ -31,7 +32,8 @@ router.get("/contacts", async ctx => {
 ```ts
 import { env } from "cloudflare:workers";
 import { createRouter } from "remix/fetch-router";
-import { fileStorage, FileStorage } from "pitlane/platform";
+import { FileStorage } from "pitlane/file-storage";
+import { fileStorage } from "pitlane/file-storage-middleware";
 
 let router = createRouter({
     middleware: [fileStorage(env.FILES)],
@@ -54,7 +56,7 @@ import { createCookie } from "remix/cookie";
 import { createRouter } from "remix/fetch-router";
 import { Session } from "remix/session";
 import { session } from "remix/session-middleware";
-import { createKvSessionStorage } from "pitlane/platform";
+import { createKvSessionStorage } from "pitlane/session-storage";
 
 let sessionCookie = createCookie("__session", {
     secrets: ["s3cr3t"],
@@ -84,7 +86,8 @@ router.get("/", ctx => {
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
 import { createRouter } from "remix/fetch-router";
-import { createJobs, createJobQueue, scheduler, Scheduler } from "pitlane/platform";
+import { createJobs, createJobQueue, Scheduler } from "pitlane/jobs";
+import { scheduler } from "pitlane/jobs-middleware";
 
 let jobs = createJobs({
     sendEmail: {
@@ -138,7 +141,7 @@ await queue.enqueue(
 ## Cron
 
 ```ts
-import { createCron } from "pitlane/platform";
+import { createCron } from "pitlane/cron";
 
 let cron = createCron({
     "0 * * * *": {
