@@ -10,25 +10,12 @@ Create a Pitlane project with Vite+:
 vp create pitlane
 ```
 
-The Remix template is the Pitlane path for Cloudflare-backed Remix 3 apps.
-
-## Project Kind
-
-```text
-? Project kind:
-❯ Remix
-  React Router — SPA
-  React Router — SSR
-  React Router — RSC
-```
-
-Selecting Remix creates a project with:
+By default `create-pitlane` bootstraps a project with:
 
 - `vite.config.ts` using `remix()` and `platform()`
 - `app/entry.server.tsx` with the Remix middleware stack
 - `pitlane/cli` as a development dependency
 - `.pitlane/` in `.gitignore`
-- no handwritten `wrangler.jsonc`
 
 ## Platform Features
 
