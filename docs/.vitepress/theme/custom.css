@@ -135,10 +135,7 @@ html:not(.dark) .VPContent kbd {
 
 .marketing-layout {
     & code {
-        .dark:not([data-theme]) &,
-        [data-theme="dark"] & {
-            outline-color: var(--vp-c-divider);
-        }
+        outline: none;
     }
 }
 
