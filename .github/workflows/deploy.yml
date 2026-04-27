@@ -27,7 +27,7 @@ jobs:
                   cache: true
 
             - name: 🚀 Build docs (VitePress)
-              run: vp run build
+              run: vp run docs:build
 
             - name: ☁️ Deploy Worker
               run: vpx wrangler deploy --name=${{ env.PROJECT_NAME }} --config wrangler.jsonc
