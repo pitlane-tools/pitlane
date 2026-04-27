@@ -13,7 +13,8 @@
         "vite-plus": "latest",
         "vitepress": "latest",
         "vitepress-plugin-group-icons": "latest",
-        "vue": "latest"
+        "vue": "latest",
+        "wrangler": "^4.85.0"
     },
     "packageManager": "pnpm@10.8.0"
 }
