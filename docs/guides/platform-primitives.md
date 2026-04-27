@@ -1,5 +1,6 @@
 ---
 title: Platform Primitives
+description: Access Cloudflare bindings through Remix middleware and typed context keys.
 ---
 
 # Platform Primitives

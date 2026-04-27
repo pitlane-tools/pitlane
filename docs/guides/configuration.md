@@ -1,5 +1,6 @@
 ---
 title: Configuration
+description: Configure the Remix and platform plugins for a Pitlane app in vite.config.ts.
 ---
 
 # Configuration

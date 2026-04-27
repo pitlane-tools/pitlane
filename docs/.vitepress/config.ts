@@ -3,6 +3,11 @@ import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { DefaultTheme, defineConfig } from "vitepress";
 import { groupIconMdPlugin, groupIconVitePlugin } from "vitepress-plugin-group-icons";
 
+const SITE_URL = "https://pitlane.tools";
+const SITE_NAME = "Pitlane";
+const SITE_DESCRIPTION = "Platform integration for Remix apps on Cloudflare.";
+const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
+
 const guides: DefaultTheme.SidebarItem[] = [
     {
         text: "Start",
@@ -29,10 +34,32 @@ const guides: DefaultTheme.SidebarItem[] = [
 ];
 
 const config = defineConfig({
-    title: "Pitlane",
-    titleTemplate: ":title | Pitlane",
-    description: "Platform integration for Remix apps on Cloudflare.",
+    title: SITE_NAME,
+    titleTemplate: `:title | ${SITE_NAME}`,
+    description: SITE_DESCRIPTION,
     srcExclude: ["superpowers/**"],
+    sitemap: { hostname: SITE_URL },
+    transformPageData(pageData) {
+        const slug = pageData.relativePath
+            .replace(/index\.md$/, "")
+            .replace(/\.md$/, "");
+        const url = `${SITE_URL}/${slug}`;
+        const title = pageData.frontmatter.title ?? pageData.title ?? SITE_NAME;
+        const ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
+        const description = pageData.frontmatter.description
+            || pageData.description
+            || SITE_DESCRIPTION;
+
+        pageData.frontmatter.head ??= [];
+        pageData.frontmatter.head.push(
+            ["meta", { property: "og:title", content: ogTitle }],
+            ["meta", { property: "og:description", content: description }],
+            ["meta", { property: "og:url", content: url }],
+            ["meta", { name: "twitter:title", content: ogTitle }],
+            ["meta", { name: "twitter:description", content: description }],
+            ["link", { rel: "canonical", href: url }],
+        );
+    },
     markdown: {
         theme: {
             dark: "github-dark",
@@ -59,6 +86,14 @@ const config = defineConfig({
     },
     head: [
         ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+        ["meta", { property: "og:site_name", content: SITE_NAME }],
+        ["meta", { property: "og:type", content: "website" }],
+        ["meta", { property: "og:image", content: OG_IMAGE }],
+        ["meta", { property: "og:image:width", content: "2508" }],
+        ["meta", { property: "og:image:height", content: "1627" }],
+        ["meta", { property: "og:image:alt", content: `${SITE_NAME} — ${SITE_DESCRIPTION}` }],
+        ["meta", { name: "twitter:card", content: "summary_large_image" }],
+        ["meta", { name: "twitter:image", content: OG_IMAGE }],
         ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
         [
             "link",

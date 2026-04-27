@@ -1,5 +1,6 @@
 ---
 title: Scaffolding
+description: Bootstrap a new Pitlane project with vp create pitlane.
 ---
 
 # Scaffolding

@@ -1,5 +1,6 @@
 ---
 title: Vite+
+description: How Pitlane composes with Vite+ — application lifecycle on Vite+, Cloudflare platform operations on Pitlane.
 ---
 
 # Vite+

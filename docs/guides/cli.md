@@ -1,5 +1,6 @@
 ---
 title: CLI
+description: Reference for the pitlane CLI — database, secrets, resources, and deploy commands.
 ---
 
 # CLI

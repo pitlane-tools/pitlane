@@ -1,5 +1,6 @@
 ---
 title: Getting Started
+description: Create, run, and configure a Pitlane project for Cloudflare with Vite+.
 ---
 
 # Getting Started
