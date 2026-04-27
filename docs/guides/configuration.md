@@ -48,13 +48,15 @@ export default defineConfig({
             kv: { binding: "SESSIONS" },
             r2: { binding: "FILES" },
             queues: { binding: "TASKS", queue: "task-queue" },
-            cron: "0 * * * *",
+            cron: "* * * * *",
         }),
     ],
 });
 ```
 
 Pitlane generates `.pitlane/wrangler.jsonc` from this config and runs Wrangler type generation into `.pitlane/worker-configuration.d.ts`.
+
+`cron` configures Cloudflare cron triggers that wake the worker. Job schedules declared with `createJobs` are reconciled on each tick, so a one-minute trigger covers most workloads.
 
 ## Multiple Bindings
 
@@ -72,7 +74,7 @@ platform({
         { binding: "TASKS", queue: "task-queue" },
         { binding: "EMAILS", queue: "email-queue" },
     ],
-    cron: ["0 * * * *", "0 0 * * *"],
+    cron: ["* * * * *", "0 0 * * *"],
 });
 ```
 

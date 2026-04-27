@@ -14,22 +14,32 @@ router.use(fileStorage(env.FILES));
 let files = ctx.get(FileStorage);`,
     sessions: `import { createKvSessionStorage } from "pitlane/session-storage";
 
-let storage = createKvSessionStorage(env.SESSIONS, {
-    keyPrefix: "session:",
-    ttl: 60 * 60 * 24,
-});`,
-    jobs: `import { createJobs, Scheduler } from "pitlane/jobs";
-import { scheduler } from "pitlane/jobs-middleware";
+let storage = createKvSessionStorage(
+    env.SESSIONS, 
+    {
+        keyPrefix: "session:",
+        ttl: 60 * 60 * 24,
+    }
+);`,
+    jobs: `import { createJobs, Scheduler } from "pitlane/job";
+import { scheduler } from "pitlane/job-middleware";
 
 router.use(scheduler(jobs));
-let queue = ctx.get(Scheduler);`,
-    cron: `import { createCron } from "pitlane/cron";
+let scheduler = ctx.get(Scheduler);`,
+    cron: `import { createJobs } from "pitlane/job";
 
-let cron = createCron({
-    "0 * * * *": { handle: refreshHourlyData },
-});
-
-export default { scheduled: cron.handler };`,
+let jobs = createJobs({
+    refreshHourlyData: {
+        binding: env.TASKS,
+        schedule: { 
+            cron: "0 * * * *", 
+            timezone: "UTC" 
+        },
+        async handle() { 
+            await refresh(); 
+        },
+    },
+});`,
 };
 
 const highlighted = {};

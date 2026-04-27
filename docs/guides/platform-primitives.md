@@ -87,7 +87,7 @@ router.get("/", ctx => {
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
 import { createRouter } from "remix/fetch-router";
-import { createJobs, createJobQueue, Scheduler } from "pitlane/jobs";
+import { createJobs, createJobHandler, Scheduler } from "pitlane/jobs";
 import { scheduler } from "pitlane/jobs-middleware";
 
 let jobs = createJobs({
@@ -105,26 +105,27 @@ let router = createRouter({
 });
 
 router.post("/emails", async ctx => {
-    let queue = ctx.get(Scheduler);
-    await queue.enqueue(jobs.sendEmail, {
+    let scheduler = ctx.get(Scheduler);
+    await scheduler.enqueue(jobs.sendEmail, {
         to: "a@example.com",
         subject: "Hello",
     });
     return new Response(null, { status: 202 });
 });
 
-let workerQueue = createJobQueue(jobs);
+let handlers = createJobHandler(jobs);
 
 export default {
     fetch: router.fetch,
-    queue: workerQueue.handler,
+    queue: handlers.queue,
+    scheduled: handlers.scheduled,
 } satisfies ExportedHandler<Env>;
 ```
 
 Retry behavior is configured per enqueue call:
 
 ```ts
-await queue.enqueue(
+await scheduler.enqueue(
     jobs.sendEmail,
     { to: "vip@example.com", subject: "Important update" },
     {
@@ -141,19 +142,86 @@ await queue.enqueue(
 
 ## Cron
 
-```ts
-import { createCron } from "pitlane/cron";
+Cron is a recurrence layer over delayed jobs. A job declares a `schedule` and the `scheduled` handler exported by `createJobHandler` materializes due occurrences into ordinary jobs. Retries, dedupe, priority, and observability all behave the same as any other enqueued job:
 
-let cron = createCron({
-    "0 * * * *": {
-        async handle(event) {
-            await refreshHourlyData(event);
+```ts
+let jobs = createJobs({
+    sendWeeklyDigest: {
+        binding: env.TASKS,
+        schema: s.object({ userId: s.string() }),
+
+        schedule: {
+            cron: "0 9 * * MON",
+            timezone: "America/Chicago",
+            payload: { userId: "system" },
+            missedRuns: "enqueue-one",
+        },
+
+        async handle(payload) {
+            await sendWeeklyDigest(payload.userId);
         },
     },
 });
-
-export default {
-    fetch: router.fetch,
-    scheduled: cron.handler,
-} satisfies ExportedHandler<Env>;
 ```
+
+`payload` is either a static value or a function `({ scheduledAt }) => Payload` for values derived at enqueue time. Generated payloads are validated against the job schema:
+
+```ts
+schedule: {
+    cron: "0 9 * * *",
+    timezone: "UTC",
+    async payload({ scheduledAt }) {
+        return { date: scheduledAt.toISOString().slice(0, 10) };
+    },
+}
+```
+
+`timezone` is required. DST defaults to `nonexistentTime: "skip"` and `repeatedTime: "once"`, configurable under `dst`.
+
+`missedRuns` controls catch-up behavior after worker downtime:
+
+| Policy        | Behavior                                                              |
+| ------------- | --------------------------------------------------------------------- |
+| `skip`        | Advance to the next future occurrence without enqueueing missed work. |
+| `enqueue-one` | Enqueue only the most recent missed occurrence. Default.              |
+| `catch-up`    | Enqueue every missed occurrence up to a cap.                          |
+
+`catch-up` requires a cap:
+
+```ts
+missedRuns: { policy: "catch-up", maxOccurrences: 20 }
+```
+
+Each occurrence is deduped by `cron:${jobName}:${scheduledAt.toISOString()}`, composing with the existing `dedupeKey` and `dedupeTtlMs` behavior. A crash between enqueue and bookkeeping does not produce duplicate runs.
+
+### Driving Reconciliation
+
+Cloudflare cron triggers wake the worker. Configure one in `platform()` and `handlers.scheduled` reconciles due schedules on each tick:
+
+```ts
+platform({
+    cron: "* * * * *",
+});
+```
+
+A one-minute trigger is appropriate for most workloads. Only schedules with due occurrences enqueue work; the rest are skipped.
+
+### Manual Control
+
+`Scheduler` exposes runtime controls for individual schedules:
+
+```ts
+router.post("/admin/digest/run", async ctx => {
+    let scheduler = ctx.get(Scheduler);
+    await scheduler.triggerSchedule(jobs.sendWeeklyDigest);
+    return new Response(null, { status: 202 });
+});
+
+router.post("/admin/digest/pause", async ctx => {
+    let scheduler = ctx.get(Scheduler);
+    await scheduler.pauseSchedule(jobs.sendWeeklyDigest);
+    return new Response(null, { status: 204 });
+});
+```
+
+`triggerSchedule` enqueues a job immediately without advancing `nextRunAt`. `pauseSchedule` and `resumeSchedule` toggle the schedule without losing its cursor.

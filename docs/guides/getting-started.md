@@ -42,7 +42,7 @@ export default defineConfig({
             kv: { binding: "SESSIONS" },
             r2: { binding: "FILES" },
             queues: { binding: "TASKS", queue: "task-queue" },
-            cron: "0 * * * *",
+            cron: "* * * * *",
         }),
     ],
 });
