@@ -1,11 +1,11 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 const lines = [
-    { ts: "00:00.00", cmd: "vp create pitlane my-app", out: "Scaffolded my-app" },
+    { ts: "00:01.10", cmd: "vp create pitlane my-app", out: "Scaffolded my-app" },
     { ts: "00:04.21", cmd: "cd my-app && vp install", out: "Installed 412 packages" },
     { ts: "00:18.07", cmd: "pitlane resources create", out: "D1, KV, R2, Queue ready" },
-    { ts: "00:22.55", cmd: "vp dev", out: "Local server on :1612" },
+    { ts: "00:22.55", cmd: "vp dev", out: "Local server on :5173" },
     {
         ts: "00:24.10",
         cmd: "pitlane deploy",
@@ -14,20 +14,104 @@ const lines = [
     },
 ];
 
-const visible = ref(0);
-let timer;
+const HOLD_MS = 2000;
 
-onMounted(() => {
-    timer = setInterval(() => {
-        visible.value = (visible.value + 1) % (lines.length + 1);
-    }, 1400);
+function parseTs(ts) {
+    const [mm, rest] = ts.split(":");
+    const [ss, hh] = rest.split(".");
+    return Number(mm) * 60000 + Number(ss) * 1000 + Number(hh) * 10;
+}
+
+function formatTs(ms) {
+    const totalHundredths = Math.max(0, Math.floor(ms / 10));
+    const mm = Math.floor(totalHundredths / 6000);
+    const ss = Math.floor((totalHundredths % 6000) / 100);
+    const hh = totalHundredths % 100;
+    return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}.${String(hh).padStart(2, "0")}`;
+}
+
+const targets = lines.map((line) => parseTs(line.ts));
+const totalMs = targets[targets.length - 1];
+
+const elapsedMs = ref(0);
+const sectionRef = ref(null);
+
+const rowsWithState = computed(() => {
+    const e = elapsedMs.value;
+    const activeIdx = targets.findIndex((t) => t > e);
+    return lines.map((line, i) => {
+        if (activeIdx === -1 || i < activeIdx) {
+            return { ...line, state: "locked", display: line.ts };
+        }
+        if (i === activeIdx) {
+            return { ...line, state: "active", display: formatTs(e) };
+        }
+        return { ...line, state: "future", display: "" };
+    });
 });
 
-onUnmounted(() => clearInterval(timer));
+let startTime;
+let rafId;
+
+function tick(now) {
+    if (startTime === undefined) startTime = now;
+    const elapsed = now - startTime;
+    if (elapsed >= totalMs + HOLD_MS) {
+        startTime = now;
+        elapsedMs.value = 0;
+    } else {
+        elapsedMs.value = elapsed;
+    }
+    rafId = requestAnimationFrame(tick);
+}
+
+function startClock() {
+    if (rafId !== undefined) return;
+    startTime = undefined;
+    rafId = requestAnimationFrame(tick);
+}
+
+function stopClock() {
+    if (rafId !== undefined) {
+        cancelAnimationFrame(rafId);
+        rafId = undefined;
+    }
+}
+
+let observer;
+
+onMounted(() => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reducedMotion.matches) {
+        elapsedMs.value = totalMs;
+        return;
+    }
+
+    observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                startClock();
+            } else {
+                stopClock();
+            }
+        }
+    });
+    if (sectionRef.value) {
+        observer.observe(sectionRef.value);
+    }
+});
+
+onUnmounted(() => {
+    stopClock();
+    observer?.disconnect();
+});
 </script>
 
 <template>
-    <section class="wrapper py-14 lg:py-20 px-5 sm:px-10 lg:px-20">
+    <section
+        ref="sectionRef"
+        class="wrapper py-14 lg:py-20 px-5 sm:px-10 lg:px-20"
+    >
         <div class="flex flex-col items-center text-center gap-3 mb-10">
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
@@ -39,17 +123,18 @@ onUnmounted(() => clearInterval(timer));
         </div>
         <div class="transcript">
             <div
-                v-for="(line, i) in lines"
+                v-for="(row, i) in rowsWithState"
                 :key="i"
                 class="transcript-row"
                 :class="{
-                    'transcript-row--on': i < visible,
-                    'transcript-row--accent': line.accent,
+                    'transcript-row--locked': row.state === 'locked',
+                    'transcript-row--active': row.state === 'active',
+                    'transcript-row--accent': row.accent,
                 }"
             >
-                <span class="transcript-ts">{{ line.ts }}</span>
-                <span class="transcript-cmd">$ {{ line.cmd }}</span>
-                <span class="transcript-out">→ {{ line.out }}</span>
+                <span class="transcript-ts">{{ row.display }}</span>
+                <span class="transcript-cmd">$ {{ row.cmd }}</span>
+                <span class="transcript-out">→ {{ row.out }}</span>
             </div>
         </div>
     </section>
@@ -81,11 +166,13 @@ onUnmounted(() => clearInterval(timer));
     border-bottom: none;
 }
 
-.transcript-row--on {
+.transcript-row--locked,
+.transcript-row--active {
     color: rgba(226, 232, 240, 0.92);
 }
 
-.transcript-row--on.transcript-row--accent {
+.transcript-row--locked.transcript-row--accent,
+.transcript-row--active.transcript-row--accent {
     color: #ff5a61;
     text-shadow: 0 0 18px rgba(255, 90, 97, 0.5);
 }
