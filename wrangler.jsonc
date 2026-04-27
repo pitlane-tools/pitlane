@@ -1,5 +1,6 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
+    "account_id": "3e1fe2693d3175f5f65ef46352f4f747",
     "compatibility_date": "2026-04-26",
     "assets": {
         "directory": "./docs/.vitepress/dist",
