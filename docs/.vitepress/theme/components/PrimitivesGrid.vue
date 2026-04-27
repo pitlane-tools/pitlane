@@ -2,31 +2,75 @@
 import { codeToHtml } from "shiki";
 
 const snippets = {
-    database: `import { Database } from "remix/data-table";
+    database: `import { env } from "cloudflare:workers";
+import { Database } from "remix/data-table";
 import { database } from "pitlane/data-table-middleware";
 
 router.use(database(env.DB));
-let db = ctx.get(Database);`,
-    fileStorage: `import { FileStorage } from "pitlane/file-storage";
+
+router.get("/contacts", async ctx => {
+    let db = ctx.get(Database);
+    return Response.json(
+        await db.findMany(Contacts),
+    );
+});`,
+    fileStorage: `import { env } from "cloudflare:workers";
+import { FileStorage } from "pitlane/file-storage";
 import { fileStorage } from "pitlane/file-storage-middleware";
 
 router.use(fileStorage(env.FILES));
-let files = ctx.get(FileStorage);`,
-    sessions: `import { createKvSessionStorage } from "pitlane/session-storage";
 
-let storage = createKvSessionStorage(
-    env.SESSIONS, 
-    {
-        keyPrefix: "session:",
-        ttl: 60 * 60 * 24,
-    }
-);`,
-    jobs: `import { createJobs, Scheduler } from "pitlane/job";
+router.post("/avatar", async ctx => {
+    let files = ctx.get(FileStorage);
+    await files.set(
+        "avatar",
+        await ctx.request.blob(),
+    );
+});`,
+    sessions: `import { env } from "cloudflare:workers";
+import { Session } from "remix/session";
+import { session } from "remix/session-middleware";
+import { createKvSessionStorage } from "pitlane/session-storage";
+
+let storage = createKvSessionStorage(env.SESSIONS, {
+    keyPrefix: "session:",
+    ttl: 60 * 60 * 24,
+});
+
+router.use(session(cookie, storage));
+
+router.get("/", ctx => {
+    let s = ctx.get(Session);
+    return Response.json({
+        count: s.get("count") ?? 0,
+    });
+});`,
+    jobs: `import { env } from "cloudflare:workers";
+import * as s from "remix/data-schema";
+import { createJobs, Scheduler } from "pitlane/job";
 import { scheduler } from "pitlane/job-middleware";
 
+let jobs = createJobs({
+    sendEmail: {
+        binding: env.TASKS,
+        schema: s.object({ to: s.string() }),
+        async handle({ to }) {
+            await sendEmail(to);
+        },
+    },
+});
+
 router.use(scheduler(jobs));
-let scheduler = ctx.get(Scheduler);`,
-    cron: `import { createJobs } from "pitlane/job";
+
+router.post("/emails", async ctx => {
+    let scheduler = ctx.get(Scheduler);
+    await scheduler.enqueue(
+        jobs.sendEmail,
+        { to: "a@example.com" },
+    );
+});`,
+    cron: `import { env } from "cloudflare:workers";
+import { createJobs } from "pitlane/job";
 
 let jobs = createJobs({
     refreshHourlyData: {
@@ -68,7 +112,7 @@ for (const [key, code] of Object.entries(snippets)) {
             <article class="prim-card">
                 <header class="prim-head">
                     <h5>D1 Database</h5>
-                    <span class="prim-tag">data-table</span>
+                    <span class="prim-tag">remix/data-table</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.database" />
             </article>
@@ -76,7 +120,7 @@ for (const [key, code] of Object.entries(snippets)) {
             <article class="prim-card">
                 <header class="prim-head">
                     <h5>R2 File Storage</h5>
-                    <span class="prim-tag">file-storage</span>
+                    <span class="prim-tag">remix/file-storage</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.fileStorage" />
             </article>
@@ -84,23 +128,23 @@ for (const [key, code] of Object.entries(snippets)) {
             <article class="prim-card">
                 <header class="prim-head">
                     <h5>KV Sessions</h5>
-                    <span class="prim-tag">session-storage</span>
+                    <span class="prim-tag">remix/session-storage</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.sessions" />
             </article>
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Queues + Jobs</h5>
-                    <span class="prim-tag">jobs</span>
+                    <h5>Background Jobs</h5>
+                    <span class="prim-tag">pitlane/job</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.jobs" />
             </article>
 
             <article class="prim-card prim-card--wide">
                 <header class="prim-head">
-                    <h5>Cron</h5>
-                    <span class="prim-tag">cron</span>
+                    <h5>Cron Jobs</h5>
+                    <span class="prim-tag">pitlane/job</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.cron" />
             </article>
