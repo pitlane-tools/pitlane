@@ -5,7 +5,7 @@ const lines = [
     { ts: "00:01.10", cmd: "vp create pitlane my-app", out: "Scaffolded my-app" },
     { ts: "00:04.21", cmd: "cd my-app && vp install", out: "Installed 412 packages" },
     { ts: "00:18.07", cmd: "pitlane resources create", out: "D1, KV, R2, Queue ready" },
-    { ts: "00:22.55", cmd: "vp dev", out: "Local server on :5173" },
+    { ts: "00:22.55", cmd: "vp dev", out: "Local server on :1612" },
     {
         ts: "00:24.10",
         cmd: "pitlane deploy",
