@@ -69,9 +69,9 @@ const packages: DefaultTheme.SidebarItem[] = [
             { text: "remix", link: "/package/remix" },
 
             { text: "session-storage", link: "/package/session-storage" },
-            { text: "d1-database", link: "/package/d1-database" },
-            { text: "database-middleware", link: "/package/database-middleware" },
-            { text: "r2-file-storage", link: "/package/r2-file-storage" },
+            { text: "d1-database", link: "/package/data-table-d1" },
+            { text: "database-middleware", link: "/package/data-table-middleware" },
+            { text: "r2-file-storage", link: "/package/file-storage-r2" },
             { text: "file-storage-middleware", link: "/package/file-storage-middleware" },
             { text: "job", link: "/package/job" },
             { text: "job-middleware", link: "/package/job-middleware" },
