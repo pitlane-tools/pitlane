@@ -222,7 +222,6 @@ footer > div > section:first-of-type {
 
 .lap-stat__dot {
     color: var(--vp-c-brand-1);
-    margin-right: 0.4em;
 }
 
 .button.button--primary::before {
