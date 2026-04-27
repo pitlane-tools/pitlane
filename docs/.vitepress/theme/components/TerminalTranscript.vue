@@ -30,7 +30,7 @@ function formatTs(ms) {
     return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}.${String(hh).padStart(2, "0")}`;
 }
 
-const targets = lines.map((line) => parseTs(line.ts));
+const targets = lines.map(line => parseTs(line.ts));
 const totalMs = targets[targets.length - 1];
 
 const elapsedMs = ref(0);
@@ -38,7 +38,7 @@ const sectionRef = ref(null);
 
 const rowsWithState = computed(() => {
     const e = elapsedMs.value;
-    const activeIdx = targets.findIndex((t) => t > e);
+    const activeIdx = targets.findIndex(t => t > e);
     return lines.map((line, i) => {
         if (activeIdx === -1 || i < activeIdx) {
             return { ...line, state: "locked", display: line.ts };
@@ -87,7 +87,7 @@ onMounted(() => {
         return;
     }
 
-    observer = new IntersectionObserver((entries) => {
+    observer = new IntersectionObserver(entries => {
         for (const entry of entries) {
             if (entry.isIntersecting) {
                 startClock();
@@ -108,10 +108,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <section
-        ref="sectionRef"
-        class="wrapper py-14 lg:py-20 px-5 sm:px-10 lg:px-20"
-    >
+    <section ref="sectionRef" class="wrapper py-14 lg:py-20 px-5 sm:px-10 lg:px-20">
         <div class="flex flex-col items-center text-center gap-3 mb-10">
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
@@ -119,7 +116,7 @@ onUnmounted(() => {
                     Lap Time
                 </span>
             </div>
-            <h3 class="text-balance max-w-2xl">From scaffold to deploy in one minute.</h3>
+            <h3 class="text-balance max-w-2xl">From scaffold to deploy in under one minute.</h3>
         </div>
         <div class="transcript">
             <div
