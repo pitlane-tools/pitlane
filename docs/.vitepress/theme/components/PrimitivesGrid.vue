@@ -106,6 +106,7 @@ for (const [key, code] of Object.entries(snippets)) {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    min-width: 0;
 }
 
 .prim-card--wide {

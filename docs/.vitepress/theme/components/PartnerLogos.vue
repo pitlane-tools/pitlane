@@ -78,9 +78,9 @@ import CheckerDivider from "./CheckerDivider.vue";
 .partners {
     display: flex;
     align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
+    gap: clamp(0.75rem, 4vw, 2rem);
     justify-content: center;
+    width: 100%;
 }
 
 .partner {
@@ -88,6 +88,7 @@ import CheckerDivider from "./CheckerDivider.vue";
     align-items: center;
     transition: opacity 160ms ease;
     opacity: 1;
+    min-width: 0;
 }
 
 .partner:hover {
@@ -95,8 +96,9 @@ import CheckerDivider from "./CheckerDivider.vue";
 }
 
 .partner-logo {
-    height: 3rem;
+    height: clamp(1.75rem, 6vw, 3rem);
     width: auto;
+    max-width: 100%;
 }
 
 .partner-logo--dark {
@@ -117,6 +119,7 @@ import CheckerDivider from "./CheckerDivider.vue";
     color: var(--vp-c-brand-1);
     font-weight: 700;
     font-family: var(--vp-font-family-mono);
-    font-size: 1.25rem;
+    font-size: clamp(1rem, 3vw, 1.25rem);
+    flex-shrink: 0;
 }
 </style>

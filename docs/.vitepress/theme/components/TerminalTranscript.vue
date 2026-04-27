@@ -46,7 +46,7 @@ const rowsWithState = computed(() => {
         if (i === activeIdx) {
             return { ...line, state: "active", display: formatTs(e) };
         }
-        return { ...line, state: "future", display: "" };
+        return { ...line, state: "future", display: " " };
     });
 });
 
