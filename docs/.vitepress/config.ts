@@ -10,6 +10,77 @@ const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
 const guides: DefaultTheme.SidebarItem[] = [
     {
+        text: "Introduction",
+        items: [
+            { text: "Getting Started", link: "/guide/getting-started" },
+            { text: "Creating a Project", link: "/guide/create" },
+            { text: "Installing Dependencies", link: "/guide/install" },
+        ],
+    },
+    {
+        text: "Guide",
+        items: [
+            { text: "Features", link: "/guide/features" },
+            { text: "Routing", link: "/guide/routing" },
+            { text: "Frames", link: "/guide/frames" },
+            { text: "Hydration", link: "/guide/hydration" },
+            { text: "Styling", link: "/guide/styling" },
+            { text: "Pending UI", link: "/guide/pending-ui" },
+            { text: "Sessions and Cookies", link: "/guide/sessions-cookies" },
+            { text: "Background Jobs", link: "/guide/jobs" },
+            { text: "Cron Jobs", link: "/guide/cron" },
+            { text: "Error Reporting", link: "/guide/errors" },
+            { text: "File Uploads", link: "/guide/file-uploads" },
+            { text: "Validation", link: "/guide/validation" },
+            { text: "Content Layer", link: "/guide/content" },
+            { text: "Authentication", link: "/guide/auth" },
+            { text: "Testing", link: "/guide/testing" },
+            { text: "Pre-Rendering", link: "/guide/pre-rendering" },
+            { text: "Progressive Enhancement", link: "/guide/progressive-enhancement" },
+        ],
+    },
+    {
+        text: "Tools",
+        items: [
+            { text: "Vite+", link: "/guide/vite-plus" },
+            { text: "Pitlane CLI", link: "/guide/cli" },
+            { text: "Pitlane MCP", link: "/guide/mcp" },
+            { text: "GitHub Actions", link: "/guide/actions" },
+        ],
+    },
+    {
+        text: "Deploy",
+        items: [
+            { text: "Setup", link: "/guide/setup" },
+            { text: "Environment Variables", link: "/guide/env" },
+            { text: "Secrets", link: "/guide/secrets" },
+            { text: "Resources", link: "/guide/resources" },
+            { text: "Database Migrations", link: "/guide/migrations" },
+            { text: "Deployment", link: "/guide/deployment" },
+        ],
+    },
+];
+
+const packages: DefaultTheme.SidebarItem[] = [
+    {
+        text: "Packages",
+        items: [
+            { text: "platform", link: "/package/platform" },
+            { text: "remix", link: "/package/remix" },
+
+            { text: "session-storage", link: "/package/session-storage" },
+            { text: "d1-database", link: "/package/d1-database" },
+            { text: "database-middleware", link: "/package/database-middleware" },
+            { text: "r2-file-storage", link: "/package/r2-file-storage" },
+            { text: "file-storage-middleware", link: "/package/file-storage-middleware" },
+            { text: "job", link: "/package/job" },
+            { text: "job-middleware", link: "/package/job-middleware" },
+        ],
+    },
+];
+
+const sidebar: DefaultTheme.SidebarItem[] = [
+    {
         text: "Start",
         items: [
             { text: "Getting Started", link: "/guides/getting-started" },
@@ -40,15 +111,12 @@ const config = defineConfig({
     srcExclude: ["superpowers/**"],
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
-        const slug = pageData.relativePath
-            .replace(/index\.md$/, "")
-            .replace(/\.md$/, "");
+        const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
         const url = `${SITE_URL}/${slug}`;
         const title = pageData.frontmatter.title ?? pageData.title ?? SITE_NAME;
         const ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
-        const description = pageData.frontmatter.description
-            || pageData.description
-            || SITE_DESCRIPTION;
+        const description =
+            pageData.frontmatter.description || pageData.description || SITE_DESCRIPTION;
 
         pageData.frontmatter.head ??= [];
         pageData.frontmatter.head.push(
@@ -76,9 +144,13 @@ const config = defineConfig({
         logo: "/favicon.svg",
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
-        nav: [{ text: "Docs", link: "/guides/getting-started", activeMatch: "/guides/" }],
+        nav: [
+            { text: "Guide", link: "/guides/getting-started", activeMatch: "/guides/" },
+            { text: "Packages", link: "/packages/platform", activeMatch: "/packages/" },
+        ],
         sidebar: {
-            "/guides/": guides,
+            "/guides/": sidebar,
+            "/packages/": packages,
         },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane. Released under the MIT License.`,
