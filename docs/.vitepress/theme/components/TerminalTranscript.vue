@@ -171,8 +171,7 @@ onUnmounted(() => {
     color: rgba(226, 232, 240, 0.92);
 }
 
-.transcript-row--locked.transcript-row--accent,
-.transcript-row--active.transcript-row--accent {
+.transcript-row--locked.transcript-row--accent {
     color: #ff5a61;
     text-shadow: 0 0 18px rgba(255, 90, 97, 0.5);
 }
