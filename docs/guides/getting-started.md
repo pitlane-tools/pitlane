@@ -31,8 +31,7 @@ Declare Cloudflare resources in `vite.config.ts`:
 
 ```ts
 import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
-import { platform } from "pitlane/platform";
+import { remix, platform } from "pitlane/dev";
 
 export default defineConfig({
     plugins: [

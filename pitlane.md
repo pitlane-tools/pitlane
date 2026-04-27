@@ -10,7 +10,7 @@ The goal is to bring the developer experience of Void (auto-provisioned platform
 
 **Key principle**: Pitlane follows Remix 3 idioms. Platform primitives are middleware you add and context keys you read, not magic globals. Configuration is explicit. The `platform()` Vite plugin is the canonical source of the project's Cloudflare configuration, and all other tools (CLI, deploy action, type generation) read from it.
 
-**Supported platform**: Cloudflare. The `platform()` Vite plugin is imported from `pitlane/platform`. All runtime exports (middleware, context keys, helpers) come from `pitlane/platform`.
+**Supported platform**: Cloudflare. The `platform()` Vite plugin is imported from `pitlane/dev`. All runtime exports (middleware, context keys, helpers) come from `pitlane/dev`.
 
 **Name and distribution:**
 
@@ -26,15 +26,15 @@ Five packages in a monorepo. Each has one job and can be used independently, but
 
 | Package                       | Purpose                                                                |
 | ----------------------------- | ---------------------------------------------------------------------- |
-| `pitlane/remix`               | Vite plugin — Remix 3 framework build integration                      |
-| `pitlane/platform`            | Vite plugin + platform adapters, middleware, context keys, and helpers |
+| `pitlane/dev`                 | Vite plugin — Remix 3 framework build integration                      |
+| `pitlane/dev`                 | Vite plugin + platform adapters, middleware, context keys, and helpers |
 | `pitlane/cli`                 | CLI wrapping platform tooling — database, secrets, resources, deploy   |
 | `pitlane-tools/deploy-action` | GitHub Action for CI/CD deployment                                     |
 | `pitlane/mcp`                 | MCP server for AI-assisted development (post-MVP)                      |
 
-The adapter/middleware code lives inside `pitlane/*`. The Vite plugin is imported from `pitlane/platform`; all runtime exports come from the package root. One install gives you everything.
+The adapter/middleware code lives inside `pitlane/*`. The Vite plugin is imported from `pitlane/dev`; all runtime exports come from the package root. One install gives you everything.
 
-## `pitlane/remix` — framework Vite plugin
+## `pitlane/dev` — framework Vite plugin
 
 Generalizes the `remix.plugin.ts` that currently lives as hand-rolled application code in every Remix 3 project. Handles four concerns:
 
@@ -49,7 +49,7 @@ Generalizes the `remix.plugin.ts` that currently lives as hand-rolled applicatio
 **API:**
 
 ```ts
-import { remix } from "pitlane/remix";
+import { remix } from "pitlane/dev";
 
 export default defineConfig({
     plugins: [
@@ -58,13 +58,13 @@ export default defineConfig({
             clientEntry: "app/entry.browser", // false to disable
             serverEntry: "app/entry.server",
             serverEnvironments: ["ssr"],
-            serverHandler: false, // true if not using pitlane/platform
+            serverHandler: false, // true if not using pitlane/dev
         }),
     ],
 });
 ```
 
-## `pitlane/platform` — platform Vite plugin
+## `pitlane/dev` — platform Vite plugin
 
 The `platform()` plugin is the canonical source of the project's Cloudflare configuration. Every other tool — the CLI, the deploy action, type generation — reads this config to know what to do.
 
@@ -117,9 +117,9 @@ Every Cloudflare resource type (`d1`, `kv`, `r2`, `queues`) accepts either a sin
 - No auto-provisioning of remote resources. That's the CLI's job.
 - No hiding platform concepts. The generated configs and types are inspectable in `.pitlane/`.
 
-## `pitlane/platform` — runtime exports
+## `pitlane/dev` — runtime exports
 
-All Cloudflare platform primitives are imported from `pitlane/platform`.
+All Cloudflare platform primitives are imported from `pitlane/dev`.
 
 ### Middleware and context keys
 
@@ -131,7 +131,7 @@ The `database()` middleware wraps a D1 binding as a `Database` instance (from `r
 
 ```ts
 import { env } from "cloudflare:workers";
-import { database, Database } from "pitlane/platform";
+import { database, Database } from "pitlane/dev";
 
 // In the middleware stack
 database(env.DB);
@@ -145,7 +145,7 @@ If you need a second database, create an additional context key and add another 
 
 ```ts
 import { createContextKey } from "remix/context";
-import { database, Database, D1DatabaseAdapter } from "pitlane/platform";
+import { database, Database, D1DatabaseAdapter } from "pitlane/dev";
 
 let AnalyticsDB = createContextKey<Database>();
 
@@ -164,7 +164,7 @@ The `fileStorage()` middleware wraps R2 bindings as `FileStorage` instances (fro
 
 ```ts
 import { env } from "cloudflare:workers";
-import { fileStorage, FileStorage } from "pitlane/platform";
+import { fileStorage, FileStorage } from "pitlane/dev";
 
 // In the middleware stack
 fileStorage(env.FILES);
@@ -203,7 +203,7 @@ The `R2FileStorage` class implements `remix/file-storage`'s `FileStorage` interf
 
 ```ts
 import { env } from "cloudflare:workers";
-import { createKvSessionStorage } from "pitlane/platform";
+import { createKvSessionStorage } from "pitlane/dev";
 import { createRouter } from "remix/fetch-router";
 import { createCookie } from "remix/cookie";
 import { Session } from "remix/session";
@@ -243,7 +243,7 @@ Each job declares its queue `binding`, a `schema` for payload validation, and a 
 ```ts
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
-import { createJobs } from "pitlane/platform";
+import { createJobs } from "pitlane/dev";
 
 let jobs = createJobs({
     sendEmail: {
@@ -261,7 +261,7 @@ let jobs = createJobs({
 The `scheduler()` middleware creates a typed job scheduler from job definitions and injects it into request context via the `Scheduler` key.
 
 ```ts
-import { scheduler, Scheduler } from "pitlane/platform";
+import { scheduler, Scheduler } from "pitlane/dev";
 
 // In the middleware stack
 scheduler(jobs);
@@ -331,7 +331,7 @@ let queue = createJobQueue(jobs, {
 The queue consumer dispatches incoming messages to the correct job handler based on message metadata. Returns a `.handler` property for the Worker export.
 
 ```ts
-import { createJobQueue } from "pitlane/platform";
+import { createJobQueue } from "pitlane/dev";
 
 let queue = createJobQueue(jobs);
 ```
@@ -341,7 +341,7 @@ let queue = createJobQueue(jobs);
 Explicit handler registration, no file-system conventions.
 
 ```ts
-import { createCron } from "pitlane/platform";
+import { createCron } from "pitlane/dev";
 
 let cron = createCron({
     "0 * * * *": {
@@ -460,8 +460,8 @@ export default {
 ### Full vite.config.ts example
 
 ```ts
-import { remix } from "pitlane/remix";
-import { platform } from "pitlane/platform";
+import { remix } from "pitlane/dev";
+import { platform } from "pitlane/dev";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
@@ -633,9 +633,9 @@ Not part of the MVP. Documented here for direction.
 
 ### In MVP
 
-- `pitlane/remix` — Vite plugin (extraction of `remix.plugin.ts`)
-- `pitlane/platform` — Vite plugin + `platform()` config (canonical source of Cloudflare configuration)
-- `pitlane/platform` — `database`, `Database`, `fileStorage`, `FileStorage`, `scheduler`, `Scheduler`, `createJobs`, `createJobQueue`, `createCron`, `createKvSessionStorage`, `D1DatabaseAdapter`, `R2FileStorage`
+- `pitlane/dev` — Vite plugin (extraction of `remix.plugin.ts`)
+- `pitlane/dev` — Vite plugin + `platform()` config (canonical source of Cloudflare configuration)
+- `pitlane/dev` — `database`, `Database`, `fileStorage`, `FileStorage`, `scheduler`, `Scheduler`, `createJobs`, `createJobQueue`, `createCron`, `createKvSessionStorage`, `D1DatabaseAdapter`, `R2FileStorage`
 - `pitlane/cli` — database commands, secrets sync, resource provisioning, deploy
 - `pitlane-tools/deploy-action` — GitHub Action for CI/CD deployment
 - Auto-injected `CLAUDE.md` in the platform package
@@ -692,7 +692,7 @@ vp create pitlane
   React Router — RSC
 ```
 
-Selecting "Remix" scaffolds a Remix 3 project on Cloudflare using `pitlane/remix`, `pitlane/platform`, and `pitlane/cli`. The base template includes:
+Selecting "Remix" scaffolds a Remix 3 project on Cloudflare using `pitlane/dev`, `pitlane/dev`, and `pitlane/cli`. The base template includes:
 
 - `vite.config.ts` with `remix()` and `platform()` plugins
 - `entry.server.tsx` with the Remix middleware stack

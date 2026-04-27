@@ -13,7 +13,7 @@ Pitlane configuration starts in `vite.config.ts`.
 
 ```ts
 import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
+import { remix } from "pitlane/dev";
 
 export default defineConfig({
     plugins: [
@@ -35,8 +35,7 @@ All options are optional. The plugin configures SSR and client Vite environments
 
 ```ts
 import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
-import { platform } from "pitlane/platform";
+import { remix, platform } from "pitlane/dev";
 
 export default defineConfig({
     plugins: [

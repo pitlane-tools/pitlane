@@ -38,8 +38,7 @@ Pitlane plugins live in the same `vite.config.ts` file as the rest of your Vite+
 
 ```ts
 import { defineConfig } from "vite-plus";
-import { remix } from "pitlane/remix";
-import { platform } from "pitlane/platform";
+import { remix, platform } from "pitlane/dev";
 
 export default defineConfig({
     plugins: [
