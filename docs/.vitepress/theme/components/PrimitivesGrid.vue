@@ -1,94 +1,30 @@
-<script setup>
+<script setup lang="ts">
 import { codeToHtml } from "shiki";
 
-const snippets = {
-    database: `import { env } from "cloudflare:workers";
-import { Database } from "remix/data-table";
-import { database } from "pitlane/data-table-middleware";
-
-router.use(database(env.DB));
-
-router.get("/contacts", async ctx => {
-    let db = ctx.get(Database);
-    return Response.json(
-        await db.findMany(Contacts),
-    );
-});`,
-    fileStorage: `import { env } from "cloudflare:workers";
-import { FileStorage } from "pitlane/file-storage";
-import { fileStorage } from "pitlane/file-storage-middleware";
-
-router.use(fileStorage(env.FILES));
-
-router.post("/avatar", async ctx => {
-    let files = ctx.get(FileStorage);
-    await files.set(
-        "avatar",
-        await ctx.request.blob(),
-    );
-});`,
-    sessions: `import { env } from "cloudflare:workers";
-import { Session } from "remix/session";
-import { session } from "remix/session-middleware";
-import { createKvSessionStorage } from "pitlane/session-storage";
-
-let storage = createKvSessionStorage(env.SESSIONS, {
-    keyPrefix: "session:",
-    ttl: 60 * 60 * 24,
+const rawSnippets = import.meta.glob<string>("./snippets/*.ts", {
+    eager: true,
+    import: "default",
+    query: "?raw",
 });
 
-router.use(session(cookie, storage));
+const snippetOrder = {
+    database: "database",
+    fileStorage: "file-storage",
+    sessions: "sessions",
+    jobs: "jobs",
+    cron: "cron",
+    ai: "ai",
+} as const;
 
-router.get("/", ctx => {
-    let s = ctx.get(Session);
-    return Response.json({
-        count: s.get("count") ?? 0,
-    });
-});`,
-    jobs: `import { env } from "cloudflare:workers";
-import * as s from "remix/data-schema";
-import { createJobs, Scheduler } from "pitlane/job";
-import { scheduler } from "pitlane/job-middleware";
+type SnippetKey = keyof typeof snippetOrder;
 
-let jobs = createJobs({
-    sendEmail: {
-        binding: env.TASKS,
-        schema: s.object({ to: s.string() }),
-        async handle({ to }) {
-            await sendEmail(to);
-        },
-    },
-});
+const stripSnippetDirectives = (code: string) => code.replace(/^\/\/ @ts-nocheck\r?\n/, "").trim();
 
-router.use(scheduler(jobs));
-
-router.post("/emails", async ctx => {
-    let scheduler = ctx.get(Scheduler);
-    await scheduler.enqueue(
-        jobs.sendEmail,
-        { to: "a@example.com" },
-    );
-});`,
-    cron: `import { env } from "cloudflare:workers";
-import { createJobs } from "pitlane/job";
-
-let jobs = createJobs({
-    refreshHourlyData: {
-        binding: env.TASKS,
-        schedule: { 
-            cron: "0 * * * *", 
-            timezone: "UTC" 
-        },
-        async handle() { 
-            await refresh(); 
-        },
-    },
-});`,
-};
-
-const highlighted = {};
-for (const [key, code] of Object.entries(snippets)) {
-    highlighted[key] = await codeToHtml(code, {
+const highlighted = {} as Record<SnippetKey, string>;
+for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]) {
+    const code = rawSnippets[`./snippets/${file}.ts`];
+    if (code === undefined) throw new Error(`Missing primitive snippet: ${path}`);
+    highlighted[key] = await codeToHtml(stripSnippetDirectives(code), {
         lang: "ts",
         themes: { light: "github-light", dark: "github-dark" },
         defaultColor: false,
@@ -105,14 +41,14 @@ for (const [key, code] of Object.entries(snippets)) {
                     Primitives
                 </span>
             </div>
-            <h3 class="text-balance max-w-2xl">Five typed primitives, each one middleware away.</h3>
+            <h3 class="text-balance max-w-2xl">Six Cloudflare primitives, designed for Remix.</h3>
         </div>
 
         <div class="grid gap-5 lg:grid-cols-2">
             <article class="prim-card">
                 <header class="prim-head">
                     <h5>D1 Database</h5>
-                    <span class="prim-tag">remix/data-table</span>
+                    <span class="prim-tag">pitlane/data-table-d1</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.database" />
             </article>
@@ -120,7 +56,7 @@ for (const [key, code] of Object.entries(snippets)) {
             <article class="prim-card">
                 <header class="prim-head">
                     <h5>R2 File Storage</h5>
-                    <span class="prim-tag">remix/file-storage</span>
+                    <span class="prim-tag">pitlane/file-storage-r2</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.fileStorage" />
             </article>
@@ -128,9 +64,17 @@ for (const [key, code] of Object.entries(snippets)) {
             <article class="prim-card">
                 <header class="prim-head">
                     <h5>KV Sessions</h5>
-                    <span class="prim-tag">remix/session-storage</span>
+                    <span class="prim-tag">pitlane/session-storage-kv</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.sessions" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
+                    <h5>Workers AI</h5>
+                    <span class="prim-tag">pitlane/ai</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.ai" />
             </article>
 
             <article class="prim-card">
@@ -141,9 +85,9 @@ for (const [key, code] of Object.entries(snippets)) {
                 <div class="prim-code" v-html="highlighted.jobs" />
             </article>
 
-            <article class="prim-card prim-card--wide">
+            <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Cron Jobs</h5>
+                    <h5>Scheduled Jobs</h5>
                     <span class="prim-tag">pitlane/job</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.cron" />
@@ -193,8 +137,7 @@ for (const [key, code] of Object.entries(snippets)) {
     font-family: var(--vp-font-family-mono);
     font-size: 0.8rem;
     line-height: 1.6;
-    border: 1px solid var(--vp-c-divider);
-    padding: 0.85rem 1rem;
+    padding: 0.5rem;
     overflow-x: auto;
     margin: 0;
 }

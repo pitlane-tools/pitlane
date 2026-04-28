@@ -28,9 +28,22 @@ export default defineConfig({
             ],
             partitionByComment: true,
         },
+        overrides: [
+            {
+                files: ["docs/.vitepress/theme/components/snippets/*.ts"],
+                options: {
+                    printWidth: 50,
+                },
+            },
+        ],
     },
     lint: {
-        ignorePatterns: ["docs/.vitepress/cache/**", "docs/.vitepress/dist/**", "node_modules/**"],
+        ignorePatterns: [
+            "docs/.vitepress/cache/**",
+            "docs/.vitepress/dist/**",
+            "docs/.vitepress/theme/components/snippets/**",
+            "node_modules/**",
+        ],
         options: {
             typeAware: true,
             typeCheck: true,

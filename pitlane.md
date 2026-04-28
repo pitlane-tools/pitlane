@@ -243,7 +243,7 @@ Each job declares its queue `binding`, a `schema` for payload validation, and a 
 ```ts
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
-import { createJobs } from "pitlane/dev";
+import { createJobs } from "pitlane/job";
 
 let jobs = createJobs({
     sendEmail: {
@@ -261,7 +261,8 @@ let jobs = createJobs({
 The `scheduler()` middleware creates a typed job scheduler from job definitions and injects it into request context via the `Scheduler` key.
 
 ```ts
-import { scheduler, Scheduler } from "pitlane/dev";
+import { scheduler } from "pitlane/job-middleware";
+import { Scheduler } from "pitlane/job";
 
 // In the middleware stack
 scheduler(jobs);
@@ -331,7 +332,7 @@ let queue = createJobQueue(jobs, {
 The queue consumer dispatches incoming messages to the correct job handler based on message metadata. Returns a `.handler` property for the Worker export.
 
 ```ts
-import { createJobQueue } from "pitlane/dev";
+import { createJobQueue } from "pitlane/job";
 
 let queue = createJobQueue(jobs);
 ```

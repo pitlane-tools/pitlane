@@ -1,6 +1,6 @@
-// deno-lint-ignore-file no-explicit-any
+// @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
-import { DefaultTheme, defineConfig } from "vitepress";
+import { type DefaultTheme, defineConfig } from "vitepress";
 import { groupIconMdPlugin, groupIconVitePlugin } from "vitepress-plugin-group-icons";
 
 const SITE_URL = "https://pitlane.tools";
@@ -68,38 +68,20 @@ const packages: DefaultTheme.SidebarItem[] = [
             { text: "pitlane", link: "/package/pitlane" },
             { text: "@pitlane/dev", link: "/package/dev" },
 
-            { text: "@pitlane/session-storage", link: "/package/session-storage" },
+            { text: "@pitlane/session-storage-kv", link: "/package/session-storage-kv" },
             { text: "@pitlane/data-table-d1", link: "/package/data-table-d1" },
-            { text: "@pitlane/data-table-middleware", link: "/package/data-table-middleware" },
             { text: "@pitlane/file-storage-r2", link: "/package/file-storage-r2" },
-            { text: "@pitlane/file-storage-middleware", link: "/package/file-storage-middleware" },
             { text: "@pitlane/job", link: "/package/job" },
-            { text: "@pitlane/job-middleware", link: "/package/job-middleware" },
-        ],
-    },
-];
+            { text: "@pitlane/ai", link: "/package/ai" },
 
-const sidebar: DefaultTheme.SidebarItem[] = [
-    {
-        text: "Start",
-        items: [
-            { text: "Getting Started", link: "/guides/getting-started" },
-            { text: "Vite+", link: "/guides/vite-plus" },
-        ],
-    },
-    {
-        text: "Build",
-        items: [
-            { text: "Configuration", link: "/guides/configuration" },
-            { text: "Platform Primitives", link: "/guides/platform-primitives" },
-            { text: "Scaffolding", link: "/guides/scaffolding" },
-        ],
-    },
-    {
-        text: "Ship",
-        items: [
-            { text: "CLI", link: "/guides/cli" },
-            { text: "Deployment", link: "/guides/deployment" },
+            { text: "@pitlane/ai-deepseek", link: "/package/ai-deepseek" },
+            { text: "@pitlane/ai-google", link: "/package/ai-google" },
+            { text: "@pitlane/ai-meta", link: "/package/ai-meta" },
+            { text: "@pitlane/ai-mistral", link: "/package/ai-mistral" },
+            { text: "@pitlane/ai-moonshot", link: "/package/ai-moonshot" },
+            { text: "@pitlane/ai-openai", link: "/package/ai-openai" },
+            { text: "@pitlane/ai-qwen", link: "/package/ai-qwen" },
+            { text: "@pitlane/ai-z", link: "/package/ai-z" },
         ],
     },
 ];
@@ -153,7 +135,7 @@ const config = defineConfig({
             "/package/": packages,
         },
         footer: {
-            copyright: `© ${new Date().getFullYear()} Pitlane. Released under the MIT License.`,
+            copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
         },
     },
     head: [

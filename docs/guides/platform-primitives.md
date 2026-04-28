@@ -87,8 +87,8 @@ router.get("/", ctx => {
 import { env } from "cloudflare:workers";
 import * as s from "remix/data-schema";
 import { createRouter } from "remix/fetch-router";
-import { createJobs, createJobHandler, Scheduler } from "pitlane/jobs";
-import { scheduler } from "pitlane/jobs-middleware";
+import { createJobs, createJobHandler, Scheduler } from "pitlane/job";
+import { scheduler } from "pitlane/job-middleware";
 
 let jobs = createJobs({
     sendEmail: {

@@ -8,3 +8,5 @@ declare module "*.vue" {
 declare module "*.css";
 
 declare module "virtual:group-icons.css";
+
+/// <reference types="vite/client" />
