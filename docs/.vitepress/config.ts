@@ -69,9 +69,9 @@ const packages: DefaultTheme.SidebarItem[] = [
             { text: "@pitlane/dev", link: "/package/dev" },
 
             { text: "@pitlane/session-storage", link: "/package/session-storage" },
-            { text: "@pitlane/d1-database", link: "/package/data-table-d1" },
-            { text: "@pitlane/database-middleware", link: "/package/data-table-middleware" },
-            { text: "@pitlane/r2-file-storage", link: "/package/file-storage-r2" },
+            { text: "@pitlane/data-table-d1", link: "/package/data-table-d1" },
+            { text: "@pitlane/data-table-middleware", link: "/package/data-table-middleware" },
+            { text: "@pitlane/file-storage-r2", link: "/package/file-storage-r2" },
             { text: "@pitlane/file-storage-middleware", link: "/package/file-storage-middleware" },
             { text: "@pitlane/job", link: "/package/job" },
             { text: "@pitlane/job-middleware", link: "/package/job-middleware" },
@@ -146,11 +146,11 @@ const config = defineConfig({
         outline: { level: "deep" },
         nav: [
             { text: "Guide", link: "/guides/getting-started", activeMatch: "/guides/" },
-            { text: "Packages", link: "/packages/platform", activeMatch: "/packages/" },
+            { text: "Packages", link: "/package/platform", activeMatch: "/package/" },
         ],
         sidebar: {
             "/guides/": guides,
-            "/packages/": packages,
+            "/package/": packages,
         },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane. Released under the MIT License.`,
