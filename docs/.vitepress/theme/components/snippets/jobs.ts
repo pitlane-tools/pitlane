@@ -26,10 +26,16 @@ let scheduler = new Scheduler(jobs, {
     queue: env.TASKS,
 });
 
-router.map(routes.email, async () => {
+router.map(routes.email, async ctx => {
+    let data = ctx.get(FormData);
+    let emailAddress = s.parse(EmailSchema, data);
+
     await scheduler.enqueue(jobs.sendEmail, {
-        to: "mark@pitlane.tools",
+        to: emailAddress,
+        subject: "Welcome to Pitlane",
     });
+
+    return Response.redirect(routes.home.href());
 });
 
 let queue = createJobQueue(scheduler);

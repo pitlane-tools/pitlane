@@ -9,7 +9,7 @@ import {
 let jobs = createJobs({
     dailyDigest: {
         async handle() {
-            await sendDailyDigest(env);
+            await sendDailyDigest();
         },
     },
 });

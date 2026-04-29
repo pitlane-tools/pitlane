@@ -13,7 +13,7 @@ let weather = createTool({
         location: s.string(),
     }),
     async handle({ location }) {
-        return getWeatherFor(location);
+        return await getWeather(location);
     },
 });
 
