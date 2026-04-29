@@ -41,7 +41,9 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
                     Primitives
                 </span>
             </div>
-            <h3 class="text-balance max-w-2xl">Six Cloudflare primitives, designed for Remix.</h3>
+            <h3 class="text-balance max-w-2xl">
+                Cloudflare platform primitives, designed for Remix.
+            </h3>
         </div>
 
         <div class="grid gap-5 lg:grid-cols-2">
