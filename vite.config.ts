@@ -30,9 +30,12 @@ export default defineConfig({
         },
         overrides: [
             {
-                files: ["docs/.vitepress/theme/components/snippets/*.ts"],
+                files: [
+                    "docs/.vitepress/theme/components/snippets/*.ts",
+                    "docs/.vitepress/theme/components/snippets/*.tsx",
+                ],
                 options: {
-                    printWidth: 50,
+                    printWidth: 55,
                 },
             },
         ],

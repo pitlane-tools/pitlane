@@ -4,13 +4,10 @@ import { createKVSessionStorage } from "pitlane/session-storage-kv";
 import { Session } from "remix/session";
 import { session } from "remix/session-middleware";
 
-let storage = createKVSessionStorage(
-    env.SESSIONS,
-    {
-        keyPrefix: "session:",
-        ttl: 60 * 60 * 24,
-    },
-);
+let storage = createKVSessionStorage(env.SESSIONS, {
+    keyPrefix: "session:",
+    ttl: 60 * 60 * 24,
+});
 
 let router = createRouter({
     middleware: [session(cookie, storage)],

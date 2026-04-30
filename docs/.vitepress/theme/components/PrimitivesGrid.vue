@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { codeToHtml } from "shiki";
 
-const rawSnippets = import.meta.glob<string>("./snippets/*.ts", {
+const rawSnippets = import.meta.glob<string>("./snippets/*.{ts,tsx}", {
     eager: true,
     import: "default",
     query: "?raw",
@@ -14,6 +14,9 @@ const snippetOrder = {
     jobs: "jobs",
     cron: "cron",
     ai: "ai",
+    flags: "flags",
+    realtime: "realtime",
+    assets: "assets",
 } as const;
 
 type SnippetKey = keyof typeof snippetOrder;
@@ -22,10 +25,10 @@ const stripSnippetDirectives = (code: string) => code.replace(/^\/\/ @ts-nocheck
 
 const highlighted = {} as Record<SnippetKey, string>;
 for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]) {
-    const code = rawSnippets[`./snippets/${file}.ts`];
-    if (code === undefined) throw new Error(`Missing primitive snippet: ${path}`);
+    const code = rawSnippets[`./snippets/${file}.tsx`] ?? rawSnippets[`./snippets/${file}.ts`];
+    if (code === undefined) throw new Error(`Missing primitive snippet: ${file}`);
     highlighted[key] = await codeToHtml(stripSnippetDirectives(code), {
-        lang: "ts",
+        lang: "tsx",
         themes: { light: "github-light", dark: "github-dark" },
         defaultColor: false,
     });
@@ -73,10 +76,34 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Workers AI</h5>
-                    <span class="prim-tag">pitlane/ai</span>
+                    <h5>Images</h5>
+                    <span class="prim-tag">pitlane/assets</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.ai" />
+                <div class="prim-code" v-html="highlighted.assets" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
+                    <h5>Feature Flags</h5>
+                    <span class="prim-tag">pitlane/flags</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.flags" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
+                    <h5>Realtime</h5>
+                    <span class="prim-tag">pitlane/realtime</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.realtime" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
+                    <h5>Scheduled Jobs</h5>
+                    <span class="prim-tag">pitlane/job</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.cron" />
             </article>
 
             <article class="prim-card">
@@ -87,13 +114,16 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
                 <div class="prim-code" v-html="highlighted.jobs" />
             </article>
 
-            <article class="prim-card">
+            <!-- <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Scheduled Jobs</h5>
-                    <span class="prim-tag">pitlane/job</span>
+                    <h5>Workers AI</h5>
+                    <span class="prim-tag">pitlane/ai</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.cron" />
-            </article>
+                <div class="prim-code" v-html="highlighted.ai" />
+            </article> -->
+
+            <!-- https://developers.cloudflare.com/workflows/ -->
+            <!-- https://developers.cloudflare.com/durable-objects/ -->
         </div>
     </section>
 </template>

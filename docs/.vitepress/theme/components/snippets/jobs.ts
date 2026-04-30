@@ -6,6 +6,7 @@ import {
     createJobQueue,
 } from "pitlane/job";
 import * as s from "remix/data-schema";
+import { redirect } from "remix/response/redirect";
 
 let jobs = createJobs({
     sendEmail: {
@@ -26,16 +27,16 @@ let scheduler = new Scheduler(jobs, {
     queue: env.TASKS,
 });
 
-router.map(routes.email, async ctx => {
-    let data = ctx.get(FormData);
-    let emailAddress = s.parse(EmailSchema, data);
+router.map(routes.email, async context => {
+    let data = context.get(FormData);
+    let email = s.parse(EmailSchema, data);
 
     await scheduler.enqueue(jobs.sendEmail, {
-        to: emailAddress,
+        to: email.address,
         subject: "Welcome to Pitlane",
     });
 
-    return Response.redirect(routes.home.href());
+    return redirect(routes.home.href());
 });
 
 let queue = createJobQueue(scheduler);

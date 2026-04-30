@@ -18,5 +18,10 @@
         "docs/.vitepress/theme/components/snippets",
         "node_modules"
     ],
-    "include": ["vite.config.ts", "docs/.vitepress/**/*.ts", "docs/.vitepress/**/*.vue"]
+    "include": [
+        "vite.config.ts",
+        "docs/.vitepress/**/*.ts",
+        "docs/.vitepress/**/*.vue",
+        "docs/.vitepress/**/*.tsx"
+    ]
 }

@@ -25,8 +25,7 @@
                     <span class="lap-stat__dot">·</span>330<span class="stat-unit">+</span>
                 </div>
                 <div class="stat-label">
-                    Edge cities your app runs in by default, on Cloudflare's global Workers
-                    network.
+                    Edge cities your app runs in by default, on Cloudflare's global Workers network.
                 </div>
             </div>
             <div class="stat">
@@ -38,9 +37,7 @@
                 </div>
             </div>
             <div class="stat">
-                <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>0
-                </div>
+                <div class="lap-stat stat-value"><span class="lap-stat__dot">·</span>0</div>
                 <div class="stat-label">
                     <code>wrangler.toml</code> files to maintain by hand. Pitlane generates them
                     from <code>platform()</code>.
