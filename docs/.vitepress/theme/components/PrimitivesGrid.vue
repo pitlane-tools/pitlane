@@ -17,6 +17,8 @@ const snippetOrder = {
     flags: "flags",
     realtime: "realtime",
     assets: "assets",
+    contentUsage: "content-1",
+    contentDefinition: "content-2",
 } as const;
 
 type SnippetKey = keyof typeof snippetOrder;
@@ -84,6 +86,22 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
 
             <article class="prim-card">
                 <header class="prim-head">
+                    <h5>Content Definition</h5>
+                    <span class="prim-tag">pitlane/content</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.contentDefinition" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
+                    <h5>Content Usage</h5>
+                    <span class="prim-tag">pitlane/content</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.contentUsage" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
                     <h5>Feature Flags</h5>
                     <span class="prim-tag">pitlane/flags</span>
                 </header>
@@ -114,13 +132,13 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
                 <div class="prim-code" v-html="highlighted.jobs" />
             </article>
 
-            <!-- <article class="prim-card">
+            <article class="prim-card">
                 <header class="prim-head">
                     <h5>Workers AI</h5>
                     <span class="prim-tag">pitlane/ai</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.ai" />
-            </article> -->
+            </article>
 
             <!-- https://developers.cloudflare.com/workflows/ -->
             <!-- https://developers.cloudflare.com/durable-objects/ -->

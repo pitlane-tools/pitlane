@@ -1,11 +1,9 @@
 // @ts-nocheck
-import type { Handle } from "remix/component";
-
 import parrotImage from "#/assets/images/parrot.png?url";
 import robinImage from "#/assets/images/robin.png?url";
 import { Image, Picture } from "pitlane/assets";
 
-function Birds(handle: Handle) {
+function Birds() {
     return () => (
         <>
             <Image
