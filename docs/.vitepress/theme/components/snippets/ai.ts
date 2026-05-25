@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { env } from "cloudflare:workers";
 import { AI, createTool } from "pitlane/ai";
-import { kimi } from "pitlane/ai-moonshot";
+import { gemma } from "pitlane/ai-google";
 import * as s from "remix/data-schema";
+import { createController } from "remix/router";
 
 let ai = new AI(env.AI);
 
@@ -17,16 +18,33 @@ let weather = createTool({
     },
 });
 
-router.map(routes.messages, () => {
-    let stream = ai.stream({
-        model: kimi("k2.6"),
-        prompt: "What's the temperature in Dallas?",
-        tools: [weather],
-    });
+export default createController(routes.messages, {
+    actions: {
+        async create({ formData }) {
+            let { prompt } = s.parse(
+                f.object({
+                    prompt: f.field(
+                        s.defaulted(
+                            s.string(),
+                            "What's the temperature in Dallas?",
+                        ),
+                    ),
+                }),
+                formData,
+            );
 
-    return new Response(stream, {
-        headers: {
-            "Content-Type": "text/event-stream",
+            let stream = ai.stream({
+                model: gemma("4-26b-a4b-it"),
+                prompt,
+                tools: [weather],
+            });
+
+            return new Response(stream, {
+                headers: {
+                    "Content-Type":
+                        "text/event-stream",
+                },
+            });
         },
-    });
+    },
 });

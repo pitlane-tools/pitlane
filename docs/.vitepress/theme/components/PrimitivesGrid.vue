@@ -19,6 +19,7 @@ const snippetOrder = {
     assets: "assets",
     contentUsage: "content-1",
     contentDefinition: "content-2",
+    metadata: "metadata",
 } as const;
 
 type SnippetKey = keyof typeof snippetOrder;
@@ -138,6 +139,14 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
                     <span class="prim-tag">pitlane/ai</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.ai" />
+            </article>
+
+            <article class="prim-card">
+                <header class="prim-head">
+                    <h5><code>&lt;head&gt;</code> management</h5>
+                    <span class="prim-tag">pitlane/metadata</span>
+                </header>
+                <div class="prim-code" v-html="highlighted.metadata" />
             </article>
 
             <!-- https://developers.cloudflare.com/workflows/ -->
