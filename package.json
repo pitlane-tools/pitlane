@@ -5,7 +5,8 @@
     "scripts": {
         "docs:dev": "vitepress dev docs --port 1337",
         "docs:build": "vitepress build docs",
-        "docs:serve": "vitepress serve docs --port 1337"
+        "docs:serve": "vitepress serve docs --port 1337",
+        "docs:prose": "vale sync && vale docs/package docs/guides"
     },
     "devDependencies": {
         "@typescript/native-preview": "latest",
