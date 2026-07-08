@@ -9,6 +9,7 @@
         "docs:prose": "vale sync && vale docs/package docs/guides"
     },
     "devDependencies": {
+        "@oh-my-pi/pi-coding-agent": "^16.3.12",
         "@typescript/native-preview": "latest",
         "@voidzero-dev/vitepress-theme": "latest",
         "shiki": "^4.0.2",
