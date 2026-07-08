@@ -8,11 +8,13 @@
         "docs:serve": "vitepress serve docs --port 1337"
     },
     "devDependencies": {
+        "@typescript/native-preview": "latest",
         "@voidzero-dev/vitepress-theme": "latest",
         "shiki": "^4.0.2",
         "vite-plus": "latest",
         "vitepress": "latest",
         "vitepress-plugin-group-icons": "latest",
+        "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.19",
         "vue": "latest",
         "wrangler": "^4.85.0"
     },
