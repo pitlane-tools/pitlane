@@ -527,6 +527,14 @@ describe("parseTokens", () => {
         expect(bg?.aliasOf).toBe("color.white");
     });
 
+    it("prefers the alias target's type over a group-inherited $type (DTCG order)", () => {
+        let tokens = parseTokens({
+            motion: { $type: "duration", fast: { $value: "150ms" } },
+            color: { $type: "color", pulse: { $value: "{motion.fast}" } },
+        });
+        expect(tokens.get("color.pulse")?.type).toBe("duration");
+    });
+
     it("resolves alias chains", () => {
         let tokens = parseTokens({
             a: { $type: "color", $value: "#fff" },
@@ -735,9 +743,11 @@ function resolveType(key: string, entries: Map<string, RawEntry>, chain: string[
         );
     }
     if (entry.ownType) return entry.ownType;
-    if (entry.inheritedType) return entry.inheritedType;
     let alias = aliasTarget(entry.value);
+    // DTCG order: a reference token takes the referenced token's resolved
+    // type BEFORE any group-inherited $type.
     if (alias !== null) return resolveType(alias, entries, [...chain, key]);
+    if (entry.inheritedType) return entry.inheritedType;
     throw new ThemeError(`"${key}" has no resolvable $type`);
 }
 ```

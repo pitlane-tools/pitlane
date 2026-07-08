@@ -223,7 +223,8 @@ Four phases inside `createTheme`, fail-fast:
 ### 1. Parse
 
 A node owning `$value` is a token; every other non-`$`-prefixed key is a group. `$type` resolves
-as: own `$type` → nearest ancestor group `$type` → (aliases) referenced token's resolved type.
+per the DTCG Format Module's normative order: own `$type` → (if `$value` is a reference) the
+referenced token's resolved type → nearest ancestor group `$type`.
 Unknown `$type` values and tokens with no resolvable type throw.
 
 ### 2. Resolve
@@ -287,9 +288,10 @@ Twelve exported brand types over module-private `unique symbol`s, all subtypes o
 ### Accessor typing
 
 `TokenTree<T>` is a recursive mapped type: group nodes map to nested objects; token nodes map to
-the brand for their resolved type — own `$type`, else the inherited group `$type` (threaded as a
-type parameter), else the alias target's resolved type via template-literal parsing of
-`"{a.b.c}"` and indexed access into `T` (bounded recursion). No template-literal path unions are
+the brand for their resolved type — own `$type`, else the alias target's resolved type via
+template-literal parsing of `"{a.b.c}"` and indexed access into `T` (bounded recursion), else the
+inherited group `$type` (threaded as a type parameter, matching DTCG's normative order). No
+template-literal path unions are
 generated anywhere — tsserver cost stays proportional to config size. `DeepPartialTokens<T>`
 (the `modes` value type) maps `T` recursively with every group optional and token nodes reduced
 to `{ $value }`.
