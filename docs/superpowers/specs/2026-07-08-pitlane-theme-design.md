@@ -162,20 +162,32 @@ shadows remix/ui's at the import level; same runtime behavior, stricter types.
 "Theme Variance Authority," modeled on cva:
 
 ```ts
+// Tokens from the createTheme example above
 let button = tva({
-    base: ThemedCSSProps,
-    variants: { intent: { primary: ThemedCSSProps, danger: ThemedCSSProps } },
-    compoundVariants: [{ intent: "primary", size: "sm", css: ThemedCSSProps }],
-    defaultVariants: { intent: "primary" },
+    base: { padding: [$.space.sm, $.space.md], boxShadow: $.shadow.card },
+    variants: {
+        intent: {
+            primary: { backgroundColor: $.color.gray[900], color: $.color.white },
+            neutral: { backgroundColor: $.color.white, color: $.color.gray[900] },
+        },
+        size: {
+            sm: { padding: $.space.sm },
+            md: { padding: $.space.md },
+        },
+    },
+    compoundVariants: [{ intent: "neutral", size: "sm", css: { borderColor: $.color.gray[50] } }],
+    defaultVariants: { intent: "primary", size: "md" },
 });
 
-<button mix={button({ intent: "danger" })} />;
+<button mix={button({ intent: "neutral" })} />;
 ```
 
 - Returns `(props?) => CSSMixinDescriptor`. Deep-merges `base` → matching variants (variant-key
   declaration order) → matching `compoundVariants` (array order), last write wins per property,
   into **one** remix/ui `css()` call (one generated class).
 - Boolean and string variant values supported, as in cva.
+- Every style slot — `base`, each variant value, `compoundVariants[].css` — is typed
+  `ThemedCSSProps`.
 - `TVAProps<typeof button>` extracts the variant props type (cva's `VariantProps` analog).
 
 ### `combine(...tvaFns)` — module-level
