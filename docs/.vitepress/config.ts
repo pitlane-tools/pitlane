@@ -44,7 +44,6 @@ const guides: DefaultTheme.SidebarItem[] = [
         items: [
             { text: "Vite+", link: "/guides/vite-plus" },
             { text: "Pitlane CLI", link: "/guides/cli" },
-            { text: "Pitlane MCP", link: "/guides/mcp" },
             { text: "GitHub Actions", link: "/guides/actions" },
         ],
     },
@@ -68,20 +67,97 @@ const packages: DefaultTheme.SidebarItem[] = [
             { text: "pitlane", link: "/package/pitlane" },
             { text: "@pitlane/dev", link: "/package/dev" },
 
-            { text: "@pitlane/session-storage-kv", link: "/package/session-storage-kv" },
-            { text: "@pitlane/data-table-d1", link: "/package/data-table-d1" },
-            { text: "@pitlane/file-storage-r2", link: "/package/file-storage-r2" },
-            { text: "@pitlane/job", link: "/package/job" },
-            { text: "@pitlane/ai", link: "/package/ai" },
+            {
+                text: "@pitlane/data-table-cloudflare-d1",
+                link: "/package/data-table-cloudflare-d1",
+            },
+            {
+                text: "@pitlane/data-table-cloudflare-durable-object-sql",
+                link: "/package/data-table-cloudflare-durable-object-sql",
+            },
+            {
+                text: "@pitlane/data-table-netlify-database",
+                link: "/package/data-table-netlify-database",
+            },
+            { text: "@pitlane/data-table-neon", link: "/package/data-table-neon" },
+            {
+                text: "@pitlane/file-storage-cloudflare-r2",
+                link: "/package/file-storage-cloudflare-r2",
+            },
+            {
+                text: "@pitlane/file-storage-netlify-blobs",
+                link: "/package/file-storage-netlify-blobs",
+            },
+            {
+                text: "@pitlane/file-storage-vercel-blob",
+                link: "/package/file-storage-vercel-blob",
+            },
+            {
+                text: "@pitlane/session-storage-cloudflare-kv",
+                link: "/package/session-storage-cloudflare-kv",
+            },
+            {
+                text: "@pitlane/session-storage-netlify-blobs",
+                link: "/package/session-storage-netlify-blobs",
+            },
+            { text: "@pitlane/session-storage-redis", link: "/package/session-storage-redis" },
+            { text: "@pitlane/auth-netlify-identity", link: "/package/auth-netlify-identity" },
+            { text: "@pitlane/auth-clerk", link: "/package/auth-clerk" },
 
-            { text: "@pitlane/ai-deepseek", link: "/package/ai-deepseek" },
-            { text: "@pitlane/ai-google", link: "/package/ai-google" },
-            { text: "@pitlane/ai-meta", link: "/package/ai-meta" },
-            { text: "@pitlane/ai-mistral", link: "/package/ai-mistral" },
-            { text: "@pitlane/ai-moonshot", link: "/package/ai-moonshot" },
-            { text: "@pitlane/ai-openai", link: "/package/ai-openai" },
-            { text: "@pitlane/ai-qwen", link: "/package/ai-qwen" },
-            { text: "@pitlane/ai-z", link: "/package/ai-z" },
+            { text: "@pitlane/dev", link: "/package/dev" },
+            { text: "@pitlane/content", link: "/package/content" },
+            { text: "@pitlane/meta", link: "/package/meta" },
+            { text: "@pitlane/i18n", link: "/package/i18n" },
+            { text: "@pitlane/env", link: "/package/env" },
+            { text: "@pitlane/theme", link: "/package/theme" },
+            { text: "@pitlane/sprites", link: "/package/sprites" },
+            { text: "@pitlane/logger", link: "/package/logger" },
+            { text: "@pitlane/browser-router", link: "/package/browser-router" },
+            { text: "@pitlane/typed-routes", link: "/package/typed-routes" },
+
+            { text: "@pitlane/image", link: "/package/image" },
+            { text: "@pitlane/image-cloudflare", link: "/package/image-cloudflare" },
+            { text: "@pitlane/image-netlify", link: "/package/image-netlify" },
+            { text: "@pitlane/image-vercel", link: "/package/image-vercel" },
+
+            { text: "@pitlane/flags", link: "/package/flags" },
+            { text: "@pitlane/flags-cloudflare", link: "/package/flags-cloudflare" },
+            { text: "@pitlane/flags-netlify", link: "/package/flags-netlify" },
+            { text: "@pitlane/flags-vercel", link: "/package/flags-vercel" },
+
+            { text: "@pitlane/job", link: "/package/job" },
+            { text: "@pitlane/job-storage-data-table", link: "/package/job-storage-data-table" },
+            {
+                text: "@pitlane/job-storage-cloudflare-kv",
+                link: "/package/job-storage-cloudflare-kv",
+            },
+            { text: "@pitlane/job-storage-redis", link: "/package/job-storage-redis" },
+            {
+                text: "@pitlane/job-scheduler-cloudflare",
+                link: "/package/job-scheduler-cloudflare",
+            },
+            { text: "@pitlane/job-scheduler-netlify", link: "/package/job-scheduler-netlify" },
+            { text: "@pitlane/job-scheduler-vercel", link: "/package/job-scheduler-vercel" },
+
+            { text: "@pitlane/cache", link: "/package/cache" },
+            { text: "@pitlane/cache-cloudflare", link: "/package/cache-cloudflare" },
+            { text: "@pitlane/cache-netlify", link: "/package/cache-netlify" },
+            { text: "@pitlane/cache-vercel", link: "/package/cache-vercel" },
+
+            { text: "@pitlane/realtime", link: "/package/realtime" },
+            {
+                text: "@pitlane/realtime-cloudflare-durable-objects",
+                link: "/package/realtime-cloudflare-durable-objects",
+            },
+
+            { text: "@pitlane/email", link: "/package/email" },
+            { text: "@pitlane/email-cloudflare", link: "/package/email-cloudflare" },
+            { text: "@pitlane/email-resend", link: "/package/email-resend" },
+
+            { text: "@pitlane/fonts", link: "/package/fonts" },
+            { text: "@pitlane/fonts-adobe", link: "/package/fonts-adobe" },
+            { text: "@pitlane/fonts-google", link: "/package/fonts-google" },
+            { text: "@pitlane/fonts-fontsource", link: "/package/fonts-fontsource" },
         ],
     },
 ];
@@ -90,7 +166,7 @@ const config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
-    srcExclude: ["superpowers/**"],
+    srcExclude: ["superpowers/**", "internal/**"],
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
         const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
