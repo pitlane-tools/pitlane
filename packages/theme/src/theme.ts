@@ -1,5 +1,7 @@
+import { createElement } from "remix/ui";
 import { serializeValue } from "./serialize.ts";
 import { aliasTarget, parseTokens, ThemeError } from "./tokens.ts";
+import type { Handle, RemixElement } from "remix/ui";
 import type { AnyToken } from "./brands.ts";
 import type { SerializeContext } from "./serialize.ts";
 import type { ParsedToken } from "./tokens.ts";
@@ -12,8 +14,23 @@ export interface ThemeOptions<T> {
     };
 }
 
-// Placeholder until Task 7 wires the real component type.
-export type ThemeComponent = () => unknown;
+export type ThemeProps = {
+    nonce?: string;
+};
+
+export type ThemeComponent = (handle: Handle<ThemeProps>) => () => RemixElement;
+
+function createThemeComponent(cssText: string): ThemeComponent {
+    let escaped = cssText.replace(/<\/style/gi, "<\\/style");
+    return function Theme(handle) {
+        return () =>
+            createElement("style", {
+                nonce: handle.props.nonce,
+                "data-pitlane-theme": "",
+                innerHTML: escaped,
+            });
+    };
+}
 
 export interface ThemeResult<T> {
     token: TokenTree<T>;
@@ -46,7 +63,7 @@ export function createTheme<const T extends DTCGDocument>(
             }
             return value;
         },
-        Theme: () => null,
+        Theme: createThemeComponent(compiled.cssText),
     };
 }
 

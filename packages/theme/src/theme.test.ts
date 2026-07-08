@@ -112,3 +112,35 @@ describe("modes", () => {
         ).toThrow(/color\.void/);
     });
 });
+
+import { createElement } from "remix/ui";
+import { renderToString } from "remix/ui/server";
+
+describe("Theme component", () => {
+    it("renders a style tag with the theme CSS", async () => {
+        let { Theme } = createTheme(config, {
+            modes: { dark: { color: { bg: { $value: "{color.gray.900}" } } } },
+        });
+        let html = await renderToString(createElement(Theme, {}));
+        expect(html).toContain("<style");
+        expect(html).toContain("data-pitlane-theme");
+        expect(html).toContain("--color-white: #fff;");
+        expect(html).toContain("@media (prefers-color-scheme: dark)");
+        expect(html).toContain("--color-bg: var(--color-gray-900);");
+    });
+
+    it("passes the nonce through", async () => {
+        let { Theme } = createTheme(config);
+        let html = await renderToString(createElement(Theme, { nonce: "abc123" }));
+        expect(html).toContain('nonce="abc123"');
+    });
+
+    it("escapes </style in token values", async () => {
+        let { Theme } = createTheme({
+            font: { $type: "fontFamily", evil: { $value: "</style><script>" } },
+        });
+        let html = await renderToString(createElement(Theme, {}));
+        expect(html).not.toContain("</style><script>");
+        expect(html).toContain("<\\/style>");
+    });
+});
