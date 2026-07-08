@@ -18,5 +18,10 @@
         "vue": "latest",
         "wrangler": "^4.85.0"
     },
-    "packageManager": "pnpm@10.8.0"
+    "packageManager": "pnpm@10.8.0",
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "remix"
+        ]
+    }
 }

@@ -10,6 +10,7 @@ export default defineConfig({
             "docs/superpowers/**",
             "node_modules/**",
             "packages/*/dist/**",
+            "demos/*/dist/**",
             "pitlane.md",
             "vite-plus.md",
         ],
@@ -48,6 +49,7 @@ export default defineConfig({
             "docs/.vitepress/theme/components/snippets/**",
             "node_modules/**",
             "packages/*/dist/**",
+            "demos/*/dist/**",
         ],
         options: {
             typeAware: true,
