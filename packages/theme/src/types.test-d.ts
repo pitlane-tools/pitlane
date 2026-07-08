@@ -69,6 +69,13 @@ describe("DeepPartialTokens", () => {
     });
 });
 
+describe("any-typed documents (JSON.parse)", () => {
+    it("short-circuits instead of recursing without bound", () => {
+        expectTypeOf<TokenTree<any>>().toEqualTypeOf<unknown>();
+        expectTypeOf<DeepPartialTokens<any>>().toEqualTypeOf<unknown>();
+    });
+});
+
 describe("typography", () => {
     it("brands typography leaves as never (unsupported in v1)", () => {
         type Typo = TokenTree<{ heading: { $type: "typography"; $value: object } }>;

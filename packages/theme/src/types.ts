@@ -55,12 +55,18 @@ type TreeOf<N, Root, Inherited> = {
         : TreeOf<N[K], Root, GroupType<N[K], Inherited>>;
 };
 
-/** Same-shape accessor type: token leaves become branded `var()` strings. */
-export type TokenTree<T> = TreeOf<T, T, GroupType<T, undefined>>;
+/**
+ * Same-shape accessor type: token leaves become branded `var()` strings.
+ * An `any` document (e.g. `JSON.parse`) short-circuits to `unknown` — mapping
+ * over `any` would otherwise recurse without bound.
+ */
+export type TokenTree<T> = 0 extends 1 & T ? unknown : TreeOf<T, T, GroupType<T, undefined>>;
 
 /** Mode override shape: every group optional, token nodes reduced to `{ $value }`. */
-export type DeepPartialTokens<T> = {
-    [K in Exclude<keyof T, `$${string}`>]?: T[K] extends { $value: unknown }
-        ? { $value: unknown }
-        : DeepPartialTokens<T[K]>;
-};
+export type DeepPartialTokens<T> = 0 extends 1 & T
+    ? unknown
+    : {
+          [K in Exclude<keyof T, `$${string}`>]?: T[K] extends { $value: unknown }
+              ? { $value: unknown }
+              : DeepPartialTokens<T[K]>;
+      };
