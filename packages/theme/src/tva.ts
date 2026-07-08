@@ -1,6 +1,8 @@
-import { css } from "./css.ts";
 import type { CSSMixinDescriptor } from "remix/ui";
+
 import type { ThemedCSSProps } from "./props.ts";
+
+import { css } from "./css.ts";
 
 type VariantShape = Record<string, Record<string, ThemedCSSProps>>;
 
@@ -38,11 +40,13 @@ export function tva<const V extends VariantShape>(config: TVAConfig<V>): TVAFn<V
             if (value !== undefined) selected[key] = value;
         }
 
-        let merged: Record<string, unknown> = { ...(config.base ?? {}) };
+        let merged: Record<string, unknown> = { ...config.base };
         for (let [name, values] of Object.entries(config.variants ?? {})) {
             let choice = selected[name];
             if (choice === undefined || choice === null) continue;
-            let styles = (values as Record<string, ThemedCSSProps>)[String(choice)];
+            let styles = (values as Record<string, ThemedCSSProps>)[
+                String(choice as string | boolean)
+            ];
             if (styles) merged = deepMerge(merged, styles) as Record<string, unknown>;
         }
         for (let compound of config.compoundVariants ?? []) {
@@ -81,11 +85,10 @@ type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) ext
 // over the `Fns[number]` union and keeps each branch's optional `| undefined`,
 // which would otherwise poison `UnionToIntersection` (intersecting with
 // `undefined` yields an uninhabited type) — `Exclude` strips it first.
-type CombinedProps<Fns extends readonly TVAFn<VariantShape>[]> = UnionToIntersection<
-    Exclude<Parameters<Fns[number]>[0], undefined>
-> extends infer P
-    ? { [K in keyof P]: P[K] }
-    : never;
+type CombinedProps<Fns extends readonly TVAFn<VariantShape>[]> =
+    UnionToIntersection<Exclude<Parameters<Fns[number]>[0], undefined>> extends infer P
+        ? { [K in keyof P]: P[K] }
+        : never;
 
 export interface CombinedTVAFn<Fns extends readonly TVAFn<VariantShape>[]> {
     (props?: CombinedProps<Fns>): CSSMixinDescriptor;

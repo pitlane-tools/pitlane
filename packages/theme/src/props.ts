@@ -37,11 +37,7 @@ type Easing =
 type ShadowLike = ShadowToken | "none" | Wide;
 type Numeric = NumberToken | number | Wide;
 
-type Repeat1to4<V> =
-    | readonly [V]
-    | readonly [V, V]
-    | readonly [V, V, V]
-    | readonly [V, V, V, V];
+type Repeat1to4<V> = readonly [V] | readonly [V, V] | readonly [V, V, V] | readonly [V, V, V, V];
 
 type PadItem = DimensionToken | 0;
 type MarginItem = DimensionToken | 0 | "auto";

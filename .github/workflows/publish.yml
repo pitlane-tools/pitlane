@@ -1,0 +1,38 @@
+name: Publish to npm
+
+on:
+    release:
+        types: [published]
+
+permissions:
+    contents: read
+    id-token: write
+
+jobs:
+    publish-theme:
+        if: startsWith(github.event.release.tag_name, '@pitlane/theme@')
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/theme
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Install
+              run: vp install --frozen-lockfile
+
+            - name: Run tests
+              run: vp test
+
+            - name: Build package
+              run: vp run build
+
+            - name: Publish to npm with provenance
+              run: npm publish --provenance --access public --tag latest

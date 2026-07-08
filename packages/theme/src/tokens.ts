@@ -1,6 +1,7 @@
-import { TOKEN_TYPES } from "./brands.ts";
 import type { TokenType } from "./brands.ts";
 import type { DTCGDocument } from "./types.ts";
+
+import { TOKEN_TYPES } from "./brands.ts";
 
 export class ThemeError extends Error {
     override name = "ThemeError";
@@ -109,7 +110,7 @@ function validateType(value: unknown, key: string): TokenType | undefined {
         throw new ThemeError(`"${key}": typography tokens are not supported in v1`);
     }
     if (!(TOKEN_TYPES as readonly string[]).includes(value as string)) {
-        throw new ThemeError(`"${key}" has unknown $type "${String(value)}"`);
+        throw new ThemeError(`"${key}" has unknown $type "${String(value as string)}"`);
     }
     return value as TokenType;
 }

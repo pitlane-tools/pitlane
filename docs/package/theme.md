@@ -20,7 +20,11 @@ vp add @pitlane/theme
 ```ts
 import { createTheme } from "@pitlane/theme";
 
-export let { token: $, raw, Theme } = createTheme(
+export let {
+    token: $,
+    raw,
+    Theme,
+} = createTheme(
     {
         color: {
             $type: "color",
@@ -56,15 +60,15 @@ Author token documents in TypeScript. JSON imports work at runtime, but TypeScri
 
 ## DTCG support
 
-| Feature | Support |
-| --- | --- |
-| Groups + group-level `$type` inheritance | ✓ |
-| Aliases `{path.to.token}` (full values and composite sub-values) | ✓ — emitted as `var()` references |
-| color, dimension, duration | ✓ — legacy strings and structured objects |
-| fontFamily, fontWeight, number, cubicBezier | ✓ |
-| shadow, border, transition, gradient, strokeStyle | ✓ — single CSS value each |
-| typography | ✗ — throws (planned) |
-| `$description`, `$extensions`, `$deprecated` | Parsed and ignored |
+| Feature                                                          | Support                                   |
+| ---------------------------------------------------------------- | ----------------------------------------- |
+| Groups + group-level `$type` inheritance                         | ✓                                         |
+| Aliases `{path.to.token}` (full values and composite sub-values) | ✓ — emitted as `var()` references         |
+| color, dimension, duration                                       | ✓ — legacy strings and structured objects |
+| fontFamily, fontWeight, number, cubicBezier                      | ✓                                         |
+| shadow, border, transition, gradient, strokeStyle                | ✓ — single CSS value each                 |
+| typography                                                       | ✗ — throws (planned)                      |
+| `$description`, `$extensions`, `$deprecated`                     | Parsed and ignored                        |
 
 Gradient tokens serialize to a color-stop list (`#fff 0%, #000 100%`) for use inside `linear-gradient(…)` and friends. Gradient stop positions must be literal numbers; stop colors may be aliases. Object-form `strokeStyle` serializes to `dashed` (the spec's CSS fallback).
 
@@ -89,23 +93,23 @@ Token-mapped longhands only accept the matching brand, CSS-wide keywords, proper
 
 Canonical property map (`Wide` = `inherit | initial | unset | revert | revert-layer`):
 
-| Property family                                                                                                                                    | Accepted values                                                       |
-| --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `color`, `backgroundColor`, `borderColor`, `borderTopColor`, `borderRightColor`, `borderBottomColor`, `borderLeftColor`, `outlineColor`, `textDecorationColor`, `columnRuleColor`, `caretColor`, `accentColor`, `fill`, `stroke` | `ColorToken \| "transparent" \| "currentColor" \| Wide`                 |
-| `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `flexBasis`                                                                     | `DimensionToken \| 0 \| "auto" \| "min-content" \| "max-content" \| "fit-content" \| Wide` |
-| `top`, `right`, `bottom`, `left`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`                                                           | `DimensionToken \| 0 \| "auto" \| Wide`                                 |
-| `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `fontSize`, `textIndent`, `outlineOffset`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`, `rowGap`, `columnGap` | `DimensionToken \| 0 \| Wide`                                           |
-| `letterSpacing`, `wordSpacing`                                                                                                                       | `DimensionToken \| 0 \| "normal" \| Wide`                               |
-| `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`, `outlineWidth`                                                         | `DimensionToken \| 0 \| "thin" \| "medium" \| "thick" \| Wide`          |
-| `padding`, `margin`, `inset`, `borderRadius` (box shorthands)                                                                                        | single value as the longhand, **or** tuple of 1–4 such values → space-joined |
-| `gap`                                                                                                                                                | `DimensionToken \| 0 \| Wide` or 2-tuple                                |
-| `fontFamily`                                                                                                                                         | `FontFamilyToken \| Wide`                                               |
-| `fontWeight`                                                                                                                                         | `FontWeightToken \| "normal" \| "bold" \| "lighter" \| "bolder" \| Wide` |
-| `lineHeight`                                                                                                                                         | `NumberToken \| DimensionToken \| "normal" \| Wide`                     |
-| `opacity`, `zIndex`, `flexGrow`, `flexShrink`, `order`                                                                                               | `NumberToken \| number \| Wide` (plain numbers stay legal — enforcing tokens for `zIndex: 10` is noise) |
-| `transitionDuration`, `transitionDelay`, `animationDuration`, `animationDelay`                                                                       | `DurationToken \| Wide`                                                 |
-| `transitionTimingFunction`, `animationTimingFunction`                                                                                                | `CubicBezierToken \| "ease" \| "linear" \| "ease-in" \| "ease-out" \| "ease-in-out" \| "step-start" \| "step-end" \| Wide` |
-| `boxShadow`, `textShadow`                                                                                                                            | `ShadowToken \| "none" \| Wide`                                         |
+| Property family                                                                                                                                                                                                                    | Accepted values                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `color`, `backgroundColor`, `borderColor`, `borderTopColor`, `borderRightColor`, `borderBottomColor`, `borderLeftColor`, `outlineColor`, `textDecorationColor`, `columnRuleColor`, `caretColor`, `accentColor`, `fill`, `stroke`   | `ColorToken \| "transparent" \| "currentColor" \| Wide`                                                                    |
+| `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `flexBasis`                                                                                                                                                   | `DimensionToken \| 0 \| "auto" \| "min-content" \| "max-content" \| "fit-content" \| Wide`                                 |
+| `top`, `right`, `bottom`, `left`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`                                                                                                                                         | `DimensionToken \| 0 \| "auto" \| Wide`                                                                                    |
+| `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `fontSize`, `textIndent`, `outlineOffset`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`, `rowGap`, `columnGap` | `DimensionToken \| 0 \| Wide`                                                                                              |
+| `letterSpacing`, `wordSpacing`                                                                                                                                                                                                     | `DimensionToken \| 0 \| "normal" \| Wide`                                                                                  |
+| `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`, `outlineWidth`                                                                                                                                       | `DimensionToken \| 0 \| "thin" \| "medium" \| "thick" \| Wide`                                                             |
+| `padding`, `margin`, `inset`, `borderRadius` (box shorthands)                                                                                                                                                                      | single value as the longhand, **or** tuple of 1–4 such values → space-joined                                               |
+| `gap`                                                                                                                                                                                                                              | `DimensionToken \| 0 \| Wide` or 2-tuple                                                                                   |
+| `fontFamily`                                                                                                                                                                                                                       | `FontFamilyToken \| Wide`                                                                                                  |
+| `fontWeight`                                                                                                                                                                                                                       | `FontWeightToken \| "normal" \| "bold" \| "lighter" \| "bolder" \| Wide`                                                   |
+| `lineHeight`                                                                                                                                                                                                                       | `NumberToken \| DimensionToken \| "normal" \| Wide`                                                                        |
+| `opacity`, `zIndex`, `flexGrow`, `flexShrink`, `order`                                                                                                                                                                             | `NumberToken \| number \| Wide` (plain numbers stay legal — enforcing tokens for `zIndex: 10` is noise)                    |
+| `transitionDuration`, `transitionDelay`, `animationDuration`, `animationDelay`                                                                                                                                                     | `DurationToken \| Wide`                                                                                                    |
+| `transitionTimingFunction`, `animationTimingFunction`                                                                                                                                                                              | `CubicBezierToken \| "ease" \| "linear" \| "ease-in" \| "ease-out" \| "ease-in-out" \| "step-start" \| "step-end" \| Wide` |
+| `boxShadow`, `textShadow`                                                                                                                                                                                                          | `ShadowToken \| "none" \| Wide`                                                                                            |
 
 ## tva
 

@@ -86,7 +86,9 @@ describe("parseTokens", () => {
     });
 
     it("throws on unknown $type", () => {
-        expect(() => parseTokens({ x: { $type: "sparkles" as never, $value: 1 } })).toThrow(/sparkles/);
+        expect(() => parseTokens({ x: { $type: "sparkles" as never, $value: 1 } })).toThrow(
+            /sparkles/,
+        );
     });
 
     it("rejects typography tokens with a dedicated message", () => {
@@ -108,7 +110,11 @@ describe("parseTokens", () => {
     it("throws on var-name collisions, reporting both paths", () => {
         let error = getError(() =>
             parseTokens({
-                color: { $type: "color", "brand blue": { $value: "#00f" }, brandBlue: { $value: "#00e" } },
+                color: {
+                    $type: "color",
+                    "brand blue": { $value: "#00f" },
+                    brandBlue: { $value: "#00e" },
+                },
             }),
         );
         expect(error).toBeInstanceOf(ThemeError);

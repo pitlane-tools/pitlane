@@ -1,7 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
 
-import { tva } from "./tva.ts";
 import type { TVAProps } from "./tva.ts";
+
+import { tva } from "./tva.ts";
 
 let button = tva({
     variants: {

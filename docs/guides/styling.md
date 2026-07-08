@@ -24,7 +24,11 @@ Design tokens live in a [W3C DTCG](https://www.designtokens.org/tr/drafts/format
 ```ts
 import { createTheme } from "@pitlane/theme";
 
-export let { token: $, raw, Theme } = createTheme(
+export let {
+    token: $,
+    raw,
+    Theme,
+} = createTheme(
     {
         color: {
             $type: "color",

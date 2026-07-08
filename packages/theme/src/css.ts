@@ -1,5 +1,6 @@
-import { css as remixCss } from "remix/ui";
 import type { CSSMixinDescriptor } from "remix/ui";
+
+import { css as remixCss } from "remix/ui";
 
 import type { ThemedCSSProps } from "./props.ts";
 

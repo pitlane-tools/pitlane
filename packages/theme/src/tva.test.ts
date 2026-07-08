@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { tva } from "./tva.ts";
 import type { ThemedCSSProps } from "./props.ts";
+
+import { tva } from "./tva.ts";
 
 let button = tva({
     base: { margin: 0, "&:hover": { opacity: 0.9 } },

@@ -1,5 +1,6 @@
-import { aliasTarget, ThemeError } from "./tokens.ts";
 import type { TokenType } from "./brands.ts";
+
+import { aliasTarget, ThemeError } from "./tokens.ts";
 
 export interface SerializeContext {
     varRefFor(key: string, from: string): string;
@@ -91,12 +92,7 @@ export function serializeValue(
     }
 }
 
-function field(
-    type: TokenType,
-    value: unknown,
-    ctx: SerializeContext,
-    key: string,
-): string {
+function field(type: TokenType, value: unknown, ctx: SerializeContext, key: string): string {
     let alias = aliasTarget(value);
     if (alias !== null) return ctx.varRefFor(alias, key);
     return serializeValue(type, value, ctx, key);
@@ -222,7 +218,8 @@ function serializeGradient(value: unknown, ctx: SerializeContext, key: string): 
         .map(stop => {
             if (typeof stop !== "object" || stop === null) throw invalid(key, "gradient", value);
             let { color, position } = stop as Record<string, unknown>;
-            if (typeof position !== "number") throw invalid(key, "gradient stop position", position);
+            if (typeof position !== "number")
+                throw invalid(key, "gradient stop position", position);
             return `${field("color", color, ctx, key)} ${position * 100}%`;
         })
         .join(", ");

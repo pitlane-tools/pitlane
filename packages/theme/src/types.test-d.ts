@@ -17,7 +17,13 @@ const config = {
     shadow: {
         card: {
             $type: "shadow",
-            $value: { color: "{color.gray.900}", offsetX: "0px", offsetY: "1px", blur: "3px", spread: "0px" },
+            $value: {
+                color: "{color.gray.900}",
+                offsetX: "0px",
+                offsetY: "1px",
+                blur: "3px",
+                spread: "0px",
+            },
         },
     },
     accent: { $type: "color", $value: "#f0f" },
@@ -57,7 +63,9 @@ describe("DeepPartialTokens", () => {
     });
 
     it("rejects unknown paths", () => {
-        expectTypeOf<{ nope: { $value: string } }>().not.toMatchTypeOf<DeepPartialTokens<typeof config>>();
+        expectTypeOf<{ nope: { $value: string } }>().not.toMatchTypeOf<
+            DeepPartialTokens<typeof config>
+        >();
     });
 });
 

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import type { SerializeContext } from "./serialize.ts";
+
 import { serializeValue } from "./serialize.ts";
 import { ThemeError } from "./tokens.ts";
-import type { SerializeContext } from "./serialize.ts";
 
 const ctx: SerializeContext = {
     varRefFor(key, from) {
@@ -108,9 +109,9 @@ describe("number and cubicBezier", () => {
 
 describe("shadow", () => {
     it("serializes a single shadow with defaults", () => {
-        expect(
-            run("shadow", { color: "#000", offsetX: "0px", offsetY: "1px" }),
-        ).toBe("0px 1px 0 0 #000");
+        expect(run("shadow", { color: "#000", offsetX: "0px", offsetY: "1px" })).toBe(
+            "0px 1px 0 0 #000",
+        );
     });
 
     it("serializes inset, arrays, and sub-value aliases", () => {
@@ -132,15 +133,15 @@ describe("shadow", () => {
 
 describe("border, transition, gradient, strokeStyle", () => {
     it("serializes border", () => {
-        expect(
-            run("border", { color: "{color.white}", width: "1px", style: "solid" }),
-        ).toBe("1px solid var(--color-white)");
+        expect(run("border", { color: "{color.white}", width: "1px", style: "solid" })).toBe(
+            "1px solid var(--color-white)",
+        );
     });
 
     it("serializes transition with default delay", () => {
-        expect(
-            run("transition", { duration: "200ms", timingFunction: [0.4, 0, 0.2, 1] }),
-        ).toBe("200ms cubic-bezier(0.4, 0, 0.2, 1) 0s");
+        expect(run("transition", { duration: "200ms", timingFunction: [0.4, 0, 0.2, 1] })).toBe(
+            "200ms cubic-bezier(0.4, 0, 0.2, 1) 0s",
+        );
         expect(
             run("transition", { duration: "200ms", timingFunction: [0, 0, 1, 1], delay: "50ms" }),
         ).toBe("200ms cubic-bezier(0, 0, 1, 1) 50ms");

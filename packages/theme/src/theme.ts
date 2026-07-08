@@ -1,11 +1,14 @@
-import { createElement } from "remix/ui";
-import { serializeValue } from "./serialize.ts";
-import { aliasTarget, parseTokens, ThemeError } from "./tokens.ts";
 import type { Handle, RemixElement } from "remix/ui";
+
+import { createElement } from "remix/ui";
+
 import type { AnyToken } from "./brands.ts";
 import type { SerializeContext } from "./serialize.ts";
 import type { ParsedToken } from "./tokens.ts";
 import type { DeepPartialTokens, DTCGDocument, TokenTree } from "./types.ts";
+
+import { serializeValue } from "./serialize.ts";
+import { aliasTarget, parseTokens, ThemeError } from "./tokens.ts";
 
 export interface ThemeOptions<T> {
     modes?: {
@@ -159,9 +162,7 @@ function walkMode(
     }
     for (let [key, child] of Object.entries(record)) {
         if (key.startsWith("$")) {
-            throw new ThemeError(
-                `Mode override "${[...path, key].join(".")}" may only set $value`,
-            );
+            throw new ThemeError(`Mode override "${[...path, key].join(".")}" may only set $value`);
         }
         walkMode(child, [...path, key], tokens, ctx, out);
     }

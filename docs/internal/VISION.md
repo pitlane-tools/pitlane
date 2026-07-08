@@ -64,32 +64,32 @@ Remix 3 owns every framework-level concern. Pitlane never reimplements these.
 
 This is Pitlane. Each capability is either an interface with provider **adapters**, or a Pitlane-native feature (some built on an upstream source such as Gist or OpenAPI Router).
 
-| Capability | Adapters / source |
-| --- | --- |
-| Database adapters | Cloudflare D1 • Cloudflare Durable Object Storage • Netlify Database • Neon Postgres |
-| File storage adapters | Cloudflare R2 • Netlify Blobs • Vercel Blob |
-| Session storage adapters | Cloudflare KV • Netlify Blobs • Upstash Redis |
-| Authentication adapters | Netlify Identity • Clerk Auth |
-| Image optimization | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization |
-| Feature flags | Cloudflare Flagship • Vercel Edge Config |
-| Scheduled jobs | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs |
-| Background jobs | Cloudflare Queues • Netlify Background Functions • Vercel Queues |
-| Route caching | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache |
-| Preview Deployments | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
-| Realtime data | Cloudflare Durable Objects |
-| Email delivery | Cloudflare Email Service • Resend |
-| Font providers | Local • Fontsource • Google Fonts • Adobe Fonts |
-| Content layer | Pitlane-native |
-| Head metadata | Pitlane-native |
-| Localization | Pitlane-native |
-| Type-safe env/secrets | Pitlane-native |
-| Type-safe styling | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42) |
-| Sprite sheet generator | Pitlane-native |
-| Browser router | [Gist](https://gist.github.com/sergiodxa/0e921c1f47f3bb1af496cc0c142011f6) |
-| View transitions | Pitlane-native |
-| Logging | Pitlane-native |
-| Router RPC | Pitlane-native |
-| Prerendering | Pitlane-native |
+| Capability               | Adapters / source                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| Database adapters        | Cloudflare D1 • Cloudflare Durable Object Storage • Netlify Database • Neon Postgres  |
+| File storage adapters    | Cloudflare R2 • Netlify Blobs • Vercel Blob                                           |
+| Session storage adapters | Cloudflare KV • Netlify Blobs • Upstash Redis                                         |
+| Authentication adapters  | Netlify Identity • Clerk Auth                                                         |
+| Image optimization       | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization                     |
+| Feature flags            | Cloudflare Flagship • Vercel Edge Config                                              |
+| Scheduled jobs           | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs             |
+| Background jobs          | Cloudflare Queues • Netlify Background Functions • Vercel Queues                      |
+| Route caching            | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache                   |
+| Preview Deployments      | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
+| Realtime data            | Cloudflare Durable Objects                                                            |
+| Email delivery           | Cloudflare Email Service • Resend                                                     |
+| Font providers           | Local • Fontsource • Google Fonts • Adobe Fonts                                       |
+| Content layer            | Pitlane-native                                                                        |
+| Head metadata            | Pitlane-native                                                                        |
+| Localization             | Pitlane-native                                                                        |
+| Type-safe env/secrets    | Pitlane-native                                                                        |
+| Type-safe styling        | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42)   |
+| Sprite sheet generator   | Pitlane-native                                                                        |
+| Browser router           | [Gist](https://gist.github.com/sergiodxa/0e921c1f47f3bb1af496cc0c142011f6)            |
+| View transitions         | Pitlane-native                                                                        |
+| Logging                  | Pitlane-native                                                                        |
+| Router RPC               | Pitlane-native                                                                        |
+| Prerendering             | Pitlane-native                                                                        |
 
 **Name and distribution:**
 
@@ -198,11 +198,11 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 ### Tooling packages
 
-| Package | Purpose |
-| --- | --- |
-| `@pitlane/dev` | Vite plugins — `remix()` (framework build) and `platform()` (target config) |
-| `pitlane` (CLI) | CLI wrapping platform tooling — database, secrets, resources, deploy |
-| `pitlane-tools/deploy-action` | GitHub Action for CI/CD deployment |
+| Package                       | Purpose                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| `@pitlane/dev`                | Vite plugins — `remix()` (framework build) and `platform()` (target config) |
+| `pitlane` (CLI)               | CLI wrapping platform tooling — database, secrets, resources, deploy        |
+| `pitlane-tools/deploy-action` | GitHub Action for CI/CD deployment                                          |
 
 ## `pitlane/dev` — framework Vite plugin
 
@@ -1175,18 +1175,18 @@ With no features selected, it's the minimal Remix 3 starting point for the chose
 
 ## How this compares to Void
 
-| Concern | Void | Pitlane |
-| --- | --- | --- |
-| Platform primitives | Magic global imports (`void/db`) | Explicit adapters + controllers |
-| Provider model | Single hidden platform | Multi-provider via adapters (Cloudflare, Netlify, Vercel, …) |
-| Resource provisioning | Auto on deploy | Explicit `pitlane resources create` |
-| Cloud account | Hidden, not required | Required, user's own account |
-| Deploy config | None, fully hidden | Generated in `.pitlane/`, inspectable |
-| Framework | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only |
-| Component model | Framework-delegated | Remix's own component system |
-| Build tool | Vite 8 beta | Vite+ (Rolldown-based) |
-| Scaffolding | `void init` | `vp create pitlane` |
-| Dev server | `void dev` / `vp dev` | `vp dev` |
-| Deploy | `void deploy` | `pitlane-tools/deploy-action` (CI) / `pitlane deploy` (local) |
-| MCP | Built-in | Skills + CLI instead |
-| Philosophy | Platform SDK — hides the platform | DX layer — portable platform integration you can inspect |
+| Concern               | Void                                        | Pitlane                                                       |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| Platform primitives   | Magic global imports (`void/db`)            | Explicit adapters + controllers                               |
+| Provider model        | Single hidden platform                      | Multi-provider via adapters (Cloudflare, Netlify, Vercel, …)  |
+| Resource provisioning | Auto on deploy                              | Explicit `pitlane resources create`                           |
+| Cloud account         | Hidden, not required                        | Required, user's own account                                  |
+| Deploy config         | None, fully hidden                          | Generated in `.pitlane/`, inspectable                         |
+| Framework             | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only                                                  |
+| Component model       | Framework-delegated                         | Remix's own component system                                  |
+| Build tool            | Vite 8 beta                                 | Vite+ (Rolldown-based)                                        |
+| Scaffolding           | `void init`                                 | `vp create pitlane`                                           |
+| Dev server            | `void dev` / `vp dev`                       | `vp dev`                                                      |
+| Deploy                | `void deploy`                               | `pitlane-tools/deploy-action` (CI) / `pitlane deploy` (local) |
+| MCP                   | Built-in                                    | Skills + CLI instead                                          |
+| Philosophy            | Platform SDK — hides the platform           | DX layer — portable platform integration you can inspect      |

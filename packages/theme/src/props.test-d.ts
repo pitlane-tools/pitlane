@@ -1,7 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
 
-import { createTheme } from "./theme.ts";
 import type { ThemedCSSProps } from "./props.ts";
+
+import { createTheme } from "./theme.ts";
 
 const { token: $ } = createTheme({
     color: { $type: "color", white: { $value: "#fff" } },
