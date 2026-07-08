@@ -5,7 +5,7 @@ import type { ThemedCSSProps } from "./props.ts";
 import { tva } from "./tva.ts";
 
 let button = tva({
-    base: { margin: 0, "&:hover": { opacity: 0.9 } },
+    base: { margin: 0, "&:hover": { opacity: 0.9, cursor: "pointer" } },
     variants: {
         intent: {
             primary: { color: "currentColor", "&:hover": { opacity: 1 } },
@@ -25,7 +25,7 @@ describe("tva", () => {
         expect(button.resolve()).toEqual({
             margin: 0,
             color: "currentColor",
-            "&:hover": { opacity: 1 },
+            "&:hover": { opacity: 1, cursor: "pointer" },
         });
     });
 
@@ -34,7 +34,7 @@ describe("tva", () => {
             margin: 0,
             color: "transparent",
             width: "auto",
-            "&:hover": { opacity: 0.9 },
+            "&:hover": { opacity: 0.9, cursor: "pointer" },
             opacity: 0.5,
         });
     });
@@ -45,7 +45,7 @@ describe("tva", () => {
 
     it("deep-merges nested selector objects rather than replacing the whole base", () => {
         let styles = button.resolve({ intent: "primary" });
-        expect(styles["&:hover"]).toEqual({ opacity: 1 });
+        expect(styles["&:hover"]).toEqual({ opacity: 1, cursor: "pointer" });
     });
 
     it("applies compound variants only when every key matches", () => {
