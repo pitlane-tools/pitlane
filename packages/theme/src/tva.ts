@@ -1,5 +1,4 @@
-import type { CSSMixinDescriptor } from "remix/ui";
-
+import type { ThemedCSSMixin } from "./css.ts";
 import type { ThemedCSSProps } from "./props.ts";
 
 import { css } from "./css.ts";
@@ -27,7 +26,9 @@ export interface TVAConfig<V extends VariantShape> {
 }
 
 export interface TVAFn<V extends VariantShape> {
-    (props?: Selection<V>): CSSMixinDescriptor;
+    // Node-generic like css() itself: MixinDescriptor is invariant in its
+    // node, so the element type binds per `mix` callsite.
+    <node extends Element = Element>(props?: Selection<V>): ThemedCSSMixin<node>;
     resolve(props?: Selection<V>): ThemedCSSProps;
 }
 
@@ -57,7 +58,8 @@ export function tva<const V extends VariantShape>(config: TVAConfig<V>): TVAFn<V
         return merged as ThemedCSSProps;
     }
 
-    let fn = (props?: Selection<V>) => css(resolve(props));
+    let fn = <node extends Element = Element>(props?: Selection<V>): ThemedCSSMixin<node> =>
+        css<node>(resolve(props));
     return Object.assign(fn, { resolve });
 }
 
@@ -91,7 +93,7 @@ type CombinedProps<Fns extends readonly TVAFn<VariantShape>[]> =
         : never;
 
 export interface CombinedTVAFn<Fns extends readonly TVAFn<VariantShape>[]> {
-    (props?: CombinedProps<Fns>): CSSMixinDescriptor;
+    <node extends Element = Element>(props?: CombinedProps<Fns>): ThemedCSSMixin<node>;
     resolve(props?: CombinedProps<Fns>): ThemedCSSProps;
 }
 
@@ -106,7 +108,8 @@ export function combine<Fns extends readonly TVAFn<VariantShape>[]>(
         }
         return merged as ThemedCSSProps;
     }
-    let fn = (props?: CombinedProps<Fns>) => css(resolve(props));
+    let fn = <node extends Element = Element>(props?: CombinedProps<Fns>): ThemedCSSMixin<node> =>
+        css<node>(resolve(props));
     return Object.assign(fn, { resolve });
 }
 
