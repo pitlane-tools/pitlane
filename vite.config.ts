@@ -50,6 +50,7 @@ export default defineConfig({
             "node_modules/**",
             "packages/*/dist/**",
             "demos/*/dist/**",
+            ".omp/**",
         ],
         options: {
             typeAware: true,
