@@ -29,4 +29,13 @@ describe("css", () => {
         // The mixin generated a class and attached it to the element
         expect(html).toMatch(/<div class="/);
     });
+
+    it("space-joins arrays on loose properties (documented: comma lists need a template string)", async () => {
+        let html = await renderToString(
+            createElement("div", {
+                mix: css({ transitionProperty: ["opacity", "transform"] }),
+            }),
+        );
+        expect(html).toContain("transition-property: opacity transform");
+    });
 });

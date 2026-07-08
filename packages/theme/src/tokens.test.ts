@@ -101,6 +101,15 @@ describe("parseTokens", () => {
         expect(() => parseTokens({ bg: { $value: "{color.white}" } })).toThrow(/color\.white/);
     });
 
+    it("rejects names containing DTCG reference-reserved characters", () => {
+        expect(() => parseTokens({ "a.b": { $type: "color", $value: "#f00" } } as never)).toThrow(
+            /a\.b.+reserved/,
+        );
+        expect(() =>
+            parseTokens({ color: { $type: "color", "{odd}": { $value: "#f00" } } } as never),
+        ).toThrow(/color\.\{odd\}.+reserved/);
+    });
+
     it("throws on alias type cycles, reporting the chain", () => {
         expect(() => parseTokens({ a: { $value: "{b}" }, b: { $value: "{a}" } })).toThrow(
             /a → b → a/,

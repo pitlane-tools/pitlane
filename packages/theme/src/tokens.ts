@@ -85,6 +85,11 @@ function walk(
         if (key.startsWith("$")) continue;
         let childPath = [...path, key];
         let childKey = childPath.join(".");
+        if (/[.{}]/.test(key)) {
+            throw new ThemeError(
+                `Token or group name "${childKey}" contains characters reserved by DTCG references (".", "{", "}")`,
+            );
+        }
         if (typeof child !== "object" || child === null || Array.isArray(child)) {
             throw new ThemeError(`"${childKey}" is neither a group nor a token`);
         }

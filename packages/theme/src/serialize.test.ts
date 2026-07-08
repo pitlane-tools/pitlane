@@ -80,6 +80,10 @@ describe("fontFamily", () => {
             '"Helvetica Neue", sans-serif',
         );
     });
+
+    it("throws on an empty fontFamily array", () => {
+        expect(() => run("fontFamily", [])).toThrow(/test\.token/);
+    });
 });
 
 describe("fontWeight", () => {
@@ -154,6 +158,15 @@ describe("border, transition, gradient, strokeStyle", () => {
                 { color: "{color.white}", position: 1 },
             ]),
         ).toBe("#fff 0%, var(--color-white) 100%");
+    });
+
+    it("emits gradient stop percentages without float artifacts", () => {
+        expect(
+            run("gradient", [
+                { color: "#fff", position: 0.07 },
+                { color: "#000", position: 0.29 },
+            ]),
+        ).toBe("#fff 7%, #000 29%");
     });
 
     it("serializes strokeStyle keywords and the object fallback", () => {

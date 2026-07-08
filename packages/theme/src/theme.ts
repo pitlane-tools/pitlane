@@ -47,14 +47,12 @@ export function createTheme<const T extends DTCGDocument>(
 ): ThemeResult<T> {
     let compiled = compile(config, options.modes ?? {});
 
-    // `var(--x)` ref → concrete serialized base value (aliases chased to the end).
+    // `var(--x)` ref → concrete serialized base value: full-value aliases AND
+    // composite sub-value references are chased to the end.
     let rawByRef = new Map<string, string>();
     let rawByKey = new Map<string, string>();
     for (let token of compiled.tokens.values()) {
-        rawByRef.set(
-            `var(${token.varName})`,
-            resolveRaw(token, compiled.tokens, compiled.ctx, rawByKey, []),
-        );
+        rawByRef.set(`var(${token.varName})`, resolveRaw(token, compiled.tokens, rawByKey, []));
     }
 
     return {
@@ -62,7 +60,7 @@ export function createTheme<const T extends DTCGDocument>(
         raw(ref) {
             let value = rawByRef.get(ref);
             if (value === undefined) {
-                throw new ThemeError(`raw(): "${ref}" was not minted by this theme`);
+                throw new ThemeError(`raw(): "${ref}" names a var this theme never minted`);
             }
             return value;
         },
@@ -72,17 +70,21 @@ export function createTheme<const T extends DTCGDocument>(
 
 interface CompiledTheme {
     tokens: Map<string, ParsedToken>;
-    ctx: SerializeContext;
     cssText: string;
 }
 
 function compile(config: DTCGDocument, modes: { light?: unknown; dark?: unknown }): CompiledTheme {
     let tokens = parseTokens(config);
     let ctx: SerializeContext = {
-        varRefFor(key, from) {
+        varRefFor(key, from, expected) {
             let target = tokens.get(key);
             if (!target) {
                 throw new ThemeError(`"${from}" references unknown token "${key}"`);
+            }
+            if (target.type !== expected) {
+                throw new ThemeError(
+                    `"${from}" references "${key}" of type "${target.type}" where "${expected}" is required`,
+                );
             }
             return `var(${target.varName})`;
         },
@@ -94,7 +96,7 @@ function compile(config: DTCGDocument, modes: { light?: unknown; dark?: unknown 
         declarations.set(
             token.varName,
             token.aliasOf !== undefined
-                ? ctx.varRefFor(token.aliasOf, token.key)
+                ? ctx.varRefFor(token.aliasOf, token.key, token.type)
                 : serializeValue(token.type, token.value, ctx, token.key),
         );
     }
@@ -104,13 +106,14 @@ function compile(config: DTCGDocument, modes: { light?: unknown; dark?: unknown 
         let overrides = modes[mode];
         if (overrides === undefined) continue;
         let modeDeclarations = compileModeOverrides(overrides, tokens, ctx);
+        if (modeDeclarations.size === 0) continue;
         let lines = [...modeDeclarations].map(([name, value]) => `        ${name}: ${value};`);
         modeBlocks.push(
             `@media (prefers-color-scheme: ${mode}) {\n    :root {\n${lines.join("\n")}\n    }\n}`,
         );
     }
 
-    return { tokens, ctx, cssText: buildCssText(declarations, modeBlocks) };
+    return { tokens, cssText: buildCssText(declarations, modeBlocks) };
 }
 
 export function compileThemeCss<const T extends DTCGDocument>(
@@ -155,7 +158,7 @@ function walkMode(
         out.set(
             base.varName,
             alias !== null
-                ? ctx.varRefFor(alias, key)
+                ? ctx.varRefFor(alias, key, base.type)
                 : serializeValue(base.type, record.$value, ctx, key),
         );
         return;
@@ -171,7 +174,6 @@ function walkMode(
 function resolveRaw(
     token: ParsedToken,
     tokens: Map<string, ParsedToken>,
-    ctx: SerializeContext,
     memo: Map<string, string>,
     chain: string[],
 ): string {
@@ -186,20 +188,35 @@ function resolveRaw(
         if (!target) {
             throw new ThemeError(`"${token.key}" references unknown token "${token.aliasOf}"`);
         }
-        value = resolveRaw(target, tokens, ctx, memo, [...chain, token.key]);
+        value = resolveRaw(target, tokens, memo, [...chain, token.key]);
     } else {
-        value = serializeValue(token.type, token.value, ctx, token.key);
+        // Serialize with a context that inlines fully-resolved base values, so
+        // raw() output never depends on the theme's CSS variables being present.
+        // Type agreement was already enforced by compile()'s context.
+        let rawCtx: SerializeContext = {
+            varRefFor(key, from) {
+                let target = tokens.get(key);
+                if (!target) {
+                    throw new ThemeError(`"${from}" references unknown token "${key}"`);
+                }
+                return resolveRaw(target, tokens, memo, [...chain, token.key]);
+            },
+        };
+        value = serializeValue(token.type, token.value, rawCtx, token.key);
     }
     memo.set(token.key, value);
     return value;
 }
 
 function buildAccessor(tokens: Map<string, ParsedToken>): unknown {
-    let root: Record<string, unknown> = {};
+    // Null-prototype nodes: a group segment named like an Object.prototype
+    // member ("__proto__", "constructor", …) must create an own key, never
+    // read or write through the prototype chain.
+    let root: Record<string, unknown> = Object.create(null);
     for (let token of tokens.values()) {
         let node = root;
         for (let segment of token.path.slice(0, -1)) {
-            node = (node[segment] ??= {}) as Record<string, unknown>;
+            node = (node[segment] ??= Object.create(null)) as Record<string, unknown>;
         }
         node[token.path[token.path.length - 1]] = `var(${token.varName})`;
     }

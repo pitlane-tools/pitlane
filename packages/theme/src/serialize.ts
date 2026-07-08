@@ -3,7 +3,7 @@ import type { TokenType } from "./brands.ts";
 import { aliasTarget, ThemeError } from "./tokens.ts";
 
 export interface SerializeContext {
-    varRefFor(key: string, from: string): string;
+    varRefFor(key: string, from: string, expected: TokenType): string;
 }
 
 const FONT_WEIGHT_KEYWORDS: Record<string, number> = {
@@ -94,7 +94,7 @@ export function serializeValue(
 
 function field(type: TokenType, value: unknown, ctx: SerializeContext, key: string): string {
     let alias = aliasTarget(value);
-    if (alias !== null) return ctx.varRefFor(alias, key);
+    if (alias !== null) return ctx.varRefFor(alias, key, type);
     return serializeValue(type, value, ctx, key);
 }
 
@@ -145,6 +145,7 @@ function serializeMeasure(value: unknown, units: readonly string[], key: string)
 
 function serializeFontFamily(value: unknown, key: string): string {
     let names = Array.isArray(value) ? value : [value];
+    if (names.length === 0) throw invalid(key, "fontFamily", value);
     return names
         .map(name => {
             if (typeof name !== "string") throw invalid(key, "fontFamily", value);
@@ -220,7 +221,8 @@ function serializeGradient(value: unknown, ctx: SerializeContext, key: string): 
             let { color, position } = stop as Record<string, unknown>;
             if (typeof position !== "number")
                 throw invalid(key, "gradient stop position", position);
-            return `${field("color", color, ctx, key)} ${position * 100}%`;
+            // Trim float noise from the 0–1 → % conversion (0.07 → "7%").
+            return `${field("color", color, ctx, key)} ${Number((position * 100).toFixed(4))}%`;
         })
         .join(", ");
 }
