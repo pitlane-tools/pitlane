@@ -46,7 +46,7 @@ interface RawEntry {
 
 export function parseTokens(document: DTCGDocument): Map<string, ParsedToken> {
     let entries = new Map<string, RawEntry>();
-    walk(document, [], undefined, entries);
+    walk(document, [], validateType(document.$type, "$root"), entries);
 
     let tokens = new Map<string, ParsedToken>();
     let varNames = new Map<string, string>();

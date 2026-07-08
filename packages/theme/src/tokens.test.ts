@@ -137,6 +137,17 @@ describe("parseTokens", () => {
     it("throws on non-object, non-token members", () => {
         expect(() => parseTokens({ color: { white: "#fff" } } as never)).toThrow(/color\.white/);
     });
+
+    it("inherits a root-level document $type", () => {
+        let tokens = parseTokens({ $type: "color", white: { $value: "#fff" } });
+        expect(tokens.get("white")?.type).toBe("color");
+    });
+
+    it("rejects an invalid root-level $type", () => {
+        expect(() => parseTokens({ $type: "sparkles", x: { $value: 1 } } as never)).toThrow(
+            /sparkles/,
+        );
+    });
 });
 
 function getError(fn: () => unknown): Error {
