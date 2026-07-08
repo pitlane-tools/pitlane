@@ -24,17 +24,29 @@ type BrandOf<Ty> = Ty extends TokenType ? BrandByType[Ty] : never;
 type TokenTypeOf<N, Root, Inherited> = N extends { $type: infer Ty extends TokenType }
     ? Ty
     : N extends { $value: `{${infer P}}` }
-      ? TypeAtPath<Root, P, Root, undefined>
+      ? TypeAtPath<Root, P, Root, GroupType<Root, undefined>>
       : Inherited extends TokenType
         ? Inherited
         : never;
 
-type TypeAtPath<N, P extends string, Root, Inherited> = P extends `${infer Head}.${infer Rest}`
-    ? Head extends keyof N
-        ? TypeAtPath<N[Head], Rest, Root, GroupType<N[Head], Inherited>>
+type MatchKey<N, S extends string> = keyof N extends infer K
+    ? K extends string | number
+        ? `${K}` extends S
+            ? K
+            : never
         : never
-    : P extends keyof N
-      ? TokenTypeOf<N[P], Root, Inherited>
+    : never;
+
+type TypeAtPath<N, P extends string, Root, Inherited> = P extends `${infer Head}.${infer Rest}`
+    ? MatchKey<N, Head> extends infer K
+        ? [K] extends [never]
+            ? never
+            : TypeAtPath<N[K & keyof N], Rest, Root, GroupType<N[K & keyof N], Inherited>>
+        : never
+    : MatchKey<N, P> extends infer K
+      ? [K] extends [never]
+          ? never
+          : TokenTypeOf<N[K & keyof N], Root, Inherited>
       : never;
 
 type TreeOf<N, Root, Inherited> = {
@@ -44,7 +56,7 @@ type TreeOf<N, Root, Inherited> = {
 };
 
 /** Same-shape accessor type: token leaves become branded `var()` strings. */
-export type TokenTree<T> = TreeOf<T, T, undefined>;
+export type TokenTree<T> = TreeOf<T, T, GroupType<T, undefined>>;
 
 /** Mode override shape: every group optional, token nodes reduced to `{ $value }`. */
 export type DeepPartialTokens<T> = {

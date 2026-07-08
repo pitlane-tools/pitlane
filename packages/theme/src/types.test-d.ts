@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { ColorToken, DimensionToken, ShadowToken } from "./brands.ts";
+import type { ColorToken, DimensionToken, DurationToken, ShadowToken } from "./brands.ts";
 import type { DeepPartialTokens, TokenTree } from "./types.ts";
 
 const config = {
@@ -65,5 +65,32 @@ describe("typography", () => {
     it("brands typography leaves as never (unsupported in v1)", () => {
         type Typo = TokenTree<{ heading: { $type: "typography"; $value: object } }>;
         expectTypeOf<Typo["heading"]>().toBeNever();
+    });
+});
+
+describe("TokenTree DTCG resolution precedence", () => {
+    it("resolves aliases across numeric key segments", () => {
+        type Config = {
+            color: {
+                $type: "color";
+                gray: { 900: { $value: "#171717" } };
+            };
+            bg2: { $value: "{color.gray.900}" };
+        };
+        expectTypeOf<TokenTree<Config>["bg2"]>().toEqualTypeOf<ColorToken>();
+    });
+
+    it("inherits a root-level document $type", () => {
+        expectTypeOf<
+            TokenTree<{ $type: "color"; white: { $value: "#fff" } }>["white"]
+        >().toEqualTypeOf<ColorToken>();
+    });
+
+    it("prefers the alias target's type over group inheritance (DTCG precedence)", () => {
+        type Config = {
+            motion: { $type: "duration"; fast: { $value: "150ms" } };
+            color: { $type: "color"; pulse: { $value: "{motion.fast}" } };
+        };
+        expectTypeOf<TokenTree<Config>["color"]["pulse"]>().toEqualTypeOf<DurationToken>();
     });
 });
