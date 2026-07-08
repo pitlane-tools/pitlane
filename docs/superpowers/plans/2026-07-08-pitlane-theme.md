@@ -2214,7 +2214,7 @@ type VariantShape = Record<string, Record<string, ThemedCSSProps>>;
 type VariantValue<K> = K extends "true" | "false" ? boolean : K;
 
 type Selection<V extends VariantShape> = {
-    [K in keyof V]?: VariantValue<keyof V[K] & string>;
+    -readonly [K in keyof V]?: VariantValue<keyof V[K] & string>;
 };
 
 export interface TVAConfig<V extends VariantShape> {
