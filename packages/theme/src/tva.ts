@@ -70,3 +70,67 @@ export function deepMerge(a: unknown, b: unknown): unknown {
 function isPlainObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) extends (
+    arg: infer I,
+) => void
+    ? I
+    : never;
+
+// Controller-approved deviation from the brief: `Parameters<T>[0]` distributes
+// over the `Fns[number]` union and keeps each branch's optional `| undefined`,
+// which would otherwise poison `UnionToIntersection` (intersecting with
+// `undefined` yields an uninhabited type) — `Exclude` strips it first.
+type CombinedProps<Fns extends readonly TVAFn<VariantShape>[]> = UnionToIntersection<
+    Exclude<Parameters<Fns[number]>[0], undefined>
+> extends infer P
+    ? { [K in keyof P]: P[K] }
+    : never;
+
+export interface CombinedTVAFn<Fns extends readonly TVAFn<VariantShape>[]> {
+    (props?: CombinedProps<Fns>): CSSMixinDescriptor;
+    resolve(props?: CombinedProps<Fns>): ThemedCSSProps;
+}
+
+/** cva-`compose` analog: one css() call over every input's resolved styles. */
+export function combine<Fns extends readonly TVAFn<VariantShape>[]>(
+    ...fns: Fns
+): CombinedTVAFn<Fns> {
+    function resolve(props?: CombinedProps<Fns>): ThemedCSSProps {
+        let merged: unknown = {};
+        for (let fn of fns) {
+            merged = deepMerge(merged, fn.resolve(props as never));
+        }
+        return merged as ThemedCSSProps;
+    }
+    let fn = (props?: CombinedProps<Fns>) => css(resolve(props));
+    return Object.assign(fn, { resolve });
+}
+
+export type ClassValue =
+    | string
+    | number
+    | null
+    | undefined
+    | false
+    | readonly ClassValue[]
+    | Record<string, boolean | null | undefined>;
+
+/** clsx-compatible className joiner for the className interop escape hatch. */
+export function cx(...inputs: ClassValue[]): string {
+    let out: string[] = [];
+    for (let input of inputs) {
+        if (!input) continue;
+        if (typeof input === "string" || typeof input === "number") {
+            out.push(String(input));
+        } else if (Array.isArray(input)) {
+            let inner = cx(...input);
+            if (inner) out.push(inner);
+        } else if (typeof input === "object") {
+            for (let [key, on] of Object.entries(input)) {
+                if (on) out.push(key);
+            }
+        }
+    }
+    return out.join(" ");
+}

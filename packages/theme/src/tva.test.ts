@@ -76,3 +76,46 @@ describe("tva", () => {
 // Type-level guard that resolve() returns ThemedCSSProps
 let _styles: ThemedCSSProps = button.resolve();
 void _styles;
+
+import { combine, cx, tva as tvaFactory } from "./tva.ts";
+
+describe("combine", () => {
+    let sizing = tvaFactory({
+        variants: { size: { sm: { fontSize: 0 }, lg: { opacity: 1 } } },
+        defaultVariants: { size: "sm" },
+    });
+    let toned = tvaFactory({
+        base: { margin: 0 },
+        variants: { tone: { loud: { opacity: 0.9 } } },
+    });
+
+    it("merges resolved styles in argument order", () => {
+        let both = combine(sizing, toned);
+        expect(both.resolve({ size: "lg", tone: "loud" })).toEqual({
+            opacity: 0.9,
+            margin: 0,
+        });
+    });
+
+    it("honors each component's defaults", () => {
+        let both = combine(sizing, toned);
+        expect(both.resolve()).toEqual({ fontSize: 0, margin: 0 });
+    });
+
+    it("returns a mixin descriptor from the callable", () => {
+        let both = combine(sizing, toned);
+        expect(typeof both({ tone: "loud" })).toBe("object");
+    });
+});
+
+describe("cx", () => {
+    it("joins truthy class values like clsx", () => {
+        expect(cx("a", false, null, undefined, 0, "b", ["c", ["d"]], { e: true, f: false })).toBe(
+            "a b c d e",
+        );
+    });
+
+    it("returns an empty string for no input", () => {
+        expect(cx()).toBe("");
+    });
+});

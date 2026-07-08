@@ -23,3 +23,17 @@ describe("TVAProps", () => {
         button({ intent: "ghost" });
     });
 });
+
+import { combine } from "./tva.ts";
+
+describe("combine props", () => {
+    it("accepts the union of variant props and rejects unknown values", () => {
+        let sizing = tva({ variants: { size: { sm: {}, lg: {} } } });
+        let toned = tva({ variants: { tone: { loud: {}, quiet: {} } } });
+        let both = combine(sizing, toned);
+        both({ size: "lg", tone: "quiet" });
+        both();
+        // @ts-expect-error — "xl" is not a declared size
+        both({ size: "xl" });
+    });
+});
