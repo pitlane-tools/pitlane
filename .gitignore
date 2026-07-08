@@ -5,3 +5,4 @@ docs/.vitepress/.temp
 .vite
 .DS_Store
 .superpowers/
+packages/*/dist
