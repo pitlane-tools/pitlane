@@ -5,7 +5,7 @@ description: Access Cloudflare bindings through Remix middleware and typed conte
 
 # Platform Primitives
 
-Pitlane exposes Cloudflare bindings through Remix middleware and context keys. Raw bindings come from `cloudflare:workers`; route code reads typed abstractions from context.
+Pitlane exposes Cloudflare bindings through Remix middleware and context keys. Raw bindings come from `cloudflare:workers`. Route code reads typed abstractions from context.
 
 ## Database
 
@@ -204,7 +204,7 @@ platform({
 });
 ```
 
-A one-minute trigger is appropriate for most workloads. Only schedules with due occurrences enqueue work; the rest are skipped.
+A one-minute trigger is appropriate for most workloads. Only schedules with due occurrences enqueue work. The rest are skipped.
 
 ### Manual Control
 

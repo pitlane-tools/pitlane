@@ -1,11 +1,11 @@
 ---
 title: Vite+
-description: How Pitlane composes with Vite+ — application lifecycle on Vite+, Cloudflare platform operations on Pitlane.
+description: How Pitlane composes with Vite+, with the application lifecycle on Vite+ and Cloudflare platform operations on Pitlane.
 ---
 
 # Vite+
 
-Pitlane is built for Vite+ projects. Vite+ is the unified command surface for the application lifecycle; Pitlane handles Cloudflare platform operations around that lifecycle.
+Pitlane is built for Vite+ projects. Vite+ is the unified command surface for the application lifecycle. Pitlane handles Cloudflare platform operations around that lifecycle.
 
 ## Command Boundary
 

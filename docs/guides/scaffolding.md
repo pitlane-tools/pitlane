@@ -43,7 +43,7 @@ Pitlane wires selected platform features into `platform()` and the server entry.
   ☐ CI/CD (GitHub Actions)
 ```
 
-Project features add framework-level setup such as auth, tests, prerendering, MDX content, Tailwind, and deployment workflows.
+Project features add app-level setup such as auth, tests, prerendering, MDX content, Tailwind, and deployment workflows.
 
 ## Example With Optional Features
 

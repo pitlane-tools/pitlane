@@ -1,6 +1,6 @@
 ---
 title: Deployment
-description: Deploy Remix apps to Cloudflare with Pitlane — locally and from CI.
+description: Deploy Remix apps to Cloudflare with Pitlane, locally and from CI.
 ---
 
 # Deployment
