@@ -72,21 +72,20 @@ function App() {
 `css` from `@pitlane/theme` is remix/ui's `css()` with brand enforcement — token-mapped properties only accept tokens from your theme:
 
 ```tsx
-import type { ThemedCSSProps } from "@pitlane/theme";
 import { css } from "@pitlane/theme";
 import { $ } from "./theme.ts";
 
-// Share style objects; apply css() at the element — the descriptor binds to
-// the element type of the `mix` position it appears in.
-let card: ThemedCSSProps = {
-    color: $.color.bg,
-    padding: [$.space.sm, $.space.md], // 1–4 value tuples join with spaces
-    margin: 0,
-    // color: "#ff0000", // ✗ type error — not in the palette
-    "&:hover": { color: $.color.gray[900] },
-};
-
-<article mix={css(card)} />;
+// css() binds to the element type of the `mix` position it appears in —
+// write it inline at each element, like remix/ui's own css.
+<article
+    mix={css({
+        color: $.color.bg,
+        padding: [$.space.sm, $.space.md], // 1–4 value tuples join with spaces
+        margin: 0,
+        // color: "#ff0000", // ✗ type error — not in the palette
+        "&:hover": { color: $.color.gray[900] },
+    })}
+/>;
 ```
 
 Unmapped properties stay loose, and template interpolation is the escape hatch for shorthands: `` border: `1px solid ${$.color.gray[900]}` ``.

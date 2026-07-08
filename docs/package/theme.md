@@ -75,25 +75,23 @@ Gradient tokens serialize to a color-stop list (`#fff 0%, #000 100%`) for use in
 ## css
 
 ```tsx
-import type { ThemedCSSProps } from "@pitlane/theme";
 import { css } from "@pitlane/theme";
 import { $ } from "./theme.ts";
 
-// Share style objects; apply css() at the element.
-let card: ThemedCSSProps = {
-    color: $.color.bg, // ✓ ColorToken
-    backgroundColor: "transparent", // ✓ CSS keyword
-    padding: [$.space.sm, $.space.md], // ✓ 1–4 token tuple
-    margin: 0, // ✓ literal zero
-    "&:hover": { color: $.color.gray[900] },
-};
-
-<div mix={css(card)} />;
+<div
+    mix={css({
+        color: $.color.bg, // ✓ ColorToken
+        backgroundColor: "transparent", // ✓ CSS keyword
+        padding: [$.space.sm, $.space.md], // ✓ 1–4 token tuple
+        margin: 0, // ✓ literal zero
+        "&:hover": { color: $.color.gray[900] },
+    })}
+/>;
 ```
 
 Token-mapped longhands only accept the matching brand, CSS-wide keywords, property keywords, and `0` — `color: "#ff0000"` is a type error. Unmapped properties (`display`, `border`, `background`, …) stay loosely typed; interpolating a token into a template string (`` border: `1px solid ${$.color.bg}` ``) is the intended escape hatch, and `remix/ui`'s own `css()` remains fully untyped if you need out.
 
-`css()` is node-generic, exactly like remix/ui's own `css`: the descriptor it returns binds to the element type of the `mix` position it appears in, so call it at the element. To share styles, share `ThemedCSSProps` objects (as above) — a stored descriptor is bound to one element type.
+`css()` is node-generic, exactly like remix/ui's own `css`: the descriptor it returns binds to the element type of the `mix` position it appears in, so write `css({ … })` inline at each element. For styles genuinely reused across elements, share a `ThemedCSSProps` object and pass it through `css()` per callsite — a stored descriptor is bound to one element type.
 
 Canonical property map (`Wide` = `inherit | initial | unset | revert | revert-layer`):
 

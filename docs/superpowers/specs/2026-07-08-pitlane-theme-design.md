@@ -96,24 +96,24 @@ let { token: $, raw, Theme } = createTheme(
 $.color.white; // ColorToken — runtime value "var(--color-white)"
 raw($.color.white); // "#fff" (serialized base-mode value)
 
-// Share style objects; css() is node-generic and binds to the element type
-// of the `mix` position it is called in.
-let card: ThemedCSSProps = {
-    color: $.color.bg, // ✓ ColorToken
-    // color: "#ff0000",          // ✗ type error — off-palette literal
-    // color: $.space.md,         // ✗ type error — wrong brand
-    backgroundColor: "transparent", // ✓ CSS keyword
-    padding: [$.space.sm, $.space.md], // ✓ token tuple → "var(…) var(…)"
-    margin: 0, // ✓ literal zero
-    boxShadow: $.shadow.card,
-    "&:hover": { color: $.color.gray[900] }, // nesting recurses
-};
-
 function Component() {
     return () => (
         <>
             <Theme />
-            <div mix={css(card)} />
+            {/* css() is node-generic: it binds to the element type of the
+                mix position, so it is written inline at each element. */}
+            <div
+                mix={css({
+                    color: $.color.bg, // ✓ ColorToken
+                    // color: "#ff0000",          // ✗ type error — off-palette literal
+                    // color: $.space.md,         // ✗ type error — wrong brand
+                    backgroundColor: "transparent", // ✓ CSS keyword
+                    padding: [$.space.sm, $.space.md], // ✓ token tuple → "var(…) var(…)"
+                    margin: 0, // ✓ literal zero
+                    boxShadow: $.shadow.card,
+                    "&:hover": { color: $.color.gray[900] }, // nesting recurses
+                })}
+            />
         </>
     );
 }
@@ -155,8 +155,10 @@ tuples join with spaces; nested objects recurse; the result delegates directly t
 `css()`, returning a `ThemedCSSMixin<node>` for the `mix` prop. Like remix/ui's own `css`
 factory, the function is generic over the element node — `MixinDescriptor` is invariant in its
 node type, so the descriptor binds to the element of the `mix` position it is called in
-(execution amendment: the erased-genericity version failed on every concrete element). Shared
-styles are shared as `ThemedCSSProps` objects, with `css()` applied per element.
+(execution amendment: the erased-genericity version failed on every concrete element). The
+idiom is `css({ … })` written inline at each element, matching remix/ui's own css; styles
+genuinely reused across elements are shared as `ThemedCSSProps` objects passed through `css()`
+per callsite.
 
 Escape hatches, in order of preference: template interpolation
 (`` border: `1px solid ${$.color.gray[900]}` `` — degrades to `string`, accepted by unmapped

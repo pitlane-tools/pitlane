@@ -1,36 +1,9 @@
-import type { ThemedCSSProps } from "@pitlane/theme";
-
 import { button, pillButton } from "#/components/button.ts";
 import { Document } from "#/Document.tsx";
 import { routes } from "#/routes.ts";
 import { $, raw } from "#/theme.ts";
 import { css, cx } from "@pitlane/theme";
 import { createController } from "remix/router";
-
-// Share style OBJECTS and apply css() at each element: the descriptor css()
-// returns binds to the element type of the `mix` position it appears in.
-let card: ThemedCSSProps = {
-    display: "flex",
-    flexDirection: "column",
-    gap: $.space.md,
-    padding: $.space.lg, // ✓ DimensionToken — `padding: "24px"` would be a type error
-    backgroundColor: $.color.panel,
-    border: `1px solid ${$.color.border}`,
-    borderRadius: $.radius.md,
-    boxShadow: $.shadow.card,
-};
-
-let heading: ThemedCSSProps = {
-    fontSize: $.text.lg,
-    fontWeight: $.weight.bold,
-};
-
-let row: ThemedCSSProps = {
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: $.space.sm,
-};
 
 // Semantic tokens rendered as swatches below. `raw()` chases aliases to the
 // concrete base-mode value — dark mode swaps the CSS variables, not the code.
@@ -72,9 +45,29 @@ function Home() {
                 </p>
             </header>
 
-            <section mix={css(card)}>
-                <h2 mix={css(heading)}>Variants with tva</h2>
-                <div mix={css(row)}>
+            <section
+                mix={css({
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: $.space.md,
+                    padding: $.space.lg, // ✓ DimensionToken — `padding: "24px"` would be a type error
+                    backgroundColor: $.color.panel,
+                    border: `1px solid ${$.color.border}`,
+                    borderRadius: $.radius.md,
+                    boxShadow: $.shadow.card,
+                })}
+            >
+                <h2 mix={css({ fontSize: $.text.lg, fontWeight: $.weight.bold })}>
+                    Variants with tva
+                </h2>
+                <div
+                    mix={css({
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: $.space.sm,
+                    })}
+                >
                     <button mix={button({})} type="button">
                         Primary
                     </button>
@@ -93,8 +86,21 @@ function Home() {
                 </div>
             </section>
 
-            <section mix={css(card)}>
-                <h2 mix={css(heading)}>Tokens, aliases, and raw()</h2>
+            <section
+                mix={css({
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: $.space.md,
+                    padding: $.space.lg,
+                    backgroundColor: $.color.panel,
+                    border: `1px solid ${$.color.border}`,
+                    borderRadius: $.radius.md,
+                    boxShadow: $.shadow.card,
+                })}
+            >
+                <h2 mix={css({ fontSize: $.text.lg, fontWeight: $.weight.bold })}>
+                    Tokens, aliases, and raw()
+                </h2>
                 <ul
                     mix={css({
                         display: "grid",
@@ -105,7 +111,15 @@ function Home() {
                     })}
                 >
                     {swatches.map(swatch => (
-                        <li key={swatch.name} mix={css(row)}>
+                        <li
+                            key={swatch.name}
+                            mix={css({
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                gap: $.space.sm,
+                            })}
+                        >
                             <span
                                 mix={css({
                                     display: "inline-flex",
@@ -133,7 +147,14 @@ function Home() {
                 </ul>
             </section>
 
-            <footer mix={css(row)}>
+            <footer
+                mix={css({
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: $.space.sm,
+                })}
+            >
                 <a
                     href="https://docs.pitlane.tools/package/theme"
                     mix={css({
