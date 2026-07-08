@@ -25,7 +25,7 @@ Design tokens live in a [W3C DTCG](https://www.designtokens.org/tr/drafts/format
 import { createTheme } from "@pitlane/theme";
 
 export let {
-    token: $,
+    token: t,
     raw,
     Theme,
 } = createTheme(
@@ -46,7 +46,7 @@ export let {
 );
 ```
 
-`$.color.white` is a `ColorToken` — a typed `var(--color-white)` reference. `raw($.color.white)` returns `"#fff"`.
+`t.color.white` is a `ColorToken` — a typed `var(--color-white)` reference. `raw(t.color.white)` returns `"#fff"`.
 
 ## Install the tokens
 
@@ -73,22 +73,22 @@ function App() {
 
 ```tsx
 import { css } from "@pitlane/theme";
-import { $ } from "./theme.ts";
+import { t } from "./theme.ts";
 
 // css() binds to the element type of the `mix` position it appears in —
 // write it inline at each element, like remix/ui's own css.
 <article
     mix={css({
-        color: $.color.bg,
-        padding: [$.space.sm, $.space.md], // 1–4 value tuples join with spaces
+        color: t.color.bg,
+        padding: [t.space.sm, t.space.md], // 1–4 value tuples join with spaces
         margin: 0,
         // color: "#ff0000", // ✗ type error — not in the palette
-        "&:hover": { color: $.color.gray[900] },
+        "&:hover": { color: t.color.gray[900] },
     })}
 />;
 ```
 
-Unmapped properties stay loose, and template interpolation is the escape hatch for shorthands: `` border: `1px solid ${$.color.gray[900]}` ``.
+Unmapped properties stay loose, and template interpolation is the escape hatch for shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
 
 ## Dark mode
 
@@ -115,14 +115,14 @@ Aliases keep their `var()` indirection in the emitted CSS, so overriding one ref
 ```ts
 import { tva } from "@pitlane/theme";
 import type { TVAProps } from "@pitlane/theme";
-import { $ } from "./theme.ts";
+import { t } from "./theme.ts";
 
 export let button = tva({
-    base: { padding: [$.space.sm, $.space.md] },
+    base: { padding: [t.space.sm, t.space.md] },
     variants: {
         intent: {
-            primary: { backgroundColor: $.color.gray[900], color: $.color.white },
-            neutral: { backgroundColor: $.color.white, color: $.color.gray[900] },
+            primary: { backgroundColor: t.color.gray[900], color: t.color.white },
+            neutral: { backgroundColor: t.color.white, color: t.color.gray[900] },
         },
     },
     defaultVariants: { intent: "primary" },

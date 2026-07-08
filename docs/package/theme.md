@@ -21,7 +21,7 @@ vp add @pitlane/theme
 import { createTheme } from "@pitlane/theme";
 
 export let {
-    token: $,
+    token: t,
     raw,
     Theme,
 } = createTheme(
@@ -46,8 +46,8 @@ export let {
 );
 ```
 
-- `token` — a same-shape accessor. Every leaf is a `var(--…)` string branded by its token type: `$.color.white` is a `ColorToken` whose value is `"var(--color-white)"`.
-- `raw(ref)` — the serialized base-mode value behind a ref: `raw($.color.white)` → `"#fff"`. Aliases are chased to their concrete value. Refs from another theme throw.
+- `token` — a same-shape accessor. Every leaf is a `var(--…)` string branded by its token type: `t.color.white` is a `ColorToken` whose value is `"var(--color-white)"`.
+- `raw(ref)` — the serialized base-mode value behind a ref: `raw(t.color.white)` → `"#fff"`. Aliases are chased to their concrete value. Refs from another theme throw.
 - `Theme` — a component that renders a `<style data-pitlane-theme>` tag containing the token CSS. Render it once near your root. Accepts an optional `nonce` prop for CSP.
 
 CSS variable names are the kebab-cased token path: `color.gray.900` → `--color-gray-900`.
@@ -60,15 +60,15 @@ Author token documents in TypeScript. JSON imports work at runtime, but TypeScri
 
 ## DTCG support
 
-| Feature                                                          | Support                                   |
-| ---------------------------------------------------------------- | ----------------------------------------- |
-| Groups + group-level `$type` inheritance                         | ✓                                         |
-| Aliases `{path.to.token}` (full values and composite sub-values) | ✓ — emitted as `var()` references         |
-| color, dimension, duration                                       | ✓ — legacy strings and structured objects |
-| fontFamily, fontWeight, number, cubicBezier                      | ✓                                         |
-| shadow, border, transition, gradient, strokeStyle                | ✓ — single CSS value each                 |
-| typography                                                       | ✗ — throws (planned)                      |
-| `$description`, `$extensions`, `$deprecated`                     | Parsed and ignored                        |
+| Feature | Support |
+| --- | --- |
+| Groups + group-level `$type` inheritance | ✓ |
+| Aliases `{path.to.token}` (full values and composite sub-values) | ✓ — emitted as `var()` references |
+| color, dimension, duration | ✓ — legacy strings and structured objects |
+| fontFamily, fontWeight, number, cubicBezier | ✓ |
+| shadow, border, transition, gradient, strokeStyle | ✓ — single CSS value each |
+| typography | ✗ — throws (planned) |
+| `$description`, `$extensions`, `$deprecated` | Parsed and ignored |
 
 Gradient tokens serialize to a color-stop list (`#fff 0%, #000 100%`) for use inside `linear-gradient(…)` and friends. Gradient stop positions must be literal numbers; stop colors may be aliases. Object-form `strokeStyle` serializes to `dashed` (the spec's CSS fallback).
 
@@ -76,42 +76,42 @@ Gradient tokens serialize to a color-stop list (`#fff 0%, #000 100%`) for use in
 
 ```tsx
 import { css } from "@pitlane/theme";
-import { $ } from "./theme.ts";
+import { t } from "./theme.ts";
 
 <div
     mix={css({
-        color: $.color.bg, // ✓ ColorToken
+        color: t.color.bg, // ✓ ColorToken
         backgroundColor: "transparent", // ✓ CSS keyword
-        padding: [$.space.sm, $.space.md], // ✓ 1–4 token tuple
+        padding: [t.space.sm, t.space.md], // ✓ 1–4 token tuple
         margin: 0, // ✓ literal zero
-        "&:hover": { color: $.color.gray[900] },
+        "&:hover": { color: t.color.gray[900] },
     })}
 />;
 ```
 
-Token-mapped longhands only accept the matching brand, CSS-wide keywords, property keywords, and `0` — `color: "#ff0000"` is a type error. Unmapped properties (`display`, `border`, `background`, …) stay loosely typed; interpolating a token into a template string (`` border: `1px solid ${$.color.bg}` ``) is the intended escape hatch, and `remix/ui`'s own `css()` remains fully untyped if you need out.
+Token-mapped longhands only accept the matching brand, CSS-wide keywords, property keywords, and `0` — `color: "#ff0000"` is a type error. Unmapped properties (`display`, `border`, `background`, …) stay loosely typed; interpolating a token into a template string (`` border: `1px solid ${t.color.bg}` ``) is the intended escape hatch, and `remix/ui`'s own `css()` remains fully untyped if you need out.
 
 `css()` is node-generic, exactly like remix/ui's own `css`: the descriptor it returns binds to the element type of the `mix` position it appears in, so write `css({ … })` inline at each element. For styles genuinely reused across elements, share a `ThemedCSSProps` object and pass it through `css()` per callsite — a stored descriptor is bound to one element type.
 
 Canonical property map (`Wide` = `inherit | initial | unset | revert | revert-layer`):
 
-| Property family                                                                                                                                                                                                                    | Accepted values                                                                                                            |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `color`, `backgroundColor`, `borderColor`, `borderTopColor`, `borderRightColor`, `borderBottomColor`, `borderLeftColor`, `outlineColor`, `textDecorationColor`, `columnRuleColor`, `caretColor`, `accentColor`, `fill`, `stroke`   | `ColorToken \| "transparent" \| "currentColor" \| Wide`                                                                    |
-| `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `flexBasis`                                                                                                                                                   | `DimensionToken \| 0 \| "auto" \| "min-content" \| "max-content" \| "fit-content" \| Wide`                                 |
-| `top`, `right`, `bottom`, `left`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`                                                                                                                                         | `DimensionToken \| 0 \| "auto" \| Wide`                                                                                    |
-| `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `fontSize`, `textIndent`, `outlineOffset`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`, `rowGap`, `columnGap` | `DimensionToken \| 0 \| Wide`                                                                                              |
-| `letterSpacing`, `wordSpacing`                                                                                                                                                                                                     | `DimensionToken \| 0 \| "normal" \| Wide`                                                                                  |
-| `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`, `outlineWidth`                                                                                                                                       | `DimensionToken \| 0 \| "thin" \| "medium" \| "thick" \| Wide`                                                             |
-| `padding`, `margin`, `inset`, `borderRadius` (box shorthands)                                                                                                                                                                      | single value as the longhand, **or** tuple of 1–4 such values → space-joined                                               |
-| `gap`                                                                                                                                                                                                                              | `DimensionToken \| 0 \| Wide` or 2-tuple                                                                                   |
-| `fontFamily`                                                                                                                                                                                                                       | `FontFamilyToken \| Wide`                                                                                                  |
-| `fontWeight`                                                                                                                                                                                                                       | `FontWeightToken \| "normal" \| "bold" \| "lighter" \| "bolder" \| Wide`                                                   |
-| `lineHeight`                                                                                                                                                                                                                       | `NumberToken \| DimensionToken \| "normal" \| Wide`                                                                        |
-| `opacity`, `zIndex`, `flexGrow`, `flexShrink`, `order`                                                                                                                                                                             | `NumberToken \| number \| Wide` (plain numbers stay legal — enforcing tokens for `zIndex: 10` is noise)                    |
-| `transitionDuration`, `transitionDelay`, `animationDuration`, `animationDelay`                                                                                                                                                     | `DurationToken \| Wide`                                                                                                    |
-| `transitionTimingFunction`, `animationTimingFunction`                                                                                                                                                                              | `CubicBezierToken \| "ease" \| "linear" \| "ease-in" \| "ease-out" \| "ease-in-out" \| "step-start" \| "step-end" \| Wide` |
-| `boxShadow`, `textShadow`                                                                                                                                                                                                          | `ShadowToken \| "none" \| Wide`                                                                                            |
+| Property family | Accepted values |
+| --- | --- |
+| `color`, `backgroundColor`, `borderColor`, `borderTopColor`, `borderRightColor`, `borderBottomColor`, `borderLeftColor`, `outlineColor`, `textDecorationColor`, `columnRuleColor`, `caretColor`, `accentColor`, `fill`, `stroke` | `ColorToken \| "transparent" \| "currentColor" \| Wide` |
+| `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `flexBasis` | `DimensionToken \| 0 \| "auto" \| "min-content" \| "max-content" \| "fit-content" \| Wide` |
+| `top`, `right`, `bottom`, `left`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft` | `DimensionToken \| 0 \| "auto" \| Wide` |
+| `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `fontSize`, `textIndent`, `outlineOffset`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`, `rowGap`, `columnGap` | `DimensionToken \| 0 \| Wide` |
+| `letterSpacing`, `wordSpacing` | `DimensionToken \| 0 \| "normal" \| Wide` |
+| `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`, `outlineWidth` | `DimensionToken \| 0 \| "thin" \| "medium" \| "thick" \| Wide` |
+| `padding`, `margin`, `inset`, `borderRadius` (box shorthands) | single value as the longhand, **or** tuple of 1–4 such values → space-joined |
+| `gap` | `DimensionToken \| 0 \| Wide` or 2-tuple |
+| `fontFamily` | `FontFamilyToken \| Wide` |
+| `fontWeight` | `FontWeightToken \| "normal" \| "bold" \| "lighter" \| "bolder" \| Wide` |
+| `lineHeight` | `NumberToken \| DimensionToken \| "normal" \| Wide` |
+| `opacity`, `zIndex`, `flexGrow`, `flexShrink`, `order` | `NumberToken \| number \| Wide` (plain numbers stay legal — enforcing tokens for `zIndex: 10` is noise) |
+| `transitionDuration`, `transitionDelay`, `animationDuration`, `animationDelay` | `DurationToken \| Wide` |
+| `transitionTimingFunction`, `animationTimingFunction` | `CubicBezierToken \| "ease" \| "linear" \| "ease-in" \| "ease-out" \| "ease-in-out" \| "step-start" \| "step-end" \| Wide` |
+| `boxShadow`, `textShadow` | `ShadowToken \| "none" \| Wide` |
 
 ## tva
 
@@ -120,11 +120,11 @@ import { tva } from "@pitlane/theme";
 import type { TVAProps } from "@pitlane/theme";
 
 let button = tva({
-    base: { padding: [$.space.sm, $.space.md] },
+    base: { padding: [t.space.sm, t.space.md] },
     variants: {
         intent: {
-            primary: { backgroundColor: $.color.gray[900], color: $.color.white },
-            neutral: { backgroundColor: $.color.white, color: $.color.gray[900] },
+            primary: { backgroundColor: t.color.gray[900], color: t.color.white },
+            neutral: { backgroundColor: t.color.white, color: t.color.gray[900] },
         },
         block: { true: { width: "auto" } },
     },
