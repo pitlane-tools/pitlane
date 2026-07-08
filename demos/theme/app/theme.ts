@@ -12,7 +12,7 @@ import { createTheme } from "@pitlane/theme";
  *   sub-values — `motion.press` references `{motion.fast}`.
  */
 export let {
-    token: $,
+    token: t,
     raw,
     Theme,
 } = createTheme(

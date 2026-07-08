@@ -1,6 +1,6 @@
 import type { TVAProps } from "@pitlane/theme";
 
-import { $ } from "#/theme.ts";
+import { t } from "#/theme.ts";
 import { combine, tva } from "@pitlane/theme";
 
 /**
@@ -12,37 +12,37 @@ export let button = tva({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: $.radius.md,
-        fontWeight: $.weight.medium,
+        borderRadius: t.radius.md,
+        fontWeight: t.weight.medium,
         border: "1px solid transparent",
         cursor: "pointer",
-        transition: `background-color ${$.motion.press}, color ${$.motion.press}`,
+        transition: `background-color ${t.motion.press}, color ${t.motion.press}`,
     },
     variants: {
         intent: {
             primary: {
-                backgroundColor: $.color.accent,
-                color: $.color.white,
-                "&:hover": { backgroundColor: $.color.accentHover },
+                backgroundColor: t.color.accent,
+                color: t.color.white,
+                "&:hover": { backgroundColor: t.color.accentHover },
             },
             secondary: {
                 backgroundColor: "transparent",
-                color: $.color.text,
-                border: `1px solid ${$.color.border}`,
-                "&:hover": { backgroundColor: $.color.panel },
+                color: t.color.text,
+                border: `1px solid ${t.color.border}`,
+                "&:hover": { backgroundColor: t.color.panel },
             },
             link: {
                 backgroundColor: "transparent",
-                color: $.color.accent,
-                "&:hover": { color: $.color.accentHover },
+                color: t.color.accent,
+                "&:hover": { color: t.color.accentHover },
             },
         },
         size: {
-            sm: { padding: [$.space.xs, $.space.sm], fontSize: $.text.sm },
-            md: { padding: [$.space.sm, $.space.md], fontSize: $.text.md },
+            sm: { padding: [t.space.xs, t.space.sm], fontSize: t.text.sm },
+            md: { padding: [t.space.sm, t.space.md], fontSize: t.text.md },
         },
     },
-    compoundVariants: [{ intent: "link", size: "md", css: { fontSize: $.text.lg } }],
+    compoundVariants: [{ intent: "link", size: "md", css: { fontSize: t.text.lg } }],
     defaultVariants: { intent: "primary", size: "md" },
 });
 
@@ -51,7 +51,7 @@ export type ButtonProps = TVAProps<typeof button>;
 let rounded = tva({
     variants: {
         pill: {
-            true: { borderRadius: $.radius.full },
+            true: { borderRadius: t.radius.full },
         },
     },
 });

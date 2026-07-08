@@ -1,4 +1,4 @@
-import { $, Theme } from "#/theme.ts";
+import { t, Theme } from "#/theme.ts";
 import { mergeAssets } from "@hiogawa/vite-plugin-fullstack/runtime";
 import { css } from "@pitlane/theme";
 import { type Handle, type RemixNode } from "remix/ui";
@@ -22,9 +22,9 @@ export function Document(handle: Handle<DocumentProps>) {
                 mix={css({
                     // No hand-written dark-mode media query needed: the vars
                     // installed by <Theme /> flip with prefers-color-scheme.
-                    backgroundColor: $.color.surface,
-                    color: $.color.text,
-                    fontFamily: $.font.sans,
+                    backgroundColor: t.color.surface,
+                    color: t.color.text,
+                    fontFamily: t.font.sans,
                 })}
             >
                 <head>
