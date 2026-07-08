@@ -1,0 +1,62 @@
+import { describe, expectTypeOf, it } from "vitest";
+
+import { createTheme } from "./theme.ts";
+import type { ThemedCSSProps } from "./props.ts";
+
+const { token: $ } = createTheme({
+    color: { $type: "color", white: { $value: "#fff" } },
+    space: { $type: "dimension", md: { $value: "16px" } },
+    weight: { $type: "fontWeight", bold: { $value: 700 } },
+    shadow: {
+        card: {
+            $type: "shadow",
+            $value: { color: "#000", offsetX: "0px", offsetY: "1px" },
+        },
+    },
+    motion: { $type: "duration", fast: { $value: "150ms" } },
+} as const);
+
+describe("ThemedCSSProps enforcement", () => {
+    it("accepts branded tokens, keywords, zero, and tuples", () => {
+        expectTypeOf({
+            color: $.color.white,
+            backgroundColor: "transparent" as const,
+            fontSize: $.space.md,
+            fontWeight: $.weight.bold,
+            boxShadow: $.shadow.card,
+            transitionDuration: $.motion.fast,
+            margin: 0 as const,
+            padding: [$.space.md, 0] as const,
+            gap: [$.space.md, $.space.md] as const,
+            width: "min-content" as const,
+            opacity: 0.5,
+            display: "flex",
+        }).toMatchTypeOf<ThemedCSSProps>();
+    });
+
+    it("rejects off-palette and wrong-brand values", () => {
+        // @ts-expect-error — off-palette color literal
+        let offPalette: ThemedCSSProps = { color: "#ff0000" };
+        // @ts-expect-error — dimension token is not a color
+        let wrongBrand: ThemedCSSProps = { color: $.space.md };
+        // @ts-expect-error — color token is not a dimension
+        let wrongBrand2: ThemedCSSProps = { fontSize: $.color.white };
+        // @ts-expect-error — arbitrary string is not a shadow
+        let looseShadow: ThemedCSSProps = { boxShadow: "0 0 3px red" };
+        // @ts-expect-error — durations reject bare numbers
+        let bareDuration: ThemedCSSProps = { transitionDuration: 200 };
+        void offPalette;
+        void wrongBrand;
+        void wrongBrand2;
+        void looseShadow;
+        void bareDuration;
+    });
+
+    it("keeps unmapped properties loose", () => {
+        expectTypeOf({
+            border: `1px solid ${$.color.white}`,
+            background: "canvas",
+            "&:hover": { color: $.color.white },
+        }).toMatchTypeOf<ThemedCSSProps>();
+    });
+});
