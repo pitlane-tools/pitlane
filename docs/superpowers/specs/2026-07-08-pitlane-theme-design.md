@@ -137,9 +137,13 @@ Returns `{ token, raw, Theme }`:
 - **`token`** (conventionally destructured as `$`) — plain eagerly-built object (no Proxy), same
   shape as the config minus `$`-keys. Every token leaf is a `var(--…)` string branded by its
   resolved DTCG type.
-- **`raw(ref)`** — takes any branded ref minted by this theme, returns the serialized base-mode
-  CSS value (`"#fff"`, `"16px"`). Implemented as a `Map<string, string>` from var-ref to value.
-  Refs from a different theme instance throw.
+- **`raw(ref)`** — takes a branded ref, returns the serialized base-mode CSS value (`"#fff"`,
+  `"16px"`) with every reference chased to the end — full-value aliases *and* composite
+  sub-value references resolve to concrete values, so `raw` output never depends on the theme's
+  CSS variables being present. Implemented as a `Map<string, string>` from var-ref to value.
+  Refs naming a var this theme never minted throw. Tokens are plain branded strings, so two
+  themes defining the same token path mint *identical* refs — provenance is undetectable by
+  design (brands are theme-independent), and such a ref resolves to *this* theme's value.
 - **`Theme`** — component rendering
   `<style data-pitlane-theme nonce?={props.nonce}>` via `createElement` (no JSX in package
   source). Content: one `:root { … }` block with every base var, then per mode one
@@ -230,7 +234,9 @@ Four phases inside `createTheme`, fail-fast:
 
 ### 1. Parse
 
-A node owning `$value` is a token; every other non-`$`-prefixed key is a group. `$type` resolves
+A node owning `$value` is a token; every other non-`$`-prefixed key is a group. Token and group
+names containing `.`, `{`, or `}` throw — the reference syntax reserves them, and a dotted name
+would silently collapse into another token's path. `$type` resolves
 per the DTCG Format Module's normative order: own `$type` → (if `$value` is a reference) the
 referenced token's resolved type → nearest ancestor group `$type`.
 Unknown `$type` values and tokens with no resolvable type throw.
@@ -243,7 +249,12 @@ Unknown `$type` values and tokens with no resolvable type throw.
   same var name, throw (collision report names both paths).
 - **Aliases**: full-value alias emits `--alias-name: var(--target-name)` — the indirection is
   preserved in CSS so a mode override of the target cascades through every alias for free.
-  Unknown target and reference cycles throw (cycle report includes the chain).
+  Unknown target and reference cycles throw (cycle report includes the chain). Every reference —
+  full-value, composite sub-value, or mode override — must resolve to a token of the expected
+  type: the token's own `$type` for full-value aliases (group-inherited types defer to the
+  target per the DTCG order and are exempt), the slot's type for composite sub-values, and the
+  overridden token's resolved type for modes. Mismatches throw naming both the path and the
+  conflicting types.
 
 ### 3. Serialize (per `$type`)
 
@@ -252,14 +263,14 @@ Unknown `$type` values and tokens with no resolvable type throw.
 | color       | CSS color string; `{colorSpace, components, alpha?, hex?}` | string passes through; object → `hex` when present, else per-space function: `hsl`→`hsl()`, `hwb`→`hwb()`, `lab/lch/oklab/oklch`→ own functions, other spaces (`srgb`, `srgb-linear`, `display-p3`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `xyz-d65`, `xyz-d50`)→`color(<space> …)` (DTCG components are 0–1, so `srgb` uses `color()` rather than a lossy ×255 `rgb()` mapping); `"none"` components pass through; alpha via `/ a` |
 | dimension   | `"16px"`; `{value: number, unit: "px" \| "rem"}`   | concatenation                                                                                                                                                                    |
 | duration    | `"200ms"`; `{value: number, unit: "ms" \| "s"}`    | concatenation                                                                                                                                                                    |
-| fontFamily  | string; string[]                                   | names needing quotes get them; array comma-joins                                                                                                                                 |
+| fontFamily  | string; non-empty string[]                         | names needing quotes get them; array comma-joins; `[]` throws                                                                                                                    |
 | fontWeight  | number 1–1000; DTCG keyword                        | keywords map to numbers per the spec table                                                                                                                                       |
 | number      | number                                             | `String(n)`                                                                                                                                                                      |
 | cubicBezier | `[x1, y1, x2, y2]`                                 | `cubic-bezier(x1, y1, x2, y2)`                                                                                                                                                   |
 | shadow      | object or array of objects                          | `[inset] x y blur spread color`, comma-joined; missing `blur`/`spread` default `0` (Style Dictionary-compatible leniency)                                                        |
 | border      | `{color, width, style}`                            | `width style color`                                                                                                                                                              |
 | transition  | `{duration, timingFunction, delay?}`               | `duration timing-function delay`; missing delay → `0s`                                                                                                                           |
-| gradient    | array of `{color, position}` stops                 | stop list only (`#fff 0%, #000 100%`) — the spec defines no gradient kind; documented for interpolation inside `linear-gradient(…)` etc.                                         |
+| gradient    | array of `{color, position}` stops                 | stop list only (`#fff 0%, #000 100%`) — the spec defines no gradient kind; documented for interpolation inside `linear-gradient(…)` etc.; positions emit with float noise trimmed to ≤4 decimals (`0.07` → `7%`) |
 | strokeStyle | keyword string; `{dashArray, lineCap}`             | keyword passes through; object form → `"dashed"` (the spec's stated CSS fallback)                                                                                                |
 
 Composite sub-values accept aliases anywhere a value is accepted; invalid structured values
@@ -268,20 +279,23 @@ Composite sub-values accept aliases anywhere a value is accepted; invalid struct
 ### 4. Emit
 
 `:root` block with all base vars in document order, then one media block per configured mode
-containing only that mode's overridden vars. Mode validation before emit: every override path
-must exist in the base document, carry the same resolved `$type`, and set nothing but `$value` —
-violations throw.
+containing only that mode's overridden vars; a mode with zero overrides emits no block. Mode
+validation before emit: every override path must exist in the base document, carry the same
+resolved `$type` (including through aliases), and set nothing but `$value` — violations throw.
 
-### Error catalog (items 1–6 thrown by `createTheme`, item 7 at call time; all naming the token path)
+### Error catalog (items 1–7 thrown by `createTheme`, item 8 at call time; all naming the token path)
 
 1. Token without resolvable `$type`; unknown `$type`.
-2. Alias to nonexistent path; alias cycle (chain reported).
-3. Var-name collision after kebab-casing (both paths reported).
-4. Invalid value for declared type (bad `colorSpace`, bad unit, malformed composite).
-5. Mode override path absent from base; mode override changing `$type`; mode override containing
+2. Alias to nonexistent path; alias cycle (chain reported); alias resolving to a token of the
+   wrong type (own `$type`, composite slot, or mode override — both types reported).
+3. Token or group name containing `.`, `{`, or `}` (reserved by the reference syntax).
+4. Var-name collision after kebab-casing (both paths reported).
+5. Invalid value for declared type (bad `colorSpace`, bad unit, malformed composite, empty
+   `fontFamily` array).
+6. Mode override path absent from base; mode override changing `$type`; mode override containing
    non-`$value` keys.
-6. `typography` tokens (unsupported in v1).
-7. `raw(ref)` with a ref not minted by this theme.
+7. `typography` tokens (unsupported in v1).
+8. `raw(ref)` with a ref naming a var this theme never minted.
 
 ## Type system
 
@@ -302,7 +316,8 @@ inherited group `$type` (threaded as a type parameter, matching DTCG's normative
 template-literal path unions are
 generated anywhere — tsserver cost stays proportional to config size. `DeepPartialTokens<T>`
 (the `modes` value type) maps `T` recursively with every group optional and token nodes reduced
-to `{ $value }`.
+to `{ $value }`. Both types short-circuit an `any` document (`JSON.parse` output) to `unknown` —
+mapping over `any` would otherwise recurse without bound and blow the instantiation-depth limit.
 
 ### `ThemedCSSProps`
 
@@ -383,7 +398,8 @@ dependencies, `scripts.prepublishOnly: "vp run build"`, repository pointing at t
   `if: startsWith(github.event.release.tag_name, '@pitlane/theme@')` — future packages add their
   own filtered jobs to the same file.
 - `permissions: { contents: read, id-token: write }`; `working-directory: packages/theme`.
-- Steps: checkout → `voidzero-dev/setup-vp@v1` (node 24, cache) → `vp install --frozen-lockfile`
+- Steps: checkout → `voidzero-dev/setup-vp@v1` (node 24, cache) → tag guard (fail unless the
+  release tag equals `@pitlane/theme@<package.json version>`) → `vp install --frozen-lockfile`
   → `vp test` → `vp run build` → `npm publish --provenance --access public --tag latest`.
 - Release process: publish a GitHub release tagged `@pitlane/theme@0.1.0`.
 
@@ -392,12 +408,19 @@ dependencies, `scripts.prepublishOnly: "vp run build"`, repository pointing at t
 Runtime tests (`vp test`, Vitest):
 
 - **Serializers**: every type × legacy/structured input, structured-color space matrix, fontWeight
-  keyword mapping, shadow arrays/inset/defaults, gradient stop lists, strokeStyle fallback.
+  keyword mapping, shadow arrays/inset/defaults, gradient stop lists (float-trimmed percentages),
+  strokeStyle fallback, empty `fontFamily` array rejection.
 - **Parse/resolve**: `$type` inheritance depth, alias chains, sub-value aliases, alias cycles,
-  unknown targets, kebab-case naming, collision detection.
-- **Modes**: subset validation errors ($type change, unknown path, extra keys), media-block
-  emission with only overridden vars, alias cascade through mode override.
-- **`raw`**: base-mode values; foreign-ref rejection.
+  unknown targets, alias-type mismatches (own `$type` and composite slots), reserved-character
+  names, kebab-case naming, collision detection.
+- **Accessor safety**: prototype-chain group names (`__proto__` from JSON, `constructor`) create
+  own keys and leave `Object.prototype` and built-ins untouched.
+- **Modes**: subset validation errors ($type change — direct or via a wrong-typed alias — unknown
+  path, extra keys), media-block emission with only overridden vars, zero-override modes emitting
+  no block, alias cascade through mode override.
+- **`raw`**: base-mode values; full resolution through composite sub-value references; rejection
+  of var names the theme never minted; same-path refs from another theme pinned to resolve as
+  this theme's value (plain-string identity).
 - **`css`**: tuple joining, nested selectors/media passthrough, delegation to remix/ui `css()`
   (assert returned descriptor shape/args).
 - **`tva`/`combine`/`cx`**: merge order (base → variants → compound), boolean variants, defaults,
@@ -412,6 +435,8 @@ Type tests (`*.test-d.ts`, Vitest typecheck via tsgo):
   (where excluded) rejected; keywords, `0`, tuples accepted per property family.
 - Alias leaves inherit the target's brand; group `$type` inheritance brands correctly.
 - `modes` shape: partial accepted, unknown paths/`$type` mutations rejected.
+- `any` documents (`JSON.parse`) short-circuit `TokenTree`/`DeepPartialTokens` to `unknown`
+  instead of exceeding instantiation depth.
 - `TVAProps` extraction; `combine` prop union.
 - `typography` tokens rejected.
 
