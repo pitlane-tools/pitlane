@@ -25,6 +25,15 @@ jobs:
                   node-version: "24"
                   cache: true
 
+            - name: Verify release tag matches package version
+              run: |
+                  version=$(node -p "require('./package.json').version")
+                  tag="${{ github.event.release.tag_name }}"
+                  if [ "$tag" != "@pitlane/theme@$version" ]; then
+                      echo "Release tag $tag does not match package version @pitlane/theme@$version" >&2
+                      exit 1
+                  fi
+
             - name: Install
               run: vp install --frozen-lockfile
 
