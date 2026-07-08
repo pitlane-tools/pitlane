@@ -2967,6 +2967,14 @@ git commit -m "Add publish workflow for @pitlane/theme"
 
 ## Plan self-review notes
 
+> **Execution reconciliation (2026-07-08):** shipped code diverges from this plan's
+> Task 2/5 code blocks in three reviewed, controller-approved ways not re-inlined here:
+> commit `0010dcb` rewrote `TypeAtPath` with a `MatchKey` stringified-key matcher (numeric
+> alias-path segments) and seeded `TokenTree`/alias-branch inheritance with
+> `GroupType<T, undefined>` (root-level `$type`); the final-review fix taught `parseTokens`
+> the same root-`$type` seeding. `serializeColor` routes `srgb` through `color()` (spec
+> table amended to match). Git history is authoritative for these files.
+
 - **Spec coverage**: API surface (Tasks 5–11), pipeline + error catalog (Tasks 3–6), brands/TokenTree/ThemedCSSProps (Tasks 2, 8), workspace/package/build (Task 1), publishing (Task 13), testing strategy (every task; type tests in 2, 8, 9, 10), docs (Task 12). `raw` foreign-ref error: Task 5. Typography rejection: Task 3 (runtime) + `never` leaf noted in Task 2.
 - **Known intentional deviations**: none. Where the spec pins exact strings (var naming, mode emission format, error phrasing), tests assert them.
 - **Verification chain**: every task ends in a scoped `vp test`; Task 11 verifies the built artifact; Task 12 verifies the docs build; Task 13 runs the repo-wide fmt/lint/test/build pass.
