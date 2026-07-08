@@ -45,3 +45,70 @@ describe("raw", () => {
         ).toThrow(/a → b → a/);
     });
 });
+
+import { compileThemeCss } from "./theme.ts";
+
+describe("modes", () => {
+    it("emits base :root plus prefers-color-scheme blocks with only overridden vars", () => {
+        let css = compileThemeCss(config, {
+            modes: { dark: { color: { bg: { $value: "{color.gray.900}" } } } },
+        });
+        expect(css).toBe(
+            [
+                ":root {",
+                "    --color-white: #fff;",
+                "    --color-gray-900: #171717;",
+                "    --color-bg: var(--color-white);",
+                "    --space-md: 16px;",
+                "}",
+                "",
+                "@media (prefers-color-scheme: dark) {",
+                "    :root {",
+                "        --color-bg: var(--color-gray-900);",
+                "    }",
+                "}",
+            ].join("\n"),
+        );
+    });
+
+    it("supports light and dark simultaneously, in light-then-dark order", () => {
+        let css = compileThemeCss(config, {
+            modes: {
+                dark: { color: { white: { $value: "#000" } } },
+                light: { color: { white: { $value: "#fefefe" } } },
+            },
+        });
+        let lightIndex = css.indexOf("prefers-color-scheme: light");
+        let darkIndex = css.indexOf("prefers-color-scheme: dark");
+        expect(lightIndex).toBeGreaterThan(-1);
+        expect(darkIndex).toBeGreaterThan(lightIndex);
+        expect(css).toContain("        --color-white: #fefefe;");
+        expect(css).toContain("        --color-white: #000;");
+    });
+
+    it("throws when an override path does not exist in the base document", () => {
+        expect(() =>
+            compileThemeCss(config, {
+                modes: { dark: { color: { nope: { $value: "#000" } } } } as never,
+            }),
+        ).toThrow(/color\.nope/);
+    });
+
+    it("throws when an override sets anything but $value", () => {
+        expect(() =>
+            compileThemeCss(config, {
+                modes: {
+                    dark: { color: { bg: { $value: "#000", $type: "color" } } } as never,
+                },
+            }),
+        ).toThrow(/may only set \$value/);
+    });
+
+    it("throws when an override aliases a token missing from the base", () => {
+        expect(() =>
+            compileThemeCss(config, {
+                modes: { dark: { color: { bg: { $value: "{color.void}" } } } },
+            }),
+        ).toThrow(/color\.void/);
+    });
+});
