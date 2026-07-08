@@ -2381,7 +2381,9 @@ type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) ext
     : never;
 
 type CombinedProps<Fns extends readonly TVAFn<VariantShape>[]> = UnionToIntersection<
-    Parameters<Fns[number]>[0]
+    // Exclude the optional-parameter undefined per union member — it would
+    // otherwise poison the intersection into an uninhabited type.
+    Exclude<Parameters<Fns[number]>[0], undefined>
 > extends infer P
     ? { [K in keyof P]: P[K] }
     : never;
