@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { css } from "./css.ts";
 import { createTheme } from "./theme.ts";
 
-const { token: $ } = createTheme({
+const { token: t } = createTheme({
     color: { $type: "color", white: { $value: "#fff" } },
     space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
 });
@@ -15,10 +15,10 @@ describe("css", () => {
         let html = await renderToString(
             createElement("div", {
                 mix: css({
-                    color: $.color.white,
-                    padding: [$.space.sm, $.space.md],
+                    color: t.color.white,
+                    padding: [t.space.sm, t.space.md],
                     margin: 0,
-                    "&:hover": { color: $.color.white },
+                    "&:hover": { color: t.color.white },
                 }),
             }),
         );

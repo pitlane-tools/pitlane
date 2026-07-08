@@ -4,7 +4,7 @@ import type { ThemedCSSProps } from "./props.ts";
 
 import { createTheme } from "./theme.ts";
 
-const { token: $ } = createTheme({
+const { token: t } = createTheme({
     color: { $type: "color", white: { $value: "#fff" } },
     space: { $type: "dimension", md: { $value: "16px" } },
     weight: { $type: "fontWeight", bold: { $value: 700 } },
@@ -20,15 +20,15 @@ const { token: $ } = createTheme({
 describe("ThemedCSSProps enforcement", () => {
     it("accepts branded tokens, keywords, zero, and tuples", () => {
         expectTypeOf({
-            color: $.color.white,
+            color: t.color.white,
             backgroundColor: "transparent" as const,
-            fontSize: $.space.md,
-            fontWeight: $.weight.bold,
-            boxShadow: $.shadow.card,
-            transitionDuration: $.motion.fast,
+            fontSize: t.space.md,
+            fontWeight: t.weight.bold,
+            boxShadow: t.shadow.card,
+            transitionDuration: t.motion.fast,
             margin: 0 as const,
-            padding: [$.space.md, 0] as const,
-            gap: [$.space.md, $.space.md] as const,
+            padding: [t.space.md, 0] as const,
+            gap: [t.space.md, t.space.md] as const,
             width: "min-content" as const,
             opacity: 0.5,
             display: "flex",
@@ -39,9 +39,9 @@ describe("ThemedCSSProps enforcement", () => {
         // @ts-expect-error — off-palette color literal
         let offPalette: ThemedCSSProps = { color: "#ff0000" };
         // @ts-expect-error — dimension token is not a color
-        let wrongBrand: ThemedCSSProps = { color: $.space.md };
+        let wrongBrand: ThemedCSSProps = { color: t.space.md };
         // @ts-expect-error — color token is not a dimension
-        let wrongBrand2: ThemedCSSProps = { fontSize: $.color.white };
+        let wrongBrand2: ThemedCSSProps = { fontSize: t.color.white };
         // @ts-expect-error — arbitrary string is not a shadow
         let looseShadow: ThemedCSSProps = { boxShadow: "0 0 3px red" };
         // @ts-expect-error — durations reject bare numbers
@@ -55,9 +55,9 @@ describe("ThemedCSSProps enforcement", () => {
 
     it("keeps unmapped properties loose", () => {
         expectTypeOf({
-            border: `1px solid ${$.color.white}`,
+            border: `1px solid ${t.color.white}`,
             background: "canvas",
-            "&:hover": { color: $.color.white },
+            "&:hover": { color: t.color.white },
         }).toMatchTypeOf<ThemedCSSProps>();
     });
 });
