@@ -1,0 +1,37 @@
+[tools]
+node = "26"
+pnpm = "11"
+vale = "3"
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[hooks.postinstall]
+run = 'pnpm install && [ -n "$CI" ] || (mise run update-remix-skills)'
+
+[tasks.fmt]
+run = "oxfmt"
+
+[tasks.lint]
+depends = "typegen"
+run = "oxlint --fix"
+
+[tasks.typecheck]
+depends = "typegen"
+run = "tsc"
+
+[tasks.check]
+depends = "typegen"
+run = ["oxfmt --check", "oxlint", "tsc"]
+
+[tasks."docs:dev"]
+run = "vitepress dev docs --port 1337"
+
+[tasks."docs:build"]
+run = "vitepress build docs"
+
+[tasks."docs:serve"]
+run = "vitepress serve docs --port 1337"
+
+[tasks."docs:prose"]
+run = ["vale sync", "vale docs/package docs/guides"]

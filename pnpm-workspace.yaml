@@ -1,3 +1,30 @@
 packages:
-    - packages/*
-    - demos/*
+  - packages/*
+  - demos/*
+allowBuilds:
+  esbuild: true
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
+  vue-demi: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@oh-my-pi/hashline@17.0.0'
+  - '@oh-my-pi/omp-stats@17.0.0'
+  - '@oh-my-pi/pi-agent-core@17.0.0'
+  - '@oh-my-pi/pi-ai@17.0.0'
+  - '@oh-my-pi/pi-catalog@17.0.0'
+  - '@oh-my-pi/pi-coding-agent@17.0.0'
+  - '@oh-my-pi/pi-mnemopi@17.0.0'
+  - '@oh-my-pi/pi-natives-darwin-arm64@17.0.0'
+  - '@oh-my-pi/pi-natives-darwin-x64@17.0.0'
+  - '@oh-my-pi/pi-natives-linux-arm64@17.0.0'
+  - '@oh-my-pi/pi-natives-linux-x64@17.0.0'
+  - '@oh-my-pi/pi-natives-win32-x64@17.0.0'
+  - '@oh-my-pi/pi-natives@17.0.0'
+  - '@oh-my-pi/pi-tui@17.0.0'
+  - '@oh-my-pi/pi-utils@17.0.0'
+  - '@oh-my-pi/pi-wire@17.0.0'
+  - '@oh-my-pi/snapcompact@17.0.0'
+  - miniflare@4.20260710.0
+  - wrangler@4.111.0

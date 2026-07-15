@@ -1,0 +1,50 @@
+{
+    "$schema": "node_modules/oxfmt/configuration_schema.json",
+    "ignorePatterns": [
+        "docs/.vitepress/cache/**",
+        "docs/.vitepress/dist/**",
+        "docs/.vitepress/.temp/**",
+        "docs/SETUP.md",
+        "docs/superpowers/**",
+        "node_modules/**",
+        "packages/*/dist/**",
+        "demos/*/dist/**",
+        "pitlane.md",
+        "vite-plus.md",
+    ],
+    "printWidth": 100,
+    "tabWidth": 4,
+    "arrowParens": "avoid",
+    "sortPackageJson": true,
+    "sortImports": {
+        "groups": [
+            "type-import",
+            ["value-builtin", "value-external"],
+            "type-internal",
+            "value-internal",
+            ["type-parent", "type-sibling", "type-index"],
+            ["value-parent", "value-sibling", "value-index"],
+            "unknown",
+        ],
+        "partitionByComment": true,
+    },
+    "overrides": [
+        {
+            "files": ["**/*.jsonc"],
+            "options": { "trailingComma": "none" },
+        },
+        {
+            "files": ["**/.vscode/**"],
+            "options": { "trailingComma": "all" },
+        },
+        {
+            "files": [
+                "docs/.vitepress/theme/components/snippets/*.ts",
+                "docs/.vitepress/theme/components/snippets/*.tsx",
+            ],
+            "options": {
+                "printWidth": 55,
+            },
+        },
+    ],
+}

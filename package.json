@@ -1,30 +1,23 @@
 {
-    "name": "pitlane-docs",
+    "name": "pitlane",
     "private": true,
     "type": "module",
-    "scripts": {
-        "docs:dev": "vitepress dev docs --port 1337",
-        "docs:build": "vitepress build docs",
-        "docs:serve": "vitepress serve docs --port 1337",
-        "docs:prose": "vale sync && vale docs/package docs/guides"
-    },
     "devDependencies": {
-        "@oh-my-pi/pi-coding-agent": "^16.3.12",
-        "@typescript/native-preview": "latest",
-        "@voidzero-dev/vitepress-theme": "latest",
+        "@oh-my-pi/pi-coding-agent": "^17.0.0",
+        "@voidzero-dev/vitepress-theme": "^5.0.2",
+        "eslint-plugin-perfectionist": "^5.10.0",
+        "eslint-plugin-prefer-let": "^4.2.2",
+        "oxfmt": "^0.59.0",
+        "oxlint": "^1.74.0",
+        "oxlint-tsgolint": "^0.24.0",
         "shiki": "^4.0.2",
-        "vite": "^7.0.0",
-        "vite-plus": "latest",
-        "vitepress": "latest",
-        "vitepress-plugin-group-icons": "latest",
-        "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.19",
-        "vue": "latest",
-        "wrangler": "^4.85.0"
+        "typescript": "^7.0.2",
+        "vite": "^8.1.4",
+        "vitepress": "^2.0.0-alpha.18",
+        "vitepress-plugin-group-icons": "^1.7.5",
+        "vitest": "^4.1.10",
+        "vue": "^3.5.39",
+        "wrangler": "^4.111.0"
     },
-    "packageManager": "pnpm@10.8.0",
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "remix"
-        ]
-    }
+    "packageManager": "pnpm@11.13.0"
 }
