@@ -16,6 +16,7 @@
         "docs/.vitepress/cache",
         "docs/.vitepress/dist",
         "docs/.vitepress/theme/components/snippets",
+        "docs/.vitepress/theme/index.ts",
         "node_modules"
     ],
     "include": [

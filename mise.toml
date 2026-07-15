@@ -13,15 +13,14 @@ run = 'pnpm install && [ -n "$CI" ] || (mise run update-remix-skills)'
 run = "oxfmt"
 
 [tasks.lint]
-depends = "typegen"
 run = "oxlint --fix"
 
 [tasks.typecheck]
-depends = "typegen"
+depends = "docs:build"
 run = "tsc"
 
 [tasks.check]
-depends = "typegen"
+depends = "docs:build"
 run = ["oxfmt --check", "oxlint", "tsc"]
 
 [tasks."docs:dev"]
