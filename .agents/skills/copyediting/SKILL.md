@@ -1,9 +1,9 @@
 ---
-name: copyediting-blog-posts
+name: copyediting
 description: Use when copyediting blog posts, articles, essays, or long-form writing where the author's voice must be preserved — flags spelling, grammar, and technical errors as fixes, raises stylistic and clarity questions as suggestions, and never rewrites the prose
 ---
 
-# Copyediting Blog Posts
+# Copyediting
 
 ## Overview
 
@@ -16,7 +16,7 @@ Copyediting is not rewriting. The author has a voice — contractions, em-dashes
 Every issue you find goes in exactly one bucket. Mixing them is the #1 copyediting failure mode.
 
 | Bucket | What it is | What you do |
-|---|---|---|
+| --- | --- | --- |
 | **Fix** | Objective error — spelling, grammar, broken syntax, factual/technical mistake, broken link, inconsistent terminology | State the fix. Be direct. |
 | **Suggest** | Judgment call — possible ambiguity, awkward phrasing, weak transition, missing context, structural issue | Raise it as a question. Author decides. |
 | **Leave alone** | Voice marker — intentional fragment, sentence-starting "And/But/So", contractions, em-dashes, repetition for effect, informal register, unusual rhythm | Do nothing. Do not mention it. |
@@ -30,7 +30,7 @@ These rules are non-negotiable for this blog. They override the "match the autho
 - **Oxford comma is required.** "red, white, and blue" — not "red, white and blue". Missing serial comma in any list of three or more items is a Fix.
 - **Em-dashes and en-dashes take spaces on both sides.** "this — that" — not "this—that". Unspaced dash is a Fix.
 
-**Critical constraint on dash spacing:** Only enforce spacing where the author has *already used* a dash. Do **not** convert commas, colons, parentheses, or hyphens into em-dashes to apply the rule. The author's choice of punctuation mark stands; only its spacing is house style. If they wrote a comma, leave it as a comma.
+**Critical constraint on dash spacing:** Only enforce spacing where the author has _already used_ a dash. Do **not** convert commas, colons, parentheses, or hyphens into em-dashes to apply the rule. The author's choice of punctuation mark stands; only its spacing is house style. If they wrote a comma, leave it as a comma.
 
 ## Voice Markers to Protect
 
@@ -39,7 +39,7 @@ These are NOT errors. Do not flag them, do not "fix" them, do not mention them:
 - **Contractions** (it's, don't, you're) — even in technical writing
 - **Sentence fragments** used for emphasis. Like this.
 - **Sentences starting with And, But, So, Or, Because** — standard in modern prose
-- **Em-dash use** — including doubled ones, even where a comma would do (the *use* is voice; *spacing* follows House Style above)
+- **Em-dash use** — including doubled ones, even where a comma would do (the _use_ is voice; _spacing_ follows House Style above)
 - **Repetition** when it's clearly rhythmic or emphatic
 - **Direct address** ("you") in technical writing
 - **First person** ("I think", "I've found")
@@ -49,7 +49,7 @@ These are NOT errors. Do not flag them, do not "fix" them, do not mention them:
 - **Idiosyncratic word choices** — if the word is real and means what they meant, leave it
 - **Long sentences** that work, and **short sentences** that punch
 
-When in doubt, ask: *would changing this make the piece sound more like a generic AI wrote it?* If yes, leave it.
+When in doubt, ask: _would changing this make the piece sound more like a generic AI wrote it?_ If yes, leave it.
 
 ## What Counts as a Fix
 
@@ -80,7 +80,7 @@ Raise as **Suggest** when something might be improved but the author's choice co
 - A word might be stronger / more precise — offer the alternative as a question
 - A cluster of AI-writing tells — buzzword metaphors ("vibrant tapestry", "a testament to"), an exact-three list trailing a participial clause (", ensuring..."), "wasn't just X, it was Y", a formulaic closer ("In conclusion, the future looks bright"). Name the cluster, quote the spans, ask whether it's intentional — the write-better-prose skill's ai-tells.md is the catalog. One tell alone is noise; a cluster is worth raising even when an aside plays it for irony. Never rewrite the passage yourself.
 
-Frame as questions or options, not instructions: *"The phrase 'handle this' is vague — do you mean retry, log, or escalate?"* not *"Change 'handle this' to 'retry'."*
+Frame as questions or options, not instructions: _"The phrase 'handle this' is vague — do you mean retry, log, or escalate?"_ not _"Change 'handle this' to 'retry'."_
 
 ## Process
 
@@ -133,11 +133,11 @@ Flag technical errors as **Fixes** (they're objective). Flag terminology prefere
 ## Common Mistakes
 
 | Mistake | What goes wrong | Fix |
-|---|---|---|
+| --- | --- | --- |
 | Rewriting a sentence "to be clearer" | Author's voice is gone | Quote the original, raise a question, let them decide |
 | Flagging contractions as informal | The blog is informal on purpose | Contractions are voice. Leave them. |
 | "Fixing" sentences that start with "But" | This is standard modern English | Leave alone |
-| Removing an Oxford comma | Violates house style | Oxford comma is required — flag *missing* ones as Fixes, never remove existing ones |
+| Removing an Oxford comma | Violates house style | Oxford comma is required — flag _missing_ ones as Fixes, never remove existing ones |
 | Converting a comma to an em-dash to apply spacing rule | You're imposing punctuation, not enforcing house style | Only enforce dash spacing where the author already used a dash. Don't introduce new ones. |
 | Listing 40 suggestions for a 600-word post | Author can't act on it, will ignore all | Prioritize. 5-10 high-value suggestions max. |
 | Marking awkward phrasing as a Fix | It's a judgment call, not an error | Move it to Suggestions, frame as a question |
@@ -151,7 +151,7 @@ Flag technical errors as **Fixes** (they're objective). Flag terminology prefere
 If you catch yourself doing any of these, you've drifted from copyediting into rewriting:
 
 - Drafting a "better version" of a paragraph
-- Removing a word because *you* wouldn't use it
+- Removing a word because _you_ wouldn't use it
 - Combining or splitting sentences for "flow" without a specific clarity reason
 - Changing "I think" to "It appears that"
 - Replacing an em-dash with a comma (or vice-versa — punctuation choice is the author's; only spacing is house style)
