@@ -24,6 +24,7 @@
         "docs/.vitepress/**/*.ts",
         "docs/.vitepress/**/*.vue",
         "docs/.vitepress/**/*.tsx",
-        ".omp/hooks/*.ts"
+        ".omp/hooks/*.ts",
+        ".omp/tools/**/*.ts"
     ]
 }

@@ -7,6 +7,7 @@
         "@voidzero-dev/vitepress-theme": "^5.0.2",
         "eslint-plugin-perfectionist": "^5.10.0",
         "eslint-plugin-prefer-let": "^4.2.2",
+        "oxc-parser": "^0.140.0",
         "oxfmt": "^0.59.0",
         "oxlint": "^1.74.0",
         "oxlint-tsgolint": "^0.24.0",
