@@ -123,10 +123,22 @@ export function createWorkflowTool(
             const row = snapshot.agents.find(
               agent => agent.id === event.id && agent.status === "running",
             );
-            if (row) {
-              row.status = event.error ? "error" : "done";
-              if (event.error) row.error = event.error;
-              else row.resultPreview = preview(event.result);
+            if (!row) {
+              emit();
+              return;
+            }
+            if (!event.error) {
+              row.status = "done";
+              row.resultPreview = preview(event.result);
+            } else if (signal?.aborted && event.error === "Workflow was aborted") {
+              // This agent was drained by an abort that has already fired — render
+              // it as skipped, not a failure, and omit the synthetic abort error.
+              // A pre-abort failure that happens to carry the same text still lands
+              // here with signal.aborted false, so it stays a genuine error.
+              row.status = "skipped";
+            } else {
+              row.status = "error";
+              row.error = event.error;
             }
             emit();
           },
@@ -140,14 +152,9 @@ export function createWorkflowTool(
         const message = error instanceof Error ? error.message : String(error);
         if (signal?.aborted || /abort(?:ed)?/i.test(message)) {
           for (const row of snapshot.agents) {
-            // Reclassify agents cut short by the abort — those still running and
-            // those the runtime reported with the abort error — as skipped, and
-            // drop the abort error so it does not read as a genuine failure.
-            // Completed rows and earlier real failures are left untouched.
-            if (row.status === "running" || row.error === "Workflow was aborted") {
-              row.status = "skipped";
-              row.error = undefined;
-            }
+            // Agents cut short before onAgentEnd could classify them (abort-drained
+            // rows are already marked skipped there). Genuine failures keep "error".
+            if (row.status === "running") row.status = "skipped";
           }
           emit(true);
           throw new Error("Workflow was aborted");

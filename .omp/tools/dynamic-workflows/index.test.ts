@@ -307,6 +307,44 @@ return { failed, hung };`;
     expect(hangRow?.error).toBeUndefined();
   });
 
+  it("keeps a pre-abort failure that carries the exact abort message as error, not skipped", async () => {
+    const controller = new AbortController();
+    const hangStarted = Promise.withResolvers<void>();
+    const deps = makeDeps(async options => {
+      if (options.task === "hang") {
+        hangStarted.resolve();
+        await new Promise<void>(() => {}); // in-flight until abort
+      }
+      // The genuine failure carries the exact text an abort would produce; because
+      // it lands before the signal aborts, it must stay error, not become skipped.
+      return makeResult({ task: options.task, exitCode: 1, error: "Workflow was aborted" });
+    });
+
+    const script = `${META}
+phase("Scan");
+const failed = await agent("fail", { label: "failing agent" });
+const hung = agent("hang", { label: "hanging agent" });
+await hung;
+return { failed, hung };`;
+
+    const tool = createWorkflowTool(api, deps);
+    const updates: Array<{ content: Array<{ type: string; text?: string }>; details?: WorkflowSnapshot }> = [];
+    const run = tool.execute("call-1", { script }, update => updates.push(update), context, controller.signal);
+
+    await hangStarted.promise;
+    controller.abort();
+
+    await expect(run).rejects.toThrow("Workflow was aborted");
+
+    const rows = updates.at(-1)?.details?.agents ?? [];
+    const failRow = rows.find(row => row.label === "failing agent");
+    const hangRow = rows.find(row => row.label === "hanging agent");
+    expect(failRow?.status).toBe("error");
+    expect(failRow?.error).toBe("Workflow was aborted");
+    expect(hangRow?.status).toBe("skipped");
+    expect(hangRow?.error).toBeUndefined();
+  });
+
   it("renders the tool call title", () => {
     const tool = createWorkflowTool(api);
     const component = tool.renderCall?.({ script: validScript }, { expanded: false, isPartial: false }, theme);
