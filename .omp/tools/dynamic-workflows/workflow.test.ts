@@ -510,6 +510,52 @@ return "unreachable"
     2000,
   );
 
+  it("ignores log, phase, and helper entry from a detached continuation after settlement", async () => {
+    const observedLogs: string[] = [];
+    const observedPhases: string[] = [];
+    const { promise: gate, resolve: openGate } = Promise.withResolvers<void>();
+    const runner = new FakeRunner({ first: { value: "ok", tokens: 1 } });
+    const program = parseWorkflowScript(`${header}
+parallel([
+  async () => {
+    await args.gate
+    log("late log")
+    phase("Late phase")
+    return await parallel([() => agent("late", { label: "late" })])
+  },
+])
+phase("Main")
+const value = await agent("first", { label: "first" })
+return { value }
+`);
+
+    const result = await runWorkflow(program, {
+      cwd: "/tmp/workflow",
+      args: { gate },
+      runner,
+      onLog: message => observedLogs.push(message),
+      onPhase: title => observedPhases.push(title),
+    });
+
+    const settledLogs = [...result.logs];
+    const settledPhases = [...result.phases];
+    const settledObservedLogs = [...observedLogs];
+    const settledObservedPhases = [...observedPhases];
+
+    openGate(undefined);
+    for (let i = 0; i < 50; i++) await Promise.resolve();
+
+    expect(result.result).toEqual({ value: "ok" });
+    expect(result.phases).toEqual(["Main"]);
+    expect(result.logs).toEqual(settledLogs);
+    expect(result.phases).toEqual(settledPhases);
+    expect(observedLogs).toEqual(settledObservedLogs);
+    expect(observedPhases).toEqual(settledObservedPhases);
+    expect(result.logs).not.toContain("late log");
+    expect(result.phases).not.toContain("Late phase");
+    expect(runner.calls.map(call => call.prompt)).not.toContain("late");
+  });
+
   it("clamps non-positive concurrency to a single worker instead of throwing", async () => {
     for (const concurrency of [0, -3]) {
       let active = 0;

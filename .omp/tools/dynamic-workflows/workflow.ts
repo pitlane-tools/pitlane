@@ -132,12 +132,14 @@ export async function runWorkflow<T = unknown>(
   };
 
   const log = (message: unknown) => {
+    if (closeSignal.aborted) return;
     const text = String(message);
     state.logs.push(text);
     options.onLog?.(text);
   };
 
   const phase = (title: unknown) => {
+    if (closeSignal.aborted) return;
     const text = requireNonEmptyString(title, "phase title");
     state.currentPhase = text;
     if (!state.phases.includes(text)) state.phases.push(text);
@@ -217,6 +219,7 @@ export async function runWorkflow<T = unknown>(
     if (thunks.some(thunk => typeof thunk !== "function")) {
       throw new TypeError("parallel() expects an array of functions, not promises. Wrap each call: () => agent(...)");
     }
+    if (closeSignal.aborted) return thunks.map(() => null);
     return Promise.all(
       thunks.map(async (thunk, index) => {
         try {
@@ -242,6 +245,7 @@ export async function runWorkflow<T = unknown>(
     if (stages.some(stage => typeof stage !== "function")) {
       throw new TypeError("pipeline() stages must be functions: pipeline(items, item => ..., result => ...)");
     }
+    if (closeSignal.aborted) return items.map(() => null);
 
     const slots: PipelineSlot[] = items.map(item => ({ original: item, value: item, failed: false }));
     for (const stage of stages as Array<(value: unknown, original: unknown, index: number) => unknown>) {
