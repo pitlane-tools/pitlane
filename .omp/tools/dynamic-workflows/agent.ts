@@ -1,18 +1,18 @@
 // Ported from pi-dynamic-workflows v1.0.1, commit 31b2aca0f1cb195aafbfc5e3ee2b8c83ad3f21a2.
 // Bridges the deterministic workflow runtime to OMP's native subagent executor.
 import type { CustomToolContext } from "@oh-my-pi/pi-coding-agent";
+import type { DiscoveryResult } from "@oh-my-pi/pi-coding-agent/task/discovery";
 
 import { getActiveSkills } from "@oh-my-pi/pi-coding-agent";
+import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 import {
     AgentOutputManager,
     discoverAgents,
     getAgent,
     type AgentDefinition,
 } from "@oh-my-pi/pi-coding-agent/task";
-import type { DiscoveryResult } from "@oh-my-pi/pi-coding-agent/task/discovery";
 import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { buildOutputValidator } from "@oh-my-pi/pi-coding-agent/tools/output-schema-validator";
-import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 
 import {
     WorkflowAgentFailure,

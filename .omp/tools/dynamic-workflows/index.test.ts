@@ -484,7 +484,10 @@ throw new Error("abort check failed");`;
         // The message contains "abort", but the signal never aborted, so it must
         // surface as a real failure, not be reclassified as a cancellation.
         await expect(
-            runTool(script, makeDeps(async () => makeResult({ output: "done" }))),
+            runTool(
+                script,
+                makeDeps(async () => makeResult({ output: "done" })),
+            ),
         ).rejects.toThrow("abort check failed");
     });
 
@@ -493,7 +496,10 @@ throw new Error("abort check failed");`;
 await agent("x", { label: "x" });
 return { total: 10n };`;
 
-        let { result } = await runTool(script, makeDeps(async () => makeResult({ output: "done" })));
+        let { result } = await runTool(
+            script,
+            makeDeps(async () => makeResult({ output: "done" })),
+        );
 
         expect(result.isError).toBeFalsy();
         let text = result.content[0];
@@ -510,7 +516,10 @@ const node = { name: "root" };
 node.self = node;
 return node;`;
 
-        let { result } = await runTool(script, makeDeps(async () => makeResult({ output: "done" })));
+        let { result } = await runTool(
+            script,
+            makeDeps(async () => makeResult({ output: "done" })),
+        );
 
         expect(result.isError).toBeFalsy();
         let text = result.content[0];
