@@ -44,11 +44,11 @@ export interface OmpWorkflowAgentDependencies {
   runSubprocess: typeof runSubprocess;
 }
 
-const DEFAULT_DEPENDENCIES: OmpWorkflowAgentDependencies = {
+const DEFAULT_DEPENDENCIES: OmpWorkflowAgentDependencies = Object.freeze({
   discoverAgents,
   getActiveSkills,
   runSubprocess,
-};
+});
 
 /**
  * Runs each workflow agent request as an in-process OMP subagent. Resolves the
@@ -63,17 +63,21 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
   readonly #dependencies: OmpWorkflowAgentDependencies;
   readonly #outputManager: AgentOutputManager;
   #index = 0;
+  // Serializes per-instance ID allocation so the manager's initial disk scan
+  // completes before the next allocation runs — concurrent runs then never
+  // reuse an existing artifact id.
+  #allocationChain: Promise<unknown> = Promise.resolve();
 
   constructor(
     cwd: string,
     context: CustomToolContext,
     parentToolCallId?: string,
-    dependencies: OmpWorkflowAgentDependencies = DEFAULT_DEPENDENCIES,
+    dependencies: Partial<OmpWorkflowAgentDependencies> = {},
   ) {
     this.#cwd = cwd;
     this.#context = context;
     this.#parentToolCallId = parentToolCallId;
-    this.#dependencies = dependencies;
+    this.#dependencies = { ...DEFAULT_DEPENDENCIES, ...dependencies };
     this.#outputManager = new AgentOutputManager(() => context.sessionManager.getArtifactsDir());
   }
 
@@ -107,7 +111,7 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
     const modelOverride = request.model ?? settingsModels[profile.name];
 
     const index = ++this.#index;
-    const id = await this.#outputManager.allocate(`Workflow${index}`);
+    const id = await this.#allocateId(`Workflow${index}`);
 
     const activeSkills = dependencies.getActiveSkills();
     const autoloadNames = safeProfile.autoloadSkills ?? [];
@@ -129,6 +133,7 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
       id,
       modelOverride,
       outputSchema: request.schema,
+      outputSchemaOverridesAgent: request.schema !== undefined,
       signal: request.signal,
       onProgress: progress =>
         request.onProgress?.(progress.lastIntent ?? progress.currentTool ?? progress.status),
@@ -154,6 +159,12 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
     }
 
     if (request.schema !== undefined) {
+      // The native executor writes an unquoted string when the schema accepts a
+      // top-level string, so parsing it as JSON would fail — return it verbatim.
+      // Object/array schemas serialize to JSON, so malformed JSON is a failure.
+      if (schemaAcceptsTopLevelString(request.schema)) {
+        return { value: result.output, tokens: result.tokens };
+      }
       let value: unknown;
       try {
         value = JSON.parse(result.output);
@@ -166,4 +177,30 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
 
     return { value: result.output, tokens: result.tokens };
   }
+
+  /**
+   * Serialize allocation through a per-instance promise chain so the manager's
+   * lazy disk scan runs to completion before the next allocation, keeping ids
+   * unique across concurrent runs. Uniqueness stays owned by the manager.
+   */
+  #allocateId(base: string): Promise<string> {
+    const allocated = this.#allocationChain.then(() => this.#outputManager.allocate(base));
+    // Keep the chain alive across a rejected allocation so later runs still queue.
+    this.#allocationChain = allocated.then(
+      () => undefined,
+      () => undefined,
+    );
+    return allocated;
+  }
+}
+
+/**
+ * Whether a JSON-schema-shaped value permits a top-level string, i.e. `type`
+ * is `"string"` or a list containing `"string"`. Such schemas make the native
+ * executor emit unquoted text rather than a JSON document.
+ */
+function schemaAcceptsTopLevelString(schema: unknown): boolean {
+  if (typeof schema !== "object" || schema === null) return false;
+  const { type } = schema as { type?: unknown };
+  return type === "string" || (Array.isArray(type) && type.includes("string"));
 }

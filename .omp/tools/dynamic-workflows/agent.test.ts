@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CustomToolContext, Skill } from "@oh-my-pi/pi-coding-agent";
-import type { AgentDefinition, AgentProgress, SingleResult } from "@oh-my-pi/pi-coding-agent/task";
+import { getActiveSkills as defaultGetActiveSkills, type CustomToolContext, type Skill } from "@oh-my-pi/pi-coding-agent";
+import {
+  discoverAgents as defaultDiscoverAgents,
+  type AgentDefinition,
+  type AgentProgress,
+  type SingleResult,
+} from "@oh-my-pi/pi-coding-agent/task";
 import type { ExecutorOptions } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { OmpWorkflowAgent, type OmpWorkflowAgentDependencies } from "./agent.js";
 import { WorkflowAgentFailure, type WorkflowAgentRequest } from "./workflow.js";
@@ -9,18 +14,57 @@ import { WorkflowAgentFailure, type WorkflowAgentRequest } from "./workflow.js";
 // `pi-natives`, which cannot initialize under vitest. Mock them at the module
 // seam so `agent.ts` keeps its production imports while the adapter's own logic
 // runs against injected doubles. `getAgent` and `AgentOutputManager` are used
-// directly (not injected), so their mocks reproduce real behavior.
-const { allocateMock } = vi.hoisted(() => ({
-  allocateMock: vi.fn(async (id: string) => id),
+// directly (not injected), so their mocks reproduce real behavior — including
+// the manager's init-before-await window, so the adapter's per-instance
+// serialization is genuinely exercised.
+const { fakeDisk, allocateCalls, allocation } = vi.hoisted(() => ({
+  fakeDisk: new Set<string>(),
+  allocateCalls: [] as string[],
+  allocation: { active: 0, overlapped: false },
 }));
 
 vi.mock("@oh-my-pi/pi-coding-agent", () => ({
-  getActiveSkills: () => [],
+  getActiveSkills: vi.fn(() => []),
 }));
 vi.mock("@oh-my-pi/pi-coding-agent/task", () => ({
   AgentOutputManager: class {
-    constructor(readonly getArtifactsDir: () => string | null) {}
-    allocate = allocateMock;
+    #initialized = false;
+    readonly #taken = new Set<string>(["__advisor"]);
+    readonly #getArtifactsDir: () => string | null;
+    constructor(getArtifactsDir: () => string | null) {
+      this.#getArtifactsDir = getArtifactsDir;
+    }
+    async #ensureInitialized(): Promise<void> {
+      if (this.#initialized) return;
+      // Mirror the real manager: the flag flips before the async scan, so an
+      // unserialized concurrent allocation observes a not-yet-populated set.
+      this.#initialized = true;
+      const dir = this.#getArtifactsDir();
+      if (!dir) return;
+      await Promise.resolve();
+      for (const file of fakeDisk) {
+        if (!file.endsWith(".md")) continue;
+        const stem = file.slice(0, -3);
+        const dot = stem.indexOf(".");
+        const segment = dot === -1 ? stem : stem.slice(0, dot);
+        if (segment) this.#taken.add(segment);
+      }
+    }
+    async allocate(id: string): Promise<string> {
+      allocateCalls.push(id);
+      allocation.active += 1;
+      // Any concurrent second entry proves the adapter failed to serialize.
+      if (allocation.active > 1) allocation.overlapped = true;
+      try {
+        await this.#ensureInitialized();
+        let candidate = id;
+        for (let n = 2; this.#taken.has(candidate); n++) candidate = `${id}-${n}`;
+        this.#taken.add(candidate);
+        return candidate;
+      } finally {
+        allocation.active -= 1;
+      }
+    }
   },
   discoverAgents: vi.fn(),
   getAgent: (agents: AgentDefinition[], name: string): AgentDefinition | undefined =>
@@ -144,8 +188,12 @@ function request(overrides: Partial<WorkflowAgentRequest> = {}): WorkflowAgentRe
 }
 
 beforeEach(() => {
-  allocateMock.mockReset();
-  allocateMock.mockImplementation(async (id: string) => id);
+  fakeDisk.clear();
+  allocateCalls.length = 0;
+  allocation.active = 0;
+  allocation.overlapped = false;
+  vi.mocked(defaultDiscoverAgents).mockReset();
+  vi.mocked(defaultGetActiveSkills).mockReset().mockReturnValue([]);
 });
 
 describe("OmpWorkflowAgent", () => {
@@ -166,6 +214,7 @@ describe("OmpWorkflowAgent", () => {
           tools: ["read", "grep", "lsp"],
         }),
         outputSchema: schema,
+        outputSchemaOverridesAgent: true,
         keepAlive: false,
         modelOverride: ["openai/gpt-5.6"],
       }),
@@ -263,25 +312,58 @@ describe("OmpWorkflowAgent", () => {
     );
   });
 
-  it("allocates artifact-safe sequential IDs", async () => {
+  it("merges partial dependencies with the frozen production defaults", async () => {
+    vi.mocked(defaultDiscoverAgents).mockResolvedValue({ agents: [REVIEWER], projectAgentsDir: null });
+    vi.mocked(defaultGetActiveSkills).mockReturnValue([]);
+    const runSubprocess = vi.fn(async (_options: ExecutorOptions) => makeResult({ output: "done" }));
+
+    // Only `runSubprocess` overridden; `discoverAgents` and `getActiveSkills`
+    // must still come from the untouched, frozen defaults.
+    const agent = new OmpWorkflowAgent("/repo", makeContext(), "parent-call", { runSubprocess });
+    const outcome = await agent.run(request({ schema: undefined }));
+
+    expect(outcome).toEqual({ value: "done", tokens: 0 });
+    expect(runSubprocess).toHaveBeenCalledTimes(1);
+    expect(defaultDiscoverAgents).toHaveBeenCalledWith("/repo");
+    expect(defaultGetActiveSkills).toHaveBeenCalled();
+  });
+
+  it("allocates sequential IDs through the manager", async () => {
     const { agent, runSubprocess } = setup({ agents: [REVIEWER] });
 
     await agent.run(request());
     await agent.run(request());
 
-    expect(allocateMock.mock.calls).toEqual([["Workflow1"], ["Workflow2"]]);
+    expect(allocateCalls).toEqual(["Workflow1", "Workflow2"]);
     expect(runSubprocess).toHaveBeenNthCalledWith(1, expect.objectContaining({ id: "Workflow1", index: 1 }));
     expect(runSubprocess).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: "Workflow2", index: 2 }));
+  });
 
-    // Artifact-safe: the id forwarded is the allocator's return (deduped on
-    // resume), not the raw base name.
-    allocateMock.mockResolvedValueOnce("Workflow3-2");
-    await agent.run(request());
-    expect(runSubprocess).toHaveBeenNthCalledWith(3, expect.objectContaining({ id: "Workflow3-2", index: 3 }));
+  it("serializes allocation so concurrent runs never reuse an existing artifact", async () => {
+    fakeDisk.add("Workflow1.md");
+    fakeDisk.add("Workflow2.md");
+    const context = makeContext({ artifactsDir: "/artifacts" });
+    const ids: string[] = [];
+    const { agent } = setup({
+      agents: [REVIEWER],
+      context,
+      runSubprocess: async (options: ExecutorOptions) => {
+        ids.push(options.id);
+        return makeResult({ id: options.id });
+      },
+    });
+
+    await Promise.all([agent.run(request()), agent.run(request())]);
+
+    // Serialized: the second allocate never runs while the first is mid-scan.
+    expect(allocation.overlapped).toBe(false);
+    expect(new Set(ids).size).toBe(2);
+    expect(ids).not.toContain("Workflow1");
+    expect(ids).not.toContain("Workflow2");
   });
 
   it("returns raw text output when no schema is requested", async () => {
-    const { agent } = setup({
+    const { agent, runSubprocess } = setup({
       agents: [REVIEWER],
       runSubprocess: async () => makeResult({ output: "plain text", tokens: 12 }),
     });
@@ -289,9 +371,12 @@ describe("OmpWorkflowAgent", () => {
     const outcome = await agent.run(request({ schema: undefined }));
 
     expect(outcome).toEqual({ value: "plain text", tokens: 12 });
+    expect(runSubprocess).toHaveBeenCalledWith(
+      expect.objectContaining({ outputSchema: undefined, outputSchemaOverridesAgent: false }),
+    );
   });
 
-  it("parses structured output when a schema is requested", async () => {
+  it("parses structured output when an object schema is requested", async () => {
     const schema = { type: "object" };
     const { agent, runSubprocess } = setup({
       agents: [REVIEWER],
@@ -301,10 +386,39 @@ describe("OmpWorkflowAgent", () => {
     const outcome = await agent.run(request({ schema }));
 
     expect(outcome).toEqual({ value: { ok: true }, tokens: 8 });
-    expect(runSubprocess).toHaveBeenCalledWith(expect.objectContaining({ outputSchema: schema }));
+    expect(runSubprocess).toHaveBeenCalledWith(
+      expect.objectContaining({ outputSchema: schema, outputSchemaOverridesAgent: true }),
+    );
   });
 
-  it("wraps malformed structured JSON in a WorkflowAgentFailure preserving tokens", async () => {
+  it("returns unquoted text for a schema that accepts a top-level string", async () => {
+    const { agent, runSubprocess } = setup({
+      agents: [REVIEWER],
+      // The executor writes an unquoted string for a top-level-string schema;
+      // JSON.parse would throw on this, so the adapter must not parse it.
+      runSubprocess: async () => makeResult({ output: "just plain prose", tokens: 4 }),
+    });
+
+    const outcome = await agent.run(request({ schema: { type: "string" } }));
+
+    expect(outcome).toEqual({ value: "just plain prose", tokens: 4 });
+    expect(runSubprocess).toHaveBeenCalledWith(
+      expect.objectContaining({ outputSchemaOverridesAgent: true }),
+    );
+  });
+
+  it("returns raw output for a union schema that includes a top-level string", async () => {
+    const { agent } = setup({
+      agents: [REVIEWER],
+      runSubprocess: async () => makeResult({ output: "unquoted", tokens: 2 }),
+    });
+
+    const outcome = await agent.run(request({ schema: { type: ["string", "null"] } }));
+
+    expect(outcome).toEqual({ value: "unquoted", tokens: 2 });
+  });
+
+  it("wraps malformed object-schema JSON in a WorkflowAgentFailure preserving tokens", async () => {
     const { agent } = setup({
       agents: [REVIEWER],
       runSubprocess: async () => makeResult({ output: "not json", tokens: 5 }),
