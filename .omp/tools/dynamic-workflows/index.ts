@@ -2,6 +2,8 @@
 // Registers the deterministic workflow runtime as a discoverable OMP custom tool.
 import type { CustomTool, CustomToolAPI, CustomToolFactory } from "@oh-my-pi/pi-coding-agent";
 
+import { inspect } from "node:util";
+
 import { OmpWorkflowAgent, type OmpWorkflowAgentDependencies } from "./agent.js";
 import {
     createWorkflowSnapshot,
@@ -48,12 +50,26 @@ function createParameters(api: CustomToolAPI) {
         .strict();
 }
 
+// Render a structured-cloneable result as final text. Ordinary values keep their
+// exact JSON pretty-print; when JSON.stringify throws (BigInt, cycles) or returns
+// undefined (top-level undefined/function/symbol), fall back to a deterministic
+// inspect so every cloneable result still produces one coherent final content.
+function formatWorkflowResult(value: unknown): string {
+    try {
+        let json = JSON.stringify(value, null, 2);
+        if (json !== undefined) return json;
+    } catch {
+        // structured-cloneable but not JSON-serializable; fall through to inspect.
+    }
+    return inspect(value, { depth: null });
+}
+
 function workflowResult(snapshot: WorkflowSnapshot, result: WorkflowRunResult) {
     return {
         content: [
             {
                 type: "text" as const,
-                text: `Workflow ${result.meta.name} completed with ${result.agentCount} agent(s).\n\nResult:\n${JSON.stringify(result.result, null, 2)}`,
+                text: `Workflow ${result.meta.name} completed with ${result.agentCount} agent(s).\n\nResult:\n${formatWorkflowResult(result.result)}`,
             },
         ],
         details: {
@@ -81,11 +97,15 @@ export function createWorkflowTool(
         async execute(toolCallId, params, onUpdate, context, signal) {
             let program = parseWorkflowScript(normalizeWorkflowScript(params.script));
             let snapshot = createWorkflowSnapshot(program.meta);
+            // Emit an independent, recomputed frame each time. The live `snapshot`
+            // stays the mutable accumulator that handlers write to; consumers receive
+            // point-in-time clones (see recomputeWorkflowSnapshot) that never mutate
+            // retroactively as the run continues.
             let emit = (complete = false) => {
-                snapshot = recomputeWorkflowSnapshot(snapshot);
+                let frame = recomputeWorkflowSnapshot(snapshot);
                 onUpdate?.({
-                    content: [{ type: "text", text: renderWorkflowText(snapshot, complete) }],
-                    details: snapshot,
+                    content: [{ type: "text", text: renderWorkflowText(frame, complete) }],
+                    details: frame,
                 });
             };
             let runner = new OmpWorkflowAgent(api.cwd, context, toolCallId, dependencies);
@@ -105,21 +125,41 @@ export function createWorkflowTool(
                         if (!snapshot.phases.includes(title)) snapshot.phases.push(title);
                         emit();
                     },
-                    onAgentStart(event) {
+                    onAgentQueued(event) {
                         snapshot.agents.push({
                             id: event.id,
                             label: event.label,
                             phase: event.phase,
                             prompt: event.prompt,
-                            status: "running",
+                            status: "queued",
                         });
+                        emit();
+                    },
+                    onAgentStart(event) {
+                        // Transition the row queued for this id to running (ids are
+                        // unique, so this is the one matching row). Fall back to a fresh
+                        // running row only if the queued event was somehow never seen.
+                        let row = snapshot.agents.find(
+                            agent => agent.id === event.id && agent.status === "queued",
+                        );
+                        if (row) {
+                            row.status = "running";
+                        } else {
+                            snapshot.agents.push({
+                                id: event.id,
+                                label: event.label,
+                                phase: event.phase,
+                                prompt: event.prompt,
+                                status: "running",
+                            });
+                        }
                         emit();
                     },
                     onAgentProgress() {
                         emit();
                     },
                     onAgentEnd(event) {
-                        // Resolve the newest running row for this display id (ids are unique,
+                        // Resolve the running row for this display id (ids are unique,
                         // so this is the single row the completion belongs to).
                         let row = snapshot.agents.find(
                             agent => agent.id === event.id && agent.status === "running",
@@ -148,14 +188,20 @@ export function createWorkflowTool(
                 snapshot.result = result.result;
                 snapshot.durationMs = result.durationMs;
                 emit(true);
-                return workflowResult(snapshot, result);
+                return workflowResult(recomputeWorkflowSnapshot(snapshot), result);
             } catch (error) {
-                let message = error instanceof Error ? error.message : String(error);
-                if (signal?.aborted || /abort(?:ed)?/i.test(message)) {
+                // Only a genuine signal abort becomes the OMP-native error result; a
+                // real failure whose message merely contains "abort" must propagate
+                // unchanged rather than be misclassified as a cancellation.
+                if (signal?.aborted) {
                     for (let row of snapshot.agents) {
-                        // Agents cut short before onAgentEnd could classify them (abort-drained
-                        // rows are already marked skipped there). Genuine failures keep "error".
-                        if (row.status === "running") row.status = "skipped";
+                        // Rows cut short before onAgentEnd could classify them: still
+                        // queued (never acquired a permit) or running (in flight when the
+                        // abort fired). Abort-drained rows were already marked skipped in
+                        // onAgentEnd; genuine failures keep "error".
+                        if (row.status === "running" || row.status === "queued") {
+                            row.status = "skipped";
+                        }
                     }
                     // OMP-native abort contract: stream the final skipped frame, then resolve
                     // with an error result instead of throwing. Resolving lets OMP render the
@@ -166,7 +212,7 @@ export function createWorkflowTool(
                     return {
                         isError: true,
                         content: [{ type: "text" as const, text: "Workflow was aborted" }],
-                        details: snapshot,
+                        details: recomputeWorkflowSnapshot(snapshot),
                     };
                 }
                 throw error;

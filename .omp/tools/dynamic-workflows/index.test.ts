@@ -47,6 +47,13 @@ vi.mock("@oh-my-pi/pi-coding-agent/task", () => ({
         agents.find(agent => agent.name === name),
 }));
 vi.mock("@oh-my-pi/pi-coding-agent/task/executor", () => ({ runSubprocess: vi.fn() }));
+vi.mock("@oh-my-pi/pi-coding-agent/mcp/manager", () => ({
+    MCPManager: class {
+        getTools() {
+            return [];
+        }
+    },
+}));
 vi.mock("@oh-my-pi/pi-coding-agent/tools/output-schema-validator", () => ({
     buildOutputValidator: () => ({}),
 }));
@@ -467,6 +474,87 @@ return { failed, hung };`;
         let resolved = await Promise.resolve(CustomToolFactory(api));
         let tool = Array.isArray(resolved) ? resolved[0] : resolved;
         expect(tool.name).toBe("workflow");
+    });
+
+    it("propagates a non-abort error whose message contains 'abort' when the signal is not aborted", async () => {
+        let script = `${META}
+await agent("x", { label: "x" });
+throw new Error("abort check failed");`;
+
+        // The message contains "abort", but the signal never aborted, so it must
+        // surface as a real failure, not be reclassified as a cancellation.
+        await expect(
+            runTool(script, makeDeps(async () => makeResult({ output: "done" }))),
+        ).rejects.toThrow("abort check failed");
+    });
+
+    it("emits one coherent completed result for a BigInt result without throwing", async () => {
+        let script = `${META}
+await agent("x", { label: "x" });
+return { total: 10n };`;
+
+        let { result } = await runTool(script, makeDeps(async () => makeResult({ output: "done" })));
+
+        expect(result.isError).toBeFalsy();
+        let text = result.content[0];
+        let body = text.type === "text" ? text.text : "";
+        expect(body).toContain("Workflow metadata_scan completed");
+        expect(body).toContain("10n");
+        expect((result.details as WorkflowSnapshot).result).toEqual({ total: 10n });
+    });
+
+    it("emits one coherent completed result for a cyclic result without throwing", async () => {
+        let script = `${META}
+await agent("x", { label: "x" });
+const node = { name: "root" };
+node.self = node;
+return node;`;
+
+        let { result } = await runTool(script, makeDeps(async () => makeResult({ output: "done" })));
+
+        expect(result.isError).toBeFalsy();
+        let text = result.content[0];
+        let body = text.type === "text" ? text.text : "";
+        expect(body).toContain("Workflow metadata_scan completed");
+        expect(body).toContain("root");
+        let cyclic = (result.details as WorkflowSnapshot).result as { self?: unknown };
+        expect(cyclic.self).toBe(cyclic);
+    });
+
+    it("queues both agents at concurrency 1 and skips both when aborted while the first runs", async () => {
+        // hardwareConcurrency 3 makes the runtime's default concurrency 1, so the
+        // second agent stays queued (never acquires a permit) while the first runs.
+        vi.stubGlobal("navigator", { hardwareConcurrency: 3 });
+        try {
+            let controller = new AbortController();
+            let firstStarted = Promise.withResolvers<void>();
+            let deps = makeDeps(async options => {
+                if (options.task === "first") {
+                    firstStarted.resolve();
+                    await new Promise<void>(() => {}); // in-flight until abort
+                }
+                return makeResult({ task: options.task });
+            });
+            let script = `${META}
+const first = agent("first", { label: "first agent" });
+const second = agent("second", { label: "second agent" });
+return Promise.all([first, second]);`;
+
+            let tool = createWorkflowTool(api, deps);
+            let run = tool.execute("call-1", { script }, () => {}, context, controller.signal);
+
+            await firstStarted.promise;
+            controller.abort();
+
+            let result = await run;
+            expect(result.isError).toBe(true);
+            let rows = result.details?.agents ?? [];
+            expect(rows).toHaveLength(2);
+            expect(rows.every(row => row.status === "skipped")).toBe(true);
+            expect(new Set(rows.map(row => row.id)).size).toBe(2);
+        } finally {
+            vi.unstubAllGlobals();
+        }
     });
 });
 

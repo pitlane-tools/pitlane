@@ -66,6 +66,10 @@ export interface WorkflowRunOptions {
     signal?: AbortSignal;
     onLog?: (message: string) => void;
     onPhase?: (title: string) => void;
+    // Fires when an agent's id/label are allocated, before it acquires a
+    // concurrency permit. Lets a consumer show a queued row for an agent that may
+    // never start (e.g. an abort drains the limiter queue before its turn).
+    onAgentQueued?: (event: { id: number; label: string; phase?: string; prompt: string }) => void;
     onAgentStart?: (event: { id: number; label: string; phase?: string; prompt: string }) => void;
     onAgentProgress?: (event: {
         id: number;
@@ -186,6 +190,10 @@ export async function runWorkflow<T = unknown>(
             normalizedOptions.label ??
             (assignedPhase ? `${assignedPhase} agent ${id}` : `agent ${id}`);
 
+        // Announce the agent before it queues for a permit, so a consumer can render
+        // it even if an abort drains the limiter queue before it ever starts.
+        options.onAgentQueued?.({ id, label, phase: assignedPhase, prompt: taskPrompt });
+
         let run = limiter(async () => {
             throwIfAborted();
             if (closeSignal.aborted)
@@ -202,6 +210,10 @@ export async function runWorkflow<T = unknown>(
                         phase: assignedPhase,
                         signal: options.signal,
                         onProgress: message => {
+                            // Drop progress that lands after the workflow has closed
+                            // (abort/settlement); a late callback must not mutate a
+                            // snapshot the consumer already treated as final.
+                            if (closeSignal.aborted) return;
                             options.onAgentProgress?.({ id, label, phase: assignedPhase, message });
                         },
                     }),

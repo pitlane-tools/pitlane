@@ -50,6 +50,31 @@ describe("recomputeWorkflowSnapshot", () => {
         expect(next.doneCount).toBe(1);
         expect(next.errorCount).toBe(1);
     });
+
+    it("clones arrays and agent rows so a retained frame never mutates retroactively", () => {
+        let base: WorkflowSnapshot = {
+            ...createWorkflowSnapshot({ name: "wf", description: "d" }),
+            phases: ["Scan"],
+            logs: ["first log"],
+            currentPhase: "Scan",
+            agents: [{ id: 1, label: "a", prompt: "p", status: "running" }],
+        };
+
+        let frame = recomputeWorkflowSnapshot(base);
+        // Mutate the live snapshot after the frame was handed to a consumer.
+        base.logs.push("second log");
+        base.phases.push("Synthesize");
+        base.agents.push({ id: 2, label: "b", prompt: "p", status: "running" });
+        base.agents[0].status = "done";
+        base.agents[0].error = "late error";
+
+        // The retained frame is a stable point-in-time copy.
+        expect(frame.logs).toEqual(["first log"]);
+        expect(frame.phases).toEqual(["Scan"]);
+        expect(frame.agents).toHaveLength(1);
+        expect(frame.agents[0].status).toBe("running");
+        expect(frame.agents[0].error).toBeUndefined();
+    });
 });
 
 describe("renderWorkflowText", () => {

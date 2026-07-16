@@ -79,6 +79,16 @@ vi.mock("@oh-my-pi/pi-coding-agent/task", () => ({
 vi.mock("@oh-my-pi/pi-coding-agent/task/executor", () => ({
     runSubprocess: vi.fn(),
 }));
+// The real MCP manager loads `pi-utils` (crashes under vitest). This empty
+// stand-in mirrors the only surface the adapter relies on: a fresh manager has no
+// tools, so passing it disables MCP for the child and yields zero proxy tools.
+vi.mock("@oh-my-pi/pi-coding-agent/mcp/manager", () => ({
+    MCPManager: class {
+        getTools() {
+            return [];
+        }
+    },
+}));
 // The real validator loads `pi-utils`, which reads `Bun.env` at import and
 // crashes under vitest. This stand-in reproduces the JSON-Schema type checks the
 // adapter relies on (type, type-arrays, anyOf/oneOf; unconstrained schemas have
@@ -597,5 +607,59 @@ describe("OmpWorkflowAgent", () => {
         await agent.run(request({ onProgress: message => messages.push(message) }));
 
         expect(messages).toEqual(["reading files", "grep", "running"]);
+    });
+
+    it("isolates child sessions from custom-tool, extension, and MCP rediscovery", async () => {
+        let { agent, runSubprocess } = setup({ agents: [REVIEWER] });
+
+        await agent.run(request({ schema: undefined }));
+
+        let options = vi.mocked(runSubprocess).mock.calls[0][0];
+        // Empty preloaded path lists skip the child's own custom-tool and extension
+        // FS scans, so it cannot rediscover `workflow` (recursion) or extension tools.
+        expect(options.preloadedCustomToolPaths).toEqual([]);
+        expect(options.preloadedExtensionPaths).toEqual([]);
+        // A fresh, empty MCP manager disables the child's MCP discovery and proxies
+        // nothing (safe `agent.tools` cannot filter MCP tools — OMP always includes
+        // custom/extension tools regardless of the allowlist).
+        expect(options.mcpManager).toBeDefined();
+        expect(options.mcpManager?.getTools()).toEqual([]);
+        // The safe profile never exposes the recursive `workflow`/`task` tools.
+        expect(options.agent.tools).not.toContain("workflow");
+        expect(options.agent.tools).not.toContain("task");
+    });
+
+    it("rejects a profile whose declared tools have no safe intersection", async () => {
+        let unsafe: AgentDefinition = { ...REVIEWER, tools: ["task"] };
+        let { agent, runSubprocess } = setup({ agents: [unsafe] });
+
+        await expect(agent.run(request({ agent: "reviewer" }))).rejects.toThrow(
+            /no workflow-safe tools/i,
+        );
+        // The empty safe intersection must be rejected before execution, never
+        // silently re-expanded to the full OMP default tool set.
+        expect(runSubprocess).not.toHaveBeenCalled();
+    });
+
+    it("keeps unquoted output a string when a parseable value fails the schema", async () => {
+        let { agent } = setup({
+            agents: [REVIEWER],
+            // "123" parses to the number 123, which fails a string schema; the raw
+            // text is a valid string, so the adapter returns it verbatim.
+            runSubprocess: async () => makeResult({ output: "123", tokens: 3 }),
+        });
+
+        let outcome = await agent.run(request({ schema: { type: "string" } }));
+
+        expect(outcome).toEqual({ value: "123", tokens: 3 });
+    });
+
+    it("discovers agents once per instance across concurrent and later requests", async () => {
+        let { agent, discoverAgents } = setup({ agents: [REVIEWER] });
+
+        await Promise.all([agent.run(request()), agent.run(request())]);
+        await agent.run(request());
+
+        expect(discoverAgents).toHaveBeenCalledTimes(1);
     });
 });

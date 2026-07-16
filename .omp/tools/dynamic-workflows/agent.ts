@@ -9,8 +9,10 @@ import {
     getAgent,
     type AgentDefinition,
 } from "@oh-my-pi/pi-coding-agent/task";
+import type { DiscoveryResult } from "@oh-my-pi/pi-coding-agent/task/discovery";
 import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { buildOutputValidator } from "@oh-my-pi/pi-coding-agent/tools/output-schema-validator";
+import { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
 
 import {
     WorkflowAgentFailure,
@@ -70,6 +72,17 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
     // completes before the next allocation runs — concurrent runs then never
     // reuse an existing artifact id.
     #allocationChain: Promise<unknown> = Promise.resolve();
+    // A fresh, unconnected MCP manager handed to every child run. The executor
+    // reads a supplied manager as "MCP already provided" (sets enableMCP = false),
+    // so the child never rediscovers .mcp.json servers, and an empty manager makes
+    // createMCPProxyTools() return nothing — the public way to disable MCP for a
+    // subagent. An explicit safe `agent.tools` list cannot do this: OMP always
+    // includes custom/extension tools (MCP tools among them) regardless of the
+    // tool allowlist.
+    readonly #mcpManager: MCPManager;
+    // One discovery snapshot per instance so every request in a workflow resolves
+    // against a single, stable agent-profile set instead of rescanning each call.
+    #discovery: Promise<DiscoveryResult> | undefined;
 
     constructor(
         cwd: string,
@@ -81,6 +94,7 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
         this.#context = context;
         this.#parentToolCallId = parentToolCallId;
         this.#dependencies = { ...DEFAULT_DEPENDENCIES, ...dependencies };
+        this.#mcpManager = new MCPManager(cwd);
         this.#outputManager = new AgentOutputManager(() =>
             context.sessionManager.getArtifactsDir(),
         );
@@ -90,7 +104,7 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
         let context = this.#context;
         let dependencies = this.#dependencies;
 
-        let { agents } = await dependencies.discoverAgents(this.#cwd);
+        let { agents } = await this.#discoverAgents();
         let profile = getAgent(agents, request.agent);
         if (!profile) {
             let available = agents.map(agent => agent.name).join(", ") || "none";
@@ -110,6 +124,15 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
         let tools = profile.tools
             ? profile.tools.filter(tool => (SAFE_TOOLS as readonly string[]).includes(tool))
             : [...SAFE_TOOLS];
+        // A profile that declares tools but shares none with the safe allowlist must
+        // be rejected: an empty `tools` array reads to the executor as "no explicit
+        // whitelist", which silently re-expands to the full OMP default tool set —
+        // the opposite of the intended restriction.
+        if (profile.tools && tools.length === 0) {
+            throw new Error(
+                `Agent "${profile.name}" declares no workflow-safe tools; all of its tools are restricted from workflow subagents. Use a different agent type.`,
+            );
+        }
         let safeProfile: AgentDefinition = { ...profile, spawns: undefined, tools };
 
         let settingsModels = context.settings?.get("task.agentModelOverrides") ?? {};
@@ -151,6 +174,14 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
             localProtocolOptions: context.localProtocolOptions,
             parentArtifactManager: context.sessionManager.getArtifactManager() ?? undefined,
             artifactsDir: context.sessionManager.getArtifactsDir() ?? undefined,
+            // Child isolation: hand the child empty preloaded path lists so it skips
+            // its own `.omp/tools/` and extension FS scans and cannot rediscover the
+            // `workflow` tool (recursion guard) or any extension tools outside the
+            // safe allowlist, and a fresh empty MCP manager so it neither rediscovers
+            // .mcp.json servers nor inherits any (see #mcpManager).
+            preloadedCustomToolPaths: [],
+            preloadedExtensionPaths: [],
+            mcpManager: this.#mcpManager,
             keepAlive: false,
         });
 
@@ -168,26 +199,48 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
         }
 
         if (request.schema !== undefined) {
-            // Decode first: the executor emits a JSON document for object/array/quoted
-            // outputs. A successful parse yields the structured value (quoted string ->
-            // string, union object JSON -> object).
+            // The executor emits a JSON document for object/array/quoted outputs, but
+            // may emit unquoted text for a schema that accepts a raw string. Validate
+            // the decoded candidate against OMP's normalized validator (an
+            // unconstrained schema has no validator and accepts anything): prefer the
+            // parsed value when it is valid (quoted string -> string, union object
+            // JSON -> object), otherwise fall back to the raw text when that validates
+            // (e.g. an unquoted `123` under a string schema stays the string "123").
+            let { validator } = buildOutputValidator(request.schema);
+            let accepts = (value: unknown): boolean =>
+                !validator || validator.validate(value).success;
+            let parsed: unknown;
+            let parsedOk = false;
+            let parseError: unknown;
             try {
-                return { value: JSON.parse(result.output), tokens: result.tokens };
-            } catch (parseError) {
-                // Parsing failed — the executor may have emitted unquoted text for a
-                // schema that accepts a raw string. Accept it only if OMP's normalized
-                // validator does (an unconstrained schema has no validator and accepts);
-                // otherwise the output genuinely violates the schema.
-                let { validator } = buildOutputValidator(request.schema);
-                if (!validator || validator.validate(result.output).success) {
-                    return { value: result.output, tokens: result.tokens };
-                }
-                let message = parseError instanceof Error ? parseError.message : String(parseError);
-                throw new WorkflowAgentFailure(message, result.tokens);
+                parsed = JSON.parse(result.output);
+                parsedOk = true;
+            } catch (error) {
+                parseError = error;
             }
+            if (parsedOk && accepts(parsed)) {
+                return { value: parsed, tokens: result.tokens };
+            }
+            if (accepts(result.output)) {
+                return { value: result.output, tokens: result.tokens };
+            }
+            let message =
+                parseError instanceof Error
+                    ? parseError.message
+                    : `Agent "${profile.name}" output did not satisfy the requested schema`;
+            throw new WorkflowAgentFailure(message, result.tokens);
         }
 
         return { value: result.output, tokens: result.tokens };
+    }
+
+    /**
+     * Resolve the agent-profile set once per instance and reuse that promise for
+     * every request, so all agents in one workflow see one stable snapshot even
+     * when several requests race the first discovery.
+     */
+    #discoverAgents(): Promise<DiscoveryResult> {
+        return (this.#discovery ??= this.#dependencies.discoverAgents(this.#cwd));
     }
 
     /**

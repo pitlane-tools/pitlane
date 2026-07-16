@@ -609,4 +609,53 @@ return parallel([() => agent("one"), () => agent("two")])
             { id: 1, label: "hanging", phase: undefined, error: "Workflow was aborted" },
         ]);
     }, 2000);
+
+    it("announces onAgentQueued before the agent acquires a permit and starts", async () => {
+        let events: string[] = [];
+        let runner: WorkflowAgentRunner = {
+            async run(request) {
+                return { value: request.prompt, tokens: 1 };
+            },
+        };
+        let program = parseWorkflowScript(`${header}\nreturn agent("x", { label: "solo" })`);
+
+        await runWorkflow(program, {
+            cwd: "/tmp/workflow",
+            runner,
+            onAgentQueued: event => events.push(`queued:${event.label}`),
+            onAgentStart: event => events.push(`start:${event.label}`),
+            onAgentEnd: event => events.push(`end:${event.label}`),
+        });
+
+        expect(events).toEqual(["queued:solo", "start:solo", "end:solo"]);
+    });
+
+    it("ignores agent progress emitted after the workflow closes", async () => {
+        let controller = new AbortController();
+        let progressEvents: unknown[] = [];
+        let lateProgress: (() => void) | undefined;
+        let { promise: started, resolve: markStarted } = Promise.withResolvers<void>();
+        let runner: WorkflowAgentRunner = {
+            run(request) {
+                lateProgress = () => request.onProgress?.("late progress");
+                markStarted(undefined);
+                return new Promise<WorkflowAgentOutcome>(() => {}); // in-flight until abort
+            },
+        };
+        let program = parseWorkflowScript(`${header}\nreturn agent("x", { label: "x" })`);
+
+        let workflow = runWorkflow(program, {
+            cwd: "/tmp/workflow",
+            runner,
+            signal: controller.signal,
+            onAgentProgress: event => progressEvents.push(event),
+        });
+        await started;
+        controller.abort();
+        await expect(workflow).rejects.toThrow("Workflow was aborted");
+
+        // A progress callback that fires after the workflow closed must be dropped.
+        lateProgress?.();
+        expect(progressEvents).toEqual([]);
+    }, 2000);
 });

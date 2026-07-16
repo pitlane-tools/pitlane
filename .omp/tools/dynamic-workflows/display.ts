@@ -53,7 +53,19 @@ export function recomputeWorkflowSnapshot(snapshot: WorkflowSnapshot): WorkflowS
     let runningCount = snapshot.agents.filter(agent => agent.status === "running").length;
     let doneCount = snapshot.agents.filter(agent => agent.status === "done").length;
     let errorCount = snapshot.agents.filter(agent => agent.status === "error").length;
-    return { ...snapshot, agentCount: snapshot.agents.length, runningCount, doneCount, errorCount };
+    // Clone the collections and every agent row so a frame handed to a consumer is
+    // a stable point-in-time copy: later pushes to logs/phases or in-place agent
+    // status/error edits on the live snapshot never mutate an already-emitted frame.
+    return {
+        ...snapshot,
+        phases: [...snapshot.phases],
+        logs: [...snapshot.logs],
+        agents: snapshot.agents.map(agent => ({ ...agent })),
+        agentCount: snapshot.agents.length,
+        runningCount,
+        doneCount,
+        errorCount,
+    };
 }
 
 export function renderWorkflowLines(
