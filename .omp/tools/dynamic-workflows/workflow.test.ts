@@ -19,6 +19,17 @@ describe("parseWorkflowScript", () => {
     expect(parsed.body).not.toContain("export const meta");
   });
 
+  it("accepts returns nested in workflow-level control flow", () => {
+    const parsed = parseWorkflowScript(`${header}\nif (args) {\n  return args;\n}`);
+    expect(parsed.body).toContain("return args");
+  });
+
+  it("rejects returns nested in class static blocks", () => {
+    expect(() => parseWorkflowScript(`${header}\nclass C { static { return; } }`)).toThrow(
+      /return.*function body/i,
+    );
+  });
+
   it("rejects semantic errors other than the intentional top-level return", () => {
     expect(() => parseWorkflowScript(`${header}\nlet duplicate;\nlet duplicate;`)).toThrow(
       /already been declared/,

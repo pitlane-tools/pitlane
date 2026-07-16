@@ -34,12 +34,12 @@ export function parseWorkflowScript(script: string): { meta: WorkflowMeta; body:
     preserveParens: false,
     showSemanticErrors: true,
   });
+  const program = result.program as Program & AstNode;
   const fatal = result.errors.find(
-    error => error.severity === "Error" && !isIntentionalTopLevelReturnDiagnostic(error),
+    error => error.severity === "Error" && !isWorkflowLevelReturnDiagnostic(error, program),
   );
   if (fatal) throw new Error(fatal.codeframe ?? fatal.message);
 
-  const program = result.program as Program & AstNode;
   const first = program.body[0] as unknown as AstNode | undefined;
   if (first?.type !== "ExportNamedDeclaration") {
     throw new Error("`export const meta = { name, description }` must be the first statement");
@@ -59,8 +59,34 @@ export function parseWorkflowScript(script: string): { meta: WorkflowMeta; body:
   return { meta, body: script.slice(0, first.start) + script.slice(first.end) };
 }
 
-function isIntentionalTopLevelReturnDiagnostic(error: OxcError): boolean {
-  return error.message === "A 'return' statement can only be used within a function body.";
+function isWorkflowLevelReturnDiagnostic(error: OxcError, program: AstNode): boolean {
+  if (error.message !== "A 'return' statement can only be used within a function body.") return false;
+  return error.labels.some(label => hasWorkflowLevelReturnAt(program, label.start, label.end));
+}
+
+function hasWorkflowLevelReturnAt(node: AstNode, labelStart: number, labelEnd: number): boolean {
+  if (labelStart < node.start || labelEnd > node.end) return false;
+  if (
+    node.type === "StaticBlock" ||
+    node.type === "FunctionDeclaration" ||
+    node.type === "FunctionExpression" ||
+    node.type === "ArrowFunctionExpression"
+  ) {
+    return false;
+  }
+  if (node.type === "ReturnStatement") return node.start === labelStart;
+
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "start" || key === "end" || key === "range") continue;
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        if (isAstNode(child) && hasWorkflowLevelReturnAt(child, labelStart, labelEnd)) return true;
+      }
+    } else if (isAstNode(value) && hasWorkflowLevelReturnAt(value, labelStart, labelEnd)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function evaluateLiteral(node: AstNode, path: string): unknown {
