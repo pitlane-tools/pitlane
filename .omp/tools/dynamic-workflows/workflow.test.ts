@@ -383,4 +383,155 @@ throw new Error("boom")
       /^workflow result must be structured-cloneable; did you forget to await agent\(\), parallel\(\), or pipeline\(\)\?/,
     );
   });
+  it("transfers a released permit directly to the next waiter without over-admitting", async () => {
+    for (let depth = 0; depth <= 12; depth++) {
+      let active = 0;
+      let maximum = 0;
+      const runner: WorkflowAgentRunner = {
+        async run(request) {
+          active++;
+          maximum = Math.max(maximum, active);
+          await Promise.resolve();
+          await Promise.resolve();
+          await Promise.resolve();
+          active--;
+          return { value: request.prompt, tokens: 1 };
+        },
+      };
+      const script = `${header}
+const a = agent("a", { label: "a" })
+const q = agent("q", { label: "q" })
+let chain = Promise.resolve()
+for (let i = 0; i < ${depth}; i++) chain = chain.then(() => {})
+const n = chain.then(() => agent("n", { label: "n" }))
+return Promise.all([a, q, n])
+`;
+
+      const result = await runWorkflow(parseWorkflowScript(script), {
+        cwd: "/tmp/workflow",
+        runner,
+        concurrency: 1,
+      });
+
+      expect(maximum, `microtask depth ${depth}`).toBe(1);
+      expect(result.result).toEqual(["a", "q", "n"]);
+    }
+  });
+
+  it(
+    "aborts a workflow whose body awaits a non-agent promise forever",
+    async () => {
+      const controller = new AbortController();
+      const runner = new FakeRunner({ noop: { value: "ok", tokens: 1 } });
+      const { promise: noopEnded, resolve: markNoopEnded } = Promise.withResolvers<void>();
+      const program = parseWorkflowScript(`${header}
+await agent("noop")
+await new Promise(() => {})
+return "unreachable"
+`);
+
+      const workflow = runWorkflow(program, {
+        cwd: "/tmp/workflow",
+        runner,
+        signal: controller.signal,
+        onAgentEnd: () => markNoopEnded(undefined),
+      });
+      await noopEnded;
+      controller.abort();
+
+      await expect(workflow).rejects.toThrow("Workflow was aborted");
+    },
+    2000,
+  );
+
+  it("drains helper continuations so no later stage starts after the workflow rejects", async () => {
+    const events: string[] = [];
+    const runner: WorkflowAgentRunner = {
+      async run(request) {
+        events.push(`run:${request.prompt}`);
+        return { value: request.prompt, tokens: 1 };
+      },
+    };
+    const program = parseWorkflowScript(`${header}
+pipeline(
+  [1],
+  () => agent("s1"),
+  async () => {
+    for (let i = 0; i < 20; i++) await Promise.resolve()
+    return agent("s2")
+  },
+)
+throw new Error("boom")
+`);
+
+    await runWorkflow(program, { cwd: "/tmp/workflow", runner }).then(
+      () => events.push("resolved"),
+      error => events.push(`rejected:${error instanceof Error ? error.message : String(error)}`),
+    );
+
+    expect(events).toEqual(["run:s1", "run:s2", "rejected:Error: boom"]);
+  });
+
+  it("clamps non-positive concurrency to a single worker instead of throwing", async () => {
+    for (const concurrency of [0, -3]) {
+      let active = 0;
+      let maximum = 0;
+      const runner: WorkflowAgentRunner = {
+        async run(request) {
+          active++;
+          maximum = Math.max(maximum, active);
+          await Promise.resolve();
+          active--;
+          return { value: request.prompt, tokens: 1 };
+        },
+      };
+      const script = `${header}
+return parallel([() => agent("one"), () => agent("two")])
+`;
+
+      const result = await runWorkflow(parseWorkflowScript(script), {
+        cwd: "/tmp/workflow",
+        runner,
+        concurrency,
+      });
+
+      expect(maximum, `concurrency ${concurrency}`).toBe(1);
+      expect(result.result).toEqual(["one", "two"]);
+    }
+  });
+
+  it(
+    "emits an abort-error onAgentEnd for every in-flight agent that already started",
+    async () => {
+      const controller = new AbortController();
+      const starts: unknown[] = [];
+      const ends: unknown[] = [];
+      const { promise: agentStarted, resolve: markAgentStarted } = Promise.withResolvers<void>();
+      const runner: WorkflowAgentRunner = {
+        run() {
+          return new Promise<WorkflowAgentOutcome>(() => {});
+        },
+      };
+      const program = parseWorkflowScript(`${header}\nreturn agent("hang", { label: "hanging" })`);
+
+      const workflow = runWorkflow(program, {
+        cwd: "/tmp/workflow",
+        runner,
+        signal: controller.signal,
+        onAgentStart: event => {
+          starts.push(event);
+          markAgentStarted(undefined);
+        },
+        onAgentEnd: event => ends.push(event),
+      });
+      await agentStarted;
+      controller.abort();
+
+      await expect(workflow).rejects.toThrow("Workflow was aborted");
+      expect(starts).toEqual([{ id: 1, label: "hanging", phase: undefined, prompt: "hang" }]);
+      expect(ends).toEqual([{ id: 1, label: "hanging", phase: undefined, error: "Workflow was aborted" }]);
+    },
+    2000,
+  );
+
 });

@@ -95,7 +95,7 @@ interface WorkflowRuntimeState {
   phases: string[];
   agentCount: number;
   tokens: number;
-  pendingAgentRuns: Set<Promise<unknown>>;
+  pending: Set<Promise<unknown>>;
 }
 
 interface PipelineSlot {
@@ -114,7 +114,7 @@ export async function runWorkflow<T = unknown>(
     phases: [],
     agentCount: 0,
     tokens: 0,
-    pendingAgentRuns: new Set(),
+    pending: new Set(),
   };
   const concurrency = normalizeConcurrency(options.concurrency);
   const limiter = createLimiter(concurrency);
@@ -144,6 +144,15 @@ export async function runWorkflow<T = unknown>(
     remaining: () => (tokenBudget === null ? Infinity : Math.max(0, tokenBudget - state.tokens)),
   });
 
+  const track = <T>(promise: Promise<T>): Promise<T> => {
+    state.pending.add(promise);
+    void promise.then(
+      () => state.pending.delete(promise),
+      () => state.pending.delete(promise),
+    );
+    return promise;
+  };
+
   const agent = (prompt: unknown, agentOptions: unknown = {}): Promise<unknown> => {
     throwIfAborted();
     if (budget.total !== null && budget.remaining() <= 0) {
@@ -159,7 +168,7 @@ export async function runWorkflow<T = unknown>(
       throwIfAborted();
       options.onAgentStart?.({ id, label, phase: assignedPhase, prompt: taskPrompt });
       try {
-        const outcome = await waitForRunner(
+        const outcome = await raceAbort(
           options.runner.run({
             prompt: taskPrompt,
             agent: normalizedOptions.agent ?? "task",
@@ -179,7 +188,10 @@ export async function runWorkflow<T = unknown>(
         options.onAgentEnd?.({ id, label, phase: assignedPhase, result: outcome.value });
         return outcome.value;
       } catch (error) {
-        if (options.signal?.aborted) throw workflowAbortedError();
+        if (options.signal?.aborted) {
+          options.onAgentEnd?.({ id, label, phase: assignedPhase, error: "Workflow was aborted" });
+          throw workflowAbortedError();
+        }
         const message = errorMessage(error);
         if (error instanceof WorkflowAgentFailure) state.tokens += error.tokens;
         log(`agent ${label} failed: ${message}`);
@@ -188,15 +200,10 @@ export async function runWorkflow<T = unknown>(
       }
     });
 
-    state.pendingAgentRuns.add(run);
-    void run.then(
-      () => state.pendingAgentRuns.delete(run),
-      () => state.pendingAgentRuns.delete(run),
-    );
-    return run;
+    return track(run);
   };
 
-  const parallel = async (thunks: unknown): Promise<unknown[]> => {
+  const runParallel = async (thunks: unknown): Promise<unknown[]> => {
     throwIfAborted();
     if (!Array.isArray(thunks)) throw new TypeError("parallel() expects an array of functions");
     if (thunks.some(thunk => typeof thunk !== "function")) {
@@ -214,8 +221,9 @@ export async function runWorkflow<T = unknown>(
       }),
     );
   };
+  const parallel = (thunks: unknown): Promise<unknown[]> => track(runParallel(thunks));
 
-  const pipeline = async (items: unknown, ...stages: unknown[]): Promise<unknown[]> => {
+  const runPipeline = async (items: unknown, stages: unknown[]): Promise<unknown[]> => {
     throwIfAborted();
     if (!Array.isArray(items)) throw new TypeError("pipeline() expects an array as the first argument");
     if (stages.some(stage => typeof stage !== "function")) {
@@ -243,6 +251,7 @@ export async function runWorkflow<T = unknown>(
     }
     return slots.map(slot => slot.value);
   };
+  const pipeline = (items: unknown, ...stages: unknown[]): Promise<unknown[]> => track(runPipeline(items, stages));
 
   const safeMath = Object.freeze(
     Object.fromEntries(
@@ -286,15 +295,18 @@ export async function runWorkflow<T = unknown>(
   let executionError: unknown;
   let executionFailed = false;
   try {
-    executionResult = await new vm.Script(wrapped, {
-      filename: `${program.meta.name || "workflow"}.js`,
-    }).runInContext(context);
+    executionResult = await raceAbort(
+      new vm.Script(wrapped, {
+        filename: `${program.meta.name || "workflow"}.js`,
+      }).runInContext(context) as Promise<unknown>,
+      options.signal,
+    );
   } catch (error) {
     executionFailed = true;
     executionError = error;
   } finally {
-    while (state.pendingAgentRuns.size > 0) {
-      await Promise.allSettled([...state.pendingAgentRuns]);
+    while (state.pending.size > 0) {
+      await Promise.allSettled([...state.pending]);
     }
   }
 
@@ -317,32 +329,28 @@ export async function runWorkflow<T = unknown>(
 function createLimiter(limit: number) {
   let active = 0;
   const queue: Array<(value: void) => void> = [];
-  const next = () => {
-    active--;
-    queue.shift()?.(undefined);
-  };
   return async <T>(fn: () => Promise<T>): Promise<T> => {
-    if (active >= limit) {
+    if (active < limit) {
+      active++;
+    } else {
       const { promise, resolve } = Promise.withResolvers<void>();
       queue.push(resolve);
       await promise;
     }
-    active++;
     try {
       return await fn();
     } finally {
-      next();
+      const resume = queue.shift();
+      if (resume) resume(undefined);
+      else active--;
     }
   };
 }
 
 function normalizeConcurrency(value: number | undefined): number {
-  const fallback = Math.max(1, (globalThis.navigator?.hardwareConcurrency ?? 8) - 2);
-  if (value === undefined) return Math.min(fallback, 16);
-  if (!Number.isInteger(value) || value < 1) {
-    throw new RangeError("workflow concurrency must be a positive integer");
-  }
-  return Math.min(value, 16);
+  const fallback = Math.min(16, Math.max(1, (globalThis.navigator?.hardwareConcurrency ?? 8) - 2));
+  if (value === undefined || !Number.isFinite(value)) return fallback;
+  return Math.min(16, Math.max(1, Math.floor(value)));
 }
 
 function normalizeTokenBudget(value: number | null | undefined): number | null {
@@ -396,17 +404,14 @@ function requireString(value: unknown, name: string): string {
 }
 
 
-async function waitForRunner(
-  run: Promise<WorkflowAgentOutcome>,
-  signal: AbortSignal | undefined,
-): Promise<WorkflowAgentOutcome> {
-  if (!signal) return run;
-  if (signal.aborted) throw workflowAbortedError();
-  const { promise, resolve, reject } = Promise.withResolvers<WorkflowAgentOutcome>();
+function raceAbort<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(workflowAbortedError());
+  const { promise: guarded, resolve, reject } = Promise.withResolvers<T>();
   const onAbort = () => reject(workflowAbortedError());
   signal.addEventListener("abort", onAbort, { once: true });
-  void run.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
-  return promise;
+  void promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  return guarded;
 }
 
 function workflowAbortedError(): Error {
