@@ -140,7 +140,14 @@ export function createWorkflowTool(
         const message = error instanceof Error ? error.message : String(error);
         if (signal?.aborted || /abort(?:ed)?/i.test(message)) {
           for (const row of snapshot.agents) {
-            if (row.status === "running") row.status = "skipped";
+            // Reclassify agents cut short by the abort — those still running and
+            // those the runtime reported with the abort error — as skipped, and
+            // drop the abort error so it does not read as a genuine failure.
+            // Completed rows and earlier real failures are left untouched.
+            if (row.status === "running" || row.error === "Workflow was aborted") {
+              row.status = "skipped";
+              row.error = undefined;
+            }
           }
           emit(true);
           throw new Error("Workflow was aborted");

@@ -239,7 +239,7 @@ return await agent("x", { label: "x" });`;
     expect(built.runners).toBe(0);
   });
 
-  it("aborts in-flight agents, resolves running rows, and emits a completed frame", async () => {
+  it("marks an aborted in-flight agent skipped, clears its abort error, and completes the frame", async () => {
     const controller = new AbortController();
     const started = Promise.withResolvers<void>();
     const deps = makeDeps(async () => {
@@ -267,7 +267,44 @@ return await agent("x", { label: "x" });`;
     expect(last?.content[0]?.text?.startsWith("Workflow completed")).toBe(true);
     const rows = last?.details?.agents ?? [];
     expect(rows).toHaveLength(1);
-    expect(rows.every(row => row.status !== "running")).toBe(true);
+    expect(rows[0]?.status).toBe("skipped");
+    expect(rows[0]?.error).toBeUndefined();
+  });
+
+  it("keeps a genuine branch failure as error while skipping the aborted branch", async () => {
+    const controller = new AbortController();
+    const hangStarted = Promise.withResolvers<void>();
+    const deps = makeDeps(async options => {
+      if (options.task === "hang") {
+        hangStarted.resolve();
+        await new Promise<void>(() => {}); // in-flight until abort
+      }
+      return makeResult({ task: options.task, exitCode: 1, error: "branch blew up" });
+    });
+
+    const script = `${META}
+phase("Scan");
+const failed = await agent("fail", { label: "failing agent" });
+const hung = agent("hang", { label: "hanging agent" });
+await hung;
+return { failed, hung };`;
+
+    const tool = createWorkflowTool(api, deps);
+    const updates: Array<{ content: Array<{ type: string; text?: string }>; details?: WorkflowSnapshot }> = [];
+    const run = tool.execute("call-1", { script }, update => updates.push(update), context, controller.signal);
+
+    await hangStarted.promise;
+    controller.abort();
+
+    await expect(run).rejects.toThrow("Workflow was aborted");
+
+    const rows = updates.at(-1)?.details?.agents ?? [];
+    const failRow = rows.find(row => row.label === "failing agent");
+    const hangRow = rows.find(row => row.label === "hanging agent");
+    expect(failRow?.status).toBe("error");
+    expect(failRow?.error).toBe("branch blew up");
+    expect(hangRow?.status).toBe("skipped");
+    expect(hangRow?.error).toBeUndefined();
   });
 
   it("renders the tool call title", () => {
