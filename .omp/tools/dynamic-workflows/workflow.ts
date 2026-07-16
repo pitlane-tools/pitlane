@@ -121,6 +121,12 @@ export async function runWorkflow<T = unknown>(
   const cwd = options.cwd === undefined ? process.cwd() : requireString(options.cwd, "workflow cwd");
   const tokenBudget = normalizeTokenBudget(options.tokenBudget);
 
+  const closeController = new AbortController();
+  const closeSignal = closeController.signal;
+  const closeWorkflow = () => {
+    if (!closeSignal.aborted) closeController.abort();
+  };
+
   const throwIfAborted = () => {
     if (options.signal?.aborted) throw workflowAbortedError();
   };
@@ -155,6 +161,7 @@ export async function runWorkflow<T = unknown>(
 
   const agent = (prompt: unknown, agentOptions: unknown = {}): Promise<unknown> => {
     throwIfAborted();
+    if (closeSignal.aborted) throw new Error("workflow is closing; no new agents may start");
     if (budget.total !== null && budget.remaining() <= 0) {
       throw new Error("workflow token budget exhausted");
     }
@@ -166,6 +173,7 @@ export async function runWorkflow<T = unknown>(
 
     const run = limiter(async () => {
       throwIfAborted();
+      if (closeSignal.aborted) throw new Error("workflow is closing; no new agents may start");
       options.onAgentStart?.({ id, label, phase: assignedPhase, prompt: taskPrompt });
       try {
         const outcome = await raceAbort(
@@ -212,16 +220,21 @@ export async function runWorkflow<T = unknown>(
     return Promise.all(
       thunks.map(async (thunk, index) => {
         try {
-          return await (thunk as () => unknown)();
+          return await raceAbort(Promise.resolve((thunk as () => unknown)()), closeSignal);
         } catch (error) {
           if (options.signal?.aborted) throw workflowAbortedError();
+          if (closeSignal.aborted) return null;
           log(`parallel[${index}] failed: ${errorMessage(error)}`);
           return null;
         }
       }),
     );
   };
-  const parallel = (thunks: unknown): Promise<unknown[]> => track(runParallel(thunks));
+  const parallel = (thunks: unknown): Promise<unknown[]> => {
+    const result = runParallel(thunks);
+    void result.catch(() => {});
+    return result;
+  };
 
   const runPipeline = async (items: unknown, stages: unknown[]): Promise<unknown[]> => {
     throwIfAborted();
@@ -232,26 +245,32 @@ export async function runWorkflow<T = unknown>(
 
     const slots: PipelineSlot[] = items.map(item => ({ original: item, value: item, failed: false }));
     for (const stage of stages as Array<(value: unknown, original: unknown, index: number) => unknown>) {
+      if (closeSignal.aborted) break;
       await Promise.all(
         slots.map(async (slot, index) => {
           if (slot.failed) return;
           try {
             throwIfAborted();
-            slot.value = await stage(slot.value, slot.original, index);
+            slot.value = await raceAbort(Promise.resolve(stage(slot.value, slot.original, index)), closeSignal);
             throwIfAborted();
             if (slot.value === null) slot.failed = true;
           } catch (error) {
             if (options.signal?.aborted) throw workflowAbortedError();
-            log(`pipeline[${index}] failed: ${errorMessage(error)}`);
             slot.value = null;
             slot.failed = true;
+            if (closeSignal.aborted) return;
+            log(`pipeline[${index}] failed: ${errorMessage(error)}`);
           }
         }),
       );
     }
     return slots.map(slot => slot.value);
   };
-  const pipeline = (items: unknown, ...stages: unknown[]): Promise<unknown[]> => track(runPipeline(items, stages));
+  const pipeline = (items: unknown, ...stages: unknown[]): Promise<unknown[]> => {
+    const result = runPipeline(items, stages);
+    void result.catch(() => {});
+    return result;
+  };
 
   const safeMath = Object.freeze(
     Object.fromEntries(
@@ -305,6 +324,7 @@ export async function runWorkflow<T = unknown>(
     executionFailed = true;
     executionError = error;
   } finally {
+    closeWorkflow();
     while (state.pending.size > 0) {
       await Promise.allSettled([...state.pending]);
     }

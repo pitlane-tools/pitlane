@@ -444,33 +444,71 @@ return "unreachable"
     2000,
   );
 
-  it("drains helper continuations so no later stage starts after the workflow rejects", async () => {
-    const events: string[] = [];
-    const runner: WorkflowAgentRunner = {
-      async run(request) {
-        events.push(`run:${request.prompt}`);
-        return { value: request.prompt, tokens: 1 };
-      },
-    };
-    const program = parseWorkflowScript(`${header}
-pipeline(
-  [1],
-  () => agent("s1"),
-  async () => {
-    for (let i = 0; i < 20; i++) await Promise.resolve()
-    return agent("s2")
-  },
-)
+  it(
+    "rejects a thrown workflow promptly despite an uninterruptible unawaited helper",
+    async () => {
+      const events: string[] = [];
+      const runner = new FakeRunner({ first: { value: "ok", tokens: 1 } });
+      const program = parseWorkflowScript(`${header}
+await agent("first", { label: "first" })
+parallel([() => new Promise(() => {})])
 throw new Error("boom")
 `);
 
-    await runWorkflow(program, { cwd: "/tmp/workflow", runner }).then(
-      () => events.push("resolved"),
-      error => events.push(`rejected:${error instanceof Error ? error.message : String(error)}`),
-    );
+      const workflow = runWorkflow(program, {
+        cwd: "/tmp/workflow",
+        runner,
+        onAgentStart: event => events.push(`start:${event.label}`),
+        onAgentEnd: event => events.push(`end:${event.label}`),
+        onLog: message => events.push(`log:${message}`),
+      });
 
-    expect(events).toEqual(["run:s1", "run:s2", "rejected:Error: boom"]);
-  });
+      await expect(workflow).rejects.toThrow("boom");
+      const settled = [...events];
+      for (let i = 0; i < 50; i++) await Promise.resolve();
+      expect(events).toEqual(settled);
+      expect(events).toEqual(["start:first", "end:first"]);
+    },
+    2000,
+  );
+
+  it(
+    "aborts promptly despite an uninterruptible unawaited helper and an uninterruptible body",
+    async () => {
+      const controller = new AbortController();
+      const events: string[] = [];
+      const { promise: firstEnded, resolve: markFirstEnded } = Promise.withResolvers<void>();
+      const runner = new FakeRunner({ first: { value: "ok", tokens: 1 } });
+      const program = parseWorkflowScript(`${header}
+parallel([() => new Promise(() => {})])
+await agent("first", { label: "first" })
+await new Promise(() => {})
+return "unreachable"
+`);
+
+      const workflow = runWorkflow(program, {
+        cwd: "/tmp/workflow",
+        runner,
+        signal: controller.signal,
+        onAgentStart: event => events.push(`start:${event.label}`),
+        onAgentEnd: event => {
+          events.push(`end:${event.label}`);
+          markFirstEnded(undefined);
+        },
+        onLog: message => events.push(`log:${message}`),
+      });
+
+      await firstEnded;
+      controller.abort();
+
+      await expect(workflow).rejects.toThrow("Workflow was aborted");
+      const settled = [...events];
+      for (let i = 0; i < 50; i++) await Promise.resolve();
+      expect(events).toEqual(settled);
+      expect(events).toEqual(["start:first", "end:first"]);
+    },
+    2000,
+  );
 
   it("clamps non-positive concurrency to a single worker instead of throwing", async () => {
     for (const concurrency of [0, -3]) {
