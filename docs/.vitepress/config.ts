@@ -8,7 +8,7 @@ const SITE_NAME = "Pitlane";
 const SITE_DESCRIPTION = "Platform integration for Remix apps on Cloudflare.";
 const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
-const guides: DefaultTheme.SidebarItem[] = [
+let guides: DefaultTheme.SidebarItem[] = [
     // {
     //     text: "Introduction",
     //     items: [
@@ -60,12 +60,11 @@ const guides: DefaultTheme.SidebarItem[] = [
     //     },
 ];
 
-const packages: DefaultTheme.SidebarItem[] = [
+let packages: DefaultTheme.SidebarItem[] = [
     {
         text: "Packages",
         items: [
             //             { text: "pitlane", link: "/package/pitlane" },
-            //             { text: "@pitlane/dev", link: "/package/dev" },
             //
             //             {
             //                 text: "@pitlane/data-table-cloudflare-d1",
@@ -162,18 +161,18 @@ const packages: DefaultTheme.SidebarItem[] = [
     },
 ];
 
-const config = defineConfig({
+let config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
     srcExclude: ["superpowers/**", "internal/**"],
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
-        const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
-        const url = `${SITE_URL}/${slug}`;
-        const title = pageData.frontmatter.title ?? pageData.title ?? SITE_NAME;
-        const ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
-        const description =
+        let slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
+        let url = `${SITE_URL}/${slug}`;
+        let title = pageData.frontmatter.title ?? pageData.title ?? SITE_NAME;
+        let ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
+        let description =
             pageData.frontmatter.description || pageData.description || SITE_DESCRIPTION;
 
         pageData.frontmatter.head ??= [];
