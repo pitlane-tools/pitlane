@@ -9,6 +9,7 @@ import {
   type AgentDefinition,
 } from "@oh-my-pi/pi-coding-agent/task";
 import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
+import { buildOutputValidator } from "@oh-my-pi/pi-coding-agent/tools/output-schema-validator";
 import {
   WorkflowAgentFailure,
   type WorkflowAgentOutcome,
@@ -159,20 +160,23 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
     }
 
     if (request.schema !== undefined) {
-      // The native executor writes an unquoted string when the schema accepts a
-      // top-level string, so parsing it as JSON would fail — return it verbatim.
-      // Object/array schemas serialize to JSON, so malformed JSON is a failure.
-      if (schemaAcceptsTopLevelString(request.schema)) {
-        return { value: result.output, tokens: result.tokens };
-      }
-      let value: unknown;
+      // Decode first: the executor emits a JSON document for object/array/quoted
+      // outputs. A successful parse yields the structured value (quoted string ->
+      // string, union object JSON -> object).
       try {
-        value = JSON.parse(result.output);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        return { value: JSON.parse(result.output), tokens: result.tokens };
+      } catch (parseError) {
+        // Parsing failed — the executor may have emitted unquoted text for a
+        // schema that accepts a raw string. Accept it only if OMP's normalized
+        // validator does (an unconstrained schema has no validator and accepts);
+        // otherwise the output genuinely violates the schema.
+        const { validator } = buildOutputValidator(request.schema);
+        if (!validator || validator.validate(result.output).success) {
+          return { value: result.output, tokens: result.tokens };
+        }
+        const message = parseError instanceof Error ? parseError.message : String(parseError);
         throw new WorkflowAgentFailure(message, result.tokens);
       }
-      return { value, tokens: result.tokens };
     }
 
     return { value: result.output, tokens: result.tokens };
@@ -192,15 +196,4 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
     );
     return allocated;
   }
-}
-
-/**
- * Whether a JSON-schema-shaped value permits a top-level string, i.e. `type`
- * is `"string"` or a list containing `"string"`. Such schemas make the native
- * executor emit unquoted text rather than a JSON document.
- */
-function schemaAcceptsTopLevelString(schema: unknown): boolean {
-  if (typeof schema !== "object" || schema === null) return false;
-  const { type } = schema as { type?: unknown };
-  return type === "string" || (Array.isArray(type) && type.includes("string"));
 }

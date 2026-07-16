@@ -73,6 +73,47 @@ vi.mock("@oh-my-pi/pi-coding-agent/task", () => ({
 vi.mock("@oh-my-pi/pi-coding-agent/task/executor", () => ({
   runSubprocess: vi.fn(),
 }));
+// The real validator loads `pi-utils`, which reads `Bun.env` at import and
+// crashes under vitest. This stand-in reproduces the JSON-Schema type checks the
+// adapter relies on (type, type-arrays, anyOf/oneOf; unconstrained schemas have
+// no validator and accept anything), matching OMP's normalized semantics.
+vi.mock("@oh-my-pi/pi-coding-agent/tools/output-schema-validator", () => {
+  const matchesType = (type: unknown, value: unknown): boolean => {
+    switch (type) {
+      case "string":
+        return typeof value === "string";
+      case "object":
+        return typeof value === "object" && value !== null && !Array.isArray(value);
+      case "array":
+        return Array.isArray(value);
+      case "number":
+      case "integer":
+        return typeof value === "number";
+      case "boolean":
+        return typeof value === "boolean";
+      case "null":
+        return value === null;
+      default:
+        return true;
+    }
+  };
+  const matches = (schema: unknown, value: unknown): boolean => {
+    if (typeof schema !== "object" || schema === null) return true;
+    const record = schema as Record<string, unknown>;
+    const branches = record.anyOf ?? record.oneOf;
+    if (Array.isArray(branches)) return branches.some(branch => matches(branch, value));
+    const type = record.type;
+    if (type === undefined) return true;
+    const types = Array.isArray(type) ? type : [type];
+    return types.some(candidate => matchesType(candidate, value));
+  };
+  return {
+    buildOutputValidator: (schema: unknown) => {
+      if (schema === undefined || schema === true) return {};
+      return { validator: { validate: (value: unknown) => ({ success: matches(schema, value) }) } };
+    },
+  };
+});
 
 const SAFE_TOOLS = [
   "read",
@@ -394,8 +435,8 @@ describe("OmpWorkflowAgent", () => {
   it("returns unquoted text for a schema that accepts a top-level string", async () => {
     const { agent, runSubprocess } = setup({
       agents: [REVIEWER],
-      // The executor writes an unquoted string for a top-level-string schema;
-      // JSON.parse would throw on this, so the adapter must not parse it.
+      // The executor emits an unquoted string here; JSON.parse fails and the
+      // validator accepts the raw string, so the adapter returns it verbatim.
       runSubprocess: async () => makeResult({ output: "just plain prose", tokens: 4 }),
     });
 
@@ -416,6 +457,30 @@ describe("OmpWorkflowAgent", () => {
     const outcome = await agent.run(request({ schema: { type: ["string", "null"] } }));
 
     expect(outcome).toEqual({ value: "unquoted", tokens: 2 });
+  });
+
+  it("decodes a quoted JSON string under a string schema", async () => {
+    const { agent } = setup({
+      agents: [REVIEWER],
+      runSubprocess: async () => makeResult({ output: '"hello"', tokens: 6 }),
+    });
+
+    const outcome = await agent.run(request({ schema: { type: "string" } }));
+
+    expect(outcome).toEqual({ value: "hello", tokens: 6 });
+  });
+
+  it("decodes a union object payload to an object", async () => {
+    const { agent } = setup({
+      agents: [REVIEWER],
+      runSubprocess: async () => makeResult({ output: '{"k":"v"}', tokens: 7 }),
+    });
+
+    const outcome = await agent.run(
+      request({ schema: { anyOf: [{ type: "string" }, { type: "object" }] } }),
+    );
+
+    expect(outcome).toEqual({ value: { k: "v" }, tokens: 7 });
   });
 
   it("wraps malformed object-schema JSON in a WorkflowAgentFailure preserving tokens", async () => {
