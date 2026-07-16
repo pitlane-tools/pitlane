@@ -1,4 +1,6 @@
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CustomToolAPI, CustomToolContext, Theme } from "@oh-my-pi/pi-coding-agent";
 import type { AgentDefinition, SingleResult } from "@oh-my-pi/pi-coding-agent/task";
@@ -239,7 +241,7 @@ return await agent("x", { label: "x" });`;
     expect(built.runners).toBe(0);
   });
 
-  it("marks an aborted in-flight agent skipped, clears its abort error, and completes the frame", async () => {
+  it("marks an aborted in-flight agent skipped, clears its abort error, and resolves an error result", async () => {
     const controller = new AbortController();
     const started = Promise.withResolvers<void>();
     const deps = makeDeps(async () => {
@@ -261,14 +263,18 @@ return await agent("x", { label: "x" });`;
     await started.promise;
     controller.abort();
 
-    await expect(run).rejects.toThrow("Workflow was aborted");
-
-    const last = updates.at(-1);
-    expect(last?.content[0]?.text?.startsWith("Workflow completed")).toBe(true);
-    const rows = last?.details?.agents ?? [];
+    const result = await run;
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toEqual({ type: "text", text: "Workflow was aborted" });
+    const rows = result.details?.agents ?? [];
     expect(rows).toHaveLength(1);
     expect(rows[0]?.status).toBe("skipped");
     expect(rows[0]?.error).toBeUndefined();
+
+    // The final streamed frame mirrors the resolved skipped snapshot.
+    const last = updates.at(-1);
+    expect(last?.content[0]?.text?.startsWith("Workflow completed")).toBe(true);
+    expect(last?.details?.agents?.[0]?.status).toBe("skipped");
   });
 
   it("keeps a genuine branch failure as error while skipping the aborted branch", async () => {
@@ -296,9 +302,9 @@ return { failed, hung };`;
     await hangStarted.promise;
     controller.abort();
 
-    await expect(run).rejects.toThrow("Workflow was aborted");
-
-    const rows = updates.at(-1)?.details?.agents ?? [];
+    const result = await run;
+    expect(result.isError).toBe(true);
+    const rows = result.details?.agents ?? [];
     const failRow = rows.find(row => row.label === "failing agent");
     const hangRow = rows.find(row => row.label === "hanging agent");
     expect(failRow?.status).toBe("error");
@@ -334,9 +340,9 @@ return { failed, hung };`;
     await hangStarted.promise;
     controller.abort();
 
-    await expect(run).rejects.toThrow("Workflow was aborted");
-
-    const rows = updates.at(-1)?.details?.agents ?? [];
+    const result = await run;
+    expect(result.isError).toBe(true);
+    const rows = result.details?.agents ?? [];
     const failRow = rows.find(row => row.label === "failing agent");
     const hangRow = rows.find(row => row.label === "hanging agent");
     expect(failRow?.status).toBe("error");
@@ -379,6 +385,30 @@ return { failed, hung };`;
     expect(textOf(partialView)).toContain("Workflow running");
   });
 
+  it("renders the skipped snapshot and the abort line for an aborted error result", () => {
+    const tool = createWorkflowTool(api);
+    const details: WorkflowSnapshot = {
+      name: "demo",
+      phases: [],
+      logs: [],
+      agents: [{ id: 1, label: "inspect repo", prompt: "p", status: "skipped" }],
+      agentCount: 1,
+      runningCount: 0,
+      doneCount: 0,
+      errorCount: 0,
+    };
+    const view = tool.renderResult?.(
+      { isError: true, content: [{ type: "text", text: "Workflow was aborted" }], details },
+      { expanded: false, isPartial: false },
+      theme,
+    );
+    const text = textOf(view);
+    expect(text).toContain("Workflow completed");
+    expect(text).toContain("demo");
+    expect(text).toContain("inspect repo");
+    expect(text).toContain("Workflow was aborted");
+  });
+
   it("falls back to text content, then a muted label, when details are missing", () => {
     const tool = createWorkflowTool(api);
     const withText = tool.renderResult?.(
@@ -396,5 +426,33 @@ return { failed, hung };`;
     const resolved = await Promise.resolve(CustomToolFactory(api));
     const tool = Array.isArray(resolved) ? resolved[0] : resolved;
     expect(tool.name).toBe("workflow");
+  });
+});
+
+describe("OMP custom-tool discovery (real loader boundary)", () => {
+  // OMP's public `loadCustomTools` transitively pulls in the Bun runtime
+  // (`import { YAML } from "bun"`, `bun:ffi`, native addons) through pi-utils and
+  // the task executor — the same coupling the unit tests above mock away. Node's
+  // vitest worker cannot evaluate that graph, so to exercise the *real* loader
+  // against the *real* source path we run it in the runtime OMP actually uses
+  // (Bun) and assert on its structured result. This is the genuine custom-tool
+  // boundary, not a stubbed re-implementation of it.
+  it("loads through OMP custom-tool discovery", () => {
+    const toolPath = resolve(".omp/tools/dynamic-workflows/index.ts");
+    const cwd = process.cwd();
+    const script = [
+      `import { loadCustomTools } from "@oh-my-pi/pi-coding-agent";`,
+      `const loaded = await loadCustomTools(${JSON.stringify([{ path: toolPath }])}, ${JSON.stringify(cwd)}, []);`,
+      `process.stdout.write(JSON.stringify({`,
+      `  errors: loaded.errors,`,
+      `  tools: loaded.tools.map(item => item.tool.name),`,
+      `}));`,
+    ].join("\n");
+
+    const out = execFileSync("bun", ["-e", script], { cwd, encoding: "utf8" });
+    const loaded = JSON.parse(out) as { errors: unknown[]; tools: string[] };
+
+    expect(loaded.errors).toEqual([]);
+    expect(loaded.tools).toContain("workflow");
   });
 });

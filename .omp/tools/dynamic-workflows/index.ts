@@ -156,8 +156,17 @@ export function createWorkflowTool(
             // rows are already marked skipped there). Genuine failures keep "error".
             if (row.status === "running") row.status = "skipped";
           }
+          // OMP-native abort contract: stream the final skipped frame, then resolve
+          // with an error result instead of throwing. Resolving lets OMP render the
+          // terminal result (skipped rows + abort line) — a post-abort throw drops
+          // that final frame — while `isError` still surfaces the abort to the model
+          // as a tool error.
           emit(true);
-          throw new Error("Workflow was aborted");
+          return {
+            isError: true,
+            content: [{ type: "text" as const, text: "Workflow was aborted" }],
+            details: snapshot,
+          };
         }
         throw error;
       }
@@ -167,7 +176,17 @@ export function createWorkflowTool(
     },
     renderResult(result, { isPartial }, theme) {
       const details = result.details as WorkflowSnapshot | undefined;
-      if (details?.name) return new api.pi.Text(renderWorkflowText(details, !isPartial), 0, 0);
+      if (details?.name) {
+        const body = renderWorkflowText(details, !isPartial);
+        // An aborted run resolves as an error result carrying the final skipped
+        // snapshot; surface the abort line beneath it so both stay visible.
+        if (result.isError) {
+          const first = result.content[0];
+          const note = first?.type === "text" ? first.text : "Workflow was aborted";
+          return new api.pi.Text(`${body}\n${theme.fg("error", note)}`, 0, 0);
+        }
+        return new api.pi.Text(body, 0, 0);
+      }
       const first = result.content[0];
       return new api.pi.Text(
         first?.type === "text" ? first.text : theme.fg("muted", "workflow"),
