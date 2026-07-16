@@ -92,7 +92,7 @@ export function renderWorkflowLines(snapshot: WorkflowSnapshot, options: Workflo
       `  ${marker} ${phase} ${done}/${agents.length}${running ? ` · ${running} running` : ""}${errors ? ` · ${errors} errors` : ""}${skipped ? ` · ${skipped} skipped` : ""}`,
     );
 
-    const visibleAgents = agents.slice(-maxAgents);
+    const visibleAgents = tail(agents, maxAgents);
     for (const agent of visibleAgents) {
       const order = `#${agent.id}`;
       const result = showResultPreviews && agent.resultPreview ? ` — ${agent.resultPreview}` : "";
@@ -105,13 +105,13 @@ export function renderWorkflowLines(snapshot: WorkflowSnapshot, options: Workflo
   const unphased = snapshot.agents.filter((agent) => !rendered.has(agent));
   if (unphased.length) {
     lines.push("  Unphased");
-    for (const agent of unphased.slice(-maxAgents)) {
+    for (const agent of tail(unphased, maxAgents)) {
       const result = showResultPreviews && agent.resultPreview ? ` — ${agent.resultPreview}` : "";
       lines.push(`    #${agent.id} ${STATUS_ICON[agent.status]} ${shorten(agent.label, 48)}${result}`);
     }
   }
 
-  const visibleLogs = snapshot.logs.slice(-maxLogs);
+  const visibleLogs = tail(snapshot.logs, maxLogs);
   if (visibleLogs.length) {
     if (lines.length > 1) lines.push("");
     for (const log of visibleLogs) lines.push(`  log: ${log}`);
@@ -135,6 +135,10 @@ const STATUS_ICON: Record<WorkflowAgentStatus, string> = {
   error: "✗",
   skipped: "-",
 };
+
+function tail<T>(items: T[], count: number): T[] {
+  return count > 0 ? items.slice(-count) : [];
+}
 
 function shorten(value: string, max: number): string {
   const text = value.replace(/\s+/g, " ").trim();

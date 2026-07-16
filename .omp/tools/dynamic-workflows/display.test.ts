@@ -156,6 +156,43 @@ describe("renderWorkflowLines", () => {
     expect(lines).toContain("    … 3 earlier agents");
   });
 
+  it("renders no phased agent rows when the agent cap is zero", () => {
+    const snap = snapshot({
+      phases: ["Fan"],
+      currentPhase: "Fan",
+      agents: [1, 2, 3].map((id) => ({
+        id,
+        label: `agent ${id}`,
+        phase: "Fan",
+        prompt: "p",
+        status: "done" as const,
+      })),
+    });
+    const lines = renderWorkflowLines(snap, { maxAgents: 0 });
+    expect(lines[0]).toBe("◆ Workflow: wf (3/3 done)");
+    expect(lines.some((line) => line.includes("Fan 3/3"))).toBe(true);
+    expect(lines.some((line) => line.trimStart().startsWith("#"))).toBe(false);
+    expect(lines).toContain("    … 3 earlier agents");
+  });
+
+  it("renders no unphased agent rows when the agent cap is zero", () => {
+    const snap = snapshot({
+      agents: [
+        { id: 1, label: "loose one", prompt: "p", status: "done" },
+        { id: 2, label: "loose two", prompt: "p", status: "running" },
+      ],
+    });
+    const lines = renderWorkflowLines(snap, { maxAgents: 0 });
+    expect(lines).toContain("  Unphased");
+    expect(lines.some((line) => line.trimStart().startsWith("#"))).toBe(false);
+  });
+
+  it("renders no log lines when the log cap is zero", () => {
+    const lines = renderWorkflowLines(snapshot({ logs: ["one", "two", "three"] }), { maxLogs: 0 });
+    expect(lines.some((line) => line.includes("log:"))).toBe(false);
+    expect(lines).toEqual(["◆ Workflow: wf (0/0 done)"]);
+  });
+
   it("caps visible logs to the configured maximum", () => {
     const lines = renderWorkflowLines(snapshot({ logs: ["one", "two", "three"] }), { maxLogs: 1 });
     expect(lines).toContain("  log: three");
