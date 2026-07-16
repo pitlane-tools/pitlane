@@ -25,6 +25,12 @@ describe("parseWorkflowScript", () => {
     );
   });
 
+  it("does not suppress unrelated semantic errors when source contains TS1108", () => {
+    expect(() =>
+      parseWorkflowScript(`${header}\nconst TS1108 = 1; let duplicate; let duplicate;`),
+    ).toThrow(/already been declared/);
+  });
+
   it.each([
     ["missing export", `const meta = { name: "x", description: "y" }`],
     ["computed metadata", `export const meta = { ["name"]: "x", description: "y" }`],

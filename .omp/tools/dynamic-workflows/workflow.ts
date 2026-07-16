@@ -60,7 +60,6 @@ export function parseWorkflowScript(script: string): { meta: WorkflowMeta; body:
 }
 
 function isIntentionalTopLevelReturnDiagnostic(error: OxcError): boolean {
-  if (error.codeframe?.includes("TS1108") || error.codeframe?.includes("TS(1108)")) return true;
   return error.message === "A 'return' statement can only be used within a function body.";
 }
 
