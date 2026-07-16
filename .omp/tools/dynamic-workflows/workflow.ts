@@ -1,6 +1,17 @@
 // Ported from pi-dynamic-workflows v1.0.1, commit 31b2aca0f1cb195aafbfc5e3ee2b8c83ad3f21a2.
+import vm from "node:vm";
 import type { OxcError, Program } from "oxc-parser";
 import { parseSync } from "oxc-parser";
+
+declare global {
+  interface PromiseConstructor {
+    withResolvers<T>(): {
+      promise: Promise<T>;
+      resolve(value: T | PromiseLike<T>): void;
+      reject(reason?: unknown): void;
+    };
+  }
+}
 
 export interface WorkflowMetaPhase {
   title: string;
@@ -13,6 +24,408 @@ export interface WorkflowMeta {
   description: string;
   whenToUse?: string;
   phases?: WorkflowMetaPhase[];
+}
+
+export interface WorkflowAgentRequest {
+  prompt: string;
+  agent: string;
+  model?: string | string[];
+  label: string;
+  schema?: unknown;
+  phase?: string;
+  signal?: AbortSignal;
+  onProgress?: (message: string) => void;
+}
+
+export interface WorkflowAgentOutcome {
+  value: unknown;
+  tokens: number;
+}
+
+export interface WorkflowAgentRunner {
+  run(request: WorkflowAgentRequest): Promise<WorkflowAgentOutcome>;
+}
+
+export class WorkflowAgentFailure extends Error {
+  constructor(message: string, readonly tokens: number) {
+    super(message);
+    this.name = "WorkflowAgentFailure";
+  }
+}
+
+export interface WorkflowRunOptions {
+  cwd?: string;
+  args?: unknown;
+  runner: WorkflowAgentRunner;
+  concurrency?: number;
+  tokenBudget?: number | null;
+  signal?: AbortSignal;
+  onLog?: (message: string) => void;
+  onPhase?: (title: string) => void;
+  onAgentStart?: (event: { id: number; label: string; phase?: string; prompt: string }) => void;
+  onAgentProgress?: (event: { id: number; label: string; phase?: string; message: string }) => void;
+  onAgentEnd?: (
+    event: { id: number; label: string; phase?: string } & (
+      | { result: unknown; error?: never }
+      | { result?: never; error: string }
+    ),
+  ) => void;
+}
+
+export interface WorkflowRunResult<T = unknown> {
+  meta: WorkflowMeta;
+  result: T;
+  logs: string[];
+  phases: string[];
+  agentCount: number;
+  tokens: number;
+  durationMs: number;
+}
+
+interface WorkflowAgentOptions {
+  agent?: string;
+  model?: string | string[];
+  label?: string;
+  schema?: unknown;
+}
+
+interface WorkflowRuntimeState {
+  currentPhase?: string;
+  logs: string[];
+  phases: string[];
+  agentCount: number;
+  tokens: number;
+  pendingAgentRuns: Set<Promise<unknown>>;
+}
+
+interface PipelineSlot {
+  original: unknown;
+  value: unknown;
+  failed: boolean;
+}
+
+export async function runWorkflow<T = unknown>(
+  program: { meta: WorkflowMeta; body: string },
+  options: WorkflowRunOptions,
+): Promise<WorkflowRunResult<T>> {
+  const started = Date.now();
+  const state: WorkflowRuntimeState = {
+    logs: [],
+    phases: [],
+    agentCount: 0,
+    tokens: 0,
+    pendingAgentRuns: new Set(),
+  };
+  const concurrency = normalizeConcurrency(options.concurrency);
+  const limiter = createLimiter(concurrency);
+  const cwd = options.cwd === undefined ? process.cwd() : requireString(options.cwd, "workflow cwd");
+  const tokenBudget = normalizeTokenBudget(options.tokenBudget);
+
+  const throwIfAborted = () => {
+    if (options.signal?.aborted) throw workflowAbortedError();
+  };
+
+  const log = (message: unknown) => {
+    const text = String(message);
+    state.logs.push(text);
+    options.onLog?.(text);
+  };
+
+  const phase = (title: unknown) => {
+    const text = requireNonEmptyString(title, "phase title");
+    state.currentPhase = text;
+    if (!state.phases.includes(text)) state.phases.push(text);
+    options.onPhase?.(text);
+  };
+
+  const budget = Object.freeze({
+    total: tokenBudget,
+    spent: () => state.tokens,
+    remaining: () => (tokenBudget === null ? Infinity : Math.max(0, tokenBudget - state.tokens)),
+  });
+
+  const agent = (prompt: unknown, agentOptions: unknown = {}): Promise<unknown> => {
+    throwIfAborted();
+    if (budget.total !== null && budget.remaining() <= 0) {
+      throw new Error("workflow token budget exhausted");
+    }
+    const taskPrompt = requireNonEmptyString(prompt, "agent prompt");
+    const normalizedOptions = normalizeAgentOptions(agentOptions);
+    const id = ++state.agentCount;
+    const assignedPhase = state.currentPhase;
+    const label = normalizedOptions.label ?? (assignedPhase ? `${assignedPhase} agent ${id}` : `agent ${id}`);
+
+    const run = limiter(async () => {
+      throwIfAborted();
+      options.onAgentStart?.({ id, label, phase: assignedPhase, prompt: taskPrompt });
+      try {
+        const outcome = await waitForRunner(
+          options.runner.run({
+            prompt: taskPrompt,
+            agent: normalizedOptions.agent ?? "task",
+            model: normalizedOptions.model,
+            label,
+            schema: normalizedOptions.schema,
+            phase: assignedPhase,
+            signal: options.signal,
+            onProgress: message => {
+              options.onAgentProgress?.({ id, label, phase: assignedPhase, message });
+            },
+          }),
+          options.signal,
+        );
+        state.tokens += outcome.tokens;
+        throwIfAborted();
+        options.onAgentEnd?.({ id, label, phase: assignedPhase, result: outcome.value });
+        return outcome.value;
+      } catch (error) {
+        if (options.signal?.aborted) throw workflowAbortedError();
+        const message = errorMessage(error);
+        if (error instanceof WorkflowAgentFailure) state.tokens += error.tokens;
+        log(`agent ${label} failed: ${message}`);
+        options.onAgentEnd?.({ id, label, phase: assignedPhase, error: message });
+        return null;
+      }
+    });
+
+    state.pendingAgentRuns.add(run);
+    void run.then(
+      () => state.pendingAgentRuns.delete(run),
+      () => state.pendingAgentRuns.delete(run),
+    );
+    return run;
+  };
+
+  const parallel = async (thunks: unknown): Promise<unknown[]> => {
+    throwIfAborted();
+    if (!Array.isArray(thunks)) throw new TypeError("parallel() expects an array of functions");
+    if (thunks.some(thunk => typeof thunk !== "function")) {
+      throw new TypeError("parallel() expects an array of functions, not promises. Wrap each call: () => agent(...)");
+    }
+    return Promise.all(
+      thunks.map(async (thunk, index) => {
+        try {
+          return await (thunk as () => unknown)();
+        } catch (error) {
+          if (options.signal?.aborted) throw workflowAbortedError();
+          log(`parallel[${index}] failed: ${errorMessage(error)}`);
+          return null;
+        }
+      }),
+    );
+  };
+
+  const pipeline = async (items: unknown, ...stages: unknown[]): Promise<unknown[]> => {
+    throwIfAborted();
+    if (!Array.isArray(items)) throw new TypeError("pipeline() expects an array as the first argument");
+    if (stages.some(stage => typeof stage !== "function")) {
+      throw new TypeError("pipeline() stages must be functions: pipeline(items, item => ..., result => ...)");
+    }
+
+    const slots: PipelineSlot[] = items.map(item => ({ original: item, value: item, failed: false }));
+    for (const stage of stages as Array<(value: unknown, original: unknown, index: number) => unknown>) {
+      await Promise.all(
+        slots.map(async (slot, index) => {
+          if (slot.failed) return;
+          try {
+            throwIfAborted();
+            slot.value = await stage(slot.value, slot.original, index);
+            throwIfAborted();
+            if (slot.value === null) slot.failed = true;
+          } catch (error) {
+            if (options.signal?.aborted) throw workflowAbortedError();
+            log(`pipeline[${index}] failed: ${errorMessage(error)}`);
+            slot.value = null;
+            slot.failed = true;
+          }
+        }),
+      );
+    }
+    return slots.map(slot => slot.value);
+  };
+
+  const safeMath = Object.freeze(
+    Object.fromEntries(
+      Object.getOwnPropertyNames(Math)
+        .filter(name => name !== "random")
+        .map(name => [name, Object.getOwnPropertyDescriptor(Math, name)?.value]),
+    ),
+  );
+
+  const context = vm.createContext(
+    {
+      agent,
+      parallel,
+      pipeline,
+      phase,
+      log,
+      args: options.args,
+      cwd,
+      process: Object.freeze({ cwd: () => cwd }),
+      budget,
+      JSON,
+      Math: safeMath,
+      Array,
+      Object,
+      String,
+      Number,
+      Boolean,
+      Set,
+      Map,
+      Promise,
+      Date: undefined,
+      eval: undefined,
+      Function: undefined,
+    },
+    { codeGeneration: { strings: false, wasm: false } },
+  );
+
+  throwIfAborted();
+  const wrapped = `(async () => {\n${program.body}\n})()`;
+  let executionResult: unknown;
+  let executionError: unknown;
+  let executionFailed = false;
+  try {
+    executionResult = await new vm.Script(wrapped, {
+      filename: `${program.meta.name || "workflow"}.js`,
+    }).runInContext(context);
+  } catch (error) {
+    executionFailed = true;
+    executionError = error;
+  } finally {
+    while (state.pendingAgentRuns.size > 0) {
+      await Promise.allSettled([...state.pendingAgentRuns]);
+    }
+  }
+
+  throwIfAborted();
+  if (executionFailed) throw executionError;
+  if (state.agentCount === 0) throw new Error("Workflow must call at least one agent");
+  const clonedResult = cloneWorkflowResult(executionResult);
+
+  return {
+    meta: program.meta,
+    result: clonedResult as T,
+    logs: state.logs,
+    phases: state.phases,
+    agentCount: state.agentCount,
+    tokens: state.tokens,
+    durationMs: Date.now() - started,
+  };
+}
+
+function createLimiter(limit: number) {
+  let active = 0;
+  const queue: Array<(value: void) => void> = [];
+  const next = () => {
+    active--;
+    queue.shift()?.(undefined);
+  };
+  return async <T>(fn: () => Promise<T>): Promise<T> => {
+    if (active >= limit) {
+      const { promise, resolve } = Promise.withResolvers<void>();
+      queue.push(resolve);
+      await promise;
+    }
+    active++;
+    try {
+      return await fn();
+    } finally {
+      next();
+    }
+  };
+}
+
+function normalizeConcurrency(value: number | undefined): number {
+  const fallback = Math.max(1, (globalThis.navigator?.hardwareConcurrency ?? 8) - 2);
+  if (value === undefined) return Math.min(fallback, 16);
+  if (!Number.isInteger(value) || value < 1) {
+    throw new RangeError("workflow concurrency must be a positive integer");
+  }
+  return Math.min(value, 16);
+}
+
+function normalizeTokenBudget(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError("workflow token budget must be a non-negative finite number");
+  }
+  return value;
+}
+
+function normalizeAgentOptions(value: unknown): WorkflowAgentOptions {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("agent options must be an object");
+  }
+  const options = value as Record<string, unknown>;
+  return {
+    agent: optionalNonEmptyString(options.agent, "agent profile"),
+    model: optionalModel(options.model),
+    label: optionalNonEmptyString(options.label, "agent label"),
+    schema: options.schema,
+  };
+}
+
+function optionalModel(value: unknown): string | string[] | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "string") return requireNonEmptyString(value, "agent model");
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some(model => typeof model !== "string" || !model.trim())
+  ) {
+    throw new TypeError("agent model must be a non-empty string or array of non-empty strings");
+  }
+  return Array.from(value) as string[];
+}
+
+function optionalNonEmptyString(value: unknown, name: string): string | undefined {
+  if (value === undefined) return undefined;
+  return requireNonEmptyString(value, name);
+}
+
+function requireNonEmptyString(value: unknown, name: string): string {
+  const text = requireString(value, name);
+  if (!text.trim()) throw new TypeError(`${name} must be a non-empty string`);
+  return text;
+}
+
+function requireString(value: unknown, name: string): string {
+  if (typeof value !== "string") throw new TypeError(`${name} must be a string`);
+  return value;
+}
+
+
+async function waitForRunner(
+  run: Promise<WorkflowAgentOutcome>,
+  signal: AbortSignal | undefined,
+): Promise<WorkflowAgentOutcome> {
+  if (!signal) return run;
+  if (signal.aborted) throw workflowAbortedError();
+  const { promise, resolve, reject } = Promise.withResolvers<WorkflowAgentOutcome>();
+  const onAbort = () => reject(workflowAbortedError());
+  signal.addEventListener("abort", onAbort, { once: true });
+  void run.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  return promise;
+}
+
+function workflowAbortedError(): Error {
+  return new Error("Workflow was aborted");
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function cloneWorkflowResult(value: unknown): unknown {
+  try {
+    return structuredClone(value);
+  } catch (error) {
+    const detail = error instanceof Error ? ` ${error.message}` : "";
+    throw new Error(
+      `workflow result must be structured-cloneable; did you forget to await agent(), parallel(), or pipeline()?${detail}`,
+    );
+  }
 }
 
 type AstNode = {
