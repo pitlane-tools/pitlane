@@ -155,13 +155,13 @@ One contract, stated once: *the server entry default-exports a fetch handler.*
 | # | Plugin | Concern |
 | - | ------ | ------- |
 | 1 | `fullstack(...)` | `?assets=` protocol, asset manifest, dynamic client-entry emission, dev server handler |
-| 2 | `remix-build:compat` | coexistence guards for other build orchestrators (`order: "pre"`) |
-| 3 | `remix-build` | environment defaults + SSR-then-client build sequencing |
-| 4 | `remix-preview-server` | `vite preview` serves the built fetch handler |
-| 5 | `remix-suppress-abort-errors` | client-disconnect noise never hits the error overlay |
-| 6 | `remix-client-entry-transform` | the `clientEntry(import.meta.url, …)` rewrite |
+| 2 | `pitlane-remix-build:compat` | coexistence guards for other build orchestrators (`order: "pre"`) |
+| 3 | `pitlane-remix-build` | environment defaults + SSR-then-client build sequencing |
+| 4 | `pitlane-remix-preview-server` | `vite preview` serves the built fetch handler |
+| 5 | `pitlane-remix-suppress-abort-errors` | client-disconnect noise never hits the error overlay |
+| 6 | `pitlane-remix-client-entry-transform` | the `clientEntry(import.meta.url, …)` rewrite |
 
-### 3. `remix-build`
+### 3. `pitlane-remix-build`
 
 `config()` returns:
 
@@ -187,7 +187,7 @@ The `ssr` name is the conventional Vite environment name platform plugins target
 (`cloudflare({ viteEnvironment: { name: "ssr" } })`, Nitro's `environments.ssr`). We keep it and
 never invent a proprietary name.
 
-### 2. `remix-build:compat`
+### 2. `pitlane-remix-build:compat`
 
 Generic multi-orchestrator coexistence; **no platform imports, all feature-detected**:
 
@@ -201,7 +201,7 @@ Empirically motivated by `@cloudflare/vite-plugin`, but written against builder 
 Cloudflare. Because it registers at `order: "pre"`, plugin-array order does not matter for
 correctness; docs still recommend `remix()` first for predictability.
 
-### 4. `remix-preview-server`
+### 4. `pitlane-remix-preview-server`
 
 `configurePreviewServer` dynamically imports `<ssr outDir>/index.js`; on success registers
 `createRequestListener(request => mod.default.fetch(request))` from `remix/node-fetch-server` as
@@ -209,13 +209,13 @@ preview middleware. On import failure it returns silently — an SSR bundle targ
 runtime (workerd) is previewed by its platform plugin instead. That failure→skip contract is
 documented behavior, not an accident.
 
-### 5. `remix-suppress-abort-errors`
+### 5. `pitlane-remix-suppress-abort-errors`
 
 Connect error middleware: `err.message === "aborted"` is swallowed, everything else propagates.
 Narrow by design — the message match covers client disconnects (search-as-you-type, mid-fetch
 navigation) without masking real failures.
 
-### 6. `remix-client-entry-transform`
+### 6. `pitlane-remix-client-entry-transform`
 
 Rewrites `export const Name = clientEntry(import.meta.url, …)`:
 
@@ -302,7 +302,7 @@ we inline, the dev handler switches to `remix/node-fetch-server`, which we alrea
 packages/dev/
 ├── src/
 │   ├── index.ts          # remix() plugin array
-│   ├── build.ts          # remix-build + compat
+│   ├── build.ts          # pitlane-remix-build + compat
 │   ├── preview.ts        # preview server
 │   ├── transform.ts      # clientEntry transform + AST walk
 │   ├── runtime.ts        # mergeAssets re-export

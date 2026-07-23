@@ -79,7 +79,7 @@ export function remix({
  */
 function suppressAbortErrors(): Plugin {
     return {
-        name: "remix-suppress-abort-errors",
+        name: "pitlane-remix-suppress-abort-errors",
         configureServer(server) {
             return () => {
                 server.middlewares.use(

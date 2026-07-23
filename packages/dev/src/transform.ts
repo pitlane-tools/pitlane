@@ -23,7 +23,7 @@ const CLIENT_ENTRY_PATTERN = /\bclientEntry\b/;
  */
 export function clientEntryTransform(serverEnvironments: Set<string>): Plugin {
     return {
-        name: "remix-client-entry-transform",
+        name: "pitlane-remix-client-entry-transform",
         transform: {
             filter: {
                 code: {

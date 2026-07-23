@@ -29,7 +29,7 @@ function isFetchHandler(value: unknown): value is FetchHandler {
  */
 export function preview(): Plugin {
     return {
-        name: "remix-preview-server",
+        name: "pitlane-remix-preview-server",
         async configurePreviewServer(server) {
             let ssrOutDir = server.config.environments.ssr?.build?.outDir ?? "dist/ssr";
             let entryPath = new URL(`${ssrOutDir}/index.js`, `file://${server.config.root}/`).href;

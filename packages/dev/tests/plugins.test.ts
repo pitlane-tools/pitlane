@@ -17,19 +17,19 @@ describe("remix()", () => {
     it("composes the fullstack plugins with the remix plugins", () => {
         let names = pluginsOf(remix()).map(plugin => plugin.name);
 
-        expect(names).toContain("remix-build:compat");
-        expect(names).toContain("remix-build");
-        expect(names).toContain("remix-preview-server");
-        expect(names).toContain("remix-suppress-abort-errors");
-        expect(names).toContain("remix-client-entry-transform");
+        expect(names).toContain("pitlane-remix-build:compat");
+        expect(names).toContain("pitlane-remix-build");
+        expect(names).toContain("pitlane-remix-preview-server");
+        expect(names).toContain("pitlane-remix-suppress-abort-errors");
+        expect(names).toContain("pitlane-remix-client-entry-transform");
         // At least one plugin comes from the wrapped assets/server-handler engine.
         expect(names.some(name => name.startsWith("fullstack"))).toBe(true);
     });
 
     it("configures dist/ssr and dist/client environments by default", () => {
-        let plugin = pluginsOf(remix()).find(entry => entry.name === "remix-build");
+        let plugin = pluginsOf(remix()).find(entry => entry.name === "pitlane-remix-build");
         if (!plugin || typeof plugin.config !== "function") {
-            throw new Error("remix-build must define a function config hook");
+            throw new Error("pitlane-remix-build must define a function config hook");
         }
         let config = plugin.config.call(undefined, {}, { command: "build", mode: "production" });
 
@@ -55,10 +55,10 @@ describe("remix()", () => {
 
     it("omits the client environment when clientEntry is false", () => {
         let plugin = pluginsOf(remix({ clientEntry: false })).find(
-            entry => entry.name === "remix-build",
+            entry => entry.name === "pitlane-remix-build",
         );
         if (!plugin || typeof plugin.config !== "function") {
-            throw new Error("remix-build must define a function config hook");
+            throw new Error("pitlane-remix-build must define a function config hook");
         }
         let config = plugin.config.call(undefined, {}, { command: "build", mode: "production" });
 
@@ -67,10 +67,10 @@ describe("remix()", () => {
     });
 });
 
-describe("remix-suppress-abort-errors", () => {
+describe("pitlane-remix-suppress-abort-errors", () => {
     function captureErrorMiddleware(): (err: unknown, next: (err?: unknown) => void) => void {
         let plugin = pluginsOf(remix()).find(
-            entry => entry.name === "remix-suppress-abort-errors",
+            entry => entry.name === "pitlane-remix-suppress-abort-errors",
         );
         if (!plugin || typeof plugin.configureServer !== "function") {
             throw new Error("expected a function configureServer hook");

@@ -19,7 +19,7 @@ function isFullstackBuilder(builder: ViteBuilder): builder is FullstackBuilder &
 }
 
 /**
- * Patches the builder so remix-build coexists with plugins that also
+ * Patches the builder so pitlane-remix-build coexists with plugins that also
  * orchestrate builds (e.g. @cloudflare/vite-plugin). Runs at "pre" order so
  * the guards are in place before any building starts, regardless of plugin
  * registration order.
@@ -29,12 +29,12 @@ function isFullstackBuilder(builder: ViteBuilder): builder is FullstackBuilder &
  */
 export function buildCompat(): Plugin {
     return {
-        name: "remix-build:compat",
+        name: "pitlane-remix-build:compat",
         buildApp: {
             order: "pre",
             async handler(builder) {
                 // Guard builder.build() against redundant calls. Without this,
-                // two orchestrators (remix-build plus a platform plugin's
+                // two orchestrators (pitlane-remix-build plus a platform plugin's
                 // buildApp) would each trigger a full build of every
                 // environment. `isBuilt` is native Vite BuildEnvironment API.
                 // The cast is deliberate: skipped environments resolve to
@@ -73,7 +73,7 @@ export function build({ clientEntry, serverEntry }: BuildPluginOptions): Plugin 
     let hasClientEntry = clientEntry !== false;
 
     return {
-        name: "remix-build",
+        name: "pitlane-remix-build",
         async buildApp(builder) {
             await builder.build(builder.environments.ssr);
             if (hasClientEntry) {
