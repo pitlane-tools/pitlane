@@ -287,6 +287,14 @@ we inline, the dev handler switches to `remix/node-fetch-server`, which we alrea
   `run()`/`loadModule`) is beta API; each `@pitlane/dev` release names the Remix beta it tested.
 - **Not required:** Rolldown (Vite+ optimization territory only), Vite+ (works on generic
   Vite), any platform SDK.
+- **Single vite identity (verified empirically).** `@hiogawa/vite-plugin-fullstack` runtime-
+  checks dev environments with its own vite copy (`isRunnableDevEnvironment` asserts instance
+  identity). A project that resolves two vite packages — e.g. Vite+ running the server while
+  fullstack's peer resolves to a plain `vite` install — fails `vite dev` with
+  `AssertionError: isRunnableDevEnvironment(environment)`. Vite+ projects therefore MUST alias
+  `vite` to `@voidzero-dev/vite-plus-core` via overrides (the convention every template ships);
+  generic-Vite projects have one vite by construction. Documented in the README's
+  troubleshooting section under that exact assertion message.
 
 ## Package layout & publishing
 
@@ -321,8 +329,8 @@ Every release requirement maps to an automated check (A) or a documented manual 
 
 | Requirement | How verified |
 | ----------- | ------------ |
-| Generic Vite dev works | A: fixture app on plain `vite`; programmatic `createServer`, request `/`, assert HTML + hydration markers |
-| Vite+ dev works | A: same fixture through `vite-plus`; CI matrix leg |
+| Generic Vite dev works | A: harness child process boots the fixture dev server on plain `vite`, asserts SSR HTML, hydration data, dev module transform (dev servers run out-of-process: in-runner dev servers deadlock nondeterministically under the worker pool's native-addon threads) |
+| Vite+ dev works | A: `vp build` + `vp preview` legs in-repo; `vp dev` leg lives in template CI — the single-vite-identity alias convention (see §Compatibility) only exists in standalone projects, not in this dual-vite workspace |
 | Generic production build | A: programmatic `build`; assert `dist/ssr/index.js` + `dist/client/*` + manifest; run built entry, assert response |
 | Preview serves built fetch handler | A: programmatic `preview`, request `/`, assert 200 + asset URLs resolve |
 | Cloudflare dev in workerd | A: fixture with `@cloudflare/vite-plugin`; dev server request exercises workerd |
