@@ -40,9 +40,11 @@ The app's build configuration (dashboard **Edit build config**, or CLI flags):
 | --- | --- |
 | Framework preset | No Preset |
 | Install command | `deno install` |
-| Build command | `deno task build` |
+| Build command | *(empty — the Vite build runs before deploying)* |
 | Runtime configuration | Dynamic |
 | Dynamic Entrypoint | `main.ts` |
+
+The Vite build runs **before** `deno deploy`, so the upload already contains the fingerprinted assets in `dist/` that the running app serves; the install command only restores `node_modules` for the runtime. Leave the build command empty so Deploy doesn't build a second time.
 
 ## Local development
 
@@ -60,12 +62,14 @@ deno serve --port 3000 dist/ssr/index.js
 
 ## Deploy with the CLI
 
-The `deno deploy` command ships with the Deno CLI. It tarballs your source, uploads it, and **builds on Deploy's infrastructure** using the app's build configuration — no local build step:
+The `deno deploy` command ships with the Deno CLI. Build first, then deploy — the CLI tarballs the directory and uploads it:
 
 ```sh
-deno deploy                      # first run: authenticates, prompts for app name
+vp build
 deno deploy --app my-remix-app --prod
 ```
+
+(The first bare `deno deploy` run authenticates and prompts for an app name.)
 
 Create the app non-interactively (flags switch the wizard off):
 
@@ -73,6 +77,7 @@ Create the app non-interactively (flags switch the wizard off):
 deno deploy create \
     --org my-org \
     --app my-remix-app \
+    --install-command "deno install" \
     --entrypoint main.ts
 ```
 
@@ -85,7 +90,7 @@ deno deploy env load .env       # push env vars; secret-looking keys are auto-ma
 
 ## Deploy with GitHub Actions
 
-Create an access token at [console.deno.com/account/access-tokens](https://console.deno.com/account/access-tokens) and store it as the `DENO_DEPLOY_TOKEN` repository secret. Deploy builds server-side, so the workflow only uploads the checkout:
+Create an access token at [console.deno.com/account/access-tokens](https://console.deno.com/account/access-tokens) and store it as the `DENO_DEPLOY_TOKEN` repository secret. The workflow builds the Vite app — producing the fingerprinted assets in `dist/` — and then uploads it:
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -104,6 +109,14 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - uses: voidzero-dev/setup-vp@v1
+              with:
+                  cache: true
+
+            - run: vp install --frozen-lockfile
+
+            - run: vp build
+
             - uses: denoland/setup-deno@v2
               with:
                   deno-version: v2.x
@@ -112,10 +125,6 @@ jobs:
               env:
                   DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
 ```
-
-::: info Where's the build step?
-There isn't one, on purpose. `deno deploy` uploads a source tarball (excluding `node_modules` unless `--allow-node-modules`), and Deploy runs the app's configured install and build commands — `deno install`, `deno task build` — on its own build infrastructure; that's the **Install** and **Build** sections streaming in the build logs, with their own [timeout and memory limits](https://docs.deno.com/runtime/reference/cli/deploy/). Adding `vp build` to this workflow would build twice and ship nothing extra. This is the same shape as the [Railway workflow](/deploy/railway#deploy-with-github-actions) — the platform builds; CI only uploads.
-:::
 
 ## Environment variables
 
@@ -177,5 +186,5 @@ deno deploy create \
 Deploys are unchanged: `deno deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
 
 ::: warning Verify with the template
-The Dynamic Entrypoint contract (`Deno.serve` wrapper, `PORT` injection) follows Deploy's current documentation; the [pitlane-tools](https://github.com/pitlane-tools) templates are the tested reference for this composition.
+The Dynamic Entrypoint contract (`Deno.serve` wrapper, `PORT` injection) and the prebuilt upload (the deploy tarball must include the locally built `dist/` even though it's gitignored) follow Deploy's current documentation; the [pitlane-tools](https://github.com/pitlane-tools) templates are the tested reference for this composition. If the tarball turns out to exclude ignored paths, the fallback is moving the build server-side via `--build-command "deno task build"`.
 :::
