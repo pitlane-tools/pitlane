@@ -105,3 +105,56 @@ Define them per environment in the Vercel dashboard (**Settings → Environment 
 ::: warning Verify with the template
 The Vercel path runs through Nitro's packaging rather than `@pitlane/dev`'s own output, so option details (dev handler ownership, output layout) follow Nitro's current release. The [pitlane-tools](https://github.com/pitlane-tools) Vercel template is the tested reference for this composition.
 :::
+
+## Client-only apps (SPA)
+
+A client-only Remix 3 app skips `@pitlane/dev` **and** `nitro/vite` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform or package, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site Vercel serves from its CDN.
+
+```html
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My Remix App</title>
+        <script type="module" src="/app/main.tsx"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+</html>
+```
+
+```tsx
+// app/main.tsx
+import { createRoot, on, type Handle } from "remix/ui";
+
+function App(handle: Handle) {
+    let count = 0;
+
+    return () => (
+        <button mix={[on("click", () => { count++; handle.update(); })]}>
+            Count: {count}
+        </button>
+    );
+}
+
+createRoot(document.getElementById("app")!).render(<App />);
+```
+
+```jsonc
+// tsconfig.json
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+```
+
+`vite build` emits the site into `dist/`, which Vercel's Vite preset picks up. Add the SPA fallback so deep links serve `index.html`:
+
+```json
+// vercel.json
+{
+    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+
+Deploys are unchanged: `vpx vercel --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.

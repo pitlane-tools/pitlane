@@ -156,3 +156,61 @@ jobs:
 ## Environment variables
 
 Set them in the Netlify UI (**Site configuration → Environment variables**) or via `netlify env:set`. Netlify Functions read them as `process.env.*`; Edge Functions use [`Netlify.env.get("KEY")`](https://docs.netlify.com/build/edge-functions/api/#netlify-specific-context-object). The Vite plugin mirrors them into `vite dev`.
+
+## Client-only apps (SPA)
+
+A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site, and there is no server function to write.
+
+```html
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My Remix App</title>
+        <script type="module" src="/app/main.tsx"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+</html>
+```
+
+```tsx
+// app/main.tsx
+import { createRoot, on, type Handle } from "remix/ui";
+
+function App(handle: Handle) {
+    let count = 0;
+
+    return () => (
+        <button mix={[on("click", () => { count++; handle.update(); })]}>
+            Count: {count}
+        </button>
+    );
+}
+
+createRoot(document.getElementById("app")!).render(<App />);
+```
+
+```jsonc
+// tsconfig.json
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+```
+
+`vite build` emits the site into `dist/`. Publish that directory and add the SPA fallback so deep links serve `index.html`:
+
+```toml
+# netlify.toml
+[build]
+  command = "vite build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+Deploys are unchanged: `vpx netlify-cli deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.

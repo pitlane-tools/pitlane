@@ -129,3 +129,61 @@ jobs:
 ```
 
 `wrangler deploy` reads `wrangler.jsonc`, so the workflow needs no name, paths, or account flags — the config is the single source of truth locally and in CI.
+
+## Client-only apps (SPA)
+
+A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site that Workers serves as assets.
+
+```html
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My Remix App</title>
+        <script type="module" src="/app/main.tsx"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+</html>
+```
+
+```tsx
+// app/main.tsx
+import { createRoot, on, type Handle } from "remix/ui";
+
+function App(handle: Handle) {
+    let count = 0;
+
+    return () => (
+        <button mix={[on("click", () => { count++; handle.update(); })]}>
+            Count: {count}
+        </button>
+    );
+}
+
+createRoot(document.getElementById("app")!).render(<App />);
+```
+
+```jsonc
+// tsconfig.json
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+```
+
+`vite build` emits the site into `dist/`. The Worker config becomes assets-only — no `main`, and `single-page-application` fallback serves `index.html` on deep links:
+
+```jsonc
+// wrangler.jsonc
+{
+    "name": "my-remix-spa",
+    "compatibility_date": "2026-04-02",
+    "assets": {
+        "directory": "./dist",
+        "not_found_handling": "single-page-application",
+    },
+}
+```
+
+Deploys are unchanged: `vpx wrangler deploy` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.

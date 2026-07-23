@@ -133,3 +133,72 @@ jobs:
 ## Environment variables
 
 Set them per service in the dashboard (**Variables**) or `railway variable set KEY=value`. Railway injects `PORT`; define your own only if you need a fixed port. `railway run <cmd>` injects the service's variables into a local process for parity debugging.
+
+## Client-only apps (SPA)
+
+A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
+
+```html
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My Remix App</title>
+        <script type="module" src="/app/main.tsx"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+</html>
+```
+
+```tsx
+// app/main.tsx
+import { createRoot, on, type Handle } from "remix/ui";
+
+function App(handle: Handle) {
+    let count = 0;
+
+    return () => (
+        <button mix={[on("click", () => { count++; handle.update(); })]}>
+            Count: {count}
+        </button>
+    );
+}
+
+createRoot(document.getElementById("app")!).render(<App />);
+```
+
+```jsonc
+// tsconfig.json
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+```
+
+The Caddyfile binds Railway's injected port and rewrites deep links to `index.html`:
+
+```
+# Caddyfile
+:{$PORT}
+root * /srv
+encode gzip
+try_files {path} /index.html
+file_server
+```
+
+```dockerfile
+# Dockerfile
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM caddy:alpine
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv
+```
+
+Deploys are unchanged: `railway up` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
