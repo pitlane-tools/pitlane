@@ -69,17 +69,55 @@ vp preview  # serve the production build via @pitlane/dev's preview
 
 Running under the Netlify CLI instead? `netlify dev` configures the environment itself and the Vite plugin steps aside automatically.
 
-## Deploy from git
-
-Git integration is the primary Netlify workflow: import the repository at [app.netlify.com](https://app.netlify.com) (**Add new site → Import an existing project**), and Netlify picks up `netlify.toml`. Every push builds `vite build`, publishes `dist/client`, and bundles the server function — its import of `dist/ssr/index.js` is traced and packaged automatically.
-
 ## Deploy with the CLI
+
+Create the site once and link the directory, then every deploy is two commands:
 
 ```sh
 vpx netlify-cli login
+vpx netlify-cli init      # create + link the site (or `link` for an existing one)
+
 vp build
 vpx netlify-cli deploy            # draft URL
 vpx netlify-cli deploy --prod     # production
+```
+
+The CLI reads `netlify.toml`, uploads `dist/client`, and bundles the server function — its import of `dist/ssr/index.js` is traced and packaged automatically.
+
+## Deploy with GitHub Actions
+
+Store two repository secrets: `NETLIFY_AUTH_TOKEN` (a [personal access token](https://app.netlify.com/user/applications#personal-access-tokens)) and `NETLIFY_SITE_ID` (**Site configuration → Site details → Site ID**, or `netlify sites:list`).
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+    deployments: write
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: voidzero-dev/setup-vp@v1
+              with:
+                  cache: true
+
+            - run: vp install --frozen-lockfile
+
+            - run: vp build
+
+            - run: vpx netlify-cli deploy --prod
+              env:
+                  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+                  NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 ```
 
 ## Environment variables

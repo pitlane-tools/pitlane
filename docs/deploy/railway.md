@@ -90,13 +90,41 @@ Railpack-driven start commands run in a shell, so `$PORT` expands as written. (`
 npm i -g @railway/cli   # or: brew install railway
 railway login
 railway init            # new project (or `railway link` for an existing one)
-railway up              # build + deploy the current directory
+railway up              # upload + build + deploy the current directory
 railway domain          # generate the public URL — services are private by default
 ```
 
-## Deploy from git
+Railway builds on its side using `railway.json`, so no local build step is needed before `railway up`.
 
-**New Project → Deploy from GitHub repo** in the [Railway dashboard](https://railway.com/new); every push to the linked branch auto-deploys. Turn on **Wait for CI** in service settings to gate deploys on GitHub Actions. Generate a domain under **Settings → Networking** — same as the CLI flow, nothing is public until you do.
+## Deploy with GitHub Actions
+
+Create a project-scoped token (**Project Settings → Tokens**) and store it as the `RAILWAY_TOKEN` repository secret. The build still runs on Railway; the workflow only uploads the checkout:
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - run: npm i -g @railway/cli
+
+            - run: railway up --service my-remix-app --detach
+              env:
+                  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+```
+
+`--service` names the Railway service to deploy into (`railway status` lists them); `--detach` returns once the upload is accepted instead of streaming build logs into the Actions run.
 
 ## Environment variables
 

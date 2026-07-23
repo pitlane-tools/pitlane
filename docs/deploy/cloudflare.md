@@ -93,6 +93,39 @@ Production secrets are write-only through Wrangler:
 vpx wrangler secret put MY_SECRET
 ```
 
-## Deploy from git
+## Deploy with GitHub Actions
 
-Connect the repository under **Workers & Pages → Create → Workers → Connect to Git** ([Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)); every push to the configured branch builds with your build command (`vp build` or `vite build`) and deploys using `wrangler.jsonc`.
+Create an API token at **My Profile → API Tokens** using the *Edit Cloudflare Workers* template, and store it as the `CLOUDFLARE_API_TOKEN` repository secret.
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+    deployments: write
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: voidzero-dev/setup-vp@v1
+              with:
+                  cache: true
+
+            - run: vp install --frozen-lockfile
+
+            - run: vp build
+
+            - run: vpx wrangler deploy
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+```
+
+`wrangler deploy` reads `wrangler.jsonc`, so the workflow needs no name, paths, or account flags — the config is the single source of truth locally and in CI.

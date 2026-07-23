@@ -116,7 +116,49 @@ vite preview  # serve the build locally
 
 :::
 
-On Cloudflare, deploy with `wrangler deploy`; on Netlify and Vercel, import the repository and the static build deploys on every push (Railway serves static Vite builds too, via its SPA autodetection).
+### Deploy with the CLI
+
+```sh
+# Cloudflare (reads wrangler.jsonc)
+vite build && npx wrangler deploy
+
+# Netlify (reads netlify.toml)
+vite build && npx netlify-cli deploy --prod
+
+# Vercel
+npx vercel --prod
+```
+
+### Deploy with GitHub Actions
+
+The static build deploys with the same workflows as the server targets — swap the deploy step in from the matching provider guide ([Cloudflare](/deploy/cloudflare#deploy-with-github-actions), [Netlify](/deploy/netlify#deploy-with-github-actions), [Vercel](/deploy/vercel#deploy-with-github-actions)). Cloudflare, for example:
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
+            - run: npm run build
+
+            - run: npx wrangler deploy
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+```
 
 ## When to reach for `@pitlane/dev`
 
