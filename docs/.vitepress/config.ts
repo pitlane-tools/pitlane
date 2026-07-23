@@ -78,14 +78,8 @@ const config = defineConfig({
         ],
         sidebar: {
             "/package/": [
-                {
-                    text: "@pitlane/dev",
-                    items: [
-                        { text: "Overview", link: "/package/dev/" },
-                        { text: "@pitlane/dev", link: "/package/dev/@pitlane/dev" },
-                        { text: "@pitlane/dev/runtime", link: "/package/dev/@pitlane/dev/runtime" },
-                    ],
-                },
+                { text: "@pitlane/dev", link: "/package/dev/" },
+                { text: "@pitlane/dev/runtime", link: "/package/dev/@pitlane/dev/runtime" },
             ],
             "/guides/": guides,
             "/deploy/": guides,
