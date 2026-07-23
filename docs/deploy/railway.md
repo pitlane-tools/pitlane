@@ -134,36 +134,6 @@ jobs:
 
 Set them per service in the dashboard (**Variables**) or `railway variable set KEY=value`. Railway injects `PORT`; define your own only if you need a fixed port. `railway run <cmd>` injects the service's variables into a local process for parity debugging.
 
-## Railway Functions
-
-[Railway Functions](https://docs.railway.com/functions) are companion services for the small jobs around your app — webhook receivers, cron handlers, tiny APIs. Each function is a **single TypeScript file** (max 96&nbsp;KB) running on the [Bun](https://bun.com) runtime, created straight from the Railway canvas (**+ Create → Function**) with no repository and no build step: stage with <kbd>⌘S</kbd>, deploy with <kbd>Shift+Enter</kbd>, live in seconds.
-
-A function speaks the same fetch-handler contract as the rest of this stack:
-
-```ts
-// Source Code tab of the Function service
-import { verifySignature } from "some-webhook-sdk@2";
-
-export default {
-    async fetch(request: Request) {
-        if (!(await verifySignature(request, Bun.env.WEBHOOK_SECRET!))) {
-            return new Response("nope", { status: 401 });
-        }
-        // ...do the work...
-        return Response.json({ ok: true });
-    },
-};
-```
-
-Worth knowing:
-
-- **npm imports install automatically** on first run; pin versions inline with `package@version` (`import { Hono } from "hono@4"`).
-- **Bun APIs** (`Bun.file()`, `Bun.serve()`, …) are available.
-- **Service variables** arrive via `process.env`, `import.meta.env`, or `Bun.env`; [volumes](https://docs.railway.com/volumes) can be attached for persistence.
-- **Every deploy is versioned** — roll back from the service's Deployments tab.
-
-Keep the Remix app itself as a regular service; functions are for the one-file jobs beside it.
-
 ## Client-only apps (SPA)
 
 A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
@@ -234,5 +204,5 @@ COPY --from=build /app/dist /srv
 Deploys are unchanged: `railway up` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
 
 ::: tip Zero-config static hosting
-The Dockerfile keeps the serving stack explicit and in your repo. Railway's own [static hosting](https://docs.railway.com/guides/static-hosting) path is even shorter — deploy the repo from GitHub with no configuration and Railpack detects the static Vite build itself. Either way you get automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn); pair the site with a [Railway Function](#railway-functions) when it needs a lightweight API endpoint.
+The Dockerfile keeps the serving stack explicit and in your repo. Railway's own [static hosting](https://docs.railway.com/guides/static-hosting) path is even shorter — deploy the repo from GitHub with no configuration and Railpack detects the static Vite build itself. Either way you get automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn).
 :::
