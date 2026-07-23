@@ -3,7 +3,9 @@
     "name": "pitlane",
     "account_id": "3e1fe2693d3175f5f65ef46352f4f747",
     "compatibility_date": "2026-04-26",
-    "routes": [{ "pattern": "pitlane.tools", "custom_domain": true }],
+    // pitlane.tools is attached as a custom domain on the Cloudflare side; it
+    // stays out of this config because CI's API token is scoped to Workers
+    // only (no zone permissions), and custom domains persist across deploys.
     "preview_urls": true,
     "assets": {
         "directory": "./docs/.vitepress/dist",
