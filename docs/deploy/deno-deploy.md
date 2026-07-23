@@ -113,6 +113,10 @@ jobs:
                   DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
 ```
 
+::: info Where's the build step?
+There isn't one, on purpose. `deno deploy` uploads a source tarball (excluding `node_modules` unless `--allow-node-modules`), and Deploy runs the app's configured install and build commands — `deno install`, `deno task build` — on its own build infrastructure; that's the **Install** and **Build** sections streaming in the build logs, with their own [timeout and memory limits](https://docs.deno.com/runtime/reference/cli/deploy/). Adding `vp build` to this workflow would build twice and ship nothing extra. This is the same shape as the [Railway workflow](/deploy/railway#deploy-with-github-actions) — the platform builds; CI only uploads.
+:::
+
 ## Environment variables
 
 Set them per context — **Production** for production domains, **Development** for preview/branch URLs — in the dashboard's environment-variables drawer, or push a local file with `deno deploy env load .env`. They reach the app through `Deno.env.get()` (and `process.env` under Node compatibility).
