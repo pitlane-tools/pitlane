@@ -4,3 +4,5 @@ docs/.vitepress/dist
 docs/.vitepress/.temp
 .vite
 .DS_Store
+dist
+.wrangler

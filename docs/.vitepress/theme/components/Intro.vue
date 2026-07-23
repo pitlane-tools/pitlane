@@ -13,7 +13,7 @@
                 <h3 class="max-w-xl text-balance">
                     Cloudflare primitives that fit Remix instead of fighting it.
                 </h3>
-                <a href="/guides/vite-plus" class="button w-fit mt-8 hidden lg:block">
+                <a href="https://github.com/pitlane-tools/pitlane" class="button w-fit mt-8 hidden lg:block">
                     Learn the workflow
                 </a>
             </div>
@@ -29,7 +29,7 @@
                     work around it: provisioning, migrations, secrets, generated configuration, and
                     deploys.
                 </p>
-                <a href="/guides/vite-plus" class="button w-fit mt-8 block lg:hidden">
+                <a href="https://github.com/pitlane-tools/pitlane" class="button w-fit mt-8 block lg:hidden">
                     Learn the workflow
                 </a>
             </div>

@@ -1,7 +1,10 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "pitlane",
     "account_id": "3e1fe2693d3175f5f65ef46352f4f747",
     "compatibility_date": "2026-04-26",
+    "routes": [{ "pattern": "pitlane.tools", "custom_domain": true }],
+    "preview_urls": true,
     "assets": {
         "directory": "./docs/.vitepress/dist",
         "not_found_handling": "single-page-application",

@@ -27,7 +27,7 @@
                 <code>pitlane secrets push</code> syncs secrets from <code>.env</code> to Wrangler.
                 <code>pitlane deploy</code> ties it all together.
             </p>
-            <a href="/guides/cli" class="button w-fit mt-4">CLI reference</a>
+            <a href="https://github.com/pitlane-tools/pitlane" class="button w-fit mt-4">CLI reference</a>
         </div>
     </section>
 </template>

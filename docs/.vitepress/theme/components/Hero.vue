@@ -11,7 +11,7 @@
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
                     <a
-                        href="/guides/getting-started"
+                        href="https://github.com/pitlane-tools/pitlane"
                         class="button button--primary inline-block w-fit"
                     >
                         <span>Get Started</span>

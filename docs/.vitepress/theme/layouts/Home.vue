@@ -31,6 +31,6 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
         heading="Start with Pitlane"
         subheading="Create a Remix app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."
         button-text="Get started"
-        button-link="/guides/getting-started"
+        button-link="https://github.com/pitlane-tools/pitlane"
     />
 </template>
