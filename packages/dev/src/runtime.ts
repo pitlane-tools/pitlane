@@ -1,3 +1,9 @@
+/**
+ * Server- and client-safe runtime helpers for the `?assets=` import
+ * convention. Import from `@pitlane/dev/runtime` in application code.
+ *
+ * @module @pitlane/dev/runtime
+ */
 import { mergeAssets as mergeAssetsImpl } from "@hiogawa/vite-plugin-fullstack/runtime";
 
 /**

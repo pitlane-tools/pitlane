@@ -1,3 +1,10 @@
+/**
+ * The `remix()` Vite plugin — Remix 3 build orchestration, the `clientEntry()`
+ * hydration transform, dev serving through the app's fetch handler, and a
+ * preview server, for any Vite or Vite+ project.
+ *
+ * @module @pitlane/dev
+ */
 import type { Plugin, PluginOption } from "vite";
 
 import fullstack from "@hiogawa/vite-plugin-fullstack";
@@ -53,12 +60,14 @@ export interface RemixPluginOptions {
  * `nitro/vite`), or the built fetch handler runs directly on Node, Bun, and
  * Deno.
  */
-export function remix({
-    clientEntry = "app/entry.browser",
-    serverEntry = "app/entry.server",
-    serverEnvironments = ["ssr"],
-    serverHandler = true,
-}: RemixPluginOptions = {}): PluginOption {
+export function remix(options: RemixPluginOptions = {}): PluginOption {
+    let {
+        clientEntry = "app/entry.browser",
+        serverEntry = "app/entry.server",
+        serverEnvironments = ["ssr"],
+        serverHandler = true,
+    } = options;
+
     return [
         fullstack({
             serverEnvironments,

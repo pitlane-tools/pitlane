@@ -73,14 +73,18 @@ const config = defineConfig({
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
         nav: [
-            { text: "Packages", link: "/package/dev", activeMatch: "/package/" },
+            { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
             { text: "Guides", link: "/guides/vite-plugin", activeMatch: "^/(guides|deploy)/" },
         ],
         sidebar: {
             "/package/": [
                 {
-                    text: "Packages",
-                    items: [{ text: "@pitlane/dev", link: "/package/dev" }],
+                    text: "@pitlane/dev",
+                    items: [
+                        { text: "Overview", link: "/package/dev/" },
+                        { text: "@pitlane/dev", link: "/package/dev/@pitlane/dev" },
+                        { text: "@pitlane/dev/runtime", link: "/package/dev/@pitlane/dev/runtime" },
+                    ],
                 },
             ],
             "/guides/": guides,

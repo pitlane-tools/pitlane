@@ -5,7 +5,27 @@ description: How @pitlane/dev's remix() plugin behaves in your app day to day �
 
 # Using the Vite plugin
 
-This guide is about living with `remix()` from [`@pitlane/dev`](/package/dev) day to day: how asset references flow through your app, what the `clientEntry()` transform does and — more importantly — what it deliberately refuses to do, and how dev, preview, and the production build behave. For the options table and per-target deployment configs, see the [package reference](/package/dev) and the [deploy guides](#deploying).
+This guide is about living with `remix()` from `@pitlane/dev` day to day: how asset references flow through your app, what the `clientEntry()` transform does and — more importantly — what it deliberately refuses to do, and how dev, preview, and the production build behave. Exact API signatures live in the generated [API reference](/package/dev/); per-target deployment configs live in the [deploy guides](#deploying).
+
+## Installation
+
+::: code-group
+
+```sh [vp]
+vp add -D @pitlane/dev
+```
+
+```sh [npm]
+npm install --save-dev @pitlane/dev
+```
+
+```sh [pnpm]
+pnpm add -D @pitlane/dev
+```
+
+:::
+
+`@pitlane/dev` declares `remix@^3.0.0-beta.5` and `vite@>=7` as peer dependencies.
 
 ## The three-file core
 
@@ -16,6 +36,26 @@ Everything the plugin does orbits three files you own:
 - **`app/entry.browser.ts`** — calls `run()` from `remix/ui` to hydrate `clientEntry()` components against server HTML.
 
 `vite dev`, `vite build`, `vite preview` — the standard lifecycle, nothing bespoke.
+
+## Options
+
+Every option has a sensible default; most projects pass none.
+
+```ts
+remix({
+    clientEntry: "app/entry.browser", // false disables the client build
+    serverEntry: "app/entry.server",
+    serverEnvironments: ["ssr"],
+    serverHandler: true, // false when a platform plugin serves dev requests
+});
+```
+
+| Option               | Type              | Default               | Purpose                                                                                                                              |
+| -------------------- | ----------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------|
+| `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                  |
+| `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                   |
+| `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                  |
+| `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
 
 ## The asset runtime
 
@@ -161,6 +201,31 @@ dist/
 - **SSR builds first, then the client** — the client build resolves `?assets=ssr` against the SSR manifest, so the order is load-bearing. The plugin sequences it; don't hand-orchestrate builds around it.
 - **Assets are never inlined** (`assetsInlineLimit: 0`) so every asset has a real hashed URL the `?assets=` runtime can name.
 - **Composing with another build orchestrator is coordinated** — when a platform plugin also drives builds (Cloudflare's does), each environment still builds exactly once.
+
+## Compatibility
+
+| Dependency  | Tested against |
+| ----------- | -------------- |
+| `vite`      | 8.1.5          |
+| `vite-plus` | 0.2.6          |
+| `remix`     | 3.0.0-beta.5   |
+| Node        | 24 LTS, 25     |
+
+Remix 3 is in beta; each `@pitlane/dev` release records the exact beta it was verified against. Rolldown is not required — the transform runs identically on generic Vite and Vite+.
+
+### Troubleshooting
+
+**`AssertionError: isRunnableDevEnvironment(environment)` on `vite dev`** — the project resolves two different `vite` packages (typically Vite+ running the server while a plain `vite` install satisfies peer ranges). Give the project a single vite identity by aliasing, e.g. with pnpm:
+
+```jsonc
+// package.json
+{
+    "devDependencies": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" },
+    "pnpm": { "overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" } }
+}
+```
+
+Generic-Vite projects have one vite by construction and are unaffected.
 
 ## Deploying
 
