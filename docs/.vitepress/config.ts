@@ -71,6 +71,7 @@ const config = defineConfig({
                         { text: "Netlify", link: "/deploy/netlify" },
                         { text: "Vercel", link: "/deploy/vercel" },
                         { text: "Railway", link: "/deploy/railway" },
+                        { text: "Deno Deploy", link: "/deploy/deno-deploy" },
                         { text: "GitHub Pages", link: "/deploy/github-pages" },
                     ],
                 },
