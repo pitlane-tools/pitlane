@@ -30,7 +30,17 @@ Keep `remix()`'s default `serverHandler: true` here. Netlify's plugin emulates p
 
 ## The server function
 
-Netlify Functions speak the same fetch-handler language as the built server entry, so the function is a three-line wrapper. Create `netlify/functions/server.mjs`:
+Netlify runs server code two ways, and both speak the same fetch-handler language as the built server entry — the wrapper is three lines either way. Pick **one**:
+
+| | [Netlify Functions](https://docs.netlify.com/build/functions/overview/) | [Netlify Edge Functions](https://docs.netlify.com/build/edge-functions/overview/) |
+| --- | --- | --- |
+| Runtime | Node, in Netlify's serverless infrastructure | Deno, at the edge PoP nearest the visitor |
+| Static assets | CDN wins first via `preferStatic` | Run **before** static serving — assets must be excluded via `excludedPath` |
+| Fits | The default; larger CPU/memory limits, Node APIs | Latency-sensitive SSR; stricter [runtime limits](https://docs.netlify.com/build/edge-functions/limits/) |
+
+### Netlify Functions (Node)
+
+Create `netlify/functions/server.mjs`:
 
 ```js
 // netlify/functions/server.mjs
@@ -46,7 +56,30 @@ export const config = {
 
 `path: "/*"` routes every request to the function; `preferStatic: true` lets files in the publish directory win first, so hashed client assets are served from the CDN and never touch the function.
 
-Then `netlify.toml` wires the build:
+### Netlify Edge Functions (Deno)
+
+Create `netlify/edge-functions/server.mjs` instead:
+
+```js
+// netlify/edge-functions/server.mjs
+import server from "../../dist/ssr/index.js";
+
+export default request => server.fetch(request);
+
+export const config = {
+    path: "/*",
+    excludedPath: ["/assets/*", "/favicon.ico"],
+};
+```
+
+Edge functions run **before** the CDN serves static files, so there is no `preferStatic` — instead, [`excludedPath`](https://docs.netlify.com/build/edge-functions/declarations/) carves the static surface out of the match. `/assets/*` covers the hashed client build; extend the array with anything else you ship from `public/`.
+
+Two things to know about the edge variant:
+
+- The handler executes on **Deno**. Remix 3 is built on Web APIs, so the SSR bundle runs there — but avoid Node-only APIs (`node:fs`, `node:crypto` beyond WebCrypto) in server code you deploy to the edge.
+- Don't ship both files: the edge function matches first and the Node function would never run.
+
+Either way, `netlify.toml` wires the build:
 
 ```toml
 # netlify.toml
@@ -56,7 +89,7 @@ Then `netlify.toml` wires the build:
 ```
 
 ::: tip Under the hood
-This is the same shape Netlify's TanStack Start integration generates automatically — a thin function re-exporting the `ssr` environment's `fetch`. Netlify's generic Vite plugin can generate it too, but only behind a private, explicitly unsupported flag today; the committed function file above is the documented, stable path. If Netlify promotes that flag to public API, this guide gets three lines shorter.
+The Functions variant is the same shape Netlify's TanStack Start integration generates automatically — a thin function re-exporting the `ssr` environment's `fetch`. Netlify's generic Vite plugin can generate it too, but only behind a private, explicitly unsupported flag today; the committed function file above is the documented, stable path. If Netlify promotes that flag to public API, this guide gets three lines shorter.
 :::
 
 ## Local development
@@ -82,7 +115,7 @@ vpx netlify-cli deploy            # draft URL
 vpx netlify-cli deploy --prod     # production
 ```
 
-The CLI reads `netlify.toml`, uploads `dist/client`, and bundles the server function — its import of `dist/ssr/index.js` is traced and packaged automatically.
+The CLI reads `netlify.toml`, uploads `dist/client`, and bundles whichever server wrapper you committed — the Node function through Netlify's function bundler, the edge function through the Deno-based edge bundler. Both trace the import of `dist/ssr/index.js` and package it automatically.
 
 ## Deploy with GitHub Actions
 
@@ -122,4 +155,4 @@ jobs:
 
 ## Environment variables
 
-Set them in the Netlify UI (**Site configuration → Environment variables**) or via `netlify env:set`. They're available to the server function as `process.env.*` / `Netlify.env`; the Vite plugin mirrors them into `vite dev`.
+Set them in the Netlify UI (**Site configuration → Environment variables**) or via `netlify env:set`. Netlify Functions read them as `process.env.*`; Edge Functions use [`Netlify.env.get("KEY")`](https://docs.netlify.com/build/edge-functions/api/#netlify-specific-context-object). The Vite plugin mirrors them into `vite dev`.
