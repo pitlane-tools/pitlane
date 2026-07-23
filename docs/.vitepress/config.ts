@@ -52,8 +52,15 @@ const config = defineConfig({
         logo: "/favicon.svg",
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
-        nav: [],
-        sidebar: {},
+        nav: [{ text: "Packages", link: "/package/dev", activeMatch: "/package/" }],
+        sidebar: {
+            "/package/": [
+                {
+                    text: "Packages",
+                    items: [{ text: "@pitlane/dev", link: "/package/dev" }],
+                },
+            ],
+        },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
         },
