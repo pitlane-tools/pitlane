@@ -14,7 +14,9 @@ The `remix()` Vite plugin for [Remix 3](https://remix.run). One plugin wires a R
 
 `@pitlane/dev` is deliberately platform-agnostic: your server entry default-exports a standard fetch handler, and hosting composes around it. Platform plugins — `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, `nitro/vite` — sit alongside it in the same plugin array, and plain fetch runtimes (Node, Bun, Deno) run the built output directly.
 
-**Composable hosting, not a hosting engine.**
+**The goal is composable hosting, not a hosting engine.**
+
+New to the plugin? Start with [Using the Vite plugin](/guides/vite-plugin) — the day-to-day guide to the asset runtime, the `clientEntry()` transform and its footguns, and dev/preview behavior. This page is the reference.
 
 ## Installation
 

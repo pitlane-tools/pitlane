@@ -8,15 +8,35 @@ const SITE_NAME = "Pitlane";
 const SITE_DESCRIPTION = "Portable platform integration for Remix 3.";
 const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
-// Sidebar sections for unreleased packages and guides live in git history;
-// they return as their packages ship. The published site documents released
-// surface only.
+// Sidebar sections for unreleased packages live in git history; they return
+// as their packages ship. The published site documents released surface only.
+// (The pre-release Cloudflare-era guides sit in docs/internal/legacy-guides.)
+
+// Shared by /guides/ and /deploy/ so both prefixes present one "Guides"
+// section: general usage guides first, deployment guides under Deploy.
+const guides = [
+    {
+        text: "Guides",
+        items: [{ text: "Vite Plugin", link: "/guides/vite-plugin" }],
+    },
+    {
+        text: "Deploy",
+        items: [
+            { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
+            { text: "Netlify", link: "/deploy/netlify" },
+            { text: "Vercel", link: "/deploy/vercel" },
+            { text: "Railway", link: "/deploy/railway" },
+            { text: "Deno Deploy", link: "/deploy/deno-deploy" },
+            { text: "GitHub Pages", link: "/deploy/github-pages" },
+        ],
+    },
+];
 
 const config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
-    srcExclude: ["superpowers/**", "internal/**", "guides/**"],
+    srcExclude: ["superpowers/**", "internal/**"],
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
         const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
@@ -54,7 +74,7 @@ const config = defineConfig({
         outline: { level: "deep" },
         nav: [
             { text: "Packages", link: "/package/dev", activeMatch: "/package/" },
-            { text: "Deploy", link: "/deploy/cloudflare", activeMatch: "/deploy/" },
+            { text: "Guides", link: "/guides/vite-plugin", activeMatch: "^/(guides|deploy)/" },
         ],
         sidebar: {
             "/package/": [
@@ -63,19 +83,8 @@ const config = defineConfig({
                     items: [{ text: "@pitlane/dev", link: "/package/dev" }],
                 },
             ],
-            "/deploy/": [
-                {
-                    text: "Deploy",
-                    items: [
-                        { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
-                        { text: "Netlify", link: "/deploy/netlify" },
-                        { text: "Vercel", link: "/deploy/vercel" },
-                        { text: "Railway", link: "/deploy/railway" },
-                        { text: "Deno Deploy", link: "/deploy/deno-deploy" },
-                        { text: "GitHub Pages", link: "/deploy/github-pages" },
-                    ],
-                },
-            ],
+            "/guides/": guides,
+            "/deploy/": guides,
         },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
