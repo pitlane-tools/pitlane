@@ -1,0 +1,95 @@
+import type { Plugin, PluginOption } from "vite";
+
+import fullstack from "@hiogawa/vite-plugin-fullstack";
+
+import { build, buildCompat } from "./build.ts";
+import { preview } from "./preview.ts";
+import { clientEntryTransform } from "./transform.ts";
+
+export interface RemixPluginOptions {
+    /**
+     * Client entry module, used as the client environment's build input.
+     * Pass `false` to disable the client environment entirely (fully
+     * server-rendered apps with no hydration).
+     *
+     * @default "app/entry.browser"
+     */
+    clientEntry?: string | false;
+    /**
+     * Server entry module, built as `dist/ssr/index.js`. Must default-export
+     * a fetch handler: an object exposing
+     * `fetch(request: Request): Response | Promise<Response>`, e.g. a
+     * `createRouter()` router.
+     *
+     * @default "app/entry.server"
+     */
+    serverEntry?: string;
+    /**
+     * Environment names the `clientEntry()` transform treats as "server".
+     * In these environments the transform resolves the client chunk URL via a
+     * `?assets=client` import.
+     *
+     * @default ["ssr"]
+     */
+    serverEnvironments?: string[];
+    /**
+     * Serve dev-server requests through the server entry's fetch handler.
+     * Set to `false` when another plugin owns dev-time request handling —
+     * e.g. `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite`.
+     *
+     * @default true
+     */
+    serverHandler?: boolean;
+}
+
+/**
+ * Wires Remix 3 into a Vite or Vite+ project: multi-environment build
+ * orchestration (`dist/ssr` + `dist/client`), the
+ * `clientEntry(import.meta.url, …)` hydration transform, dev serving through
+ * the app's fetch handler, and a preview server for the production build.
+ *
+ * Platform-agnostic by design: deploy targets compose alongside it in the
+ * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
+ * `nitro/vite`), or the built fetch handler runs directly on Node, Bun, and
+ * Deno.
+ */
+export function remix({
+    clientEntry = "app/entry.browser",
+    serverEntry = "app/entry.server",
+    serverEnvironments = ["ssr"],
+    serverHandler = true,
+}: RemixPluginOptions = {}): PluginOption {
+    return [
+        fullstack({
+            serverEnvironments,
+            serverHandler,
+        }),
+        buildCompat(),
+        build({ clientEntry, serverEntry }),
+        preview(),
+        suppressAbortErrors(),
+        clientEntryTransform(new Set(serverEnvironments)),
+    ];
+}
+
+/**
+ * Suppresses `aborted` errors from client disconnects (e.g. search-as-you-type
+ * or navigating away mid-fetch) that would otherwise trigger Vite's dev error
+ * overlay. The match is deliberately narrow so real failures still propagate.
+ */
+function suppressAbortErrors(): Plugin {
+    return {
+        name: "remix-suppress-abort-errors",
+        configureServer(server) {
+            return () => {
+                server.middlewares.use(
+                    // @ts-expect-error - connect error handlers require 4 args
+                    (err, _req, _res, next) => {
+                        if (err?.message === "aborted") return;
+                        next(err);
+                    },
+                );
+            };
+        },
+    };
+}

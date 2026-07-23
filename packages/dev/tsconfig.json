@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "lib": ["ESNext"],
+        "moduleDetection": "force",
+        "module": "Preserve",
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
+        "strict": true,
+        "noUnusedLocals": true,
+        "skipLibCheck": true,
+        "types": ["node"]
+    },
+    "include": ["src", "tests/*.test.ts", "tests/e2e"]
+}
