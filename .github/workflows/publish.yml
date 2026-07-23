@@ -1,0 +1,47 @@
+name: Publish to npm
+
+on:
+    release:
+        types: [published]
+
+permissions:
+    contents: read
+    id-token: write
+
+jobs:
+    publish-dev:
+        if: startsWith(github.event.release.tag_name, '@pitlane/dev@')
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/dev
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Verify release tag matches package version
+              run: |
+                  version=$(node -p "require('./package.json').version")
+                  tag="${{ github.event.release.tag_name }}"
+                  if [ "$tag" != "@pitlane/dev@$version" ]; then
+                      echo "Release tag $tag does not match package version @pitlane/dev@$version" >&2
+                      exit 1
+                  fi
+
+            - name: Install
+              run: vp install --frozen-lockfile
+
+            - name: Run tests
+              run: vp test
+
+            - name: Build package
+              run: vp run build
+
+            - name: Publish to npm with provenance
+              run: npm publish --provenance --access public --tag latest
