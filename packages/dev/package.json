@@ -4,13 +4,13 @@
     "description": "remix() — the Remix 3 Vite plugin: build orchestration, clientEntry() hydration transform, dev server, and preview for any Vite or Vite+ project.",
     "homepage": "https://docs.pitlane.tools/package/dev",
     "bugs": {
-        "url": "https://github.com/pitlane-tools/docs/issues"
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
     },
     "license": "MIT",
     "author": "Mark Malstrom <mark@malstrom.me>",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/pitlane-tools/docs.git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
         "directory": "packages/dev"
     },
     "keywords": [
