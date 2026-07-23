@@ -7,7 +7,7 @@ description: Run a Remix 3 app on Railway under Node, Bun, or Deno — the built
 
 Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process — no platform plugin involved. `vite build` produces `dist/ssr/index.js` (your fetch handler) and `dist/client/` (static assets, served by the `staticFiles` middleware in your router), and a Dockerfile runs whichever runtime you choose.
 
-When a `Dockerfile` is present at the repository root, [Railway builds and deploys it automatically](https://docs.railway.com/builds/dockerfiles) — the image you define is exactly what runs. Railway injects a `PORT` environment variable at runtime; your server binds `0.0.0.0:$PORT`.
+The Dockerfile is **built in your CI, never by Railway**: CI runs `docker build` (the Vite build happens inside it, under your control), pushes the image to [GitHub Container Registry](https://ghcr.io), and the Railway service [deploys that pre-built image](https://docs.railway.com/quick-start#deploying-your-project---from-a-docker-image) — Railway only pulls and runs. It injects a `PORT` environment variable at runtime; your server binds `0.0.0.0:$PORT`.
 
 Add a `.dockerignore` so builds stay small and reproducible:
 
@@ -90,19 +90,25 @@ CMD deno serve -A --port=$PORT dist/ssr/index.js
 
 ## Deploy with the CLI
 
+One-time setup: create an empty project at [railway.com/new](https://railway.com/new), add a service with **Docker Image** as the source (e.g. `ghcr.io/<user>/my-remix-app:latest` — [private images](https://docs.railway.com/builds/private-registries) need registry credentials), and generate a domain (**Settings → Networking** — services are private by default).
+
+Then every deploy is: build the image, push it, tell Railway to pull it.
+
 ```sh
+docker build -t ghcr.io/<user>/my-remix-app:latest .
+docker push ghcr.io/<user>/my-remix-app:latest
+
 npm i -g @railway/cli   # or: brew install railway
 railway login
-railway init            # new project (or `railway link` for an existing one)
-railway up              # upload + build the Dockerfile + deploy
-railway domain          # generate the public URL — services are private by default
+railway link            # link this directory to the project once
+railway redeploy --service my-remix-app --yes
 ```
 
-Railway builds the image on its side, so no local Docker (or local build step) is needed before `railway up`.
+`railway redeploy` re-pulls the image tag and rolls the service — no source upload, no platform build.
 
 ## Deploy with GitHub Actions
 
-Create a project-scoped token (**Project Settings → Tokens**) and store it as the `RAILWAY_TOKEN` repository secret. The image build still runs on Railway; the workflow only uploads the checkout:
+Create a project-scoped token (**Project Settings → Tokens**) and store it as the `RAILWAY_TOKEN` repository secret. The workflow builds the image (running the Vite build inside `docker build`, in CI), pushes it to GHCR with the built-in `GITHUB_TOKEN`, and redeploys the service:
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -114,6 +120,7 @@ on:
 
 permissions:
     contents: read
+    packages: write
 
 jobs:
     deploy:
@@ -121,14 +128,26 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  push: true
+                  tags: ghcr.io/${{ github.repository }}:latest
+
             - run: npm i -g @railway/cli
 
-            - run: railway up --service my-remix-app --detach
+            - run: railway redeploy --service my-remix-app --yes
               env:
                   RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 ```
 
-`--service` names the Railway service to deploy into (`railway status` lists them); `--detach` returns once the upload is accepted instead of streaming build logs into the Actions run.
+`--service` names the Railway service to roll (`railway status` lists them). The Vite build point is the `docker build` step — in CI, under your control, never on the platform.
 
 ## Environment variables
 
@@ -201,8 +220,8 @@ COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
 ```
 
-Deploys are unchanged: `railway up` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
+Deploys are unchanged: the same image flow — `docker build` + push + `railway redeploy` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
 
-::: tip Zero-config static hosting
-The Dockerfile keeps the serving stack explicit and in your repo. Railway's own [static hosting](https://docs.railway.com/guides/static-hosting) path is even shorter — deploy the repo from GitHub with no configuration and Railpack detects the static Vite build itself. Either way you get automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn).
+::: tip Platform features
+However the image ships, the service gets automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn). Railway also offers [zero-config static hosting](https://docs.railway.com/guides/static-hosting) that builds on its side — we don't use it, because the Vite build point stays in CI.
 :::

@@ -186,5 +186,5 @@ deno deploy create \
 Deploys are unchanged: `deno deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
 
 ::: warning Verify with the template
-The Dynamic Entrypoint contract (`Deno.serve` wrapper, `PORT` injection) and the prebuilt upload (the deploy tarball must include the locally built `dist/` even though it's gitignored) follow Deploy's current documentation; the [pitlane-tools](https://github.com/pitlane-tools) templates are the tested reference for this composition. If the tarball turns out to exclude ignored paths, the fallback is moving the build server-side via `--build-command "deno task build"`.
+The Dynamic Entrypoint contract (`Deno.serve` wrapper, `PORT` injection) and the prebuilt upload (the deploy tarball must include the locally built `dist/` even though it's gitignored) follow Deploy's current documentation; the [pitlane-tools](https://github.com/pitlane-tools) templates are the tested reference for this composition. If the tarball turns out to exclude ignored paths, the template pins an upload configuration that includes `dist/` — the Vite build stays in CI either way.
 :::

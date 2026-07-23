@@ -40,22 +40,21 @@ Locally, Nitro builds its portable Node output; the Vercel-specific `.vercel/out
 
 ## Deploy with the CLI
 
-Link the project once, then deploy:
+Link the project once, then always deploy **prebuilt** — the artifact built on your machine (or CI) is the artifact that ships, and Vercel's build system never runs:
 
 ```sh
 vpx vercel login
 vpx vercel link
 
-vpx vercel          # preview deployment
-vpx vercel --prod   # production
+vpx vercel build && vpx vercel deploy --prebuilt            # preview deployment
+vpx vercel build --prod && vpx vercel deploy --prebuilt --prod   # production
 ```
 
-To build locally and upload the finished artifact instead of building on Vercel:
+`vercel build` runs the Vite build locally with Vercel's environment applied (so Nitro emits `.vercel/output`), and `--prebuilt` uploads that directory as-is.
 
-```sh
-vpx vercel build --prod
-vpx vercel deploy --prebuilt --prod
-```
+::: warning
+A plain `vercel` / `vercel --prod` uploads *source* and builds on Vercel's infrastructure — skip it. The Vite build point stays in your CI.
+:::
 
 ## Deploy with GitHub Actions
 
@@ -157,4 +156,4 @@ createRoot(document.getElementById("app")!).render(<App />);
 }
 ```
 
-Deploys are unchanged: `vpx vercel --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
+Deploys are unchanged — build prebuilt, upload the artifact: `vpx vercel build --prod && vpx vercel deploy --prebuilt --prod`, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.

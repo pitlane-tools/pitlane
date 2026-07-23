@@ -79,12 +79,11 @@ Two things to know about the edge variant:
 - The handler executes on **Deno**. Remix 3 is built on Web APIs, so the SSR bundle runs there — but avoid Node-only APIs (`node:fs`, `node:crypto` beyond WebCrypto) in server code you deploy to the edge.
 - Don't ship both files: the edge function matches first and the Node function would never run.
 
-Either way, `netlify.toml` wires the build:
+Either way, `netlify.toml` names the publish directory — and deliberately **no build command**: the Vite build always runs in your CI (or your shell), never on Netlify's build system, so the fingerprinted assets you tested are the ones that ship:
 
 ```toml
 # netlify.toml
 [build]
-  command = "vite build"
   publish = "dist/client"
 ```
 
@@ -111,11 +110,11 @@ vpx netlify-cli login
 vpx netlify-cli init      # create + link the site (or `link` for an existing one)
 
 vp build
-vpx netlify-cli deploy            # draft URL
-vpx netlify-cli deploy --prod     # production
+vpx netlify-cli deploy --no-build            # draft URL
+vpx netlify-cli deploy --no-build --prod     # production
 ```
 
-The CLI reads `netlify.toml`, uploads `dist/client`, and bundles whichever server wrapper you committed — the Node function through Netlify's function bundler, the edge function through the Deno-based edge bundler. Both trace the import of `dist/ssr/index.js` and package it automatically.
+`--no-build` keeps the CLI from triggering a build of its own — you already built. The deploy uploads `dist/client` and bundles whichever server wrapper you committed — the Node function through Netlify's function bundler, the edge function through the Deno-based edge bundler. Both trace the import of `dist/ssr/index.js` and package it automatically, locally in the CLI.
 
 ## Deploy with GitHub Actions
 
@@ -147,7 +146,7 @@ jobs:
 
             - run: vp build
 
-            - run: vpx netlify-cli deploy --prod
+            - run: vpx netlify-cli deploy --no-build --prod
               env:
                   NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
                   NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
@@ -204,7 +203,6 @@ createRoot(document.getElementById("app")!).render(<App />);
 ```toml
 # netlify.toml
 [build]
-  command = "vite build"
   publish = "dist"
 
 [[redirects]]
@@ -213,4 +211,4 @@ createRoot(document.getElementById("app")!).render(<App />);
   status = 200
 ```
 
-Deploys are unchanged: `vpx netlify-cli deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
+Deploys are unchanged: `vpx netlify-cli deploy --no-build --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
