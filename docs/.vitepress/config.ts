@@ -52,12 +52,27 @@ const config = defineConfig({
         logo: "/favicon.svg",
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
-        nav: [{ text: "Packages", link: "/package/dev", activeMatch: "/package/" }],
+        nav: [
+            { text: "Packages", link: "/package/dev", activeMatch: "/package/" },
+            { text: "Deploy", link: "/deploy/cloudflare", activeMatch: "/deploy/" },
+        ],
         sidebar: {
             "/package/": [
                 {
                     text: "Packages",
                     items: [{ text: "@pitlane/dev", link: "/package/dev" }],
+                },
+            ],
+            "/deploy/": [
+                {
+                    text: "Deploy",
+                    items: [
+                        { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
+                        { text: "Netlify", link: "/deploy/netlify" },
+                        { text: "Vercel", link: "/deploy/vercel" },
+                        { text: "Railway", link: "/deploy/railway" },
+                        { text: "Remix SPA", link: "/deploy/spa" },
+                    ],
                 },
             ],
         },

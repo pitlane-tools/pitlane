@@ -358,13 +358,14 @@ Six repos, all derived from `~/Developer/Templates/remix` with the vendored plug
 | `remix-bun` | `remix()` | `Bun.serve({ fetch: router.fetch })` |
 | `remix-deno` | `remix()` | `deno serve dist/ssr/index.js` (built entry is already `{ fetch }`-shaped) |
 | `remix-cloudflare` | `remix({ serverHandler: false })` + `cloudflare({ viteEnvironment: { name: "ssr" } })` | workerd; `wrangler.jsonc` `main` = server entry, `assets.directory` = `dist/client`; deployed persistent example |
-| `remix-netlify` | `remix({ serverHandler: false })` + `@netlify/vite-plugin` | Netlify Functions |
+| `remix-netlify` | `remix()` + `@netlify/vite-plugin` + committed `netlify/functions/server.mjs` wrapping the built entry | Netlify Functions |
 | `remix-vercel` | `remix({ serverHandler: false })` + `nitro/vite` (vercel preset) | Vercel via Nitro `.output/` |
 
-Netlify/Nitro `serverHandler` values are the expected shape (platform plugin owns dev serving,
-as Cloudflare does); each template's implementation pass verifies dev/build/preview/deploy
-end-to-end before the org repo is published, and any contract surprise flows back into this
-spec's compatibility notes. Templates import only `@pitlane/dev` — the no-leak lint applies.
+Source-verified contracts (Netlify's build plugin serves nothing in dev — our handler keeps
+dev serving; its supported deploy path is a user-committed function file wrapping the built
+fetch entry): each template's implementation pass verifies dev/build/preview/deploy end-to-end
+before the org repo is published, and any contract surprise flows back into this spec's
+compatibility notes. Templates import only `@pitlane/dev` — the no-leak lint applies.
 
 ## Documentation plan
 

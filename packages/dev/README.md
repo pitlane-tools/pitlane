@@ -72,7 +72,10 @@ run({
 });
 ```
 
-`vite dev` serves the app through your router with HMR. `vite build` produces `dist/ssr` and `dist/client`. `vite preview` serves the production build through the same fetch handler production runs.
+`vite dev` serves the app through your router. `vite build` produces `dist/ssr` and `dist/client`. `vite preview` serves the production build through the same fetch handler production runs.
+
+> [!NOTE]
+> Dev updates are coarse-grained today: the server entry is re-imported per request, and client edits trigger a page refresh. Remix UI's first-class HMR runtime is in progress upstream ([remix-run/remix#11515](https://github.com/remix-run/remix/pull/11515)) — we're tracking it, and `@pitlane/dev` will ship the companion transform once it lands so components hot-swap in place.
 
 ## Options
 
@@ -247,9 +250,11 @@ export default defineConfig({
 
 ### Netlify
 
+Keep the defaults — Netlify's plugin emulates the platform in dev while your fetch handler serves SSR. A three-line Netlify Function (`netlify/functions/server.mjs`) wraps the built entry; see the [Netlify guide](https://pitlane.tools/deploy/netlify).
+
 ```ts
 export default defineConfig({
-    plugins: [remix({ serverHandler: false }), netlify()],
+    plugins: [remix(), netlify()],
 });
 ```
 

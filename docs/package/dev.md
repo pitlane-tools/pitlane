@@ -9,7 +9,7 @@ The `remix()` Vite plugin for [Remix 3](https://remix.run). One plugin wires a R
 
 - **Build orchestration** — a `client` + `ssr` environment pair with sensible output defaults (`dist/client`, `dist/ssr`), built in the right order.
 - **The `clientEntry()` transform** — `clientEntry(import.meta.url, …)` components resolve to hashed production chunk URLs with export fragments, in every environment.
-- **Dev server** — `vite dev` serves requests through your app's own fetch handler, with HMR.
+- **Dev server** — `vite dev` serves requests through your app's own fetch handler, re-importing the server entry as you edit.
 - **Preview** — `vite preview` runs the production build through the same fetch handler production runs.
 
 `@pitlane/dev` is deliberately platform-agnostic: your server entry default-exports a standard fetch handler, and hosting composes around it. Platform plugins — `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, `nitro/vite` — sit alongside it in the same plugin array, and plain fetch runtimes (Node, Bun, Deno) run the built output directly.
@@ -99,7 +99,7 @@ run({
 Then the standard Vite lifecycle applies:
 
 ```sh
-vp dev      # dev server with HMR, requests served by your router
+vp dev      # dev server, requests served by your router
 vp build    # production build → dist/ssr + dist/client
 vp preview  # serve the production build locally
 ```
@@ -220,7 +220,7 @@ The matched pattern is strict, by design:
 
 ## Deployment
 
-Component authoring and the client build never change across targets. Two things vary: the `serverHandler` option, and how production runs the built fetch handler.
+Component authoring and the client build never change across targets. Two things vary: the `serverHandler` option, and how production runs the built fetch handler. Each target below has a full walkthrough under [Deploy](/deploy/cloudflare).
 
 ### Node
 
@@ -238,7 +238,7 @@ let server = http.createServer(createRequestListener(request => ssr.fetch(reques
 server.listen(process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000);
 ```
 
-Static assets are served by the `staticFiles("./dist/client")` middleware inside your router, so preview and production share one code path and `server.ts` stays a one-liner.
+Static assets are served by the `staticFiles("./dist/client")` middleware inside your router, so preview and production share one code path and `server.ts` stays a one-liner. Deploying to a host like Railway? See the [Railway guide](/deploy/railway).
 
 ### Bun
 
@@ -252,12 +252,14 @@ Bun.serve({
 });
 ```
 
+Or skip the wrapper entirely — Bun auto-serves a module that default-exports a fetch handler, reading `$PORT` natively: `bun run dist/ssr/index.js`.
+
 ### Deno
 
 The built entry already satisfies `deno serve`'s default-export contract:
 
 ```sh
-deno serve --allow-read --allow-net dist/ssr/index.js
+deno serve --port 3000 dist/ssr/index.js
 ```
 
 ### Cloudflare Workers
@@ -286,15 +288,19 @@ export default defineConfig({
 }
 ```
 
-Deploy with `wrangler deploy`.
+Deploy with `wrangler deploy` — full walkthrough in the [Cloudflare Workers guide](/deploy/cloudflare).
 
 ### Netlify
 
+Keep `remix()`'s defaults — Netlify's plugin emulates the platform in dev while your fetch handler serves SSR — and add a three-line Netlify Function that wraps the built entry:
+
 ```ts
 export default defineConfig({
-    plugins: [remix({ serverHandler: false }), netlify()],
+    plugins: [remix(), netlify()],
 });
 ```
+
+Full walkthrough (server function, `netlify.toml`) in the [Netlify guide](/deploy/netlify).
 
 ### Vercel (via Nitro)
 
@@ -305,6 +311,8 @@ export default defineConfig({
     plugins: [remix({ serverHandler: false }), nitro()],
 });
 ```
+
+Zero-config on git push — details in the [Vercel guide](/deploy/vercel).
 
 ## Build layout
 

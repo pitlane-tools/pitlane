@@ -1,0 +1,98 @@
+---
+title: Deploy to Cloudflare Workers
+description: Run a Remix 3 app on Cloudflare Workers with @pitlane/dev and the Cloudflare Vite plugin — workerd in dev, Miniflare preview, wrangler deploy.
+---
+
+# Cloudflare Workers
+
+Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/workers/) by composing `remix()` with [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/). Cloudflare's plugin owns the runtime story end to end: dev requests run inside [workerd](https://github.com/cloudflare/workerd) (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and `wrangler deploy` ships it.
+
+## Configuration
+
+Install the platform pieces:
+
+```sh
+vp add -D @cloudflare/vite-plugin wrangler
+```
+
+Point Cloudflare's plugin at the `ssr` environment and let it own dev-time request handling:
+
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { cloudflare } from "@cloudflare/vite-plugin";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ serverHandler: false }), cloudflare({ viteEnvironment: { name: "ssr" } })],
+});
+```
+
+`wrangler.jsonc` points at your server entry and the client build output:
+
+```jsonc
+// wrangler.jsonc
+{
+    "name": "my-remix-app",
+    "main": "app/entry.server.tsx",
+    "assets": { "directory": "dist/client" },
+    "compatibility_date": "2026-04-02",
+    "compatibility_flags": ["nodejs_compat"],
+}
+```
+
+Your server entry is already a Workers module — the default-exported router **is** the `fetch` handler. Extra worker events compose around it:
+
+```ts
+export default router;
+
+// or, with queue/cron handlers:
+export default {
+    fetch: router.fetch,
+    async queue(batch) {
+        /* ... */
+    },
+};
+```
+
+## Bindings
+
+Read bindings through the `cloudflare:workers` module — in dev they come from workerd's local emulation, in production from the deployed worker:
+
+```ts
+import { env } from "cloudflare:workers";
+
+let value = await env.MY_KV.get("key");
+```
+
+::: tip
+Importing `cloudflare:workers` makes the SSR bundle resolvable only inside workerd. That's expected — `@pitlane/dev`'s preview server detects it and steps aside so Cloudflare's Miniflare preview takes over.
+:::
+
+## Local development and preview
+
+```sh
+vp dev      # dev server — SSR runs inside workerd with your bindings
+vp build    # production build
+vp preview  # serve the production build through Miniflare
+```
+
+For local secrets during `vp dev`, use a gitignored [`.dev.vars`](https://developers.cloudflare.com/workers/configuration/secrets/#local-development-with-secrets) file next to `wrangler.jsonc`. Non-secret values can live in `wrangler.jsonc` under `"vars"`.
+
+## Deploy with the CLI
+
+```sh
+vpx wrangler login
+vp build
+vpx wrangler deploy
+```
+
+Production secrets are write-only through Wrangler:
+
+```sh
+vpx wrangler secret put MY_SECRET
+```
+
+## Deploy from git
+
+Connect the repository under **Workers & Pages → Create → Workers → Connect to Git** ([Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)); every push to the configured branch builds with your build command (`vp build` or `vite build`) and deploys using `wrangler.jsonc`.
