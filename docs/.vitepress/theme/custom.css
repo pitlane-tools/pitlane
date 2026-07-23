@@ -25,6 +25,20 @@ img[src*="logo"] {
         Consolas, Monaco, "Liberation Mono", "Lucida Console", monospace;
 }
 
+/* Custom containers: VitePress derives `tip` colors from the brand palette,
+   and our brand is red — which makes every tip read as a danger alert.
+   Remap tips to the default theme's green tokens (light and dark variants
+   come with them); info stays gray, warning yellow, danger red. */
+:root {
+    --vp-c-tip-1: var(--vp-c-green-1);
+    --vp-c-tip-2: var(--vp-c-green-2);
+    --vp-c-tip-3: var(--vp-c-green-3);
+    --vp-custom-block-tip-border: transparent;
+    --vp-custom-block-tip-text: var(--vp-c-text-1);
+    --vp-custom-block-tip-bg: var(--vp-c-green-soft);
+    --vp-custom-block-tip-code-bg: var(--vp-c-green-soft);
+}
+
 /* Brand colors — dark mode */
 :root.dark:not([data-theme]),
 :root[data-theme="dark"] {

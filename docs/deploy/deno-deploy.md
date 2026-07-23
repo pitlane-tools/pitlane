@@ -5,7 +5,7 @@ description: Run a Remix 3 app on Deno Deploy — the built fetch handler behind
 
 # Deno Deploy
 
-Deploy a Remix 3 app to [Deno Deploy](https://deno.com/deploy) — the new platform at [console.deno.com](https://console.deno.com), which runs full Deno 2 apps with integrated builds, CDN caching, and built-in logs, traces, and metrics. No platform plugin is involved: Deploy builds your app on its infrastructure and runs the built fetch handler under real Deno.
+Deploy a Remix 3 app to [Deno Deploy](https://deno.com/deploy) — the new platform at [console.deno.com](https://console.deno.com), which runs full Deno 2 apps with CDN caching and built-in logs, traces, and metrics. No platform plugin is involved: the Vite build runs in your CI, and Deploy runs the uploaded fetch handler under real Deno.
 
 ::: warning New Deploy only
 This guide targets the current Deno Deploy. Deploy Classic (`dash.deno.com`) shut down on July 20, 2026 — if you're coming from it, see the [migration guide](https://docs.deno.com/deploy/migration_guide/).
