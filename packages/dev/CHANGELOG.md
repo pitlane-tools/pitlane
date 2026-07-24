@@ -1,5 +1,12 @@
 # @pitlane/dev
 
+## 0.1.1
+
+No changes to the plugin. First release published through the tokenless
+trusted-publishing pipeline — this version and everything after it carries an
+npm provenance attestation (0.1.0 was published locally while the pipeline was
+bootstrapped).
+
 ## 0.1.0
 
 Initial release.

@@ -2,6 +2,11 @@ packages:
     - packages/*
     - demos/*
 
-onlyBuiltDependencies:
-    - remix
-    - workerd
+allowBuilds:
+    remix: true
+    workerd: true
+    # Binaries arrive via optional platform packages; the postinstall
+    # scripts are redundant here.
+    esbuild: false
+    sharp: false
+    vue-demi: false
