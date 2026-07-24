@@ -12,7 +12,7 @@ This guide is about living with `remix()` from `@pitlane/dev` day to day: how as
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev @pitlane/dev
+npm add -D @pitlane/dev
 ```
 
 ```sh [yarn]
@@ -24,11 +24,11 @@ pnpm add -D @pitlane/dev
 ```
 
 ```sh [bun]
-bun add -d @pitlane/dev
+bun add -D @pitlane/dev
 ```
 
 ```sh [deno]
-deno add --dev npm:@pitlane/dev
+deno add -D npm:@pitlane/dev
 ```
 
 ```sh [vp]
@@ -36,7 +36,7 @@ vp add -D @pitlane/dev
 ```
 
 ```sh [vlt]
-vlt install --save-dev @pitlane/dev
+vlt add -D @pitlane/dev
 ```
 
 ```sh [nub]

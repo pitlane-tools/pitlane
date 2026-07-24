@@ -12,7 +12,7 @@ Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev nitro
+npm add -D nitro
 ```
 
 ```sh [yarn]
@@ -24,11 +24,11 @@ pnpm add -D nitro
 ```
 
 ```sh [bun]
-bun add -d nitro
+bun add -D nitro
 ```
 
 ```sh [deno]
-deno add --dev npm:nitro
+deno add -D npm:nitro
 ```
 
 ```sh [vp]
@@ -36,7 +36,7 @@ vp add -D nitro
 ```
 
 ```sh [vlt]
-vlt install --save-dev nitro
+vlt add -D nitro
 ```
 
 ```sh [nub]

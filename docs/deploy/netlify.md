@@ -12,7 +12,7 @@ Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the cli
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev @netlify/vite-plugin
+npm add -D @netlify/vite-plugin
 ```
 
 ```sh [yarn]
@@ -24,11 +24,11 @@ pnpm add -D @netlify/vite-plugin
 ```
 
 ```sh [bun]
-bun add -d @netlify/vite-plugin
+bun add -D @netlify/vite-plugin
 ```
 
 ```sh [deno]
-deno add --dev npm:@netlify/vite-plugin
+deno add -D npm:@netlify/vite-plugin
 ```
 
 ```sh [vp]
@@ -36,7 +36,7 @@ vp add -D @netlify/vite-plugin
 ```
 
 ```sh [vlt]
-vlt install --save-dev @netlify/vite-plugin
+vlt add -D @netlify/vite-plugin
 ```
 
 ```sh [nub]

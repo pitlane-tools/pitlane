@@ -97,7 +97,7 @@ Install the [Railway CLI](https://docs.railway.com/reference/cli) as a dev depen
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev @railway/cli
+npm add -D @railway/cli
 ```
 
 ```sh [yarn]
@@ -109,11 +109,11 @@ pnpm add -D @railway/cli
 ```
 
 ```sh [bun]
-bun add -d @railway/cli
+bun add -D @railway/cli
 ```
 
 ```sh [deno]
-deno add --dev npm:@railway/cli
+deno add -D npm:@railway/cli
 ```
 
 ```sh [vp]
@@ -121,7 +121,7 @@ vp add -D @railway/cli
 ```
 
 ```sh [vlt]
-vlt install --save-dev @railway/cli
+vlt add -D @railway/cli
 ```
 
 ```sh [nub]

@@ -14,7 +14,7 @@ Install the platform pieces:
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev @cloudflare/vite-plugin wrangler
+npm add -D @cloudflare/vite-plugin wrangler
 ```
 
 ```sh [yarn]
@@ -26,11 +26,11 @@ pnpm add -D @cloudflare/vite-plugin wrangler
 ```
 
 ```sh [bun]
-bun add -d @cloudflare/vite-plugin wrangler
+bun add -D @cloudflare/vite-plugin wrangler
 ```
 
 ```sh [deno]
-deno add --dev npm:@cloudflare/vite-plugin npm:wrangler
+deno add -D npm:@cloudflare/vite-plugin npm:wrangler
 ```
 
 ```sh [vp]
@@ -38,7 +38,7 @@ vp add -D @cloudflare/vite-plugin wrangler
 ```
 
 ```sh [vlt]
-vlt install --save-dev @cloudflare/vite-plugin wrangler
+vlt add -D @cloudflare/vite-plugin wrangler
 ```
 
 ```sh [nub]
