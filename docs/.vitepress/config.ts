@@ -3,6 +3,8 @@ import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { defineConfig } from "vitepress";
 import { groupIconMdPlugin, groupIconVitePlugin, localIconLoader } from "vitepress-plugin-group-icons";
 
+import { pmTabsInlineScript } from "./pm-tabs.ts";
+
 const SITE_URL = "https://pitlane.tools";
 const SITE_NAME = "Pitlane";
 const SITE_DESCRIPTION = "Portable platform integration for Remix 3.";
@@ -97,6 +99,9 @@ const config = defineConfig({
         },
     },
     head: [
+        // Runs before the body streams in so stored package-manager tabs
+        // apply before first paint - no flash of the default tab.
+        ["script", {}, pmTabsInlineScript],
         ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
         ["meta", { property: "og:site_name", content: SITE_NAME }],
         ["meta", { property: "og:type", content: "website" }],
