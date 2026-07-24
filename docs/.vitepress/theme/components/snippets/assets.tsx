@@ -1,24 +1,17 @@
 // @ts-nocheck
-import parrotImage from "#/assets/images/parrot.png?url";
-import robinImage from "#/assets/images/robin.png?url";
-import { Image, Picture } from "pitlane/assets";
+// app/document.tsx — hashed asset URLs, resolved server-side
+import { mergeAssets } from "@pitlane/dev/runtime";
 
-function Birds() {
-    return () => (
-        <>
-            <Image
-                src={robinImage}
-                width={400}
-                height={300}
-                alt="A robin sitting on a nest of eggs."
-            />
-            <Picture
-                src={parrotImage}
-                width={400}
-                height={300}
-                formats={["avif", "webp"]}
-                alt="A parrot sitting on a nest of eggs."
-            />
-        </>
-    );
-}
+import clientAssets from "./entry.browser.ts?assets=client";
+import serverAssets from "./entry.server.tsx?assets=ssr";
+
+let assets = mergeAssets(clientAssets, serverAssets);
+
+export let Head = () => (
+    <>
+        {assets.css.map(attrs => (
+            <link key={attrs.href} {...attrs} rel="stylesheet" />
+        ))}
+        <script async src={clientAssets.entry} type="module" />
+    </>
+);

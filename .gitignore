@@ -6,3 +6,4 @@ docs/.vitepress/.temp
 .DS_Store
 dist
 .wrangler
+docs/package/dev

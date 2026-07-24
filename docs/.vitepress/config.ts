@@ -1,22 +1,48 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { defineConfig } from "vitepress";
-import { groupIconMdPlugin, groupIconVitePlugin } from "vitepress-plugin-group-icons";
+import {
+    groupIconMdPlugin,
+    groupIconVitePlugin,
+    localIconLoader,
+} from "vitepress-plugin-group-icons";
+
+import { pmTabsInlineScript } from "./pm-tabs.ts";
 
 const SITE_URL = "https://pitlane.tools";
 const SITE_NAME = "Pitlane";
 const SITE_DESCRIPTION = "Portable platform integration for Remix 3.";
 const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
-// Sidebar sections for unreleased packages and guides live in git history;
-// they return as their packages ship. The published site documents released
-// surface only.
+// Sidebar sections for unreleased packages live in git history; they return
+// as their packages ship. The published site documents released surface only.
+// (The pre-release Cloudflare-era guides sit in docs/internal/legacy-guides.)
+
+// Shared by /guides/ and /deploy/ so both prefixes present one "Guides"
+// section: general usage guides first, deployment guides under Deploy.
+const guides = [
+    {
+        text: "Guides",
+        items: [{ text: "Vite Plugin", link: "/guides/vite-plugin" }],
+    },
+    {
+        text: "Deploy",
+        items: [
+            { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
+            { text: "Netlify", link: "/deploy/netlify" },
+            { text: "Vercel", link: "/deploy/vercel" },
+            { text: "Railway", link: "/deploy/railway" },
+            { text: "Deno Deploy", link: "/deploy/deno-deploy" },
+            { text: "GitHub Pages", link: "/deploy/github-pages" },
+        ],
+    },
+];
 
 const config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
-    srcExclude: ["superpowers/**", "internal/**", "guides/**"],
+    srcExclude: ["superpowers/**", "internal/**"],
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
         const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
@@ -46,19 +72,40 @@ const config = defineConfig({
         },
     },
     vite: {
-        plugins: [groupIconVitePlugin() as any],
+        plugins: [
+            groupIconVitePlugin({
+                customIcon: {
+                    vp: localIconLoader(import.meta.url, "../public/icons/vp.svg"),
+                    vlt: localIconLoader(import.meta.url, "../public/icons/vlt.svg"),
+                    nub: localIconLoader(import.meta.url, "../public/icons/nub.svg"),
+                },
+            }),
+        ],
     },
     themeConfig: {
         logo: "/favicon.svg",
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
-        nav: [],
-        sidebar: {},
+        nav: [
+            { text: "Guides", link: "/guides/vite-plugin", activeMatch: "^/(guides|deploy)/" },
+            { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
+        ],
+        sidebar: {
+            "/package/": [
+                { text: "@pitlane/dev", link: "/package/dev/" },
+                { text: "@pitlane/dev/runtime", link: "/package/dev/@pitlane/dev/runtime" },
+            ],
+            "/guides/": guides,
+            "/deploy/": guides,
+        },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
         },
     },
     head: [
+        // Runs before the body streams in so stored package-manager tabs
+        // apply before first paint - no flash of the default tab.
+        ["script", {}, pmTabsInlineScript],
         ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
         ["meta", { property: "og:site_name", content: SITE_NAME }],
         ["meta", { property: "og:type", content: "website" }],

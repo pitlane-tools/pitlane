@@ -16,18 +16,17 @@
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
                 <span class="text-xs font-medium font-mono uppercase tracking-wide opacity-70">
-                    Platform Ops
+                    Deployment
                 </span>
             </div>
-            <h3 class="text-balance max-w-md">Platform ops at pit-crew speed.</h3>
+            <h3 class="text-balance max-w-md">
+                A pit-crew that can help you deploy in no time flat.
+            </h3>
             <p class="opacity-85 max-w-md">
-                <code>pitlane resources create</code> reads <code>platform()</code> and provisions
-                D1, KV, R2, queues, and cron triggers in one pass.
-                <code>pitlane db migrate</code> runs pending D1 migrations.
-                <code>pitlane secrets push</code> syncs secrets from <code>.env</code> to Wrangler.
-                <code>pitlane deploy</code> ties it all together.
+                Build in CI, upload artifacts. Every deploy guide pairs a CLI walkthrough with a
+                GitHub Actions workflow, so the Vite build always runs where you control it.
             </p>
-            <a href="https://github.com/pitlane-tools/pitlane" class="button w-fit mt-4">CLI reference</a>
+            <a href="/deploy/cloudflare" class="button w-fit mt-4">Deployment guides</a>
         </div>
     </section>
 </template>

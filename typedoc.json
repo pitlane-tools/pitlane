@@ -1,0 +1,20 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "plugin": ["typedoc-plugin-markdown"],
+    "entryPoints": ["packages/dev/src/index.ts", "packages/dev/src/runtime.ts"],
+    "tsconfig": "packages/dev/tsconfig.json",
+    "skipErrorChecking": true,
+    "out": "docs/package/dev",
+    "cleanOutputDir": true,
+    "readme": "none",
+    "githubPages": false,
+    "excludeInternal": true,
+    "disableSources": true,
+    "outputFileStrategy": "modules",
+    "entryModule": "@pitlane/dev",
+    "entryFileName": "index.md",
+    "hidePageHeader": true,
+    "hideBreadcrumbs": true,
+    "useCodeBlocks": true,
+    "formatWithPrettier": false
+}
