@@ -9,7 +9,7 @@ import type { Plugin, PluginOption } from "vite";
 
 import fullstack from "@hiogawa/vite-plugin-fullstack";
 
-import { build, buildCompat } from "./build.ts";
+import { build, buildCompat, runtimeInline } from "./build.ts";
 import { preview } from "./preview.ts";
 import { clientEntryTransform } from "./transform.ts";
 
@@ -75,8 +75,10 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         }),
         buildCompat(),
         build({ clientEntry, serverEntry }),
+        runtimeInline(),
         preview(),
         suppressAbortErrors(),
+        normalizeWriteHead(),
         clientEntryTransform(new Set(serverEnvironments)),
     ];
 }
@@ -99,6 +101,32 @@ function suppressAbortErrors(): Plugin {
                     },
                 );
             };
+        },
+    };
+}
+
+/**
+ * Flattens `[["key", "value"], …]` header arguments to the documented flat
+ * form before they reach `res.writeHead`. Node tolerates nested pairs, but
+ * runtimes implementing the documented `node:http` contract (Deno) reject
+ * them — and dev-serving dependencies send pairs. Dev-only; production
+ * responses never pass through this server.
+ */
+function normalizeWriteHead(): Plugin {
+    return {
+        name: "pitlane-remix-normalize-write-head",
+        configureServer(server) {
+            server.middlewares.use((_req, res, next) => {
+                let original = res.writeHead.bind(res);
+                res.writeHead = ((...args: Parameters<typeof res.writeHead>) => {
+                    let last = args[args.length - 1];
+                    if (Array.isArray(last) && last.every(entry => Array.isArray(entry))) {
+                        args[args.length - 1] = last.flat();
+                    }
+                    return original(...args);
+                }) as typeof res.writeHead;
+                next();
+            });
         },
     };
 }
