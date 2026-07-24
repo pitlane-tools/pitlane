@@ -1,0 +1,29 @@
+{
+    "name": "create-pitlane",
+    "version": "0.0.0",
+    "description": "Reserved for the Pitlane scaffolding CLI (`npm create pitlane`). Not yet released — scaffold from pitlane-tools/templates with giget in the meantime.",
+    "keywords": [
+        "remix",
+        "vite",
+        "pitlane",
+        "create"
+    ],
+    "homepage": "https://pitlane.tools",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/create-pitlane"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "type": "module",
+    "bin": {
+        "create-pitlane": "index.js"
+    },
+    "files": [
+        "index.js"
+    ]
+}
