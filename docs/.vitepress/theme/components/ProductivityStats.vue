@@ -16,8 +16,8 @@
                     <span class="lap-stat__dot">·</span>1<span class="stat-unit">plugin</span>
                 </div>
                 <div class="stat-label">
-                    <code>plugins: [remix()]</code> is the whole build config — SSR and client
-                    builds, dev, preview, hydration.
+                    <code>plugins: [remix()]</code> is the whole build config: SSR + client builds,
+                    dev, preview, and hydration.
                 </div>
             </div>
             <div class="stat">
@@ -25,26 +25,17 @@
                     <span class="lap-stat__dot">·</span>2<span class="stat-unit">peer deps</span>
                 </div>
                 <div class="stat-label">
-                    <code>remix</code> and <code>vite</code>. Bring your own versions — the
-                    tested range is documented.
+                    <code>remix</code> and <code>vite</code> are the only dependencies Pitlane
+                    requires.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>6<span class="stat-unit">targets</span>
+                    <span class="lap-stat__dot">·</span>6<span class="stat-unit">guides</span>
                 </div>
                 <div class="stat-label">
-                    Deploy guides shipped: Cloudflare, Netlify, Vercel, Railway, Deno Deploy,
-                    GitHub Pages.
-                </div>
-            </div>
-            <div class="stat">
-                <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>8<span class="stat-unit">managers</span>
-                </div>
-                <div class="stat-label">
-                    Install docs speak npm, yarn, pnpm, bun, deno, vp, vlt, and nub — pick yours
-                    once, the site remembers.
+                    Learn how to deploy a Remix app to Cloudflare, Netlify, Vercel, Railway, Deno
+                    Deploy, or GitHub Pages in the documentation.
                 </div>
             </div>
         </div>
@@ -60,7 +51,7 @@
 
 @media (min-width: 900px) {
     .stats {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
@@ -84,7 +75,7 @@
 
 .stat-unit {
     font-size: 0.34em;
-    margin-left: 0.25em;
+    margin-left: 0.5em;
     color: var(--vp-c-text-2);
     font-weight: 600;
     text-transform: lowercase;

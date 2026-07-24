@@ -25,10 +25,10 @@
                     server-rendered HTML — no manifest plumbing.
                 </p>
                 <p class="text-pretty opacity-85">
-                    Vite+ — or plain Vite — runs the application lifecycle. Your server entry
-                    default-exports a standard fetch handler, and platform plugins like
-                    <code>@cloudflare/vite-plugin</code> or <code>nitro/vite</code> compose
-                    alongside: swap the target, keep the app.
+                    Vite+ (or plain Vite) runs the application lifecycle. Your server entry exports
+                    a WinterTC standard fetch handler, and platform plugins like
+                    <code>@cloudflare/vite-plugin</code>, <code>@netlify/vite-plugin</code> or
+                    <code>nitro/vite</code> compose alongside.
                 </p>
                 <a href="/guides/vite-plugin" class="button w-fit mt-8 block lg:hidden">
                     Learn the workflow

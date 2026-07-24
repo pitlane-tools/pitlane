@@ -7,15 +7,13 @@
                     The Stack
                 </span>
             </div>
-            <h3 class="text-balance max-w-xl">
-                One stack: Remix framework, Vite+ tooling, your platform.
-            </h3>
+            <h3 class="text-balance max-w-xl">Remix web app, Vite+ tooling, deploy anywhere.</h3>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
             <a target="_blank" class="stack-card" href="https://remix.run">
                 <h5 class="stack-title">Remix</h5>
                 <p class="stack-body">
-                    Routing, middleware, and component framework your app actually runs on.
+                    Routing, middleware, and component rendering your app is built on.
                 </p>
                 <span class="stack-tag">runtime</span>
             </a>
@@ -28,10 +26,10 @@
                 <span class="stack-tag">tooling</span>
             </a>
             <a class="stack-card" href="/deploy/cloudflare">
-                <h5 class="stack-title">Your platform</h5>
+                <h5 class="stack-title">Deployment</h5>
                 <p class="stack-body">
-                    Cloudflare, Netlify, Vercel, Railway, Deno Deploy, GitHub Pages — the built
-                    fetch handler runs on all of them.
+                    Cloudflare, Netlify, Vercel, Node, Bun, Deno. Run your app anywhere JavaScript
+                    runs.
                 </p>
                 <span class="stack-tag">platform</span>
             </a>

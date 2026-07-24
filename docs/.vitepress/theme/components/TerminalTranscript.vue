@@ -1,19 +1,23 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
+// FIXME: Are these times correct? We should do a few runs of each of these commands and try
+// to get more accurate/correct timings
 const lines = [
     {
         ts: "00:01.20",
-        cmd: "vpx giget github:pitlane-tools/templates/templates/cloudflare my-app",
-        out: "Scaffolded my-app",
+        cmd: "vpx giget github:pitlane-tools/templates/cloudflare airfoil",
+        out: "Scaffolded app",
     },
-    { ts: "00:04.50", cmd: "cd my-app && vp install", out: "Installed 184 packages" },
-    { ts: "00:11.80", cmd: "vpx wrangler d1 create my-app-db", out: "D1 ready" },
-    { ts: "00:12.95", cmd: "vp dev", out: "Local server on :1612" },
+    // FIXME: Is this package number accurate? We'll know after we create the templates and
+    // we can inspect them
+    { ts: "00:04.50", cmd: "cd airfoil && vp install", out: "Installed 184 packages" },
+    { ts: "00:11.80", cmd: "vpx wrangler d1 create airfoil-db", out: "D1 database provisioned" },
+    { ts: "00:12.95", cmd: "vp dev", out: "Dev server running on :1612" },
     {
         ts: "00:20.70",
         cmd: "git push",
-        out: "Actions deploy to https://my-app.workers.dev",
+        out: "Deployed to https://airfoil.workers.dev",
         accent: true,
     },
 ];
@@ -120,7 +124,7 @@ onUnmounted(() => {
                     Lap Time
                 </span>
             </div>
-            <h3 class="text-balance max-w-2xl">From scaffold to deploy in under one minute.</h3>
+            <h3 class="text-balance max-w-2xl">From scaffold to deploy in under a minute.</h3>
         </div>
         <div class="transcript">
             <div

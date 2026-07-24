@@ -32,9 +32,6 @@ async function copy() {
                     {{ copied ? "Copied" : "Copy" }}
                 </button>
             </div>
-            <p class="opacity-70 text-sm">
-                The <code>remix()</code> plugin for Remix 3 — works with Vite and Vite+ alike.
-            </p>
         </div>
     </section>
 </template>

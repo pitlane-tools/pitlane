@@ -6,14 +6,11 @@
             >
                 <h1 class="text-pretty">Platform Integration for Remix Apps</h1>
                 <p class="text-lg max-w-md text-pretty opacity-80">
-                    One <code>remix()</code> Vite plugin — your server entry is a fetch handler
-                    that runs on Cloudflare, Netlify, Vercel, Node, Bun, or Deno.
+                    One <code>remix()</code> Vite plugin enables you to package your app for
+                    Cloudflare, Netlify, Vercel, Node, Bun, or Deno.
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
-                    <a
-                        href="/guides/vite-plugin"
-                        class="button button--primary inline-block w-fit"
-                    >
+                    <a href="/guides/vite-plugin" class="button button--primary inline-block w-fit">
                         <span>Get Started</span>
                     </a>
                     <a

@@ -16,18 +16,17 @@
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
                 <span class="text-xs font-medium font-mono uppercase tracking-wide opacity-70">
-                    Deploys
+                    Deployment
                 </span>
             </div>
-            <h3 class="text-balance max-w-md">Deploys at pit-crew speed.</h3>
+            <h3 class="text-balance max-w-md">
+                A pit-crew that can help you deploy in no time flat.
+            </h3>
             <p class="opacity-85 max-w-md">
-                Build in your CI, upload artifacts. Every deploy guide pairs a CLI walkthrough
-                with a GitHub Actions workflow — <code>wrangler deploy</code>,
-                <code>netlify deploy --no-build</code>, <code>vercel deploy --prebuilt</code>,
-                <code>railway redeploy</code> — so the Vite build always runs where you control
-                it.
+                Build in CI, upload artifacts. Every deploy guide pairs a CLI walkthrough with a
+                GitHub Actions workflow, so the Vite build always runs where you control it.
             </p>
-            <a href="/deploy/cloudflare" class="button w-fit mt-4">Deploy guides</a>
+            <a href="/deploy/cloudflare" class="button w-fit mt-4">Deployment guides</a>
         </div>
     </section>
 </template>

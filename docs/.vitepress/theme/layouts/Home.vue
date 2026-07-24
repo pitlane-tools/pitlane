@@ -19,17 +19,17 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
     <InstallCommand />
     <Stack3Col />
     <Intro />
-    <Suspense>
+    <!-- <Suspense>
         <PrimitivesGrid />
-    </Suspense>
+    </Suspense> -->
     <CheckerDivider />
     <TerminalTranscript />
     <OperationsArt />
     <ProductivityStats />
     <PartnerLogos />
     <Footer
-        heading="Start with Pitlane"
-        subheading="Add the remix() plugin to your Vite config, keep the workflow you have, and deploy the same fetch handler anywhere."
+        heading="It's lights out and away we go!"
+        subheading="Add the Pitlane Remix plugin to your Vite config, keep the workflow you have, and deploy your app anywhere."
         button-text="Get started"
         button-link="/guides/vite-plugin"
     />
