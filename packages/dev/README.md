@@ -12,7 +12,7 @@ npm install --save-dev @pitlane/dev
 vp add -D @pitlane/dev
 ```
 
-Requires `remix@^3.0.0-beta.5` and `vite@>=7` as peers.
+Requires `remix@^3.0.0-beta.5` and `vite@>=7` as peers. v0.1.0 is tested against **Vite 8.1** (Rolldown), **Vite+ 0.2** (`vp`), and `remix@3.0.0-beta.5` — the [templates](https://github.com/pitlane-tools/templates) are the continuously tested reference.
 
 ## Quick start
 

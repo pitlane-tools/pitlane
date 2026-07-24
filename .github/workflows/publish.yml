@@ -43,5 +43,17 @@ jobs:
             - name: Build package
               run: vp run build
 
+            - name: Authenticate with npm
+              # First publishes need a token: create a granular automation
+              # token on npmjs.com (packages & scopes → @pitlane, read/write)
+              # and store it as the NPM_TOKEN repository secret. Once the
+              # package exists, configure npm Trusted Publishing for this
+              # workflow, delete the secret, and this step self-deactivates —
+              # OIDC (`id-token: write`) plus --provenance take over.
+              if: ${{ secrets.NPM_TOKEN != '' }}
+              run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
             - name: Publish to npm with provenance
               run: npm publish --provenance --access public --tag latest

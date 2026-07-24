@@ -45,7 +45,7 @@ nub add -D @pitlane/dev
 
 :::
 
-`@pitlane/dev` declares `remix@^3.0.0-beta.5` and `vite@>=7` as peer dependencies.
+`@pitlane/dev` declares `remix@^3.0.0-beta.5` and `vite@>=7` as peer dependencies. The tested range for v0.1.0 is **Vite 8.1** (Rolldown) and **Vite+ 0.2** (`vp`) with `remix@3.0.0-beta.5`; the [templates](https://github.com/pitlane-tools/templates) exercise that matrix continuously in CI.
 
 ## Templates
 
