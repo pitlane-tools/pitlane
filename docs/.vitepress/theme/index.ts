@@ -1,6 +1,7 @@
 import type { Theme } from "vitepress";
 
 import { themeContextKey, VoidZeroTheme } from "@voidzero-dev/vitepress-theme";
+import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
 
 import Home from "./layouts/Home.vue";
 import "./custom.css";
@@ -23,6 +24,10 @@ export default {
         });
 
         ctx.app.component("Home", Home);
+        ctx.app.component(
+            "CopyOrDownloadAsMarkdownButtons",
+            CopyOrDownloadAsMarkdownButtons,
+        );
 
         VoidZeroTheme.enhanceApp(ctx);
     },

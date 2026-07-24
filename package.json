@@ -17,6 +17,7 @@
         "vite-plus": "^0.2.6",
         "vitepress": "latest",
         "vitepress-plugin-group-icons": "latest",
+        "vitepress-plugin-llms": "^1.13.3",
         "vue": "latest",
         "wrangler": "^4.85.0"
     },
