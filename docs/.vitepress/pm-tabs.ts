@@ -51,6 +51,11 @@ export const pmTabsInlineScript = `(() => {
         }
     };
 
+    // Synchronous, pre-body: the CSS shield (custom.css) keys off html[data-pm]
+    // so a partially-parsed code group can never paint the default tab.
+    const initial = stored();
+    if (initial) document.documentElement.dataset.pm = initial;
+
     new MutationObserver(fix).observe(document.documentElement, { childList: true, subtree: true });
 
     window.addEventListener("click", (event) => {
@@ -59,11 +64,21 @@ export const pmTabsInlineScript = `(() => {
         if (!label.matches(".vp-code-group .tabs label")) return;
         const pm = managerOf(label);
         if (!pm) return;
+        document.documentElement.dataset.pm = pm;
         try {
             localStorage.setItem(KEY, pm);
         } catch {
             // Storage unavailable - the click still switches this group natively.
         }
         fix(); // sync the page's other code groups
+    });
+
+    // Cross-tab: follow changes made in other tabs of the site.
+    window.addEventListener("storage", (event) => {
+        if (event.key !== KEY) return;
+        const pm = stored();
+        if (!pm) return;
+        document.documentElement.dataset.pm = pm;
+        fix();
     });
 })();`;
