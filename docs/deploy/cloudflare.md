@@ -11,9 +11,41 @@ Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/w
 
 Install the platform pieces:
 
-```sh
+::: code-group
+
+```sh [npm]
+npm install --save-dev @cloudflare/vite-plugin wrangler
+```
+
+```sh [yarn]
+yarn add -D @cloudflare/vite-plugin wrangler
+```
+
+```sh [pnpm]
+pnpm add -D @cloudflare/vite-plugin wrangler
+```
+
+```sh [bun]
+bun add -d @cloudflare/vite-plugin wrangler
+```
+
+```sh [deno]
+deno add --dev npm:@cloudflare/vite-plugin npm:wrangler
+```
+
+```sh [vp]
 vp add -D @cloudflare/vite-plugin wrangler
 ```
+
+```sh [vlt]
+vlt install --save-dev @cloudflare/vite-plugin wrangler
+```
+
+```sh [nub]
+nub add -D @cloudflare/vite-plugin wrangler
+```
+
+:::
 
 Point Cloudflare's plugin at the `ssr` environment and let it own dev-time request handling:
 

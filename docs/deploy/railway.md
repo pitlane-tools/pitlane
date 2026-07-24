@@ -92,16 +92,53 @@ CMD deno serve -A --port=$PORT dist/ssr/index.js
 
 One-time setup: create an empty project at [railway.com/new](https://railway.com/new), add a service with **Docker Image** as the source (e.g. `ghcr.io/<user>/my-remix-app:latest` — [private images](https://docs.railway.com/builds/private-registries) need registry credentials), and generate a domain (**Settings → Networking** — services are private by default).
 
+Install the [Railway CLI](https://docs.railway.com/reference/cli) as a dev dependency:
+
+::: code-group
+
+```sh [npm]
+npm install --save-dev @railway/cli
+```
+
+```sh [yarn]
+yarn add -D @railway/cli
+```
+
+```sh [pnpm]
+pnpm add -D @railway/cli
+```
+
+```sh [bun]
+bun add -d @railway/cli
+```
+
+```sh [deno]
+deno add --dev npm:@railway/cli
+```
+
+```sh [vp]
+vp add -D @railway/cli
+```
+
+```sh [vlt]
+vlt install --save-dev @railway/cli
+```
+
+```sh [nub]
+nub add -D @railway/cli
+```
+
+:::
+
 Then every deploy is: build the image, push it, tell Railway to pull it.
 
 ```sh
 docker build -t ghcr.io/<user>/my-remix-app:latest .
 docker push ghcr.io/<user>/my-remix-app:latest
 
-npm i -g @railway/cli   # or: brew install railway
-railway login
-railway link            # link this directory to the project once
-railway redeploy --service my-remix-app --yes
+vpx railway login
+vpx railway link            # link this directory to the project once
+vpx railway redeploy --service my-remix-app --yes
 ```
 
 `railway redeploy` re-pulls the image tag and rolls the service — no source upload, no platform build.
@@ -140,9 +177,11 @@ jobs:
                   push: true
                   tags: ghcr.io/${{ github.repository }}:latest
 
-            - run: npm i -g @railway/cli
+            - uses: voidzero-dev/setup-vp@v1
 
-            - run: railway redeploy --service my-remix-app --yes
+            - run: vp install --frozen-lockfile
+
+            - run: vpx railway redeploy --service my-remix-app --yes
               env:
                   RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 ```

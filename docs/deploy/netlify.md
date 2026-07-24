@@ -9,9 +9,41 @@ Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the cli
 
 ## Configuration
 
-```sh
+::: code-group
+
+```sh [npm]
+npm install --save-dev @netlify/vite-plugin
+```
+
+```sh [yarn]
+yarn add -D @netlify/vite-plugin
+```
+
+```sh [pnpm]
+pnpm add -D @netlify/vite-plugin
+```
+
+```sh [bun]
+bun add -d @netlify/vite-plugin
+```
+
+```sh [deno]
+deno add --dev npm:@netlify/vite-plugin
+```
+
+```sh [vp]
 vp add -D @netlify/vite-plugin
 ```
+
+```sh [vlt]
+vlt install --save-dev @netlify/vite-plugin
+```
+
+```sh [nub]
+nub add -D @netlify/vite-plugin
+```
+
+:::
 
 ```ts
 // vite.config.ts

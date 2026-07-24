@@ -9,9 +9,41 @@ Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with
 
 ## Configuration
 
-```sh
+::: code-group
+
+```sh [npm]
+npm install --save-dev nitro
+```
+
+```sh [yarn]
+yarn add -D nitro
+```
+
+```sh [pnpm]
+pnpm add -D nitro
+```
+
+```sh [bun]
+bun add -d nitro
+```
+
+```sh [deno]
+deno add --dev npm:nitro
+```
+
+```sh [vp]
 vp add -D nitro
 ```
+
+```sh [vlt]
+vlt install --save-dev nitro
+```
+
+```sh [nub]
+nub add -D nitro
+```
+
+:::
 
 ```ts
 // vite.config.ts

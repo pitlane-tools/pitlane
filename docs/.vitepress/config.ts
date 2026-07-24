@@ -1,7 +1,7 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { defineConfig } from "vitepress";
-import { groupIconMdPlugin, groupIconVitePlugin } from "vitepress-plugin-group-icons";
+import { groupIconMdPlugin, groupIconVitePlugin, localIconLoader } from "vitepress-plugin-group-icons";
 
 const SITE_URL = "https://pitlane.tools";
 const SITE_NAME = "Pitlane";
@@ -66,7 +66,15 @@ const config = defineConfig({
         },
     },
     vite: {
-        plugins: [groupIconVitePlugin() as any],
+        plugins: [
+            groupIconVitePlugin({
+                customIcon: {
+                    vp: localIconLoader(import.meta.url, "../public/icons/vp.svg"),
+                    vlt: localIconLoader(import.meta.url, "../public/icons/vlt.svg"),
+                    nub: localIconLoader(import.meta.url, "../public/icons/nub.svg"),
+                },
+            }),
+        ],
     },
     themeConfig: {
         logo: "/favicon.svg",

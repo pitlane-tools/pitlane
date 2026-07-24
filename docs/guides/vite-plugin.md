@@ -11,16 +11,36 @@ This guide is about living with `remix()` from `@pitlane/dev` day to day: how as
 
 ::: code-group
 
-```sh [vp]
-vp add -D @pitlane/dev
-```
-
 ```sh [npm]
 npm install --save-dev @pitlane/dev
 ```
 
+```sh [yarn]
+yarn add -D @pitlane/dev
+```
+
 ```sh [pnpm]
 pnpm add -D @pitlane/dev
+```
+
+```sh [bun]
+bun add -d @pitlane/dev
+```
+
+```sh [deno]
+deno add --dev npm:@pitlane/dev
+```
+
+```sh [vp]
+vp add -D @pitlane/dev
+```
+
+```sh [vlt]
+vlt install --save-dev @pitlane/dev
+```
+
+```sh [nub]
+nub add -D @pitlane/dev
 ```
 
 :::
