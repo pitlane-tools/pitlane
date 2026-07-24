@@ -48,12 +48,19 @@ jobs:
               # token on npmjs.com (packages & scopes → @pitlane, read/write)
               # and store it as the NPM_TOKEN repository secret. Once the
               # package exists, configure npm Trusted Publishing for this
-              # workflow, delete the secret, and this step self-deactivates —
-              # OIDC (`id-token: write`) plus --provenance take over.
-              if: ${{ secrets.NPM_TOKEN != '' }}
-              run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+              # workflow, delete the secret, and this step falls through to
+              # OIDC — `id-token: write` plus --provenance take over.
+              # (The secrets context is not available in step `if`s, so the
+              # branch lives in the shell.)
               env:
                   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -n "$NPM_TOKEN" ]; then
+                      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+                      echo "Authenticated with the NPM_TOKEN secret."
+                  else
+                      echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
+                  fi
 
             - name: Publish to npm with provenance
               run: npm publish --provenance --access public --tag latest
