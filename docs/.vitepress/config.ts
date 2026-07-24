@@ -1,6 +1,7 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { defineConfig } from "vitepress";
+import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 import {
     groupIconMdPlugin,
     groupIconVitePlugin,
@@ -43,6 +44,7 @@ const config = defineConfig({
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
     srcExclude: ["superpowers/**", "internal/**"],
+    cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
         const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
@@ -69,6 +71,7 @@ const config = defineConfig({
         },
         config(md) {
             md.use(groupIconMdPlugin);
+            md.use(copyOrDownloadAsMarkdownButtons);
         },
     },
     vite: {
@@ -79,6 +82,30 @@ const config = defineConfig({
                     vlt: localIconLoader(import.meta.url, "../public/icons/vlt.svg"),
                     nub: localIconLoader(import.meta.url, "../public/icons/nub.svg"),
                 },
+            }),
+            // Emits llms.txt, llms-full.txt, and a raw-Markdown twin of every
+            // page into the dist assets (build only). Mirrors `srcExclude`:
+            // those pages are not on the site, so LLMs don't get them either.
+            llmstxt({
+                ignoreFiles: ["superpowers/**", "internal/**"],
+                // The theme sidebar maps two prefixes ("/guides/", "/deploy/")
+                // to the same `guides` array; the llms.txt TOC builder flattens
+                // sidebar values and would list every section twice. Hand it
+                // one deduped sidebar, with the API pages as a named section
+                // instead of the fallback "Other" bucket.
+                sidebar: [
+                    ...guides,
+                    {
+                        text: "Packages",
+                        items: [
+                            { text: "@pitlane/dev", link: "/package/dev/index" },
+                            {
+                                text: "@pitlane/dev/runtime",
+                                link: "/package/dev/runtime",
+                            },
+                        ],
+                    },
+                ],
             }),
         ],
     },
@@ -93,7 +120,7 @@ const config = defineConfig({
         sidebar: {
             "/package/": [
                 { text: "@pitlane/dev", link: "/package/dev/" },
-                { text: "@pitlane/dev/runtime", link: "/package/dev/@pitlane/dev/runtime" },
+                { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
             ],
             "/guides/": guides,
             "/deploy/": guides,

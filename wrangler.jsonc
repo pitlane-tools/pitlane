@@ -7,8 +7,12 @@
     // stays out of this config because CI's API token is scoped to Workers
     // only (no zone permissions), and custom domains persist across deploys.
     "preview_urls": true,
+    // worker.ts canonicalizes trailing-slash URLs and serves the prerendered
+    // 404 page on misses; assets that match are served without invoking it.
+    "main": "worker.ts",
     "assets": {
         "directory": "./docs/.vitepress/dist",
-        "not_found_handling": "single-page-application",
+        "binding": "ASSETS",
+        "not_found_handling": "none",
     },
 }
