@@ -70,12 +70,12 @@ remix({
 });
 ```
 
-| Option               | Type              | Default               | Purpose                                                                                                                              |
-| -------------------- | ----------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------|
-| `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                  |
-| `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                   |
-| `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                  |
-| `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+| Option | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `clientEntry` | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration. |
+| `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`. |
+| `serverEnvironments` | `string[]` | `["ssr"]` | Environment names the `clientEntry()` transform treats as "server". |
+| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
 
 ## The asset runtime
 
@@ -116,7 +116,7 @@ Each result is `{ entry?, js: [{ href }], css: [{ href }] }`; `mergeAssets` dedu
 
 ### Dev and production resolve differently — by design
 
-| | `vite dev` | production build |
+|  | `vite dev` | production build |
 | --- | --- | --- |
 | `entry` | source URL (`/app/entry.browser.ts`) | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
 | `js` | **always empty** — no chunk graph exists yet | reachable chunks, for `modulepreload` |
@@ -125,8 +125,10 @@ Each result is `{ entry?, js: [{ href }], css: [{ href }] }`; `mergeAssets` dedu
 
 Write the `Document` once against the full shape and both modes come out right — empty arrays render nothing in dev, real tags in production.
 
-::: warning Footgun: `?assets=` is server-side data
-In the client environment, `?assets=` imports resolve to an empty result — the browser already knows its own modules, and Vite's preload optimization covers chunk loading. Read `?assets=` in server-rendered components (your `Document`), never in code that only runs in the browser expecting real values.
+::: warning Footgun Warning
+
+`?assets=` is server-side data In the client environment, `?assets=` imports resolve to an empty result — the browser already knows its own modules, and Vite's preload optimization covers chunk loading. Read `?assets=` in server-rendered components (your `Document`), never in code that only runs in the browser expecting real values. :
+
 :::
 
 ## The `clientEntry()` transform
@@ -139,7 +141,14 @@ import { clientEntry, on } from "remix/ui";
 export const Counter = clientEntry(import.meta.url, handle => {
     let count = 0;
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: <span>{count}</span>
         </button>
     );
@@ -160,23 +169,36 @@ Anything else is left untouched — no error, no warning. An untransformed call 
 
 ```tsx
 // ✗ default export — no export name for the #fragment
-export default clientEntry(import.meta.url, handle => { /* … */ });
+export default clientEntry(import.meta.url, handle => {
+    /* … */
+});
 
 // ✗ aliased callee — the transform matches the literal name `clientEntry`
 import { clientEntry as ce } from "remix/ui";
-export const Counter = ce(import.meta.url, handle => { /* … */ });
+
+export const Counter = ce(import.meta.url, handle => {
+    /* … */
+});
 
 // ✗ not exported — the browser could never import it by name
-const Counter = clientEntry(import.meta.url, handle => { /* … */ });
+const Counter = clientEntry(import.meta.url, handle => {
+    /* … */
+});
 
 // ✗ wrapped in a helper — the call site the transform sees isn't clientEntry()
-export const Counter = myIslandHelper(import.meta.url, handle => { /* … */ });
+export const Counter = myIslandHelper(import.meta.url, handle => {
+    /* … */
+});
 
 // ✗ computed first argument — must be literally `import.meta.url`
-export const Counter = clientEntry(String(import.meta.url), handle => { /* … */ });
+export const Counter = clientEntry(String(import.meta.url), handle => {
+    /* … */
+});
 
 // ✓ the one true shape
-export const Counter = clientEntry(import.meta.url, handle => { /* … */ });
+export const Counter = clientEntry(import.meta.url, handle => {
+    /* … */
+});
 ```
 
 The strictness is intentional: named exports make the `#Name` fragment meaningful, and a pattern this explicit can never false-positive on unrelated `import.meta.url` usage in the same file (which the transform leaves alone).
@@ -189,8 +211,10 @@ The transform needs to know which environments are "server" (they get the `?asse
 
 With the default `serverHandler: true`, every request is answered by your server entry through Vite's module runner — the entry is re-imported per request, so server-side edits are live without restarting. The `if (import.meta.hot) import.meta.hot.accept()` line in the server entry is what keeps those re-imports cheap; keep it.
 
-::: info Reload granularity today
-Client edits currently refresh the page rather than hot-swapping components — Remix UI's HMR runtime is in progress upstream ([remix-run/remix#11515](https://github.com/remix-run/remix/pull/11515)), and `@pitlane/dev` will ship the companion transform once it lands.
+::: info HMR Granularity
+
+Reload granularity today Client edits currently refresh the page rather than hot-swapping components — Remix UI's HMR runtime is in progress upstream ([remix-run/remix#11515](https://github.com/remix-run/remix/pull/11515)), and `@pitlane/dev` will ship the companion transform once it lands.
+
 :::
 
 Two more dev behaviors worth knowing:
@@ -202,8 +226,10 @@ Two more dev behaviors worth knowing:
 
 `vite preview` imports `dist/ssr/index.js` and serves requests through its default export — the same artifact production runs. If the import fails because the bundle targets another runtime (a Workers bundle importing `cloudflare:workers`), the plugin steps aside so the platform's preview can take over.
 
-::: warning Footgun: dev serves assets for free — production doesn't
-In dev, Vite serves every module and stylesheet itself. In preview and production, hashed assets under `dist/client` are served by **your router's** `staticFiles("./dist/client")` middleware (on platforms without a static layer — Node, Railway images, preview). Forget the middleware and everything works in dev while every asset 404s in preview. If preview looks unstyled, this is why. Platforms with their own static serving (Workers assets, Netlify's CDN, Vercel) bypass the middleware for those paths — keeping it in the router is still correct and makes preview match production.
+::: warning Footgun Warning
+
+dev serves assets for free — production doesn't In dev, Vite serves every module and stylesheet itself. In preview and production, hashed assets under `dist/client` are served by **your router's** `staticFiles("./dist/client")` middleware (on platforms without a static layer — Node, Railway images, preview). Forget the middleware and everything works in dev while every asset 404s in preview. If preview looks unstyled, this is why. Platforms with their own static serving (Workers assets, Netlify's CDN, Vercel) bypass the middleware for those paths — keeping it in the router is still correct and makes preview match production.
+
 :::
 
 ## The build
@@ -240,8 +266,14 @@ Remix 3 is in beta; each `@pitlane/dev` release records the exact beta it was ve
 ```jsonc
 // package.json
 {
-    "devDependencies": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" },
-    "pnpm": { "overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" } }
+    "devDependencies": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    },
+    "pnpm": {
+        "overrides": {
+            "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+        },
+    },
 }
 ```
 

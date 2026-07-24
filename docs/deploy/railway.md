@@ -192,7 +192,7 @@ jobs:
 
 Set them per service in the dashboard (**Variables**) or `railway variable set KEY=value`. Railway injects `PORT`; define your own only if you need a fixed port. `railway run <cmd>` injects the service's variables into a local process for parity debugging.
 
-## Client-only apps (SPA)
+## Client-only apps
 
 A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
 
@@ -220,7 +220,14 @@ function App(handle: Handle) {
     let count = 0;
 
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: {count}
         </button>
     );
@@ -262,5 +269,7 @@ COPY --from=build /app/dist /srv
 Deploys are unchanged: the same image flow — `docker build` + push + `railway redeploy` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
 
 ::: tip Platform features
-However the image ships, the service gets automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn). Railway also offers [zero-config static hosting](https://docs.railway.com/guides/static-hosting) that builds on its side — we don't use it, because the Vite build point stays in CI.
+
+However the image ships, the service gets automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn).
+
 :::

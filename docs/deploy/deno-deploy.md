@@ -8,7 +8,9 @@ description: Run a Remix 3 app on Deno Deploy — the built fetch handler behind
 Deploy a Remix 3 app to [Deno Deploy](https://deno.com/deploy) — the new platform at [console.deno.com](https://console.deno.com), which runs full Deno 2 apps with CDN caching and built-in logs, traces, and metrics. No platform plugin is involved: the Vite build runs in your CI, and Deploy runs the uploaded fetch handler under real Deno.
 
 ::: warning New Deploy only
+
 This guide targets the current Deno Deploy. Deploy Classic (`dash.deno.com`) shut down on July 20, 2026 — if you're coming from it, see the [migration guide](https://docs.deno.com/deploy/migration_guide/).
+
 :::
 
 ## Configuration
@@ -19,7 +21,9 @@ This guide targets the current Deno Deploy. Deploy Classic (`dash.deno.com`) shu
 // deno.json
 {
     "nodeModulesDir": "auto",
-    "tasks": { "build": "vite build" }
+    "tasks": {
+        "build": "vite build",
+    },
 }
 ```
 
@@ -36,13 +40,13 @@ Static assets keep flowing through the `staticFiles("./dist/client")` middleware
 
 The app's build configuration (dashboard **Edit build config**, or CLI flags):
 
-| Setting | Value |
-| --- | --- |
-| Framework preset | No Preset |
-| Install command | `deno install` |
-| Build command | *(empty — the Vite build runs before deploying)* |
-| Runtime configuration | Dynamic |
-| Dynamic Entrypoint | `main.ts` |
+| Setting               | Value                                            |
+| --------------------- | ------------------------------------------------ |
+| Framework preset      | No Preset                                        |
+| Install command       | `deno install`                                   |
+| Build command         | _(empty — the Vite build runs before deploying)_ |
+| Runtime configuration | Dynamic                                          |
+| Dynamic Entrypoint    | `main.ts`                                        |
 
 The Vite build runs **before** `deno deploy`, so the upload already contains the fingerprinted assets in `dist/` that the running app serves; the install command only restores `node_modules` for the runtime. Leave the build command empty so Deploy doesn't build a second time.
 
@@ -130,7 +134,7 @@ jobs:
 
 Set them per context — **Production** for production domains, **Development** for preview/branch URLs — in the dashboard's environment-variables drawer, or push a local file with `deno deploy env load .env`. They reach the app through `Deno.env.get()` (and `process.env` under Node compatibility).
 
-## Client-only apps (SPA)
+## Client-only apps
 
 A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Deno Deploy hosts static sites first-class, including a **Single Page App mode** that serves `index.html` for unmatched paths — no wrapper entrypoint, no fallback hacks.
 
@@ -158,7 +162,14 @@ function App(handle: Handle) {
     let count = 0;
 
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: {count}
         </button>
     );
@@ -185,6 +196,8 @@ deno deploy create \
 
 Deploys are unchanged: `deno deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
 
-::: warning Verify with the template
+::: warning Verify with the template [NOT FOR USERS; TO BE REMOVED]
+
 The Dynamic Entrypoint contract (`Deno.serve` wrapper, `PORT` injection) and the prebuilt upload (the deploy tarball must include the locally built `dist/` even though it's gitignored) follow Deploy's current documentation; the [pitlane-tools](https://github.com/pitlane-tools) templates are the tested reference for this composition. If the tarball turns out to exclude ignored paths, the template pins an upload configuration that includes `dist/` — the Vite build stays in CI either way.
+
 :::

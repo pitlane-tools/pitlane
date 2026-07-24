@@ -97,8 +97,10 @@ import { env } from "cloudflare:workers";
 let value = await env.MY_KV.get("key");
 ```
 
-::: tip
+::: tip Tip
+
 Importing `cloudflare:workers` makes the SSR bundle resolvable only inside workerd. That's expected — `@pitlane/dev`'s preview server detects it and steps aside so Cloudflare's Miniflare preview takes over.
+
 :::
 
 ## Local development and preview
@@ -127,7 +129,7 @@ vpx wrangler secret put MY_SECRET
 
 ## Deploy with GitHub Actions
 
-Create an API token at **My Profile → API Tokens** using the *Edit Cloudflare Workers* template, and store it as the `CLOUDFLARE_API_TOKEN` repository secret.
+Create an API token at **My Profile → API Tokens** using the _Edit Cloudflare Workers_ template, and store it as the `CLOUDFLARE_API_TOKEN` repository secret.
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -162,7 +164,7 @@ jobs:
 
 `wrangler deploy` reads `wrangler.jsonc`, so the workflow needs no name, paths, or account flags — the config is the single source of truth locally and in CI.
 
-## Client-only apps (SPA)
+## Client-only apps
 
 A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site that Workers serves as assets.
 
@@ -190,7 +192,14 @@ function App(handle: Handle) {
     let count = 0;
 
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: {count}
         </button>
     );
@@ -201,7 +210,12 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```jsonc
 // tsconfig.json
-{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+{
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "jsxImportSource": "remix/ui",
+    },
+}
 ```
 
 `vite build` emits the site into `dist/`. The Worker config becomes assets-only — no `main`, and `single-page-application` fallback serves `index.html` on deep links:

@@ -57,14 +57,16 @@ export default defineConfig({
 ```
 
 ::: info Who serves what in dev
+
 Keep `remix()`'s default `serverHandler: true` here. Netlify's plugin emulates platform primitives around the dev server; SSR itself is still served by your app's fetch handler.
+
 :::
 
 ## The server function
 
 Netlify runs server code two ways, and both speak the same fetch-handler language as the built server entry — the wrapper is three lines either way. Pick **one**:
 
-| | [Netlify Functions](https://docs.netlify.com/build/functions/overview/) | [Netlify Edge Functions](https://docs.netlify.com/build/edge-functions/overview/) |
+|  | [Netlify Functions](https://docs.netlify.com/build/functions/overview/) | [Netlify Edge Functions](https://docs.netlify.com/build/edge-functions/overview/) |
 | --- | --- | --- |
 | Runtime | Node, in Netlify's serverless infrastructure | Deno, at the edge PoP nearest the visitor |
 | Static assets | CDN wins first via `preferStatic` | Run **before** static serving — assets must be excluded via `excludedPath` |
@@ -116,11 +118,13 @@ Either way, `netlify.toml` names the publish directory — and deliberately **no
 ```toml
 # netlify.toml
 [build]
-  publish = "dist/client"
+    publish = "dist/client"
 ```
 
 ::: tip Under the hood
+
 The Functions variant is the same shape Netlify's TanStack Start integration generates automatically — a thin function re-exporting the `ssr` environment's `fetch`. Netlify's generic Vite plugin can generate it too, but only behind a private, explicitly unsupported flag today; the committed function file above is the documented, stable path. If Netlify promotes that flag to public API, this guide gets three lines shorter.
+
 :::
 
 ## Local development
@@ -188,7 +192,7 @@ jobs:
 
 Set them in the Netlify UI (**Site configuration → Environment variables**) or via `netlify env:set`. Netlify Functions read them as `process.env.*`; Edge Functions use [`Netlify.env.get("KEY")`](https://docs.netlify.com/build/edge-functions/api/#netlify-specific-context-object). The Vite plugin mirrors them into `vite dev`.
 
-## Client-only apps (SPA)
+## Client-only apps
 
 A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site, and there is no server function to write.
 
@@ -216,7 +220,14 @@ function App(handle: Handle) {
     let count = 0;
 
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: {count}
         </button>
     );
@@ -227,7 +238,12 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```jsonc
 // tsconfig.json
-{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+{
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "jsxImportSource": "remix/ui",
+    },
+}
 ```
 
 `vite build` emits the site into `dist/`. Publish that directory and add the SPA fallback so deep links serve `index.html`:
@@ -235,12 +251,12 @@ createRoot(document.getElementById("app")!).render(<App />);
 ```toml
 # netlify.toml
 [build]
-  publish = "dist"
+    publish = "dist"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+    from = "/*"
+    to = "/index.html"
+    status = 200
 ```
 
 Deploys are unchanged: `vpx netlify-cli deploy --no-build --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.

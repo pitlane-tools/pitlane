@@ -35,7 +35,14 @@ function App(handle: Handle) {
     let count = 0;
 
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: {count}
         </button>
     );

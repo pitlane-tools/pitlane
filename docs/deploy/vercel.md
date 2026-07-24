@@ -84,8 +84,10 @@ vpx vercel build --prod && vpx vercel deploy --prebuilt --prod   # production
 
 `vercel build` runs the Vite build locally with Vercel's environment applied (so Nitro emits `.vercel/output`), and `--prebuilt` uploads that directory as-is.
 
-::: warning
-A plain `vercel` / `vercel --prod` uploads *source* and builds on Vercel's infrastructure — skip it. The Vite build point stays in your CI.
+::: warning Don't use plain `vercel`
+
+A plain `vercel` / `vercel --prod` uploads _source_ and builds on Vercel's infrastructure — skip it. The Vite build point stays in your CI.
+
 :::
 
 ## Deploy with GitHub Actions
@@ -133,11 +135,13 @@ jobs:
 
 Define them per environment in the Vercel dashboard (**Settings → Environment Variables**) or with `vercel env add`. They reach the server handler as `process.env.*`; `vercel env pull` writes a local `.env.local` for development.
 
-::: warning Verify with the template
-The Vercel path runs through Nitro's packaging rather than `@pitlane/dev`'s own output, so option details (dev handler ownership, output layout) follow Nitro's current release. The [pitlane-tools](https://github.com/pitlane-tools) Vercel template is the tested reference for this composition.
+::: warning Template Warning [NOT FOR USERS; TO BE REMOVED]
+
+Verify with the template The Vercel path runs through Nitro's packaging rather than `@pitlane/dev`'s own output, so option details (dev handler ownership, output layout) follow Nitro's current release. The [pitlane-tools](https://github.com/pitlane-tools) Vercel template is the tested reference for this composition.
+
 :::
 
-## Client-only apps (SPA)
+## Client-only apps
 
 A client-only Remix 3 app skips `@pitlane/dev` **and** `nitro/vite` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform or package, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site Vercel serves from its CDN.
 
@@ -165,7 +169,14 @@ function App(handle: Handle) {
     let count = 0;
 
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: {count}
         </button>
     );
@@ -176,7 +187,12 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```jsonc
 // tsconfig.json
-{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+{
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "jsxImportSource": "remix/ui",
+    },
+}
 ```
 
 `vite build` emits the site into `dist/`, which Vercel's Vite preset picks up. Add the SPA fallback so deep links serve `index.html`:
@@ -184,7 +200,12 @@ createRoot(document.getElementById("app")!).render(<App />);
 ```json
 // vercel.json
 {
-    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
 }
 ```
 
