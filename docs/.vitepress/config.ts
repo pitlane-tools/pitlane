@@ -1,7 +1,11 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { defineConfig } from "vitepress";
-import { groupIconMdPlugin, groupIconVitePlugin, localIconLoader } from "vitepress-plugin-group-icons";
+import {
+    groupIconMdPlugin,
+    groupIconVitePlugin,
+    localIconLoader,
+} from "vitepress-plugin-group-icons";
 
 import { pmTabsInlineScript } from "./pm-tabs.ts";
 
@@ -83,8 +87,8 @@ const config = defineConfig({
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
         nav: [
-            { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
             { text: "Guides", link: "/guides/vite-plugin", activeMatch: "^/(guides|deploy)/" },
+            { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
         ],
         sidebar: {
             "/package/": [
