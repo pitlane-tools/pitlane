@@ -44,6 +44,7 @@ const config = defineConfig({
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
     srcExclude: ["superpowers/**", "internal/**"],
+    cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
         const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
@@ -100,7 +101,7 @@ const config = defineConfig({
                             { text: "@pitlane/dev", link: "/package/dev/index" },
                             {
                                 text: "@pitlane/dev/runtime",
-                                link: "/package/dev/@pitlane/dev/runtime",
+                                link: "/package/dev/runtime",
                             },
                         ],
                     },
@@ -119,7 +120,7 @@ const config = defineConfig({
         sidebar: {
             "/package/": [
                 { text: "@pitlane/dev", link: "/package/dev/" },
-                { text: "@pitlane/dev/runtime", link: "/package/dev/@pitlane/dev/runtime" },
+                { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
             ],
             "/guides/": guides,
             "/deploy/": guides,

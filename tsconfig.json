@@ -20,6 +20,7 @@
     ],
     "include": [
         "vite.config.ts",
+        "worker.ts",
         "docs/.vitepress/**/*.ts",
         "docs/.vitepress/**/*.vue",
         "docs/.vitepress/**/*.tsx"
