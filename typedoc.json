@@ -1,6 +1,7 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "plugin": ["typedoc-plugin-markdown"],
+    "plugin": ["typedoc-plugin-markdown", "./typedoc.theme.mjs"],
+    "theme": "pitlane",
     "entryPoints": ["packages/dev/src/index.ts", "packages/dev/src/runtime.ts"],
     "tsconfig": "packages/dev/tsconfig.json",
     "skipErrorChecking": true,
