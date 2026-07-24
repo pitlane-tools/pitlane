@@ -29,6 +29,11 @@ This guide targets the current Deno Deploy. Deploy Classic (`dash.deno.com`) shu
     "tasks": {
         "build": "vite build",
     },
+    "deploy": {
+        // Uploads respect .gitignore; un-exclude the built output so the
+        // deploy tarball ships dist/.
+        "exclude": ["!dist"],
+    },
 }
 ```
 
@@ -48,12 +53,12 @@ The app's build configuration (dashboard **Edit build config**, or CLI flags):
 | Setting               | Value                                            |
 | --------------------- | ------------------------------------------------ |
 | Framework preset      | No Preset                                        |
-| Install command       | `deno install`                                   |
+| Install command       | `deno install --allow-scripts`                   |
 | Build command         | _(empty — the Vite build runs before deploying)_ |
 | Runtime configuration | Dynamic                                          |
 | Dynamic Entrypoint    | `main.ts`                                        |
 
-The Vite build runs **before** `deno deploy`, so the upload already contains the fingerprinted assets in `dist/` that the running app serves; the install command only restores `node_modules` for the runtime. Leave the build command empty so Deploy doesn't build a second time.
+The Vite build runs **before** `deno deploy`, and the `deploy.exclude` entry above un-excludes the gitignored `dist/` from the upload — so the tarball already contains the fingerprinted assets the running app serves. The install command only restores `node_modules` for the runtime. Leave the build command empty so Deploy doesn't build a second time.
 
 ## Local development
 
@@ -71,7 +76,7 @@ deno serve --port 3000 dist/ssr/index.js
 
 ## Deploy with the CLI
 
-The `deno deploy` command ships with the Deno CLI. Build first, then deploy — the CLI tarballs the directory and uploads it:
+The `deno deploy` command ships with the Deno CLI. Build first, then deploy — the CLI tarballs the directory (respecting `.gitignore`, hence the `deploy.exclude` un-exclusion above) and uploads it:
 
 ```sh
 vp build
@@ -86,7 +91,7 @@ Create the app non-interactively (flags switch the wizard off):
 deno deploy create \
     --org my-org \
     --app my-remix-app \
-    --install-command "deno install" \
+    --install-command "deno install --allow-scripts" \
     --entrypoint main.ts
 ```
 
@@ -200,9 +205,3 @@ deno deploy create \
 ```
 
 Deploys are unchanged: `deno deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
-
-::: warning Verify with the template [NOT FOR USERS; TO BE REMOVED]
-
-The Dynamic Entrypoint contract (`Deno.serve` wrapper, `PORT` injection) and the prebuilt upload (the deploy tarball must include the locally built `dist/` even though it's gitignored) follow Deploy's current documentation; the [pitlane-tools](https://github.com/pitlane-tools) templates are the tested reference for this composition. If the tarball turns out to exclude ignored paths, the template pins an upload configuration that includes `dist/` — the Vite build stays in CI either way.
-
-:::

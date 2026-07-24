@@ -140,12 +140,6 @@ jobs:
 
 Define them per environment in the Vercel dashboard (**Settings → Environment Variables**) or with `vercel env add`. They reach the server handler as `process.env.*`; `vercel env pull` writes a local `.env.local` for development.
 
-::: warning Template Warning [NOT FOR USERS; TO BE REMOVED]
-
-Verify with the template The Vercel path runs through Nitro's packaging rather than `@pitlane/dev`'s own output, so option details (dev handler ownership, output layout) follow Nitro's current release. The [pitlane-tools](https://github.com/pitlane-tools) Vercel template is the tested reference for this composition.
-
-:::
-
 ## Client-only apps
 
 A client-only Remix 3 app skips `@pitlane/dev` **and** `nitro/vite` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform or package, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site Vercel serves from its CDN.
