@@ -7,6 +7,11 @@ description: Run a Remix 3 app on Railway under Node, Bun, or Deno — the built
 
 Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process — no platform plugin involved. `vite build` produces `dist/ssr/index.js` (your fetch handler) and `dist/client/` (static assets, served by the `staticFiles` middleware in your router), and a Dockerfile runs whichever runtime you choose.
 
+::: tip Start from a template
+`npx giget github:pitlane-tools/templates/railway-node my-app` (or `railway-bun`, `railway-deno`) scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+:::
+
+
 The Dockerfile is **built in your CI, never by Railway**: CI runs `docker build` (the Vite build happens inside it, under your control), pushes the image to [GitHub Container Registry](https://ghcr.io), and the Railway service [deploys that pre-built image](https://docs.railway.com/quick-start#deploying-your-project---from-a-docker-image) — Railway only pulls and runs. It injects a `PORT` environment variable at runtime; your server binds `0.0.0.0:$PORT`.
 
 Add a `.dockerignore` so builds stay small and reproducible:
@@ -52,7 +57,18 @@ The exec-form `CMD` is fine here because `server.ts` reads `process.env.PORT` it
 
 ## Bun
 
-Bun runs the built entry directly — when a module default-exports a `fetch` handler, `bun run` starts a server around it, listening on `$PORT` automatically (`$BUN_PORT` → `$PORT` → `$NODE_PORT` → `3000`, bound to `0.0.0.0`). No wrapper file needed:
+Bun's automatic serving of default-exported `fetch` handlers doesn't apply cleanly here: `bun run` passes its `Server` object as a second argument and routes through its own server wrapper, which breaks the router's action dispatch (form `POST`s fall through to the index render). Wrap the built entry in a three-line `Bun.serve` server instead:
+
+```ts
+// server.ts
+// @ts-expect-error - built output has no types
+import ssr from "./dist/ssr/index.js";
+
+let server = Bun.serve({
+    port: process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000,
+    fetch: request => ssr.fetch(request),
+});
+```
 
 ```dockerfile
 # Dockerfile
@@ -66,7 +82,7 @@ COPY . .
 RUN bun run build
 
 ENV NODE_ENV=production
-CMD ["bun", "run", "dist/ssr/index.js"]
+CMD ["bun", "server.ts"]
 ```
 
 ## Deno

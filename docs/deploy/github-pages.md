@@ -7,6 +7,11 @@ description: Deploy a client-only Remix 3 app to GitHub Pages — plain Vite, no
 
 [GitHub Pages](https://pages.github.com) serves static files only — there is no server runtime, so this guide is exclusively for **client-only Remix 3 apps**. (Need SSR? Pick a target with a server: [Cloudflare](/deploy/cloudflare), [Netlify](/deploy/netlify), [Vercel](/deploy/vercel), or [Railway](/deploy/railway).)
 
+::: tip Start from the template
+`npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+:::
+
+
 A client-only app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds the site.
 
 ## Setup

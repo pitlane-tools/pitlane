@@ -7,6 +7,11 @@ description: Run a Remix 3 app on Netlify with @pitlane/dev — a one-file Netli
 
 Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the client build as static files and serving everything else through one [Netlify Function](https://docs.netlify.com/build/functions/overview/) that wraps the built fetch handler. [`@netlify/vite-plugin`](https://www.npmjs.com/package/@netlify/vite-plugin) adds local emulation of the Netlify platform (Functions, Blobs, redirects, headers, environment variables, Image CDN) to `vite dev`.
 
+::: tip Start from the template
+`npx giget github:pitlane-tools/templates/netlify my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+:::
+
+
 ## Configuration
 
 ::: code-group

@@ -7,6 +7,11 @@ description: Run a Remix 3 app on Cloudflare Workers with @pitlane/dev and the C
 
 Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/workers/) by composing `remix()` with [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/). Cloudflare's plugin owns the runtime story end to end: dev requests run inside [workerd](https://github.com/cloudflare/workerd) (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and `wrangler deploy` ships it.
 
+::: tip Start from the template
+`npx giget github:pitlane-tools/templates/cloudflare my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+:::
+
+
 ## Configuration
 
 Install the platform pieces:

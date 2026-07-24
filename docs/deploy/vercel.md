@@ -7,6 +7,11 @@ description: Run a Remix 3 app on Vercel with @pitlane/dev and the Nitro Vite pl
 
 Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target: Vercel injects `VERCEL=1` into builds, Nitro auto-selects its `vercel` preset, and the output lands in Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly — no framework preset, build command, or output directory to configure by hand.
 
+::: tip Start from the template
+`npx giget github:pitlane-tools/templates/vercel my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+:::
+
+
 ## Configuration
 
 ::: code-group

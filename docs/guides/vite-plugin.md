@@ -47,6 +47,16 @@ nub add -D @pitlane/dev
 
 `@pitlane/dev` declares `remix@^3.0.0-beta.5` and `vite@>=7` as peer dependencies.
 
+## Templates
+
+Prefer starting from a working app? The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo ships the same Remix 3 guest book wired for eight deploy targets — Cloudflare (D1), Netlify (Netlify DB), Vercel (Nitro + Postgres), Railway on Node, Bun, or Deno, Deno Deploy, and GitHub Pages (Service Worker + IndexedDB). Scaffold one with [giget](https://github.com/unjs/giget):
+
+```sh
+npx giget github:pitlane-tools/templates/<template> my-app
+```
+
+Because every template is the same app, diffing any two shows exactly what a platform swap touches — usually the database middleware, the deploy config, and nothing else.
+
 ## The three-file core
 
 Everything the plugin does orbits three files you own:
