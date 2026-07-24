@@ -11,7 +11,7 @@
                     </span>
                 </div>
                 <h3 class="max-w-xl text-balance">
-                    Cloudflare primitives that fit Remix instead of fighting it.
+                    A build plugin that fits Remix instead of fighting it.
                 </h3>
                 <a href="/guides/vite-plugin" class="button w-fit mt-8 hidden lg:block">
                     Learn the workflow
@@ -19,15 +19,16 @@
             </div>
             <div class="lg:max-w-lg">
                 <p class="text-pretty mb-5 opacity-85">
-                    Pitlane keeps the platform visible and typed. Configure resources in
-                    <code>platform()</code>, let Pitlane generate Wrangler config and worker types,
-                    then read D1, R2, KV sessions, queues, and cron through explicit Remix
-                    middleware.
+                    Pitlane keeps the build visible and typed. <code>remix()</code> sequences the
+                    SSR and client builds, <code>clientEntry()</code> marks components for
+                    hydration, and <code>?assets=</code> imports resolve hashed asset URLs for
+                    server-rendered HTML — no manifest plumbing.
                 </p>
                 <p class="text-pretty opacity-85">
-                    Vite+ runs the application lifecycle. Pitlane handles the Cloudflare platform
-                    work around it: provisioning, migrations, secrets, generated configuration, and
-                    deploys.
+                    Vite+ — or plain Vite — runs the application lifecycle. Your server entry
+                    default-exports a standard fetch handler, and platform plugins like
+                    <code>@cloudflare/vite-plugin</code> or <code>nitro/vite</code> compose
+                    alongside: swap the target, keep the app.
                 </p>
                 <a href="/guides/vite-plugin" class="button w-fit mt-8 block lg:hidden">
                     Learn the workflow

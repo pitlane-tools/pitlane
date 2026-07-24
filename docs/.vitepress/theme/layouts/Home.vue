@@ -29,7 +29,7 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
     <PartnerLogos />
     <Footer
         heading="Start with Pitlane"
-        subheading="Create a Remix app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."
+        subheading="Add the remix() plugin to your Vite config, keep the workflow you have, and deploy the same fetch handler anywhere."
         button-text="Get started"
         button-link="/guides/vite-plugin"
     />

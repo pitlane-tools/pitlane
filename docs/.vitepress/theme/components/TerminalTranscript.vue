@@ -2,14 +2,18 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
 const lines = [
-    { ts: "00:01.20", cmd: "vp create pitlane my-app", out: "Scaffolded my-app" },
-    { ts: "00:04.50", cmd: "cd my-app && vp install", out: "Installed 412 packages" },
-    { ts: "00:11.80", cmd: "pitlane resources create", out: "D1, KV, R2, Queue ready" },
+    {
+        ts: "00:01.20",
+        cmd: "vpx giget github:pitlane-tools/templates/templates/cloudflare my-app",
+        out: "Scaffolded my-app",
+    },
+    { ts: "00:04.50", cmd: "cd my-app && vp install", out: "Installed 184 packages" },
+    { ts: "00:11.80", cmd: "vpx wrangler d1 create my-app-db", out: "D1 ready" },
     { ts: "00:12.95", cmd: "vp dev", out: "Local server on :1612" },
     {
         ts: "00:20.70",
-        cmd: "pitlane deploy",
-        out: "Live at https://my-app.workers.dev",
+        cmd: "git push",
+        out: "Actions deploy to https://my-app.workers.dev",
         accent: true,
     },
 ];

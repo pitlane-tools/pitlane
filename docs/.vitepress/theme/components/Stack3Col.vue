@@ -8,7 +8,7 @@
                 </span>
             </div>
             <h3 class="text-balance max-w-xl">
-                One stack: Remix framework, Vite+ tooling, Cloudflare platform.
+                One stack: Remix framework, Vite+ tooling, your platform.
             </h3>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
@@ -27,10 +27,11 @@
                 </p>
                 <span class="stack-tag">tooling</span>
             </a>
-            <a target="_blank" class="stack-card" href="https://workers.cloudflare.com">
-                <h5 class="stack-title">Cloudflare</h5>
+            <a class="stack-card" href="/deploy/cloudflare">
+                <h5 class="stack-title">Your platform</h5>
                 <p class="stack-body">
-                    Workers, D1, R2, KV, queues, and cron — bound through typed config.
+                    Cloudflare, Netlify, Vercel, Railway, Deno Deploy, GitHub Pages — the built
+                    fetch handler runs on all of them.
                 </p>
                 <span class="stack-tag">platform</span>
             </a>

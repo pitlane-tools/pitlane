@@ -13,34 +13,38 @@
         <div class="stats">
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>3<span class="stat-unit">lines</span>
+                    <span class="lap-stat__dot">·</span>1<span class="stat-unit">plugin</span>
                 </div>
                 <div class="stat-label">
-                    To wire a Cloudflare primitive into a Remix route — import, mount middleware,
-                    read from context.
+                    <code>plugins: [remix()]</code> is the whole build config — SSR and client
+                    builds, dev, preview, hydration.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>330<span class="stat-unit">+</span>
+                    <span class="lap-stat__dot">·</span>2<span class="stat-unit">peer deps</span>
                 </div>
                 <div class="stat-label">
-                    Edge cities your app runs in by default, on Cloudflare's global Workers network.
+                    <code>remix</code> and <code>vite</code>. Bring your own versions — the
+                    tested range is documented.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>0<span class="stat-unit">ms</span>
+                    <span class="lap-stat__dot">·</span>6<span class="stat-unit">targets</span>
                 </div>
                 <div class="stat-label">
-                    Cold start. V8 isolates, not containers — your routes are warm everywhere.
+                    Deploy guides shipped: Cloudflare, Netlify, Vercel, Railway, Deno Deploy,
+                    GitHub Pages.
                 </div>
             </div>
             <div class="stat">
-                <div class="lap-stat stat-value"><span class="lap-stat__dot">·</span>0</div>
+                <div class="lap-stat stat-value">
+                    <span class="lap-stat__dot">·</span>8<span class="stat-unit">managers</span>
+                </div>
                 <div class="stat-label">
-                    <code>wrangler.toml</code> files to maintain by hand. Pitlane generates them
-                    from <code>platform()</code>.
+                    Install docs speak npm, yarn, pnpm, bun, deno, vp, vlt, and nub — pick yours
+                    once, the site remembers.
                 </div>
             </div>
         </div>
