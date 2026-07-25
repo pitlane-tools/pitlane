@@ -75,32 +75,29 @@ Remix 3 owns every framework-level concern. Pitlane never reimplements these.
 
 This is Pitlane. Each capability is either an interface with provider **adapters**, or a Pitlane-native feature (some built on an upstream source such as Gist or OpenAPI Router).
 
-| Capability               | Adapters / source                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------- |
-| Database adapters        | Cloudflare D1 • Cloudflare Durable Object Storage • Netlify Database • Neon Postgres  |
-| File storage adapters    | Cloudflare R2 • Netlify Blobs • Vercel Blob                                           |
-| Session storage adapters | Cloudflare KV • Netlify Blobs • Upstash Redis                                         |
-| Authentication adapters  | Netlify Identity • Clerk Auth                                                         |
-| Image optimization       | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization                     |
-| Feature flags            | Cloudflare Flagship • Vercel Edge Config                                              |
-| Scheduled jobs           | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs             |
-| Background jobs          | Cloudflare Queues • Netlify Background Functions • Vercel Queues                      |
-| Route caching            | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache                   |
-| Preview Deployments      | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
-| Local application data   | Pitlane local store • IndexedDB                                                       |
-| Email delivery           | Cloudflare Email Service • Resend                                                     |
-| Font providers           | Local • Fontsource • Google Fonts • Adobe Fonts                                       |
-| Content layer            | Pitlane-native                                                                        |
-| Head metadata            | Pitlane-native                                                                        |
-| Localization             | Pitlane-native                                                                        |
-| Type-safe env/secrets    | Pitlane-native                                                                        |
-| Type-safe styling        | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42)   |
-| Sprite sheet generator   | Pitlane-native                                                                        |
-| Service-worker execution | Pitlane-native                                                                        |
-| View transitions         | Pitlane-native                                                                        |
-| Logging                  | Pitlane-native                                                                        |
-| Router RPC               | Pitlane-native                                                                        |
-| Prerendering             | Pitlane-native                                                                        |
+| Capability | Adapters / source |
+| --- | --- |
+| Database adapters | Cloudflare D1 • Netlify Database |
+| File storage adapters | Cloudflare R2 • Netlify Blobs • Vercel Blob |
+| Session storage adapters | Cloudflare KV • Netlify Blobs |
+| Authentication adapters | Clerk Auth |
+| Image optimization | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization |
+| Feature flags | Cloudflare • Netlify • Vercel • PostHog |
+| Scheduled jobs | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs |
+| Background jobs | Cloudflare Queues • Netlify Background Functions • Vercel Queues |
+| Route caching | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache |
+| Preview Deployments | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
+| Realtime | Pitlane-native |
+| Email delivery | Cloudflare Email Service • Resend |
+| Font providers | Local • Fontsource • Google Fonts • Adobe Fonts |
+| Content layer | Pitlane-native |
+| Head metadata | Pitlane-native |
+| Localization | Pitlane-native |
+| Type-safe env/secrets | Pitlane-native |
+| Type-safe styling | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42) |
+| Sprite sheet generator | Pitlane-native |
+| Router RPC | Pitlane-native |
+| Prerendering | Pitlane-native |
 
 **Name and distribution:**
 
@@ -131,7 +128,7 @@ Runtime-first is evaluated per package, not imposed on capabilities whose purpos
 
 Remix owns the capability interface (e.g. `Database` from `remix/data-table`, the `FileStorage` interface from `remix/file-storage`). A Pitlane adapter package supplies the concrete implementation for a provider. Application code constructs the Remix object with a Pitlane adapter and uses it directly — swapping the adapter import is the only change needed to move providers.
 
-Pitlane-native capabilities follow the same rule when Remix does not own the interface. `@pitlane/local-store` owns the collection, query, and command contracts; storage and sync adapters implement those contracts without leaking their own APIs into controllers.
+Pitlane-native capabilities follow the same rule when Remix does not own the interface. For example, `@pitlane/job` owns the job contract while its storage and scheduler adapters supply runtime-specific implementations without leaking provider APIs into job definitions.
 
 ```ts
 import { env } from "cloudflare:workers";
@@ -143,93 +140,66 @@ import { Database } from "remix/data-table";
 let db = new Database(new D1DatabaseAdapter(env.DB));
 ```
 
-### Package tree
+### Released baseline
 
-**Adapters** — provider bindings for the core Remix capabilities:
+The current Pitlane release consists of `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin. Every package below is independently sequenced work rather than part of a larger bundled release.
 
-```
-@pitlane/data-table-cloudflare-d1
-@pitlane/data-table-cloudflare-durable-object-sql
-@pitlane/data-table-netlify-database
-@pitlane/data-table-neon
-@pitlane/file-storage-cloudflare-r2
-@pitlane/file-storage-netlify-blobs
-@pitlane/file-storage-vercel-blob
-@pitlane/session-storage-cloudflare-kv
-@pitlane/session-storage-netlify-blobs
-@pitlane/session-storage-redis
-@pitlane/auth-netlify-identity
-@pitlane/auth-clerk
-```
+### Planned package sequence
 
-**Feature packages** — Pitlane-native capabilities (some backed by an upstream source):
+Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown.
 
-| Package                 | Capability                                                  |
-| ----------------------- | ----------------------------------------------------------- |
-| `@pitlane/content`      | Content layer (`md`, `mdx`, `json`, CMS, etc.)              |
-| `@pitlane/meta`         | `<head>` metadata                                           |
-| `@pitlane/i18n`         | Internationalization                                        |
-| `@pitlane/env`          | Type-safe environment variables & secrets                   |
-| `@pitlane/theme`        | Type-safe styling with design tokens                        |
-| `@pitlane/sprites`      | Sprite sheet and sprite component generator                 |
-| `@pitlane/logger`       | Structured logging, á la Evlog                              |
-| `@pitlane/typed-routes` | Type-safe RPC routes via `remix/data-schema` and/or OpenAPI |
+1. `@pitlane/theme`
+2. `@pitlane/content`
+3. `@pitlane/meta`
+4. `@pitlane/sprites`
+5. `@pitlane/image`
+    1. `@pitlane/image-cloudflare`
+    2. `@pitlane/image-netlify`
+    3. `@pitlane/image-vercel`
+6. `@pitlane/fonts`
+    1. `@pitlane/fonts-fontsource`
+    2. `@pitlane/fonts-google`
+    3. `@pitlane/fonts-adobe`
+7. `@pitlane/cache`
+    1. `@pitlane/cache-cloudflare`
+    2. `@pitlane/cache-netlify`
+    3. `@pitlane/cache-vercel`
+8. `@pitlane/prerender`
+9. Remix capability adapters
+    1. `@pitlane/data-table-cloudflare-d1`
+    2. `@pitlane/data-table-netlify-database`
+    3. `@pitlane/file-storage-cloudflare-r2`
+    4. `@pitlane/file-storage-netlify-blobs`
+    5. `@pitlane/file-storage-vercel-blob`
+    6. `@pitlane/session-storage-cloudflare-kv`
+    7. `@pitlane/session-storage-netlify-blobs`
+    8. `@pitlane/auth-clerk`
+10. `@pitlane/typed-routes`
+11. `@pitlane/env`
+12. `@pitlane/job`
+    1. `@pitlane/job-storage-data-table`
+    2. `@pitlane/job-storage-cloudflare-kv`
+    3. `@pitlane/job-storage-redis`
+    4. `@pitlane/job-scheduler-cloudflare`
+    5. `@pitlane/job-scheduler-netlify`
+    6. `@pitlane/job-scheduler-vercel`
+13. `@pitlane/flags`
+    1. `@pitlane/flags-cloudflare`
+    2. `@pitlane/flags-netlify`
+    3. `@pitlane/flags-vercel`
+    4. `@pitlane/flags-posthog`
+14. `@pitlane/email`
+    1. `@pitlane/email-cloudflare`
+    2. `@pitlane/email-resend`
+15. `@pitlane/i18n`
 
-**Capability packages with per-runtime or per-provider adapters** — a neutral core plus focused adapter packages:
-
-```
-@pitlane/local-store
-  @pitlane/local-store-replica-indexeddb
-  @pitlane/local-store-server-data-table
-  @pitlane/local-store-sync-cloudflare-durable-objects
-
-@pitlane/image
-  @pitlane/image-cloudflare
-  @pitlane/image-netlify
-  @pitlane/image-vercel
-
-@pitlane/flags
-  @pitlane/flags-cloudflare
-  @pitlane/flags-netlify
-  @pitlane/flags-vercel
-
-@pitlane/job
-  @pitlane/job-storage-data-table
-  @pitlane/job-storage-cloudflare-kv
-  @pitlane/job-storage-redis
-  @pitlane/job-scheduler-cloudflare
-  @pitlane/job-scheduler-netlify
-  @pitlane/job-scheduler-vercel
-
-@pitlane/cache
-  @pitlane/cache-cloudflare
-  @pitlane/cache-netlify
-  @pitlane/cache-vercel
-
-@pitlane/email
-  @pitlane/email-cloudflare
-  @pitlane/email-resend
-
-@pitlane/fonts
-  @pitlane/fonts-fontsource
-  @pitlane/fonts-google
-  @pitlane/fonts-adobe
-```
-
-### Tooling packages
-
-| Package                   | Purpose                                                                                             |
-| ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `@pitlane/dev`            | `remix()` Vite plugin — provider-agnostic Remix framework build                                     |
-| `@pitlane/service-worker` | Service-worker Vite environment, route execution, registration, asset caching, and update lifecycle |
-
-## `pitlane/dev` — framework Vite plugin
+## `@pitlane/dev` — framework Vite plugin
 
 The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as hand-rolled application code in every Remix 3 project. It is provider-agnostic. Handles four concerns:
 
 **1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Wraps `@hiogawa/vite-plugin-fullstack` internally.
 
-`@pitlane/service-worker` composes with this build and contributes a separately emitted service-worker environment. Worker policy and registration stay outside `@pitlane/dev`; the framework plugin only supplies the shared transforms and build hooks that additional environments need.
+`@pitlane/dev` exposes the shared transforms and build hooks that future additional runtime environments can compose. Those environments retain ownership of their runtime policy and registration.
 
 **2. Client entry transforms** — Finds `clientEntry(import.meta.url, ...)` calls and rewrites the first argument. On the server, resolves to the client asset URL with a `#ExportName` fragment. On the client, appends the fragment to `import.meta.url`. Uses `oxc-parser` for AST analysis.
 
@@ -261,13 +231,13 @@ Pitlane deliberately has no platform package, target schema, generated `.pitlane
 
 The stable contract is the server entry's default-exported `.fetch(Request)` handler. `@pitlane/dev` builds that handler and the client assets; hosting integrations consume the output in their native way:
 
-| Target                      | Composition                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| Cloudflare Workers          | `@cloudflare/vite-plugin`, checked-in `wrangler.jsonc`, workerd/Miniflare, and Wrangler      |
-| Netlify                     | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function      |
-| Vercel                      | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI     |
-| Railway / container hosts   | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile             |
-| Deno Deploy                 | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI             |
+| Target | Composition |
+| --- | --- |
+| Cloudflare Workers | `@cloudflare/vite-plugin`, checked-in `wrangler.jsonc`, workerd/Miniflare, and Wrangler |
+| Netlify | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function |
+| Vercel | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI |
+| Railway / container hosts | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile |
+| Deno Deploy | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI |
 | Static hosts / GitHub Pages | a client-only Vite build; `@pitlane/dev` is unnecessary when there is no server or hydration |
 
 Provider configuration remains checked in at the paths the provider documents. It is the source of truth for bindings, compatibility flags, asset rules, schedules, redirects, and runtime settings. Provider tools generate their own binding types and manage login, secrets, resource creation, logs, preview, and deployment.
@@ -311,21 +281,10 @@ export default createController(routes.contacts, {
 
 Available database adapters and their exports:
 
-| Adapter package                                     | Export                    |
-| --------------------------------------------------- | ------------------------- |
-| `@pitlane/data-table-cloudflare-d1`                 | `D1DatabaseAdapter`       |
-| `@pitlane/data-table-cloudflare-durable-object-sql` | `DurableObjectSqlAdapter` |
-| `@pitlane/data-table-netlify-database`              | `NetlifyDatabaseAdapter`  |
-| `@pitlane/data-table-neon`                          | `NeonDatabaseAdapter`     |
-
-For example, on Neon:
-
-```ts
-import { NeonDatabaseAdapter } from "pitlane/data-table-neon";
-import { Database } from "remix/data-table";
-
-let db = new Database(new NeonDatabaseAdapter(process.env.DATABASE_URL));
-```
+| Adapter package                        | Export                   |
+| -------------------------------------- | ------------------------ |
+| `@pitlane/data-table-cloudflare-d1`    | `D1DatabaseAdapter`      |
+| `@pitlane/data-table-netlify-database` | `NetlifyDatabaseAdapter` |
 
 ### File storage
 
@@ -349,7 +308,7 @@ export default createController(routes.avatar, {
 
 ### Session storage
 
-Session handling is a Remix concern (`remix/session`, `remix/session-middleware`); Pitlane supplies the storage backend. Adapters: `@pitlane/session-storage-cloudflare-kv` (`createKVSessionStorage`), `@pitlane/session-storage-netlify-blobs` (`createBlobsSessionStorage`), `@pitlane/session-storage-redis` (`createRedisSessionStorage`).
+Session handling is a Remix concern (`remix/session`, `remix/session-middleware`); Pitlane supplies the storage backend. Adapters: `@pitlane/session-storage-cloudflare-kv` (`createKVSessionStorage`) and `@pitlane/session-storage-netlify-blobs` (`createBlobsSessionStorage`).
 
 Add the `session()` middleware to a controller and read the session from the action context.
 
@@ -377,7 +336,7 @@ export default createController(routes, {
 
 ### Authentication
 
-Remix provides the auth primitives (`remix/auth`). Pitlane supplies adapters for hosted identity: `@pitlane/auth-netlify-identity` and `@pitlane/auth-clerk`. Each adapter wires its provider into the Remix auth middleware and exposes the authenticated user through the action context.
+Remix provides the auth primitives (`remix/auth`). `@pitlane/auth-clerk` wires Clerk into the Remix auth middleware and exposes the authenticated user through the action context.
 
 ## Background jobs — `@pitlane/job`
 
@@ -525,7 +484,7 @@ Each of these is a provider-neutral package; the ones with backends install a pe
 
 ### Feature flags — `@pitlane/flags`
 
-Declare features with `createFeatures`, add the `flags()` middleware bound to a provider-neutral flag store, and read flags from the action context. Flag inputs are described with the schema helpers in `pitlane/flags/schema`. Provider packages create the store: `@pitlane/flags-cloudflare` exports `createCloudflareFlagStore`, with corresponding adapters from `@pitlane/flags-vercel` and `@pitlane/flags-netlify`.
+Declare features with `createFeatures`, add the `flags()` middleware bound to a provider-neutral flag store, and read flags from the action context. Flag inputs are described with the schema helpers in `pitlane/flags/schema`. Provider packages create the store: `@pitlane/flags-cloudflare` exports `createCloudflareFlagStore`, with corresponding adapters from `@pitlane/flags-netlify`, `@pitlane/flags-vercel`, and `@pitlane/flags-posthog`.
 
 ```ts
 import { env } from "cloudflare:workers";
@@ -633,9 +592,9 @@ import { Image, Picture } from "pitlane/image";
 />;
 ```
 
-### Local application data — `@pitlane/local-store`
+### Local-first application data exploration
 
-`@pitlane/local-store` is Pitlane's IndexedDB-first data engine for applications that read and write locally, synchronize in the background, and progressively enhance server-rendered HTML. It is a scoped projection of the useful behavior in [TanStack DB](https://tanstack.com/db/latest) and Convex's [local-store experiment](https://github.com/get-convex/curvilinear/tree/main/local-store), built around Remix controllers and runtime primitives rather than wrapped around either dependency.
+This section records unsequenced local-first research; it does not add packages to the current implementation plan. The candidate `@pitlane/local-store` is an IndexedDB-first data engine for applications that read and write locally, synchronize in the background, and progressively enhance server-rendered HTML. It is a scoped projection of the useful behavior in [TanStack DB](https://tanstack.com/db/latest) and Convex's [local-store experiment](https://github.com/get-convex/curvilinear/tree/main/local-store), built around Remix controllers and runtime primitives rather than wrapped around either dependency.
 
 Application code uses Pitlane-owned **collections**, **queries**, and **commands**. The same controller runs against replica storage in the browser or service worker and server storage on Cloudflare, Node, or another target. Swapping either storage adapter does not change controllers or expose provider types.
 
@@ -706,11 +665,11 @@ export default createController(routes.tasks, {
 
 The local-store capability has two complementary storage contracts and one optional transport contract. They are different seams, not interchangeable implementations of one interface:
 
-| Contract                | Runs in                     | Responsibility                                                                                                                                           |
-| ----------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ReplicaStorageAdapter` | Browser or device runtime   | Visible records and indexes, synchronized base, pending commands, failures, coverage, checkpoints, and local metadata                                    |
-| `ServerStorageAdapter`  | Trusted server runtime      | Authoritative records, command idempotency and outcomes, ordered change log, tombstones, checkpoints, compaction, and scoped query execution             |
-| `SyncTransportAdapter`  | Replica and server boundary | Moves commands and changes and optionally wakes connected replicas; it does not define persistence, query, command, authorization, or conflict semantics |
+| Contract | Runs in | Responsibility |
+| --- | --- | --- |
+| `ReplicaStorageAdapter` | Browser or device runtime | Visible records and indexes, synchronized base, pending commands, failures, coverage, checkpoints, and local metadata |
+| `ServerStorageAdapter` | Trusted server runtime | Authoritative records, command idempotency and outcomes, ordered change log, tombstones, checkpoints, compaction, and scoped query execution |
+| `SyncTransportAdapter` | Replica and server boundary | Moves commands and changes and optionally wakes connected replicas; it does not define persistence, query, command, authorization, or conflict semantics |
 
 The controller-facing API composes the appropriate contracts for each runtime:
 
@@ -874,9 +833,9 @@ Token types resolve from the token, an alias target, or the nearest ancestor gro
 
 `@pitlane/theme` is runtime-first and has no runtime dependencies beyond its Remix peer. A future build integration may optimize CSS output or extraction, but using it remains optional.
 
-### Service-worker execution — `@pitlane/service-worker`
+### Service-worker execution exploration
 
-`@pitlane/service-worker` compiles fetch-compatible Remix routes into a separately emitted service-worker environment. It owns worker registration, route execution policy, asset caching, window/worker messaging, and safe update activation. It describes a concrete runtime mechanism; "offline" remains a behavioral guarantee that also depends on local data coverage and storage durability.
+The candidate `@pitlane/service-worker` belongs to the same unsequenced local-first research. It would compile fetch-compatible Remix routes into a separately emitted service-worker environment and own worker registration, route execution policy, asset caching, window/worker messaging, and safe update activation. It describes a concrete runtime mechanism; "offline" remains a behavioral guarantee that also depends on local data coverage and storage durability.
 
 ```ts
 import { remix } from "pitlane/dev";
@@ -963,12 +922,12 @@ The window-global local-store runtime owns the foreground connection. One window
 ### The rest
 
 - **`@pitlane/cache`** — route caching. Adapters: `@pitlane/cache-cloudflare` (Workers Cache), `@pitlane/cache-netlify` (Durable Cache), `@pitlane/cache-vercel` (CDN Cache).
+- **`@pitlane/prerender`** — static prerendering.
 - **`@pitlane/email`** — email delivery. Adapters: `@pitlane/email-cloudflare` (Email Service), `@pitlane/email-resend`.
 - **`@pitlane/fonts`** — font providers. Adapters: `@pitlane/fonts-fontsource`, `@pitlane/fonts-google`, `@pitlane/fonts-adobe`; a local provider ships in the core package.
 - **`@pitlane/i18n`** — localization.
 - **`@pitlane/env`** — type-safe env / secrets.
 - **`@pitlane/sprites`** — sprite sheet generator.
-- **`@pitlane/logger`** — logging.
 - **`@pitlane/typed-routes`** — type-safe / RPC routes (built on OpenAPI Router).
 
 ## Full entry.server.tsx example (Cloudflare target)
@@ -1143,21 +1102,9 @@ jobs:
 
 Pitlane's model-facing surface is its source, documentation, target templates, and maintained skills—not a hidden deployment control plane. Skills teach agents which checked-in files define the target and direct them to the same deterministic provider commands used by humans and CI. Changes remain inspectable as ordinary code and configuration.
 
-## MVP boundaries
+## Release status
 
-### In MVP
-
-- `@pitlane/dev` — the provider-agnostic `remix()` Vite plugin
-- `@pitlane/theme` — DTCG design tokens, branded `css()`, variants, and mode emission
-- Checked-in target templates and deployment guides for Cloudflare, Netlify, Vercel, Railway, Deno Deploy, and GitHub Pages
-- Core adapters — `@pitlane/data-table-cloudflare-d1` (`D1DatabaseAdapter`), `@pitlane/file-storage-cloudflare-r2` (`R2FileStorage`), `@pitlane/session-storage-cloudflare-kv` (`createKVSessionStorage`)
-- `@pitlane/job` — provider-neutral `createJobs`, `Scheduler`, `createJobQueue`, and `createScheduledJobs`, plus `@pitlane/job-scheduler-cloudflare`
-- Pitlane-maintained skills that direct agents to the same source, native configuration, and commands used by application developers
-
-### Post-MVP
-
-- Additional adapter coverage across Netlify, Vercel, Neon, Upstash, and other providers
-- Remaining packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/local-store`, `@pitlane/local-store-replica-indexeddb`, `@pitlane/local-store-server-data-table`, `@pitlane/local-store-sync-cloudflare-durable-objects`, `@pitlane/service-worker`, `@pitlane/email`, and `@pitlane/fonts`
+`@pitlane/dev` is the complete initial Pitlane release: the provider-agnostic `remix()` Vite plugin. The other tracked packages ship independently in the [planned package sequence](#planned-package-sequence); no later package is required to make the current release complete.
 
 ### Explicit non-goals
 
@@ -1226,8 +1173,7 @@ For a Cloudflare application:
 
 Project-only recipes do not mutate deployment config unless the feature actually requires a target resource:
 
-- **Local store** installs `@pitlane/local-store` and `@pitlane/local-store-replica-indexeddb`, then scaffolds collections, a versioned command, middleware, and deterministic memory-adapter tests. Synchronized mode also installs `@pitlane/local-store-server-data-table` and wires command plus pull/push controllers. Cloudflare applications may add `@pitlane/local-store-sync-cloudflare-durable-objects` for low-latency notifications.
-- **Service worker** installs `@pitlane/service-worker`, adds `app/entry.worker.ts`, contributes the worker environment to Vite, partitions server-only routes, and registers the emitted worker after initial page load.
+- **Local-first execution** is not currently scaffolded. The local-store and service-worker designs above remain unsequenced research rather than tracked package commitments.
 - **Theme** installs `@pitlane/theme`, adds a DTCG token document, renders `<Theme />` at the document root, and demonstrates branded `css()` and `tva`.
 - **Authentication, content, localization, testing, and prerendering** install and wire only their focused package or Remix primitive.
 - **CI/CD** adds the target's native workflow; it never adds a Pitlane deploy action.
@@ -1252,18 +1198,17 @@ my-app/
 
 ## How this compares to Void
 
-| Concern               | Void                                        | Pitlane                                                   |
-| --------------------- | ------------------------------------------- | --------------------------------------------------------- |
-| Platform primitives   | Magic global imports (`void/db`)            | Explicit adapters and controllers                         |
-| Provider model        | Single hidden platform                      | Multi-provider capability adapters                        |
-| Resource provisioning | Automatic during deployment                 | Explicit provider CLI, API, or dashboard                  |
-| Cloud account         | Hidden, not required                        | Required; owned directly by the application developer     |
-| Deploy config         | None; fully hidden                          | Checked-in native provider configuration                  |
-| Framework             | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only                                              |
-| Component model       | Framework-delegated                         | Remix's own component system                              |
-| Build tool            | Vite 8 beta                                 | Vite or Vite+, through `@pitlane/dev`                     |
-| Scaffolding           | `void init`                                 | Target templates through `giget`                          |
-| Dev server            | `void dev` / `vp dev`                       | `vp dev`, composed with the provider's runtime plugin     |
-| Deploy                | `void deploy`                               | Provider CLI or native GitHub Actions workflow            |
-| Model interface       | Built-in MCP                                | Source, documentation, templates, and maintained skills   |
-| Philosophy            | Platform SDK that hides the platform        | Composable hosting around a portable application contract |
+| Concern | Void | Pitlane |
+| --- | --- | --- |
+| Platform primitives | Magic global imports (e.g. `void/db`) | Explicit adapters and controllers |
+| Provider model | Single hidden platform | Multi-provider capability adapters |
+| Resource provisioning | Automatic during deployment | Automated via CI/CD |
+| Provider account | Hidden behind Void | Managed directly by the developer |
+| Deploy config | None; fully hidden | Checked-in native provider configuration |
+| Framework | React, Vue, Svelte, Solid, or any Vite-based meta-framework | Remix |
+| Build tool | Vite or Vite+ | Vite or Vite+, through `@pitlane/dev` |
+| Scaffolding | `void init` | Target templates through `giget` |
+| Dev server | `void dev` | `vp dev`, composed with the provider's runtime plugin |
+| Deploy | `void deploy` | GitHub Actions workflow |
+| Model interface | Built-in MCP | CLI, source code, documentation, templates, and maintained skills |
+| Philosophy | Platform SDK that hides the platform | Composable hosting around a portable runtime contract |
