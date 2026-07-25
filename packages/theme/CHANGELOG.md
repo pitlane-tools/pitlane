@@ -16,7 +16,7 @@ Initial release.
   brand enforcement, a cva-style variant resolver, variant composition, and a
   clsx-compatible class joiner. Token-mapped properties accept only the
   matching brand, CSS-wide keywords, a small set of property keywords, and
-  literal `0`; unmapped properties stay loosely typed.
+  literal `0`; every other property carries csstype's value union.
 - Full type surface exported alongside `ThemeError`: the per-type token brands,
   `ThemedCSSProps`, `TVAProps`, and the document and configuration types.
 - `remix@^3.0.0-beta.5` is a peer dependency.

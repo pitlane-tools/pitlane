@@ -53,10 +53,31 @@ describe("ThemedCSSProps enforcement", () => {
         void bareDuration;
     });
 
-    it("keeps unmapped properties loose", () => {
+    it("narrows closed-grammar properties to their keywords", () => {
+        expectTypeOf({
+            display: "flex" as const,
+            position: "sticky" as const,
+            resize: "vertical" as const,
+            overflowY: "auto" as const,
+            flexDirection: "column" as const,
+        }).toMatchTypeOf<ThemedCSSProps>();
+
+        // @ts-expect-error — not a `resize` keyword
+        let badResize: ThemedCSSProps = { resize: "diagonal" };
+        // @ts-expect-error — not an `overflow` keyword
+        let badOverflow: ThemedCSSProps = { overflowY: "scrollish" };
+        // @ts-expect-error — logical padding takes dimension tokens
+        let badLogicalPad: ThemedCSSProps = { paddingBlock: "4rem" };
+        void badResize;
+        void badOverflow;
+        void badLogicalPad;
+    });
+
+    it("keeps open-grammar properties loose", () => {
         expectTypeOf({
             border: `1px solid ${t.color.white}`,
             background: "canvas",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             "&:hover": { color: t.color.white },
         }).toMatchTypeOf<ThemedCSSProps>();
     });

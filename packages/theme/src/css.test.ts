@@ -30,12 +30,12 @@ describe("css", () => {
         expect(html).toMatch(/<div class="/);
     });
 
-    it("space-joins arrays on loose properties (documented: comma lists need a template string)", async () => {
+    it("space-joins arrays on custom properties (documented: comma lists need a template string)", async () => {
         let html = await renderToString(
             createElement("div", {
-                mix: css({ transitionProperty: ["opacity", "transform"] }),
+                mix: css({ "--stack": [t.space.sm, t.space.md] }),
             }),
         );
-        expect(html).toContain("transition-property: opacity transform");
+        expect(html).toContain("--stack: var(--space-sm) var(--space-md)");
     });
 });

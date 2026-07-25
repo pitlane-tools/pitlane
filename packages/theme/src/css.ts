@@ -25,13 +25,14 @@ export type ThemedCSSMixin<node extends Element = Element> = MixinDescriptor<
  * Brand-enforced wrapper over `remix/ui`'s `css()` mixin. Token-mapped
  * longhands accept the matching token brand, CSS-wide keywords,
  * property keywords, and `0`; anything else — including a raw
- * `color: "#ff0000"` — is a type error. Unmapped properties stay
- * loosely typed. Nested selectors and media queries recurse.
+ * `color: "#ff0000"` — is a type error. Every other CSS property
+ * carries csstype's value union, so `display`, `position`, `resize`,
+ * and the rest of the closed-grammar properties accept only their real
+ * keywords. Nested selectors, at-rules, and custom properties recurse.
  *
  * Branded token refs are already `var()` strings and pass through; an
- * array value joins with spaces (the tuple behavior box shorthands
- * use), so on a loose property a comma list such as
- * `transitionProperty` needs a template string instead.
+ * array value joins with spaces, which is how the box shorthands take
+ * a 1–4 tuple. A comma list needs a template string.
  *
  * `css()` is node-generic, exactly like `remix/ui`'s own `css`: the
  * descriptor binds to the element type of the `mix` position it
@@ -39,9 +40,8 @@ export type ThemedCSSMixin<node extends Element = Element> = MixinDescriptor<
  * {@link ThemedCSSProps} objects, never stored descriptors.
  *
  * Interpolating a token into a template string
- * (`` `1px solid ${t.color.line}` ``) yields a plain string that an
- * unmapped shorthand accepts. `remix/ui`'s own untyped `css()` remains
- * available when the types get in the way entirely.
+ * (`` `1px solid ${t.color.line}` ``) yields a plain string, which the
+ * open-grammar shorthands accept.
  *
  * @see {@link ThemedCSSProps} for the accepted per-property values.
  * @see {@link ThemedCSSMixin} for the returned descriptor.

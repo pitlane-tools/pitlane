@@ -46,7 +46,7 @@ export interface TokenGroup {
  * | `fontWeight` | number 1–1000, or a DTCG keyword like `"semi-bold"` | the number (keywords map to numbers) |
  * | `number` | number | the number |
  * | `cubicBezier` | `[x1, y1, x2, y2]` | `cubic-bezier(…)` |
- * | `shadow` | object or array of objects | a CSS shadow list |
+ * | `shadow` | `{ color, offsetX, offsetY, blur?, spread?, inset? }`, or an array of them | a CSS shadow list, `inset` first when `inset` is `true` |
  * | `border` | `{ color, width, style }` | `width style color` |
  * | `transition` | `{ duration, timingFunction, delay? }` | `duration timing-function delay` |
  * | `gradient` | array of `{ color, position }` stops | a color-stop list for use inside `linear-gradient(…)` |

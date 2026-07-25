@@ -102,7 +102,7 @@ import { t } from "./theme.ts";
 />;
 ```
 
-Off-palette literals fail to compile. Keywords like `"transparent"` and literal `0` stay legal, unmapped properties like `display` stay loose, and template interpolation is the escape hatch for shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
+Off-palette literals fail to compile. Keywords like `"transparent"` and literal `0` stay legal. Properties outside the token-mapped set carry [csstype](https://github.com/frenic/csstype)'s value union, so `resize: "vertical"` autocompletes and `resize: "diagonal"` is a type error, while open-grammar properties such as `background` and `gridTemplateColumns` still take any string. Template interpolation covers the shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
 
 ## Dark mode
 

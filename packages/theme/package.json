@@ -2,6 +2,14 @@
     "name": "@pitlane/theme",
     "version": "0.1.0",
     "description": "Type-safe styling with W3C design tokens for Remix 3.",
+    "keywords": [
+        "css-variables",
+        "design-tokens",
+        "dtcg",
+        "pitlane",
+        "remix",
+        "theme"
+    ],
     "homepage": "https://pitlane.tools/package/theme/",
     "bugs": {
         "url": "https://github.com/pitlane-tools/pitlane/issues"
@@ -13,14 +21,6 @@
         "url": "git+https://github.com/pitlane-tools/pitlane.git",
         "directory": "packages/theme"
     },
-    "keywords": [
-        "remix",
-        "design-tokens",
-        "dtcg",
-        "css-variables",
-        "theme",
-        "pitlane"
-    ],
     "files": [
         "dist",
         "CHANGELOG.md"
@@ -36,13 +36,16 @@
     "scripts": {
         "prepublishOnly": "vp run build"
     },
-    "peerDependencies": {
-        "remix": "^3.0.0-beta.5"
+    "dependencies": {
+        "csstype": "^3.2.3"
     },
     "devDependencies": {
         "remix": "3.0.0-beta.5",
         "typescript": "^7.0.2",
         "vite-plus": "^0.2.6"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0-beta.5"
     },
     "engines": {
         "node": "^20.19.0 || >=22.12.0"
