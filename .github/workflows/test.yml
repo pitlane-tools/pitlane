@@ -8,13 +8,24 @@ on:
         branches:
             - main
 
+# Package tasks (test, build) are defined per package in `vite.config.ts` and
+# run through Vite+. Repo-level tasks live in `mise.toml` — see deploy.yml and
+# preview.yml, which run the docs build through Mise.
 jobs:
-    test-dev:
-        name: "@pitlane/dev"
+    test:
+        name: ${{ matrix.package }}
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - package: "@pitlane/dev"
+                      directory: packages/dev
+                    - package: "@pitlane/theme"
+                      directory: packages/theme
         defaults:
             run:
-                working-directory: packages/dev
+                working-directory: ${{ matrix.directory }}
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -34,11 +45,31 @@ jobs:
             - name: Build package
               run: vp run build
 
-            - name: Dependency APIs must not leak into examples or docs
-              working-directory: .
+    leaks:
+        name: Dependency APIs must not leak
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup toolchain
+              uses: jdx/mise-action@v4
+
+            - name: Install
+              run: pnpm install --frozen-lockfile
+
+            # The reference pages are generated, so they have to exist before
+            # they can be checked. `src` itself is off-limits to this grep —
+            # the plugin legitimately imports the dependency there.
+            - name: Generate the package reference pages
+              run: mise run docs:api
+
+            - name: Grep the published surface for dependency APIs
               run: |
-                  if grep -rn '@hiogawa' packages/dev/README.md docs/guides docs/package 2>/dev/null; then
-                      echo "Dependency import leaked into user-facing docs" >&2
+                  if grep -rn '@hiogawa' \
+                      packages/dev/README.md packages/theme/README.md \
+                      docs/guides docs/package; then
+                      echo "Dependency API leaked into user-facing docs" >&2
                       exit 1
                   fi
                   echo "No dependency API leaks."

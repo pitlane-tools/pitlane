@@ -6,8 +6,16 @@ vale = "3"
 [env]
 _.path = ["{{config_root}}/node_modules/.bin"]
 
+# CI installs must never silently repair a stale lockfile; local checkouts also
+# refresh the vendored Remix agent skills.
 [hooks.postinstall]
-run = 'pnpm install && [ -n "$CI" ] || (mise run update-remix-skills)'
+run = '''
+if [ -n "$CI" ]; then
+    pnpm install --frozen-lockfile
+else
+    pnpm install && mise run update-remix-skills
+fi
+'''
 
 [tasks.fmt]
 run = "oxfmt"
