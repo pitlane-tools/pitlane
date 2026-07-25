@@ -1,10 +1,7 @@
 import "./styles.css";
-
 import { mergeAssets } from "../../../../src/runtime.ts";
 import { Counter } from "./counter.tsx";
-// @ts-expect-error - ?assets= imports are typed by @pitlane/dev/assets in real apps
 import clientAssets from "./entry.browser.ts?assets=client";
-// @ts-expect-error - ?assets= imports are typed by @pitlane/dev/assets in real apps
 import serverAssets from "./entry.server.tsx?assets=ssr";
 
 export function Document() {

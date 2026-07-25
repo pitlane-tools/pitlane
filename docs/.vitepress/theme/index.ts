@@ -24,10 +24,7 @@ export default {
         });
 
         ctx.app.component("Home", Home);
-        ctx.app.component(
-            "CopyOrDownloadAsMarkdownButtons",
-            CopyOrDownloadAsMarkdownButtons,
-        );
+        ctx.app.component("CopyOrDownloadAsMarkdownButtons", CopyOrDownloadAsMarkdownButtons);
 
         VoidZeroTheme.enhanceApp(ctx);
     },

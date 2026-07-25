@@ -1,12 +1,12 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { defineConfig } from "vitepress";
-import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 import {
     groupIconMdPlugin,
     groupIconVitePlugin,
     localIconLoader,
 } from "vitepress-plugin-group-icons";
+import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
 import { pmTabsInlineScript } from "./pm-tabs.ts";
 

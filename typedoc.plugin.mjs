@@ -45,9 +45,7 @@ export function load(app) {
             getIdealBaseName(reflection) {
                 const baseName = super.getIdealBaseName(reflection);
                 const prefix = `${this.entryModule}/`;
-                return baseName.startsWith(prefix)
-                    ? baseName.slice(prefix.length)
-                    : baseName;
+                return baseName.startsWith(prefix) ? baseName.slice(prefix.length) : baseName;
             }
         },
     );

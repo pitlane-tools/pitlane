@@ -11,7 +11,6 @@ Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process
 `npx giget github:pitlane-tools/templates/railway-node my-app` (or `railway-bun`, `railway-deno`) scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 :::
 
-
 The Dockerfile is **built in your CI, never by Railway**: CI runs `docker build` (the Vite build happens inside it, under your control), pushes the image to [GitHub Container Registry](https://ghcr.io), and the Railway service [deploys that pre-built image](https://docs.railway.com/quick-start#deploying-your-project---from-a-docker-image) — Railway only pulls and runs. It injects a `PORT` environment variable at runtime; your server binds `0.0.0.0:$PORT`.
 
 Add a `.dockerignore` so builds stay small and reproducible:

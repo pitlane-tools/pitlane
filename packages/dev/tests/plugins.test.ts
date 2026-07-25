@@ -1,4 +1,10 @@
-import type { Plugin, PluginOption, ViteDevServer } from "vite";
+import type {
+    ConfigPluginContext,
+    MinimalPluginContextWithoutEnvironment,
+    Plugin,
+    PluginOption,
+    ViteDevServer,
+} from "vite";
 
 import { describe, expect, it } from "vitest";
 
@@ -13,6 +19,29 @@ function pluginsOf(option: PluginOption): Plugin[] {
         .filter((entry): entry is Plugin => typeof entry === "object" && entry !== null);
 }
 
+// Honest, minimal plugin contexts. The build `config` hook and the abort
+// suppressor's `configureServer` hook never read `this`; these satisfy the
+// current hook contracts without booting a real Vite instance.
+function throwError(error: unknown): never {
+    throw typeof error === "string" ? new Error(error) : error;
+}
+
+const configContext: ConfigPluginContext = {
+    error: throwError,
+    info() {},
+    warn() {},
+    debug() {},
+    meta: { rollupVersion: "", rolldownVersion: "", viteVersion: "" },
+};
+
+const serverContext: MinimalPluginContextWithoutEnvironment = {
+    error: throwError,
+    info() {},
+    warn() {},
+    debug() {},
+    meta: { rollupVersion: "", rolldownVersion: "", viteVersion: "", watchMode: false },
+};
+
 describe("remix()", () => {
     it("composes the fullstack plugins with the remix plugins", () => {
         let names = pluginsOf(remix()).map(plugin => plugin.name);
@@ -26,12 +55,16 @@ describe("remix()", () => {
         expect(names.some(name => name.startsWith("fullstack"))).toBe(true);
     });
 
-    it("configures dist/ssr and dist/client environments by default", () => {
+    it("configures dist/ssr and dist/client environments by default", async () => {
         let plugin = pluginsOf(remix()).find(entry => entry.name === "pitlane-remix-build");
         if (!plugin || typeof plugin.config !== "function") {
             throw new Error("pitlane-remix-build must define a function config hook");
         }
-        let config = plugin.config.call(undefined, {}, { command: "build", mode: "production" });
+        let config = await plugin.config.call(
+            configContext,
+            {},
+            { command: "build", mode: "production" },
+        );
 
         expect(config).toMatchObject({
             builder: {},
@@ -53,14 +86,18 @@ describe("remix()", () => {
         });
     });
 
-    it("omits the client environment when clientEntry is false", () => {
+    it("omits the client environment when clientEntry is false", async () => {
         let plugin = pluginsOf(remix({ clientEntry: false })).find(
             entry => entry.name === "pitlane-remix-build",
         );
         if (!plugin || typeof plugin.config !== "function") {
             throw new Error("pitlane-remix-build must define a function config hook");
         }
-        let config = plugin.config.call(undefined, {}, { command: "build", mode: "production" });
+        let config = await plugin.config.call(
+            configContext,
+            {},
+            { command: "build", mode: "production" },
+        );
 
         expect(config?.environments).not.toHaveProperty("client");
         expect(config?.environments).toHaveProperty("ssr");
@@ -88,7 +125,7 @@ describe("pitlane-remix-suppress-abort-errors", () => {
             // test seam that avoids booting a real dev server.
         } as unknown as ViteDevServer;
 
-        let register = plugin.configureServer.call(undefined, fakeServer);
+        let register = plugin.configureServer.call(serverContext, fakeServer);
         if (typeof register !== "function") {
             throw new Error("expected configureServer to defer middleware registration");
         }

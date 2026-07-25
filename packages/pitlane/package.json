@@ -3,26 +3,26 @@
     "version": "0.0.0",
     "description": "Reserved for the Pitlane umbrella package — portable platform integration for Remix 3. Not yet released; use @pitlane/dev in the meantime.",
     "keywords": [
+        "pitlane",
         "remix",
-        "vite",
-        "pitlane"
+        "vite"
     ],
     "homepage": "https://pitlane.tools",
     "bugs": {
         "url": "https://github.com/pitlane-tools/pitlane/issues"
     },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/pitlane-tools/pitlane.git",
         "directory": "packages/pitlane"
     },
-    "license": "MIT",
-    "author": "Mark Malstrom <mark@malstrom.me>",
+    "files": [
+        "index.js"
+    ],
     "type": "module",
     "exports": {
         ".": "./index.js"
-    },
-    "files": [
-        "index.js"
-    ]
+    }
 }

@@ -11,7 +11,6 @@ Deploy a Remix 3 app to [Deno Deploy](https://deno.com/deploy) — the new platf
 `npx giget github:pitlane-tools/templates/deno-deploy my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 :::
 
-
 ::: warning New Deploy only
 
 This guide targets the current Deno Deploy. Deploy Classic (`dash.deno.com`) shut down on July 20, 2026 — if you're coming from it, see the [migration guide](https://docs.deno.com/deploy/migration_guide/).

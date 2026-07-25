@@ -10,8 +10,16 @@ let assets = mergeAssets(clientAssets, serverAssets);
 export let Head = () => (
     <>
         {assets.css.map(attrs => (
-            <link key={attrs.href} {...attrs} rel="stylesheet" />
+            <link
+                key={attrs.href}
+                {...attrs}
+                rel="stylesheet"
+            />
         ))}
-        <script async src={clientAssets.entry} type="module" />
+        <script
+            async
+            src={clientAssets.entry}
+            type="module"
+        />
     </>
 );

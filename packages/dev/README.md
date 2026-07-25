@@ -88,11 +88,11 @@ remix({
 });
 ```
 
-| Option               | Type              | Default               | Purpose                                                                                                                         |
-| -------------------- | ----------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                             |
-| `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                              |
-| `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                             |
+| Option               | Type              | Default               | Purpose                                                                                                                                                           |
+| -------------------- | ----------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                                               |
+| `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                                                |
+| `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                                               |
 | `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` owns dev-time request handling. |
 
 ## The server entry contract
@@ -169,7 +169,14 @@ import { clientEntry, on } from "remix/ui";
 export const Counter = clientEntry(import.meta.url, handle => {
     let count = 0;
     return () => (
-        <button mix={[on("click", () => { count++; handle.update(); })]}>
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
             Count: <span>{count}</span>
         </button>
     );
@@ -282,12 +289,12 @@ dist/
 
 ## Compatibility
 
-| Dependency | Tested against |
-| ---------- | -------------- |
-| `vite`     | 8.1.5          |
-| `vite-plus`| 0.2.6          |
-| `remix`    | 3.0.0-beta.5   |
-| Node       | 24 LTS, 25     |
+| Dependency  | Tested against |
+| ----------- | -------------- |
+| `vite`      | 8.1.5          |
+| `vite-plus` | 0.2.6          |
+| `remix`     | 3.0.0-beta.5   |
+| Node        | 24 LTS, 25     |
 
 Remix 3 is in beta; each `@pitlane/dev` release records the exact beta it was verified against. Rolldown is not required — the transform runs identically on generic Vite and Vite+.
 
@@ -299,7 +306,7 @@ Remix 3 is in beta; each `@pitlane/dev` release records the exact beta it was ve
 // package.json
 {
     "devDependencies": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" },
-    "pnpm": { "overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" } }
+    "pnpm": { "overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" } },
 }
 ```
 

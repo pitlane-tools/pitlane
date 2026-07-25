@@ -3,6 +3,7 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
     fmt: {
         ignorePatterns: [
+            ".agents/docs/**",
             "docs/.vitepress/cache/**",
             "docs/.vitepress/dist/**",
             "docs/.vitepress/.temp/**",
@@ -42,6 +43,7 @@ export default defineConfig({
     },
     lint: {
         ignorePatterns: [
+            ".agents/docs/**",
             "docs/.vitepress/cache/**",
             "docs/.vitepress/dist/**",
             "docs/.vitepress/theme/components/snippets/**",
