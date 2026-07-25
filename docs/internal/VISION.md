@@ -4,17 +4,17 @@
 
 ## Overview
 
-Pitlane is a **meta-framework** for Remix 3. It sits between the Remix framework and the platforms you deploy to, giving Remix apps first-class, **portable** platform integration across Cloudflare, Netlify, Vercel, Neon, Upstash, Clerk, Resend, and more.
+Pitlane is a **meta-framework** for Remix 3. It provides the framework-adjacent packages, capability adapters, target templates, and deployment guidance needed to take a Remix application from development to production across Cloudflare, Netlify, Vercel, Railway, Deno Deploy, and plain Node, Bun, or Deno runtimes.
 
-It replaces hand-written infrastructure code (adapters, config files, migration runners, type generation) with maintained libraries and a CLI that wraps platform tooling. The same provider-neutral application code — controllers, job definitions, and capability usage — runs against any supported provider; only adapter construction and the deploy target change.
+The portable boundary is the application, not a synthesized hosting layer. Controllers, job definitions, and capability usage depend on Remix or Pitlane-owned contracts; the server entry exposes a standard fetch handler. Hosting then composes explicitly around that handler through a provider's Vite plugin, native configuration, CLI, or a small runtime launcher.
 
-The goal is to bring the developer experience of Void (auto-provisioned platform primitives, one-command deploy, zero infrastructure boilerplate) to Remix 3 — without hiding the underlying platform, without building a multi-tenant system, and without breaking Remix's explicit composition patterns.
+The goal is to make Remix 3 production-ready without becoming a deployment platform, hiding the host, building a multi-tenant control plane, or breaking Remix's explicit composition patterns.
 
 **Key principles:**
 
 - **Remix idioms.** Platform primitives are adapters you construct and controllers you register — request-scoped state flows through controller middleware and context, not magic globals. Configuration is explicit.
 - **Adapters, not lock-in.** Each provider-backed capability (database, file storage, sessions, jobs, cache, email, images, flags, local-store persistence and sync) exposes a stable application interface with swappable adapter packages. Application code depends on the interface; the adapter binds it to a provider or runtime.
-- **One canonical config.** The `platform()` Vite plugin is the source of truth for the project's deploy target and bindings. Every other tool (CLI, deploy action, type generation) reads from it.
+- **Composable hosting, not a hosting engine.** Provider plugins compose beside `remix()`; native deployment configuration is checked in; and provider CLIs own emulation, provisioning, secrets, and deployment. Pitlane keeps application code portable while leaving the deployment edge explicit.
 
 ### Development principles
 
@@ -106,27 +106,26 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 
 - npm packages: `pitlane`, `@pitlane/*`
 - GitHub org: `pitlane-tools`
-- CLI command: `pitlane`
-- Marketing site: `https://pitlane.tools`
-- Docs site: `https://docs.pitlane.tools`
-- Scaffolding: `vp create pitlane` (via `create-pitlane` package)
-- Agent interface: `pitlane` CLI + Pitlane-maintained skills
+- Site and documentation: `https://pitlane.tools`
+- Target templates: `https://github.com/pitlane-tools/templates`
+- Scaffolding: `npx giget github:pitlane-tools/templates/<template> my-app`
+- Agent interface: source, documentation, target templates, and Pitlane-maintained skills
 
 ## Package architecture
 
 Pitlane is a monorepo of small, single-purpose packages. Each scoped package can be installed directly without the `pitlane` umbrella and has standalone documentation. Packages may depend on an explicit Remix or Pitlane capability contract, and provider adapters may depend on their provider SDK; those relationships are part of their documented API.
 
-`pitlane` is the meta-package: it ships the `pitlane` CLI and re-vends the scoped packages, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev` and the `platform()` target plugin from `@pitlane/platform` as `pitlane/platform`. The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features.
+`pitlane` is the optional meta-package that re-vends scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev`. The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
 
 ### Packaging strategy
 
-Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the umbrella `pitlane` package vendors each implementation under a matching subpath. Installing `pitlane` gives you the whole surface via `pitlane/<name>`; for example, `pitlane/data-table-cloudflare-d1` is the vendored alias of `@pitlane/data-table-cloudflare-d1`. Installing scoped packages directly gives you only the concerns you select. Examples throughout this document import from the cohesive `pitlane/*` namespace, while each scoped package remains independently installable and documented.
+Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the optional `pitlane` package may vendor implementations under matching subpaths. Installing scoped packages directly gives a project only the concerns it selects and is the primary form used by package documentation. Installing `pitlane` provides the cohesive `pitlane/<name>` namespace without changing runtime behavior or deployment ownership.
 
 ### Runtime and build-time packages
 
 Runtime-first is evaluated per package, not imposed on capabilities whose purpose is build-time integration. Runtime-oriented packages such as `@pitlane/theme`, adapters, and controller middleware must expose a core API that works directly in a JavaScript runtime and whose core tests run without bundling. A later bundler plugin may optimize that API but cannot become a prerequisite for it.
 
-Tooling packages such as `@pitlane/dev` and `@pitlane/platform` are explicit exceptions: build orchestration, module transforms, generated provider config, and type generation intrinsically require Vite, a compiler, or provider tooling. They should still keep those dependencies behind their own public APIs so they remain replaceable.
+`@pitlane/dev` is the explicit tooling exception: build orchestration and module transforms intrinsically require Vite. It keeps that dependency behind its public plugin API and composes with provider-owned Vite plugins rather than wrapping or replacing them.
 
 ### The adapter pattern
 
@@ -219,13 +218,10 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 ### Tooling packages
 
-| Package                       | Purpose                                                                                             |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- |
-| `@pitlane/dev`                | `remix()` Vite plugin — provider-agnostic Remix framework build                                     |
-| `@pitlane/service-worker`     | Service-worker Vite environment, route execution, registration, asset caching, and update lifecycle |
-| `@pitlane/platform`           | `platform()` Vite plugin — target config, bindings, type generation, provider integration           |
-| `pitlane` (CLI)               | CLI wrapping platform tooling — database, secrets, resources, deploy                                |
-| `pitlane-tools/deploy-action` | GitHub Action for CI/CD deployment                                                                  |
+| Package                   | Purpose                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `@pitlane/dev`            | `remix()` Vite plugin — provider-agnostic Remix framework build                                     |
+| `@pitlane/service-worker` | Service-worker Vite environment, route execution, registration, asset caching, and update lifecycle |
 
 ## `pitlane/dev` — framework Vite plugin
 
@@ -244,7 +240,7 @@ The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as h
 **API:**
 
 ```ts
-import { remix } from "pitlane/dev";
+import { remix } from "@pitlane/dev";
 
 export default defineConfig({
     plugins: [
@@ -253,70 +249,37 @@ export default defineConfig({
             clientEntry: "app/entry.browser", // false to disable
             serverEntry: "app/entry.server",
             serverEnvironments: ["ssr"],
-            serverHandler: false, // true if not using pitlane/dev
+            serverHandler: true, // false when a provider plugin serves dev requests
         }),
     ],
 });
 ```
 
-## `pitlane/platform` — platform Vite plugin
+## Deployment boundary
 
-The `platform()` plugin is the canonical source of the project's deploy target and its bindings. Every other tool — the CLI, the deploy action, type generation — reads this config to know what to do.
+Pitlane deliberately has no platform package, target schema, generated `.pitlane/` configuration, deployment CLI, or universal deploy action. Those abstractions would have to flatten provider concepts, lag provider releases, and reimplement authentication, local emulation, resource lifecycle, and deployment behavior that each platform already owns.
 
-### What it does
+The stable contract is the server entry's default-exported `.fetch(Request)` handler. `@pitlane/dev` builds that handler and the client assets; hosting integrations consume the output in their native way:
 
-Replaces the per-provider glue (`@cloudflare/vite-plugin` + `wrangler.jsonc`, `netlify.toml`, `vercel.json`) and the manual `typegen` run task:
+| Target                      | Composition                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| Cloudflare Workers          | `@cloudflare/vite-plugin`, checked-in `wrangler.jsonc`, workerd/Miniflare, and Wrangler      |
+| Netlify                     | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function      |
+| Vercel                      | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI     |
+| Railway / container hosts   | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile             |
+| Deno Deploy                 | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI             |
+| Static hosts / GitHub Pages | a client-only Vite build; `@pitlane/dev` is unnecessary when there is no server or hydration |
 
-- **Dev time**: generates the target's native config into `.pitlane/` (gitignored) from conventions + config, runs the provider's type generation, outputs binding types into `.pitlane/`, and delegates to the provider's dev integration (e.g. Miniflare/workerd for Cloudflare) for local emulation.
-- **Build time**: regenerates the target config if needed, then lets the provider's own tooling handle bundling.
+Provider configuration remains checked in at the paths the provider documents. It is the source of truth for bindings, compatibility flags, asset rules, schedules, redirects, and runtime settings. Provider tools generate their own binding types and manage login, secrets, resource creation, logs, preview, and deployment.
 
-The plugin's `target` selects the deploy platform. The option shape for bindings is target-specific — each target emits its own native config format — but the runtime code your app imports (adapters, controllers) stays identical because it depends on adapters, not on the target.
+Pitlane owns the seams where shared application code needs stability:
 
-### Config shape (Cloudflare target)
+- `@pitlane/dev` produces the Remix server and client environments and composes with another plugin when that plugin owns the target runtime.
+- Capability adapters translate provider resources into Remix or Pitlane-owned interfaces.
+- Target templates contain the small amount of explicit hosting glue and are exercised as complete applications.
+- Deployment guides document native CLI and GitHub Actions workflows, including which tool builds the artifact and which tool uploads it.
 
-```ts
-// Single binding shorthand
-platform({
-    target: "cloudflare",
-    d1: { binding: "DB", database: "contacts" },
-    kv: { binding: "SESSIONS" },
-    r2: { binding: "FILES" },
-    queues: { binding: "TASKS", queue: "task-queue" },
-    cron: "0 * * * *",
-});
-
-// Multiple bindings
-platform({
-    target: "cloudflare",
-    name: "my-app",
-    compatibilityDate: "2026-04-08",
-    d1: [
-        { binding: "DB", database: "primary" },
-        { binding: "ANALYTICS_DB", database: "analytics" },
-    ],
-    kv: [{ binding: "SESSIONS" }, { binding: "FLAGS" }],
-    r2: [{ binding: "UPLOADS" }, { binding: "ASSETS" }],
-    queues: [
-        { binding: "TASKS", queue: "task-queue" },
-        { binding: "EMAILS", queue: "email-queue" },
-    ],
-    cron: ["0 * * * *", "0 0 * * *"],
-});
-```
-
-Each resource type accepts either a single object or an array of objects; a single object is sugar for a one-element array. When using multiple bindings of the same type, construct one adapter per binding.
-
-The `netlify` and `vercel` targets accept analogous option shapes and emit their own native config (`netlify.toml`, `vercel.json`) into `.pitlane/`.
-
-### What it generates
-
-For the Cloudflare target: `.pitlane/wrangler.jsonc` — a complete Wrangler config derived from the plugin options, including `main`, `assets`, `compatibility_date`, `d1_databases`, `kv_namespaces`, `r2_buckets`, `queues`, `triggers`. For other targets, the equivalent native config. The user can inspect it for debugging but never edits it.
-
-### What it does NOT do
-
-- No import scanning. Resource detection is based on plugin config.
-- No auto-provisioning of remote resources. That's the CLI's job.
-- No hiding platform concepts. The generated configs and types are inspectable in `.pitlane/`.
+Portability therefore does not mean that `wrangler.jsonc`, `netlify.toml`, a Nitro plugin, and a Dockerfile become interchangeable data structures. It means those target-specific edges stay thin and visible while controllers, schemas, commands, and components remain unchanged. A platform swap normally changes the provider plugin or launcher, native config, and adapter construction—not the application.
 
 ## Runtime — adapters and controllers
 
@@ -842,47 +805,74 @@ The service-worker runtime may install a local auth scheme that projects the las
 
 ### Type-safe styling — `@pitlane/theme`
 
-`createTheme` takes a [W3C design-token](https://www.w3.org/community/design-tokens/) config and returns a token accessor (`token`, conventionally aliased to `$`), a `<Theme />` component, and class/variant helpers — `tva` ("Theme Variance Authority", modeled on `cva`) plus `cx` and `combine`. `<Theme />` injects the design-token CSS onto the page via `remix/ui`'s theme manager. Token paths are type-safe: `$(path)` yields a CSS `var()` reference, `$.raw(path)` the underlying value, and `$.css({...})` a `remix/ui` `css()` mixin with token paths resolved to vars, applied through the `mix` prop. Built on Gist.
+`createTheme(config, { modes })` accepts a [W3C DTCG design-token document](https://www.designtokens.org/tr/drafts/format/) and returns `{ token, raw, Theme }`. `token` is a typed object whose leaves are CSS `var()` references; `raw(ref)` resolves a token's serialized base value; and `<Theme />` renders the compiled variables in a `<style data-pitlane-theme>` element. The module separately exports `css`, `tva`, `combine`, and `cx`.
 
-`@pitlane/theme` is runtime-first: `createTheme` and every core API work without a bundler, compiler, or type generation. A future build plugin may optimize CSS output or extraction, but using it remains optional.
+Each token reference carries its DTCG type as a compile-time brand. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/ui`'s unthemed `css()` remains the explicit escape hatch.
+
+`tva` is a variant resolver modeled on `cva`, but it composes branded style objects and returns a `mix`-ready descriptor. `combine` merges multiple `tva` components, while `cx` joins ordinary class names for stylesheet interop. All are module-level exports rather than values returned by `createTheme`.
 
 ```tsx
-import { createTheme } from "pitlane/theme";
+import { createTheme, css, tva } from "@pitlane/theme";
 
-let {
-    token: $,
+export let {
+    token: t,
+    raw,
     Theme,
-    // Theme Variance Authority — API like `cva`
-    tva,
-    cx,
-    combine,
-} = createTheme({
-    // W3C design token config
-    color: {
-        white: { $type: "color", $value: "#fff" },
-        // ...
+} = createTheme(
+    {
+        color: {
+            $type: "color",
+            white: { $value: "#fff" },
+            gray: { 900: { $value: "#171717" } },
+            text: { $value: "{color.gray.900}" },
+        },
+        space: {
+            $type: "dimension",
+            sm: { $value: "8px" },
+            md: { $value: "16px" },
+        },
     },
-    // ...
+    {
+        modes: {
+            dark: {
+                color: {
+                    text: { $value: "{color.white}" },
+                },
+            },
+        },
+    },
+);
+
+t.color.white; // "var(--color-white)"
+raw(t.color.text); // "#171717"
+
+let panel = tva({
+    base: {
+        color: t.color.text,
+        padding: t.space.md,
+    },
+    variants: {
+        compact: {
+            true: { padding: t.space.sm },
+        },
+    },
 });
-
-$("colors.white"); // "var(--colors-white)"
-$.raw("colors.white"); // "#fff"
-
-// $.css() resolves token paths to vars and returns a remix/ui css() mixin
-let mixin = $.css({ color: "colors.white", backgroundColor: "colors.white" });
-// remix/ui css({ color: "var(--colors-white)", backgroundColor: "var(--colors-white)" })
 
 function Component() {
     return () => (
         <>
-            {/* <Theme /> adds the design-token CSS via remix/ui's theme manager */}
             <Theme />
-            <div mix={$.css({ color: "colors.white" })} />
-            {/*                     ^ type-safe token path */}
+            <section mix={panel({ compact: true })}>
+                <span mix={css({ color: t.color.text })}>Content</span>
+            </section>
         </>
     );
 }
 ```
+
+Token types resolve from the token, an alias target, or the nearest ancestor group's `$type`, in DTCG order. Aliases remain CSS `var()` indirections so mode overrides cascade. Modes may override only `$value` and emit `prefers-color-scheme` blocks without client-side JavaScript. `<Theme />` accepts a CSP `nonce`. Unknown aliases, cycles, normalized-name collisions, invalid values, and invalid mode overrides throw `ThemeError` during `createTheme`; typography tokens remain intentionally unsupported in the first release.
+
+`@pitlane/theme` is runtime-first and has no runtime dependencies beyond its Remix peer. A future build integration may optimize CSS output or extraction, but using it remains optional.
 
 ### Service-worker execution — `@pitlane/service-worker`
 
@@ -1052,129 +1042,77 @@ export default {
 
 Route controllers close over `db`, `files`, `storage`, and `scheduler`, or import them from a shared module; each is defined with `createController` (see the capability sections above).
 
-## Full vite.config.ts example
+## Full Cloudflare deployment example
+
+The provider integration composes beside Pitlane rather than through it:
 
 ```ts
-import { remix } from "pitlane/dev";
-import { platform } from "pitlane/platform";
+// vite.config.ts
+import { cloudflare } from "@cloudflare/vite-plugin";
+import { remix } from "@pitlane/dev";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-    plugins: [
-        remix(),
-        platform({
-            target: "cloudflare",
-            d1: { binding: "DB", database: "contacts" },
-            kv: { binding: "SESSIONS" },
-            r2: { binding: "FILES" },
-            queues: { binding: "TASKS", queue: "task-queue" },
-            cron: "0 * * * *",
-        }),
-    ],
+    plugins: [remix({ serverHandler: false }), cloudflare({ viteEnvironment: { name: "ssr" } })],
 });
 ```
 
-## `pitlane` — the CLI
+Cloudflare's checked-in config owns the runtime and resource declarations:
 
-Wraps each target's platform tooling and provides Remix 3-aware commands. Reads configuration from the `platform()` plugin options in `vite.config.ts` — no separate CLI config file. It dispatches to the right provider tool based on `target` (Wrangler for Cloudflare, the Netlify CLI, the Vercel CLI).
-
-The CLI does NOT shim any commands already provided by Vite+ (`dev`, `build`, `check`, `test`, etc.). It focuses exclusively on platform operations.
-
-### Model-first interface
-
-Pitlane's model-facing product surface is the CLI plus Pitlane-maintained skills, not a separate hidden control plane. Skills teach agents Pitlane and Remix patterns, including how to compose model-backed product features from Web APIs, and direct agents to the same explicit CLI used by humans and CI.
-
-The CLI remains interactive by default for humans, but every workflow must also be deterministic and non-interactive:
-
-- Every prompt has an equivalent command option or checked-in configuration value.
-- Query, status, and plan commands support `--json`; structured data goes to stdout and diagnostics go to stderr.
-- Mutating commands support `--dry-run` where a meaningful plan can be produced and `--yes` to accept that plan without prompting.
-- In a non-interactive environment, commands never wait for input. Missing required values produce a structured error and a stable non-zero exit code.
-- Secrets are accepted through stdin, environment variables, or protected files rather than command arguments.
-
-Pitlane skills document these contracts, select the appropriate command and flags, and explain the generated or changed application code. The auto-injected `CLAUDE.md` points agents to the skills instead of duplicating package documentation.
-
-### Database commands
-
-Wraps `remix/data-table` and the configured database adapter.
-
-```
-pitlane db generate          — generate migration file from schema diff
-pitlane db push              — apply schema directly to local database (prototyping)
-pitlane db migrate           — run pending migrations locally
-pitlane db migrate --remote  — run pending migrations against the remote database
-pitlane db reset             — wipe local database state
-pitlane db seed              — run seed file
+```jsonc
+// wrangler.jsonc
+{
+    "name": "contacts",
+    "main": "app/entry.server.tsx",
+    "assets": { "directory": "dist/client" },
+    "compatibility_date": "2026-04-08",
+    "compatibility_flags": ["nodejs_compat"],
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "contacts",
+            "database_id": "<database-id>",
+        },
+    ],
+    "kv_namespaces": [{ "binding": "SESSIONS", "id": "<namespace-id>" }],
+    "r2_buckets": [{ "binding": "FILES", "bucket_name": "contacts-files" }],
+    "queues": {
+        "producers": [{ "binding": "TASKS", "queue": "task-queue" }],
+        "consumers": [{ "queue": "task-queue" }],
+    },
+    "triggers": { "crons": ["0 * * * *"] },
+}
 ```
 
-### Secrets
+That file is edited directly, reviewed with the application, and read by Wrangler in development, preview, CI, and production. Cloudflare generates binding types and manages resources and secrets:
 
-```
-pitlane secrets push         — sync .env to the target's secret store
-pitlane secrets list         — list remote secret names (values are write-only)
-```
-
-`pitlane secrets push` reads `.env`, diffs against deployed secret names, and pushes changes. Warns before overwriting.
-
-### Resources
-
-```
-pitlane resources list       — show the project's provider resources and their status
-pitlane resources create     — provision resources from platform config
-pitlane resources link       — link existing resources
+```sh
+vpx wrangler types
+vpx wrangler d1 migrations apply DB --remote
+vpx wrangler secret put SESSION_SECRET
 ```
 
-Resource provisioning is an explicit step, not auto-provisioned on deploy. Reads the `platform()` config to know what to create.
+Pitlane does not mirror those operations. Netlify, Vercel, Railway, and Deno keep their equivalent native config and commands.
 
-### Deploy
+## Deployment workflows
 
-```
-pitlane deploy               — build + migrate + deploy
-pitlane deploy --dry-run     — show plan without executing
-```
+The build happens in the developer's shell or CI, under application control. The provider then receives the tested artifact through its native deployment path:
 
-`pitlane deploy` in detail:
+| Target       | Production path                                                               |
+| ------------ | ----------------------------------------------------------------------------- |
+| Cloudflare   | `vp build && vpx wrangler deploy`                                             |
+| Netlify      | `vp build && vpx netlify-cli deploy --no-build --prod`                        |
+| Vercel       | `vpx vercel build --prod && vpx vercel deploy --prebuilt --prod`              |
+| Railway      | build and push the Docker image, then `vpx railway redeploy --service <name>` |
+| Deno Deploy  | `vp build && deno deploy --app <name> --prod`                                 |
+| GitHub Pages | upload `dist/` and deploy it with the official GitHub Pages actions           |
 
-1. Build the project (`vp build`)
-2. Run `pitlane db migrate --remote` if there are pending migrations
-3. Abort if migration fails
-4. Deploy using the generated target config in `.pitlane/`
-5. Log the live URL
+Migration execution is an explicit application step rather than an implicit side effect of every deploy. A workflow that needs migrations runs the adapter or provider's migration command before uploading the new artifact and aborts on failure.
 
-### Setup
-
-```
-pitlane setup             — generate .github/workflows/deploy.yml
-```
-
-Writes a ready-to-use GitHub Actions workflow using `pitlane-tools/deploy-action`. Prompts for any needed values (environment name, production URL).
-
-When `gh` is available and authenticated, the command detects the full repository state and offers to handle each missing step:
-
-1. **No git repo** — offers to run `git init` and create an initial commit
-2. **No GitHub remote** — offers to create a GitHub repo via `gh repo create` and push
-3. **Missing platform secrets** — if logged in via `pitlane login`, offers to create a scoped API token via the provider's API and set the corresponding repository secret via `gh secret set`.
-4. **Writes the workflow file** — `.github/workflows/deploy.yml`
-
-When everything is available, the full flow is: init repo, create remote, create platform token, set secret, write workflow — zero manual steps from fresh project to CI pipeline.
-
-### Auth
-
-```
-pitlane login                — delegates to the target provider's login flow
-pitlane whoami               — show the provider identity
-```
-
-## `pitlane-tools/deploy-action` — GitHub Action
-
-A GitHub Action for CI/CD deployment. The user handles building and Vite+ setup themselves, since those choices vary across projects (Mise, the official Vite+ action, Homebrew, etc.).
-
-The action assumes the project is already built (`dist/` exists) and takes care of the platform-specific steps for the configured target.
-
-**Usage:**
+There is no universal Pitlane deploy action. Each target template includes a native GitHub Actions workflow whose credentials, build point, artifact, and deploy command are visible. For Cloudflare:
 
 ```yaml
-name: Build & Deploy
+name: Deploy
 
 on:
     push:
@@ -1187,227 +1125,145 @@ permissions:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        environment:
-            name: production
-            url: https://my-app.example.com
         steps:
             - uses: actions/checkout@v4
 
             - uses: voidzero-dev/setup-vp@v1
               with:
-                  node-version: "24"
                   cache: true
 
+            - run: vp install --frozen-lockfile
             - run: vp build
-
-            - uses: pitlane-tools/deploy-action@v1
-              with:
-                  # provider token — name depends on the configured target
-                  apiToken: ${{ secrets.PLATFORM_API_TOKEN }}
+            - run: vpx wrangler deploy
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 ```
 
-**What the action does:**
+### Model-first interface
 
-1. Runs `pitlane db migrate --remote` if there are pending migrations
-2. Aborts if migration fails
-3. Deploys the existing `dist/` output through the shared target-deployment implementation using the generated config in `.pitlane/`; it does not invoke the composite `pitlane deploy` command
-
-**What the action does NOT do:**
-
-- Install dependencies or set up Vite+ — the user's responsibility
-- Build the project — the user runs `vp build` before calling the action
-- Provision resources — `pitlane resources create` is a one-time step, not part of CI
-
-The local CLI and GitHub Action share the same target-deployment implementation, not the same orchestration sequence. `pitlane deploy` composes build, migrate, and deploy for local use; the action receives an already-built artifact and composes only migrate and deploy.
+Pitlane's model-facing surface is its source, documentation, target templates, and maintained skills—not a hidden deployment control plane. Skills teach agents which checked-in files define the target and direct them to the same deterministic provider commands used by humans and CI. Changes remain inspectable as ordinary code and configuration.
 
 ## MVP boundaries
 
 ### In MVP
 
-- `pitlane/dev` — `remix()` Vite plugin (extraction of `remix.plugin.ts`)
-- `pitlane/platform` — `platform()` Vite plugin (canonical target + binding config), Cloudflare target first
+- `@pitlane/dev` — the provider-agnostic `remix()` Vite plugin
+- `@pitlane/theme` — DTCG design tokens, branded `css()`, variants, and mode emission
+- Checked-in target templates and deployment guides for Cloudflare, Netlify, Vercel, Railway, Deno Deploy, and GitHub Pages
 - Core adapters — `@pitlane/data-table-cloudflare-d1` (`D1DatabaseAdapter`), `@pitlane/file-storage-cloudflare-r2` (`R2FileStorage`), `@pitlane/session-storage-cloudflare-kv` (`createKVSessionStorage`)
-- `@pitlane/job` — provider-neutral `createJobs`, `Scheduler`, `createJobQueue`, `createScheduledJobs`, plus `@pitlane/job-scheduler-cloudflare` for the Cloudflare Queues backend
-- `pitlane` CLI — database commands, secrets sync, resource provisioning, deploy
-- `pitlane-tools/deploy-action` — GitHub Action for CI/CD deployment
-- Pitlane-maintained skills plus an auto-injected `CLAUDE.md` that directs agents to them
+- `@pitlane/job` — provider-neutral `createJobs`, `Scheduler`, `createJobQueue`, and `createScheduledJobs`, plus `@pitlane/job-scheduler-cloudflare`
+- Pitlane-maintained skills that direct agents to the same source, native configuration, and commands used by application developers
 
 ### Post-MVP
 
-- Additional targets — Netlify and Vercel adapters across every capability
-- Remaining packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/theme`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/local-store`, `@pitlane/local-store-replica-indexeddb`, `@pitlane/local-store-server-data-table`, `@pitlane/local-store-sync-cloudflare-durable-objects`, `@pitlane/service-worker`, `@pitlane/email`, `@pitlane/fonts`
-- Log streaming (covered by the provider's own log tail for now)
-- Dashboard / web UI
+- Additional adapter coverage across Netlify, Vercel, Neon, Upstash, and other providers
+- Remaining packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/local-store`, `@pitlane/local-store-replica-indexeddb`, `@pitlane/local-store-server-data-table`, `@pitlane/local-store-sync-cloudflare-durable-objects`, `@pitlane/service-worker`, `@pitlane/email`, and `@pitlane/fonts`
+
+### Explicit non-goals
+
+- A Pitlane platform Vite plugin or generated provider configuration
+- A universal provider login, provisioning, secrets, logs, or deployment CLI
+- A universal deploy action or hosted deployment dashboard
+- Source uploads that delegate the authoritative production build to a provider
 
 ## What a new project looks like
 
 ### Scaffolding
 
-```
-vp create pitlane my-app
+Choose a tested target template:
+
+```sh
+npx giget github:pitlane-tools/templates/cloudflare my-app
 cd my-app
 vp install
+vp dev
 ```
+
+The template repository carries the same guest-book application across Cloudflare, Netlify, Vercel, Railway on Node/Bun/Deno, Deno Deploy, and GitHub Pages. Diffing two templates shows the portability boundary directly.
 
 ### First deploy
 
-```
-pitlane login
-pitlane resources create
-pitlane deploy
+The template's deployment guide uses the provider's native authentication and prebuilt deployment path. For Cloudflare:
+
+```sh
+vpx wrangler login
+vp build
+vpx wrangler deploy
 ```
 
 ### Day-to-day development
 
-```
-vp dev                       — local dev with the target's emulator
-pitlane db generate          — after schema changes
-pitlane db migrate           — apply locally
-pitlane secrets push         — sync .env to the provider
-pitlane deploy               — ship it
+```sh
+vp dev       # provider emulation when the target plugin supplies it
+vp build     # build the application under local or CI control
+vp preview   # exercise the production artifact
 ```
 
-## Updating `create-pitlane`
+Resource, secret, migration, log, and deploy commands remain target-specific and are documented beside each template.
 
-The existing `create-pitlane` package offers three project kinds: React Router SPA, SSR, and RSC. A new **Remix** option is added alongside these as a fourth top-level template choice — the primary way to get started with Pitlane.
+## Target templates and capability recipes
 
-The existing React Router templates are unchanged. The new Remix template is the opinionated Pitlane path.
+A target template is a complete, ordinary Remix project rather than the output of a hidden platform model. Its base contains:
 
-### New project kind: Remix
+- `@pitlane/dev` for server-rendered targets that use `clientEntry()`
+- the provider's Vite plugin when one exists, or a small runtime launcher when it does not
+- `app/entry.server.tsx` with the router and target handler export
+- checked-in native provider configuration
+- provider adapters constructed at the application boundary
+- a native GitHub Actions workflow that builds and deploys the artifact
 
-```
-vp create pitlane
+Client-only templates omit `@pitlane/dev` when there is no server build or hydration transform to perform.
 
-? Deploy target:
-❯ Cloudflare
-  Netlify
-  Vercel
-```
+Capability documentation provides additive recipes for existing projects. A future interactive scaffolder may automate those recipes, but its output must be the same reviewable package imports, application modules, and native provider config a developer would write by hand. It may not introduce a Pitlane target manifest or hidden generated state.
 
-This package scaffolds a Remix 3 project using `pitlane/dev`, `pitlane/platform`, and the `pitlane` CLI. It first asks for a deploy target, which determines the default adapters:
+For a Cloudflare application:
 
-The base template includes:
+- **Database** installs `@pitlane/data-table-cloudflare-d1`, adds the D1 declaration to `wrangler.jsonc`, constructs `new Database(new D1DatabaseAdapter(env.DB))`, and adds schema, migration, and seed modules.
+- **File storage** installs `@pitlane/file-storage-cloudflare-r2`, adds the R2 bucket declaration to `wrangler.jsonc`, and constructs `new R2FileStorage(env.FILES)`.
+- **Session storage** installs `@pitlane/session-storage-cloudflare-kv`, adds the KV declaration to `wrangler.jsonc`, and scaffolds `createKVSessionStorage` plus the `session()` controller middleware.
+- **Background and scheduled jobs** install `@pitlane/job` and `@pitlane/job-scheduler-cloudflare`, add queue and cron declarations to `wrangler.jsonc`, scaffold the job registry, and compose `queue` and `scheduled` handlers with the server entry.
+- **Other provider-backed capabilities** install their neutral package and matching adapter, then make the provider-native config change required by that resource.
 
-- `vite.config.ts` with `remix()` from `pitlane/dev` and `platform({ target })` from `pitlane/platform`
-- `entry.server.tsx` with the router, adapters, and target handler export
-- `pitlane` CLI as a dev dependency
-- `.pitlane/` in `.gitignore`
-- No hand-written target config — the platform plugin generates it
+Project-only recipes do not mutate deployment config unless the feature actually requires a target resource:
 
-### Optional features
+- **Local store** installs `@pitlane/local-store` and `@pitlane/local-store-replica-indexeddb`, then scaffolds collections, a versioned command, middleware, and deterministic memory-adapter tests. Synchronized mode also installs `@pitlane/local-store-server-data-table` and wires command plus pull/push controllers. Cloudflare applications may add `@pitlane/local-store-sync-cloudflare-durable-objects` for low-latency notifications.
+- **Service worker** installs `@pitlane/service-worker`, adds `app/entry.worker.ts`, contributes the worker environment to Vite, partitions server-only routes, and registers the emitted worker after initial page load.
+- **Theme** installs `@pitlane/theme`, adds a DTCG token document, renders `<Theme />` at the document root, and demonstrates branded `css()` and `tva`.
+- **Authentication, content, localization, testing, and prerendering** install and wire only their focused package or Remix primitive.
+- **CI/CD** adds the target's native workflow; it never adds a Pitlane deploy action.
 
-After selecting the target, the interactive prompts present optional features in two groups — platform features (provider-backed capabilities) and project features (application and runtime concerns). Each platform feature installs the adapter matching the chosen target.
+An illustrative Cloudflare project remains explicit at every target seam:
 
-```
-? Platform features:
-  ☐ Database
-  ☐ File Storage
-  ☐ Session Storage
-  ☐ Background Jobs
-  ☐ Scheduled Jobs
-  ☐ Email Delivery
-  ☐ Image Optimization
-  ☐ Feature Flags
-  ☐ Route Caching
-
-? Project features:
-  ☐ Local Store
-  ☐ Service Worker
-  ☐ Authentication
-  ☐ Testing
-  ☐ Prerendering
-  ☐ Content Layer (MDX)
-  ☐ Internationalization
-  ☐ Tailwind (CSS)
-  ☐ GitHub Actions (CI/CD)
-
-? Testing:
-  ● Vitest
-  ○ Remix (remix/test)
-```
-
-Every interactive selection has an equivalent non-interactive option and reaches the same generator. For example:
-
-```
-vp create pitlane my-app --target cloudflare --features database,background-jobs --testing vitest --yes
-```
-
-When stdin is not interactive, missing required choices fail with a structured error instead of opening a prompt.
-
-#### Platform features
-
-Each platform feature adds the relevant `platform()` config, installs the target-matched adapter, and wires the construction/handlers into `entry.server.tsx`. For example, on the Cloudflare target:
-
-**Database** — Prompts for a database name (defaults to the project name), adds the D1 binding to `platform()` config, installs `@pitlane/data-table-cloudflare-d1`, constructs `new Database(new D1DatabaseAdapter(env.DB))`, and adds a sample schema, a seed file, and a `pitlane db migrate && pitlane db seed` postinstall step.
-
-**File Storage** — Adds the R2 binding, installs `@pitlane/file-storage-cloudflare-r2`, and constructs `new R2FileStorage(env.FILES)`.
-
-**Session Storage** — Adds the KV binding, installs `@pitlane/session-storage-cloudflare-kv`, and scaffolds a session storage module with `createKVSessionStorage` plus the `session()` controller middleware.
-
-**Background Jobs** — Prompts for a queue name (defaults to `"tasks"`), adds the queue binding, installs `@pitlane/job` + `@pitlane/job-scheduler-cloudflare`, constructs `new CloudflareQueueAdapter(env.TASKS)` for the `Scheduler`, scaffolds a `jobs.ts` module with `createJobs`, and wires `createJobQueue(scheduler)` and the `queue` handler.
-
-**Scheduled Jobs** — Prompts for a cron expression (defaults to `"0 * * * *"`), adds `cron` to config, scaffolds a `createScheduledJobs(scheduler, {...})` mapping, and wires the `scheduled` handler.
-
-Other platform features (Email, Image Optimization, Feature Flags, Route Caching) install their capability package plus the target-matched adapter and scaffold a minimal wiring stub.
-
-#### Project features
-
-**Local Store** — Follow-up prompt selects _Local only_ or _Synchronized_ (default). Both install `@pitlane/local-store` and `@pitlane/local-store-replica-indexeddb`, scaffold collections and a versioned command, add the local-store middleware, and create deterministic memory-adapter tests. Synchronized mode also preselects Database, installs `@pitlane/local-store-server-data-table`, and wires command plus pull/push controllers. On Cloudflare, a further optional prompt installs `@pitlane/local-store-sync-cloudflare-durable-objects` for low-latency change notifications; ordinary fetch synchronization remains the default. The Service Worker feature is preselected for native offline route execution but can be deselected.
-
-**Service Worker** — Installs `@pitlane/service-worker`, adds `app/entry.worker.ts`, contributes the worker environment to Vite, partitions server-only routes, and registers the emitted worker after the initial page load. It reuses the application's existing controllers rather than scaffolding a second route implementation.
-
-**Authentication** — Follow-up prompt asks which provider. _Remix (`remix/auth`)_: built-in auth middleware with session handling. _Clerk_: adds `@pitlane/auth-clerk`. _Netlify Identity_: adds `@pitlane/auth-netlify-identity`.
-
-**Testing** — Follow-up prompt asks which framework. _Remix (`remix/test`)_ or _Vitest_.
-
-**Prerendering** — Configures static prerendering for selected routes.
-
-**Content Layer (MDX)** — Adds `@pitlane/content`, whose documented Vite integration wraps `@mdx-js/rollup` internally, wires that Pitlane integration into the Vite plugin array, and scaffolds a sample `app/content/` directory with a `createContent` module. Application config imports only the Pitlane surface.
-
-**Localization** — Adds `@pitlane/i18n` and scaffolds a sample locale setup.
-
-**Tailwind (CSS)** — Adds `@tailwindcss/vite`, wires `tailwindcss()` into the Vite plugins, and creates a `tailwind.css` stylesheet imported from the root route. Enabled by default but can be deselected.
-
-**CI/CD (GitHub Actions)** — Adds `.github/workflows/deploy.yml` using `pitlane-tools/deploy-action`.
-
-### What the scaffolded project looks like
-
-Example with Cloudflare target, Database, Background Jobs, Scheduled Jobs, CI/CD, and Tailwind selected:
-
-```
+```text
 my-app/
-├── .github/workflows/deploy.yml    ← CI/CD
-├── .vscode/
+├── .github/workflows/deploy.yml    # Wrangler deployment
 ├── app/
-│   ├── entry.server.tsx             ← router, adapters, queue + cron handlers
-│   ├── home.tsx                     ← createController
-│   ├── jobs.ts                      ← createJobs + Scheduler
+│   ├── entry.server.tsx            # router, adapters, queue + cron handlers
+│   ├── home.tsx                    # createController
+│   ├── jobs.ts                     # createJobs + Scheduler
 │   ├── root.tsx
 │   ├── routes.ts
-│   ├── schema.ts                    ← database schema
-│   └── styles/tailwind.css
-├── seed.ts                          ← database seed
+│   └── schema.ts                   # database schema
 ├── package.json
 ├── tsconfig.json
-└── vite.config.ts                   ← remix() + platform({ target, d1, queues, cron })
+├── vite.config.ts                  # remix() + cloudflare()
+└── wrangler.jsonc                  # bindings, assets, queues, and cron
 ```
-
-With no features selected, it's the minimal Remix 3 starting point for the chosen target — `remix()` + `platform({ target })` plugins and nothing else.
 
 ## How this compares to Void
 
-| Concern               | Void                                        | Pitlane                                                       |
-| --------------------- | ------------------------------------------- | ------------------------------------------------------------- |
-| Platform primitives   | Magic global imports (`void/db`)            | Explicit adapters + controllers                               |
-| Provider model        | Single hidden platform                      | Multi-provider via adapters (Cloudflare, Netlify, Vercel, …)  |
-| Resource provisioning | Auto on deploy                              | Explicit `pitlane resources create`                           |
-| Cloud account         | Hidden, not required                        | Required, user's own account                                  |
-| Deploy config         | None, fully hidden                          | Generated in `.pitlane/`, inspectable                         |
-| Framework             | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only                                                  |
-| Component model       | Framework-delegated                         | Remix's own component system                                  |
-| Build tool            | Vite 8 beta                                 | Vite+ (Rolldown-based)                                        |
-| Scaffolding           | `void init`                                 | `vp create pitlane`                                           |
-| Dev server            | `void dev` / `vp dev`                       | `vp dev`                                                      |
-| Deploy                | `void deploy`                               | `pitlane-tools/deploy-action` (CI) / `pitlane deploy` (local) |
-| MCP                   | Built-in                                    | Skills + CLI instead                                          |
-| Philosophy            | Platform SDK — hides the platform           | DX layer — portable platform integration you can inspect      |
+| Concern               | Void                                        | Pitlane                                                   |
+| --------------------- | ------------------------------------------- | --------------------------------------------------------- |
+| Platform primitives   | Magic global imports (`void/db`)            | Explicit adapters and controllers                         |
+| Provider model        | Single hidden platform                      | Multi-provider capability adapters                        |
+| Resource provisioning | Automatic during deployment                 | Explicit provider CLI, API, or dashboard                  |
+| Cloud account         | Hidden, not required                        | Required; owned directly by the application developer     |
+| Deploy config         | None; fully hidden                          | Checked-in native provider configuration                  |
+| Framework             | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only                                              |
+| Component model       | Framework-delegated                         | Remix's own component system                              |
+| Build tool            | Vite 8 beta                                 | Vite or Vite+, through `@pitlane/dev`                     |
+| Scaffolding           | `void init`                                 | Target templates through `giget`                          |
+| Dev server            | `void dev` / `vp dev`                       | `vp dev`, composed with the provider's runtime plugin     |
+| Deploy                | `void deploy`                               | Provider CLI or native GitHub Actions workflow            |
+| Model interface       | Built-in MCP                                | Source, documentation, templates, and maintained skills   |
+| Philosophy            | Platform SDK that hides the platform        | Composable hosting around a portable application contract |
