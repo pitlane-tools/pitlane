@@ -1,3 +1,5 @@
+import type { Plugin } from "vite";
+
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 import { remix } from "../../../src/index.ts";
@@ -18,6 +20,6 @@ export default {
                 globalThis.__envBuilds ??= [];
                 globalThis.__envBuilds.push(this.environment.name);
             },
-        },
+        } satisfies Plugin,
     ],
 };

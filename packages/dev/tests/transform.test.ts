@@ -1,22 +1,29 @@
-import type { TransformPluginContext, TransformResult } from "vite";
+import type { Plugin } from "vite";
 
 import { describe, expect, it } from "vitest";
 
 import { clientEntryTransform } from "../src/transform.ts";
 
+type TransformHook = Extract<NonNullable<Plugin["transform"]>, { handler: unknown }>;
+type TransformOutput = Awaited<ReturnType<TransformHook["handler"]>>;
+
 /**
- * Runs the transform hook against a minimal fake plugin context. The cast is
- * the test seam: the handler only reads `this.environment.name`, and building
- * a real TransformPluginContext would drag in a full dev server.
+ * Runs the transform hook against a minimal fake plugin context. The handler
+ * only reads `this.environment.name`, so we structurally narrow the hook's
+ * `this` to exactly that shape instead of booting a real plugin context.
  */
-async function runTransform(environmentName: string, code: string): Promise<TransformResult> {
+async function runTransform(environmentName: string, code: string): Promise<TransformOutput> {
     let plugin = clientEntryTransform(new Set(["ssr"]));
     let hook = plugin.transform;
     if (!hook || typeof hook === "function") {
         throw new Error("expected an object-form transform hook with a filter");
     }
-    let context = { environment: { name: environmentName } } as unknown as TransformPluginContext;
-    return await hook.handler.call(context, code, "/app/widgets.tsx");
+    let handler = hook.handler as (
+        this: { environment: { name: string } },
+        code: string,
+        id: string,
+    ) => TransformOutput | Promise<TransformOutput>;
+    return await handler.call({ environment: { name: environmentName } }, code, "/app/widgets.tsx");
 }
 
 const SINGLE = `import { clientEntry } from "remix/ui";
@@ -30,7 +37,7 @@ export const Counter = clientEntry(import.meta.url, handle => () => null);
 export const Toggle = clientEntry(import.meta.url, handle => () => null);
 `;
 
-function codeOf(result: TransformResult): string {
+function codeOf(result: TransformOutput): string {
     if (result && typeof result === "object" && typeof result.code === "string") {
         return result.code;
     }

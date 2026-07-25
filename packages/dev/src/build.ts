@@ -322,6 +322,7 @@ export function build({ clientEntry, serverEntry }: BuildPluginOptions): Plugin 
 }
 
 const RUNTIME_MODULE_ID = "\0pitlane:runtime";
+const RUNTIME_MODULE_FILTER = new RegExp(`^${RUNTIME_MODULE_ID}$`);
 
 /**
  * Resolves `@pitlane/dev/runtime` imports to an inlined copy of the
@@ -341,7 +342,7 @@ export function runtimeInline(): Plugin {
             },
         },
         load: {
-            filter: { id: /^\0pitlane:runtime$/ },
+            filter: { id: RUNTIME_MODULE_FILTER },
             handler(id) {
                 if (id === RUNTIME_MODULE_ID) {
                     return `export const mergeAssets = ${mergeAssets.toString()};\n`;

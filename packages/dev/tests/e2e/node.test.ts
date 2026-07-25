@@ -53,9 +53,7 @@ describe("production build", () => {
         expect(html).toMatch(/<script[^>]+src="\/assets\/[^"']+\.js"/);
 
         // every referenced stylesheet exists in dist/client
-        let cssHrefs = [...html.matchAll(/href="(\/assets\/[^"']+\.css)"/g)].map(
-            match => match[1],
-        );
+        let cssHrefs = [...html.matchAll(/href="(\/assets\/[^"']+\.css)"/g)].map(match => match[1]);
         expect(cssHrefs.length).toBeGreaterThan(0);
         for (let href of cssHrefs) {
             expect(existsSync(join(FIXTURE, "dist/client", href))).toBe(true);

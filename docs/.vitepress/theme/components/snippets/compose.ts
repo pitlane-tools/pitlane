@@ -7,6 +7,8 @@ import { defineConfig } from "vite";
 export default defineConfig({
     plugins: [
         remix({ serverHandler: false }),
-        cloudflare({ viteEnvironment: { name: "ssr" } }),
+        cloudflare({
+            viteEnvironment: { name: "ssr" },
+        }),
     ],
 });

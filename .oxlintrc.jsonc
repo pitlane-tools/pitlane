@@ -1,17 +1,18 @@
 {
     "$schema": "node_modules/oxlint/configuration_schema.json",
     "ignorePatterns": [
+        ".agents/docs/**",
         "docs/.vitepress/cache/**",
         "docs/.vitepress/dist/**",
         "docs/.vitepress/theme/components/snippets/**",
         "node_modules/**",
         "packages/*/dist/**",
         "demos/*/dist/**",
-        ".omp/**",
+        ".omp/**"
     ],
     "options": {
         "typeAware": true,
-        "typeCheck": true,
+        "typeCheck": true
     },
     "jsPlugins": ["eslint-plugin-perfectionist", "eslint-plugin-prefer-let"],
     "rules": {
@@ -29,10 +30,10 @@
                 "mjs": "always",
                 "mts": "always",
                 "ts": "always",
-                "tsx": "always",
-            },
+                "tsx": "always"
+            }
         ],
         "eslint/prefer-const": "off",
-        "prefer-let/prefer-let": [2, { "forceUpperCaseConst": true }],
-    },
+        "prefer-let/prefer-let": [2, { "forceUpperCaseConst": true }]
+    }
 }

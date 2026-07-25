@@ -11,7 +11,6 @@ Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/w
 `npx giget github:pitlane-tools/templates/cloudflare my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 :::
 
-
 ## Configuration
 
 Install the platform pieces:

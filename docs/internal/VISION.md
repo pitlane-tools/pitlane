@@ -75,29 +75,29 @@ Remix 3 owns every framework-level concern. Pitlane never reimplements these.
 
 This is Pitlane. Each capability is either an interface with provider **adapters**, or a Pitlane-native feature (some built on an upstream source such as Gist or OpenAPI Router).
 
-| Capability | Adapters / source |
-| --- | --- |
-| Database adapters | Cloudflare D1 • Netlify Database |
-| File storage adapters | Cloudflare R2 • Netlify Blobs • Vercel Blob |
-| Session storage adapters | Cloudflare KV • Netlify Blobs |
-| Authentication adapters | Clerk Auth |
-| Image optimization | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization |
-| Feature flags | Cloudflare • Netlify • Vercel • PostHog |
-| Scheduled jobs | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs |
-| Background jobs | Cloudflare Queues • Netlify Background Functions • Vercel Queues |
-| Route caching | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache |
-| Preview Deployments | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
-| Realtime | Pitlane-native |
-| Email delivery | Cloudflare Email Service • Resend |
-| Font providers | Local • Fontsource • Google Fonts • Adobe Fonts |
-| Content layer | Pitlane-native |
-| Head metadata | Pitlane-native |
-| Localization | Pitlane-native |
-| Type-safe env/secrets | Pitlane-native |
-| Type-safe styling | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42) |
-| Sprite sheet generator | Pitlane-native |
-| Router RPC | Pitlane-native |
-| Prerendering | Pitlane-native |
+| Capability               | Adapters / source                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| Database adapters        | Cloudflare D1 • Netlify Database                                                      |
+| File storage adapters    | Cloudflare R2 • Netlify Blobs • Vercel Blob                                           |
+| Session storage adapters | Cloudflare KV • Netlify Blobs                                                         |
+| Authentication adapters  | Clerk Auth                                                                            |
+| Image optimization       | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization                     |
+| Feature flags            | Cloudflare • Netlify • Vercel • PostHog                                               |
+| Scheduled jobs           | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs             |
+| Background jobs          | Cloudflare Queues • Netlify Background Functions • Vercel Queues                      |
+| Route caching            | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache                   |
+| Preview Deployments      | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
+| Realtime                 | Pitlane-native                                                                        |
+| Email delivery           | Cloudflare Email Service • Resend                                                     |
+| Font providers           | Local • Fontsource • Google Fonts • Adobe Fonts                                       |
+| Content layer            | Pitlane-native                                                                        |
+| Head metadata            | Pitlane-native                                                                        |
+| Localization             | Pitlane-native                                                                        |
+| Type-safe env/secrets    | Pitlane-native                                                                        |
+| Type-safe styling        | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42)   |
+| Sprite sheet generator   | Pitlane-native                                                                        |
+| Router RPC               | Pitlane-native                                                                        |
+| Prerendering             | Pitlane-native                                                                        |
 
 **Name and distribution:**
 
@@ -231,13 +231,13 @@ Pitlane deliberately has no platform package, target schema, generated `.pitlane
 
 The stable contract is the server entry's default-exported `.fetch(Request)` handler. `@pitlane/dev` builds that handler and the client assets; hosting integrations consume the output in their native way:
 
-| Target | Composition |
-| --- | --- |
-| Cloudflare Workers | `@cloudflare/vite-plugin`, checked-in `wrangler.jsonc`, workerd/Miniflare, and Wrangler |
-| Netlify | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function |
-| Vercel | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI |
-| Railway / container hosts | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile |
-| Deno Deploy | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI |
+| Target                      | Composition                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| Cloudflare Workers          | `@cloudflare/vite-plugin`, checked-in `wrangler.jsonc`, workerd/Miniflare, and Wrangler      |
+| Netlify                     | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function      |
+| Vercel                      | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI     |
+| Railway / container hosts   | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile             |
+| Deno Deploy                 | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI             |
 | Static hosts / GitHub Pages | a client-only Vite build; `@pitlane/dev` is unnecessary when there is no server or hydration |
 
 Provider configuration remains checked in at the paths the provider documents. It is the source of truth for bindings, compatibility flags, asset rules, schedules, redirects, and runtime settings. Provider tools generate their own binding types and manage login, secrets, resource creation, logs, preview, and deployment.
@@ -665,11 +665,11 @@ export default createController(routes.tasks, {
 
 The local-store capability has two complementary storage contracts and one optional transport contract. They are different seams, not interchangeable implementations of one interface:
 
-| Contract | Runs in | Responsibility |
-| --- | --- | --- |
-| `ReplicaStorageAdapter` | Browser or device runtime | Visible records and indexes, synchronized base, pending commands, failures, coverage, checkpoints, and local metadata |
-| `ServerStorageAdapter` | Trusted server runtime | Authoritative records, command idempotency and outcomes, ordered change log, tombstones, checkpoints, compaction, and scoped query execution |
-| `SyncTransportAdapter` | Replica and server boundary | Moves commands and changes and optionally wakes connected replicas; it does not define persistence, query, command, authorization, or conflict semantics |
+| Contract                | Runs in                     | Responsibility                                                                                                                                           |
+| ----------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ReplicaStorageAdapter` | Browser or device runtime   | Visible records and indexes, synchronized base, pending commands, failures, coverage, checkpoints, and local metadata                                    |
+| `ServerStorageAdapter`  | Trusted server runtime      | Authoritative records, command idempotency and outcomes, ordered change log, tombstones, checkpoints, compaction, and scoped query execution             |
+| `SyncTransportAdapter`  | Replica and server boundary | Moves commands and changes and optionally wakes connected replicas; it does not define persistence, query, command, authorization, or conflict semantics |
 
 The controller-facing API composes the appropriate contracts for each runtime:
 
@@ -1198,17 +1198,17 @@ my-app/
 
 ## How this compares to Void
 
-| Concern | Void | Pitlane |
-| --- | --- | --- |
-| Platform primitives | Magic global imports (e.g. `void/db`) | Explicit adapters and controllers |
-| Provider model | Single hidden platform | Multi-provider capability adapters |
-| Resource provisioning | Automatic during deployment | Automated via CI/CD |
-| Provider account | Hidden behind Void | Managed directly by the developer |
-| Deploy config | None; fully hidden | Checked-in native provider configuration |
-| Framework | React, Vue, Svelte, Solid, or any Vite-based meta-framework | Remix |
-| Build tool | Vite or Vite+ | Vite or Vite+, through `@pitlane/dev` |
-| Scaffolding | `void init` | Target templates through `giget` |
-| Dev server | `void dev` | `vp dev`, composed with the provider's runtime plugin |
-| Deploy | `void deploy` | GitHub Actions workflow |
-| Model interface | Built-in MCP | CLI, source code, documentation, templates, and maintained skills |
-| Philosophy | Platform SDK that hides the platform | Composable hosting around a portable runtime contract |
+| Concern               | Void                                                        | Pitlane                                                           |
+| --------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| Platform primitives   | Magic global imports (e.g. `void/db`)                       | Explicit adapters and controllers                                 |
+| Provider model        | Single hidden platform                                      | Multi-provider capability adapters                                |
+| Resource provisioning | Automatic during deployment                                 | Automated via CI/CD                                               |
+| Provider account      | Hidden behind Void                                          | Managed directly by the developer                                 |
+| Deploy config         | None; fully hidden                                          | Checked-in native provider configuration                          |
+| Framework             | React, Vue, Svelte, Solid, or any Vite-based meta-framework | Remix                                                             |
+| Build tool            | Vite or Vite+                                               | Vite or Vite+, through `@pitlane/dev`                             |
+| Scaffolding           | `void init`                                                 | Target templates through `giget`                                  |
+| Dev server            | `void dev`                                                  | `vp dev`, composed with the provider's runtime plugin             |
+| Deploy                | `void deploy`                                               | GitHub Actions workflow                                           |
+| Model interface       | Built-in MCP                                                | CLI, source code, documentation, templates, and maintained skills |
+| Philosophy            | Platform SDK that hides the platform                        | Composable hosting around a portable runtime contract             |

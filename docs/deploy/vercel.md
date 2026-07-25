@@ -11,7 +11,6 @@ Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with
 `npx giget github:pitlane-tools/templates/vercel my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 :::
 
-
 ## Configuration
 
 ::: code-group

@@ -6,8 +6,8 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 
 ## Packages
 
-| Package | Status | Description |
-| --- | --- | --- |
+| Package                        | Status                                                                                                         | Description                                                                                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`@pitlane/dev`](packages/dev) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fdev?color=blue)](https://www.npmjs.com/package/@pitlane/dev) | `remix()` — the Remix 3 Vite plugin: build orchestration, the `clientEntry()` hydration transform, dev server, and preview for any Vite project. |
 
 ## Quick start

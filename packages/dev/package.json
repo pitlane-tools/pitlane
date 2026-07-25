@@ -1,7 +1,13 @@
 {
     "name": "@pitlane/dev",
     "version": "0.1.1",
-    "description": "remix() \u2014 the Remix 3 Vite plugin: build orchestration, clientEntry() hydration transform, dev server, and preview for any Vite or Vite+ project.",
+    "description": "remix() — the Remix 3 Vite plugin: build orchestration, clientEntry() hydration transform, dev server, and preview for any Vite or Vite+ project.",
+    "keywords": [
+        "pitlane",
+        "remix",
+        "vite",
+        "vite-plugin"
+    ],
     "homepage": "https://pitlane.tools/package/dev/",
     "bugs": {
         "url": "https://github.com/pitlane-tools/pitlane/issues"
@@ -13,12 +19,6 @@
         "url": "git+https://github.com/pitlane-tools/pitlane.git",
         "directory": "packages/dev"
     },
-    "keywords": [
-        "remix",
-        "vite",
-        "vite-plugin",
-        "pitlane"
-    ],
     "files": [
         "dist",
         "CHANGELOG.md"
@@ -46,10 +46,6 @@
         "magic-string": "^0.30.21",
         "oxc-parser": "^0.141.0"
     },
-    "peerDependencies": {
-        "remix": "^3.0.0-beta.5",
-        "vite": ">=7.0.0"
-    },
     "devDependencies": {
         "@cloudflare/vite-plugin": "^1.31.0",
         "@types/node": "^25.5.0",
@@ -58,6 +54,10 @@
         "vite": "^8.1.5",
         "vite-plus": "^0.2.6",
         "wrangler": "^4.114.0"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0-beta.5",
+        "vite": ">=7.0.0"
     },
     "engines": {
         "node": "^20.19.0 || >=22.12.0"

@@ -1,6 +1,10 @@
 {
     "$schema": "node_modules/oxfmt/configuration_schema.json",
     "ignorePatterns": [
+        ".agents/docs/**",
+        ".agents/skills/copyediting/**",
+        ".agents/skills/remix/**",
+        ".agents/skills/write-better-prose/**",
         "docs/.vitepress/cache/**",
         "docs/.vitepress/dist/**",
         "docs/.vitepress/.temp/**",
@@ -10,7 +14,7 @@
         "packages/*/dist/**",
         "demos/*/dist/**",
         "pitlane.md",
-        "vite-plus.md",
+        "vite-plus.md"
     ],
     "printWidth": 100,
     "tabWidth": 4,
@@ -24,27 +28,27 @@
             "value-internal",
             ["type-parent", "type-sibling", "type-index"],
             ["value-parent", "value-sibling", "value-index"],
-            "unknown",
+            "unknown"
         ],
-        "partitionByComment": true,
+        "partitionByComment": true
     },
     "overrides": [
         {
             "files": ["**/*.jsonc"],
-            "options": { "trailingComma": "none" },
+            "options": { "trailingComma": "none" }
         },
         {
             "files": ["**/.vscode/**"],
-            "options": { "trailingComma": "all" },
+            "options": { "trailingComma": "all" }
         },
         {
             "files": [
                 "docs/.vitepress/theme/components/snippets/*.ts",
-                "docs/.vitepress/theme/components/snippets/*.tsx",
+                "docs/.vitepress/theme/components/snippets/*.tsx"
             ],
             "options": {
-                "printWidth": 55,
-            },
-        },
-    ],
+                "printWidth": 55
+            }
+        }
+    ]
 }
