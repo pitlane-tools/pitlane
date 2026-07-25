@@ -13,7 +13,7 @@ The goal is to bring the developer experience of Void (auto-provisioned platform
 **Key principles:**
 
 - **Remix idioms.** Platform primitives are adapters you construct and controllers you register — request-scoped state flows through controller middleware and context, not magic globals. Configuration is explicit.
-- **Adapters, not lock-in.** Each capability (database, file storage, sessions, jobs, cache, email, images, flags, realtime) is a provider-neutral interface with swappable adapter packages. Application code depends on the interface; the adapter binds it to a provider.
+- **Adapters, not lock-in.** Each provider-backed capability (database, file storage, sessions, jobs, cache, email, images, flags, local-store persistence and sync) exposes a stable application interface with swappable adapter packages. Application code depends on the interface; the adapter binds it to a provider or runtime.
 - **One canonical config.** The `platform()` Vite plugin is the source of truth for the project's deploy target and bindings. Every other tool (CLI, deploy action, type generation) reads from it.
 
 ### Development principles
@@ -75,32 +75,32 @@ Remix 3 owns every framework-level concern. Pitlane never reimplements these.
 
 This is Pitlane. Each capability is either an interface with provider **adapters**, or a Pitlane-native feature (some built on an upstream source such as Gist or OpenAPI Router).
 
-| Capability | Adapters / source |
-| --- | --- |
-| Database adapters | Cloudflare D1 • Cloudflare Durable Object Storage • Netlify Database • Neon Postgres |
-| File storage adapters | Cloudflare R2 • Netlify Blobs • Vercel Blob |
-| Session storage adapters | Cloudflare KV • Netlify Blobs • Upstash Redis |
-| Authentication adapters | Netlify Identity • Clerk Auth |
-| Image optimization | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization |
-| Feature flags | Cloudflare Flagship • Vercel Edge Config |
-| Scheduled jobs | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs |
-| Background jobs | Cloudflare Queues • Netlify Background Functions • Vercel Queues |
-| Route caching | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache |
-| Preview Deployments | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
-| Realtime data | Cloudflare Durable Objects |
-| Email delivery | Cloudflare Email Service • Resend |
-| Font providers | Local • Fontsource • Google Fonts • Adobe Fonts |
-| Content layer | Pitlane-native |
-| Head metadata | Pitlane-native |
-| Localization | Pitlane-native |
-| Type-safe env/secrets | Pitlane-native |
-| Type-safe styling | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42) |
-| Sprite sheet generator | Pitlane-native |
-| Browser router | [Gist](https://gist.github.com/sergiodxa/0e921c1f47f3bb1af496cc0c142011f6) |
-| View transitions | Pitlane-native |
-| Logging | Pitlane-native |
-| Router RPC | Pitlane-native |
-| Prerendering | Pitlane-native |
+| Capability               | Adapters / source                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| Database adapters        | Cloudflare D1 • Cloudflare Durable Object Storage • Netlify Database • Neon Postgres  |
+| File storage adapters    | Cloudflare R2 • Netlify Blobs • Vercel Blob                                           |
+| Session storage adapters | Cloudflare KV • Netlify Blobs • Upstash Redis                                         |
+| Authentication adapters  | Netlify Identity • Clerk Auth                                                         |
+| Image optimization       | Cloudflare Images • Netlify Image CDN • Vercel Image Optimization                     |
+| Feature flags            | Cloudflare Flagship • Vercel Edge Config                                              |
+| Scheduled jobs           | Cloudflare Cron Triggers • Netlify Scheduled Functions • Vercel Cron Jobs             |
+| Background jobs          | Cloudflare Queues • Netlify Background Functions • Vercel Queues                      |
+| Route caching            | Cloudflare Workers Cache • Netlify Durable Cache • Vercel CDN Cache                   |
+| Preview Deployments      | Cloudflare Preview Deployments • Netlify Deploy Previews • Vercel Preview Deployments |
+| Local application data   | Pitlane local store • IndexedDB                                                       |
+| Email delivery           | Cloudflare Email Service • Resend                                                     |
+| Font providers           | Local • Fontsource • Google Fonts • Adobe Fonts                                       |
+| Content layer            | Pitlane-native                                                                        |
+| Head metadata            | Pitlane-native                                                                        |
+| Localization             | Pitlane-native                                                                        |
+| Type-safe env/secrets    | Pitlane-native                                                                        |
+| Type-safe styling        | [Pitlane-native](https://gist.github.com/markmals/85f9d3d9e9bec810ba74f334e096cb42)   |
+| Sprite sheet generator   | Pitlane-native                                                                        |
+| Service-worker execution | Pitlane-native                                                                        |
+| View transitions         | Pitlane-native                                                                        |
+| Logging                  | Pitlane-native                                                                        |
+| Router RPC               | Pitlane-native                                                                        |
+| Prerendering             | Pitlane-native                                                                        |
 
 **Name and distribution:**
 
@@ -131,6 +131,8 @@ Tooling packages such as `@pitlane/dev` and `@pitlane/platform` are explicit exc
 ### The adapter pattern
 
 Remix owns the capability interface (e.g. `Database` from `remix/data-table`, the `FileStorage` interface from `remix/file-storage`). A Pitlane adapter package supplies the concrete implementation for a provider. Application code constructs the Remix object with a Pitlane adapter and uses it directly — swapping the adapter import is the only change needed to move providers.
+
+Pitlane-native capabilities follow the same rule when Remix does not own the interface. `@pitlane/local-store` owns the collection, query, and command contracts; storage and sync adapters implement those contracts without leaking their own APIs into controllers.
 
 ```ts
 import { env } from "cloudflare:workers";
@@ -163,21 +165,24 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 **Feature packages** — Pitlane-native capabilities (some backed by an upstream source):
 
-| Package                   | Capability                                                  |
-| ------------------------- | ----------------------------------------------------------- |
-| `@pitlane/content`        | Content layer (`md`, `mdx`, `json`, CMS, etc.)              |
-| `@pitlane/meta`           | `<head>` metadata                                           |
-| `@pitlane/i18n`           | Internationalization                                        |
-| `@pitlane/env`            | Type-safe environment variables & secrets                   |
-| `@pitlane/theme`          | Type-safe styling with design tokens                        |
-| `@pitlane/sprites`        | Sprite sheet and sprite component generator                 |
-| `@pitlane/logger`         | Structured logging, á la Evlog                              |
-| `@pitlane/browser-router` | Browser-only router                                         |
-| `@pitlane/typed-routes`   | Type-safe RPC routes via `remix/data-schema` and/or OpenAPI |
+| Package                 | Capability                                                  |
+| ----------------------- | ----------------------------------------------------------- |
+| `@pitlane/content`      | Content layer (`md`, `mdx`, `json`, CMS, etc.)              |
+| `@pitlane/meta`         | `<head>` metadata                                           |
+| `@pitlane/i18n`         | Internationalization                                        |
+| `@pitlane/env`          | Type-safe environment variables & secrets                   |
+| `@pitlane/theme`        | Type-safe styling with design tokens                        |
+| `@pitlane/sprites`      | Sprite sheet and sprite component generator                 |
+| `@pitlane/logger`       | Structured logging, á la Evlog                              |
+| `@pitlane/typed-routes` | Type-safe RPC routes via `remix/data-schema` and/or OpenAPI |
 
-**Capability packages with per-provider adapters** — a neutral core plus one sub-package per provider:
+**Capability packages with per-runtime or per-provider adapters** — a neutral core plus focused adapter packages:
 
 ```
+@pitlane/local-store
+  @pitlane/local-store-indexeddb
+  @pitlane/local-store-cloudflare
+
 @pitlane/image
   @pitlane/image-cloudflare
   @pitlane/image-netlify
@@ -201,9 +206,6 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
   @pitlane/cache-netlify
   @pitlane/cache-vercel
 
-@pitlane/realtime
-  @pitlane/realtime-cloudflare-durable-objects
-
 @pitlane/email
   @pitlane/email-cloudflare
   @pitlane/email-resend
@@ -216,18 +218,21 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 ### Tooling packages
 
-| Package | Purpose |
-| --- | --- |
-| `@pitlane/dev` | `remix()` Vite plugin — provider-agnostic Remix framework build |
-| `@pitlane/platform` | `platform()` Vite plugin — target config, bindings, type generation, provider integration |
-| `pitlane` (CLI) | CLI wrapping platform tooling — database, secrets, resources, deploy |
-| `pitlane-tools/deploy-action` | GitHub Action for CI/CD deployment |
+| Package                       | Purpose                                                                                             |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| `@pitlane/dev`                | `remix()` Vite plugin — provider-agnostic Remix framework build                                     |
+| `@pitlane/service-worker`     | Service-worker Vite environment, route execution, registration, asset caching, and update lifecycle |
+| `@pitlane/platform`           | `platform()` Vite plugin — target config, bindings, type generation, provider integration           |
+| `pitlane` (CLI)               | CLI wrapping platform tooling — database, secrets, resources, deploy                                |
+| `pitlane-tools/deploy-action` | GitHub Action for CI/CD deployment                                                                  |
 
 ## `pitlane/dev` — framework Vite plugin
 
 The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as hand-rolled application code in every Remix 3 project. It is provider-agnostic. Handles four concerns:
 
 **1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Wraps `@hiogawa/vite-plugin-fullstack` internally.
+
+`@pitlane/service-worker` composes with this build and contributes a separately emitted service-worker environment. Worker policy and registration stay outside `@pitlane/dev`; the framework plugin only supplies the shared transforms and build hooks that additional environments need.
 
 **2. Client entry transforms** — Finds `clientEntry(import.meta.url, ...)` calls and rewrites the first argument. On the server, resolves to the client asset URL with a `#ExportName` fragment. On the client, appends the fragment to `import.meta.url`. Uses `oxc-parser` for AST analysis.
 
@@ -314,7 +319,7 @@ For the Cloudflare target: `.pitlane/wrangler.jsonc` — a complete Wrangler con
 
 ## Runtime — adapters and controllers
 
-Platform primitives are constructed from a raw binding (from `env`) plus a Pitlane adapter, then used inside controllers registered with the Remix router. Adapters that need to be request-scoped (sessions, flags, realtime) are added as controller middleware and read from the action context; stateless singletons (database, file storage, schedulers) are constructed once at module scope.
+Platform primitives are constructed from a raw binding (from `env`) plus a Pitlane adapter, then used inside controllers registered with the Remix router. Adapters that need to be request-scoped (sessions, flags, local-store transactions) are added as controller middleware and read from the action context; stateless singletons (database, file storage, schedulers) are constructed once at module scope.
 
 Swapping providers means swapping the adapter import — controllers are unchanged.
 
@@ -664,35 +669,136 @@ import { Image, Picture } from "pitlane/image";
 />;
 ```
 
-### Realtime — `@pitlane/realtime`
+### Local application data — `@pitlane/local-store`
 
-The `Realtime` context key exposes a live-updating store inside a client entry. Adapter: `@pitlane/realtime-cloudflare-durable-objects`.
+`@pitlane/local-store` is Pitlane's IndexedDB-first data engine for applications that read and write locally, synchronize in the background, and progressively enhance server-rendered HTML. It is a scoped projection of the useful behavior in [TanStack DB](https://tanstack.com/db/latest) and Convex's [local-store experiment](https://github.com/get-convex/curvilinear/tree/main/local-store), built around Remix controllers and runtime primitives rather than wrapped around either dependency.
 
-```tsx
-import { Realtime } from "pitlane/realtime";
-import { addEventListeners, clientEntry } from "remix/ui";
+Application code uses Pitlane-owned **collections**, **queries**, and **commands**. The same controller runs against an IndexedDB adapter in the browser or service worker and a server-backed adapter on Cloudflare, Node, or another target. Swapping the adapter import does not change controllers or expose provider types.
 
-let ChatPanel = clientEntry(import.meta.url, handle => {
-    let realtime = handle.context.get(Realtime);
+```ts
+import { collection, command } from "pitlane/local-store";
+import * as s from "remix/data-schema";
 
-    addEventListeners(realtime, handle.signal, {
-        chatmessage() {
-            handle.update();
-        },
-        statuschange() {
-            handle.update();
-        },
-    });
+export let Tasks = collection({
+    name: "tasks",
+    schema: s.object({
+        id: s.string(),
+        projectId: s.string(),
+        title: s.string(),
+        completed: s.boolean(),
+        position: s.number(),
+    }),
+    indexes: {
+        byProject: ["projectId", "position"],
+    },
+});
 
-    return () => (
-        <ul>
-            {realtime.messages.map(message => (
-                <li key={message.id}>{JSON.stringify(message)}</li>
-            ))}
-        </ul>
-    );
+export let CreateTask = command({
+    name: "tasks.create",
+    version: 1,
+    input: s.object({
+        id: s.string(),
+        projectId: s.string(),
+        title: s.string(),
+        position: s.number(),
+    }),
+    apply({ tasks }, task) {
+        tasks.insert({ ...task, completed: false });
+    },
 });
 ```
+
+Command reducers are deterministic, versioned, and free of network or platform I/O so they can be replayed after restart or reconciliation. Server handlers are registered separately and remain outside the service-worker bundle.
+
+The `localStore()` middleware adds the local store and command dispatcher to the controller context:
+
+```tsx
+export default createController(routes.tasks, {
+    actions: {
+        async index({ localStore, params, render }) {
+            let tasks = await localStore.query(
+                Tasks.byProject.where({ projectId: params.projectId }).orderBy("position"),
+            );
+
+            return render(
+                <TaskList pending={tasks.status === "loading"} tasks={tasks.data ?? []} />,
+            );
+        },
+        async action({ commands, formData }) {
+            await commands.invoke(CreateTask, {
+                id: crypto.randomUUID(),
+                projectId: String(formData.get("projectId")),
+                title: String(formData.get("title")),
+                position: Number(formData.get("position")),
+            });
+
+            return redirect(routes.tasks.index.href());
+        },
+    },
+});
+```
+
+#### Storage model
+
+`@pitlane/local-store-indexeddb` is the canonical web adapter. It uses native IndexedDB directly: no SQLite or WASM payload, no mandatory worker bridge, and no third-party database wrapper. A memory adapter under `pitlane/local-store/testing` runs the same behavioral contract in deterministic tests.
+
+The IndexedDB implementation maintains a small fixed set of physical stores for metadata, records, materialized indexes, commands, failures, and synchronized range coverage. Application indexes are encoded into the materialized index store rather than requiring an IndexedDB structural migration for every schema change. Every visible mutation commits its records, indexes, command envelope, and change metadata in one transaction before notifying the UI or network.
+
+The service worker is disposable and never owns critical in-memory state. IndexedDB remains the durable source of truth across windows, workers, restarts, and browser process termination.
+
+The runtime requests persistent storage after the application first writes meaningful user data and reports whether the browser granted it. A denial does not break the store, but status remains `best-effort` rather than implying durability the browser did not promise. Quota, transaction, migration, and eviction-recovery failures are observable events rather than silent fallbacks.
+
+#### Queries and coverage
+
+The initial query vocabulary is intentionally bounded: record lookup, indexed equality and ranges, ordering, limits, projection, and narrowly specified includes. Each query produces a serializable plan and records the indexed ranges it reads. Those dependencies drive local invalidation and partial replication without requiring a general SQL engine or differential-dataflow runtime.
+
+Query results distinguish missing data from an empty result:
+
+```ts
+type QueryResult<T> =
+    | { status: "loading"; data?: T }
+    | { status: "ready"; data: T; checkpoint: string }
+    | { status: "error"; error: unknown; data?: T };
+```
+
+An affected indexed query may initially rerun in full. Incremental query operators are added only where profiling demonstrates that they improve real applications.
+
+#### Commands and synchronization
+
+The first synchronization profile is server-authoritative:
+
+1. Persist a named command locally.
+2. Apply its deterministic local reducer.
+3. Enqueue it for upload only after the IndexedDB transaction completes.
+4. Authenticate and execute its authoritative handler on the server.
+5. Receive canonical record changes plus the IDs of reflected commands.
+6. Install the new synchronized base and replay every command that remains pending.
+
+The visible store is always the synchronized base plus the ordered replay of pending commands. A permanent server rejection moves the complete command envelope and user input into a recoverable failure queue; user work never silently disappears.
+
+Command envelopes include a stable command ID, replica ID, command name and version, input, local sequence, creation time, and optional base checkpoint. This protocol leaves a deliberate path toward server-sequenced replicas: a future server may authenticate and globally order operations while every replica applies the same reducer. CRDTs are deferred until a domain requires automatic merging without central ordering or application conflict rules.
+
+`@pitlane/local-store-cloudflare` may add Durable Object notifications or sequencing, but the base protocol works through ordinary fetch-compatible Remix routes. Cloudflare transport types never enter collection, query, command, or controller APIs.
+
+#### Evolution and ownership
+
+Application schema and command versions evolve independently from the fixed physical IndexedDB schema. Migrations coordinate across tabs and the staged service-worker lifecycle; an unknown command version is preserved and blocked rather than dropped or reinterpreted. Clearing and resynchronizing is allowed only for explicitly recoverable server-derived data, never as a migration strategy for local user work.
+
+The engine provides a native backup for disaster recovery, while applications define portable domain export and import. Export does not require a network connection and includes enough schema and attachment metadata to reopen the user's data if the sync service is unavailable.
+
+#### Runtime events and HTML
+
+The store is a typed `EventTarget`. A window-global runtime uses `addEventListeners()` with one lifetime signal to observe commits, synchronization status, storage failures, and query invalidations. It can re-resolve affected Remix Frames without hydrating the components that rendered them.
+
+Native links and forms remain the primary interaction model. A server or service worker executes the same fetch-compatible controller and returns HTML or a redirect; client entries are reserved for interactions that genuinely need persistent client-side state.
+
+The package ships one deterministic trace suite for every adapter. It exercises restart-safe local writes, range coverage, command replay, rejection, multi-tab commits, old-schema reconnects, and reordered or duplicated network transitions against the memory reference model and IndexedDB implementation.
+
+#### Authentication
+
+Server authentication uses `remix/auth`, `remix/middleware/auth`, and `requireAuth()`. Login, logout completion, OAuth callbacks, token refresh, and other credential operations are server-only routes. Every synchronization scope and uploaded command is authorized again on the server.
+
+The service-worker runtime may install a local auth scheme that projects the last verified principal from IndexedDB into Remix's `Auth` context. This permits shared controllers to render already-replicated data offline, but it is not a server authorization boundary. Local databases are partitioned by application and stable principal ID so a new login never opens another user's data.
 
 ### Type-safe styling — `@pitlane/theme`
 
@@ -738,77 +844,91 @@ function Component() {
 }
 ```
 
-### Browser router — `@pitlane/browser-router`
+### Service-worker execution — `@pitlane/service-worker`
 
-Client-side routing for Remix UI components that mirrors the `remix/router` shape on the client (the `ui-router` experiment). It reuses `remix/routes` as the source of truth for URL patterns — the same contracts the server controllers use — matches with `remix/route-pattern`, and renders through `remix/ui`'s `createRoot`. Route actions may be async, so a handler can load the data it needs before returning Remix UI JSX. Mounted routers use the browser Navigation API when available, with a History API + same-origin link-interception fallback. Built on Gist.
+`@pitlane/service-worker` compiles fetch-compatible Remix routes into a separately emitted service-worker environment. It owns worker registration, route execution policy, asset caching, window/worker messaging, and safe update activation. It describes a concrete runtime mechanism; "offline" remains a behavioral guarantee that also depends on local data coverage and storage durability.
 
-Define the route contract once and share it between the server (`remix/router`, returning `Response`) and the browser (`@pitlane/browser-router`, rendering Remix UI):
+```ts
+import { remix } from "pitlane/dev";
+import { serviceWorker } from "pitlane/service-worker";
+import { defineConfig } from "vite-plus";
 
-```tsx
-// routes.ts — shared contract
-import { route } from "remix/routes";
-
-export let routes = route({
-    home: "/",
-    post: "/posts/:id",
+export default defineConfig({
+    plugins: [
+        remix({
+            clientEntry: "app/entry.browser",
+            serverEntry: "app/entry.server",
+        }),
+        serviceWorker({
+            entry: "app/entry.worker",
+            register: "after-load",
+        }),
+    ],
 });
 ```
 
-```tsx
-import type { Handle } from "remix/ui";
-import { createAction, createRouter } from "pitlane/browser-router";
-import { routes } from "./routes.ts";
+Application controllers are registered once and compiled into both router entries. Runtime-specific middleware supplies the same context contracts:
 
-function PostPage(handle: Handle<{ post: Post }>) {
-    return () => <article>{handle.props.post.title}</article>;
+```ts
+// app/router.ts
+export function createAppRouter(middleware) {
+    let router = createRouter({ middleware });
+    router.map(routes.tasks, tasksController);
+    return router;
 }
 
-let router = createRouter();
+// app/entry.server.ts
+export default createAppRouter([
+    session(sessionCookie, sessionStorage),
+    auth({ schemes: [sessionAuth] }),
+    localStore(serverStore),
+    render(),
+]);
 
-router.map(
-    routes.home,
-    createAction(routes.home, () => <HomePage />),
-);
-router.map(
-    routes.post,
-    createAction(routes.post, async ctx => {
-        let post = await fetchPost(ctx.params.id);
-        return <PostPage post={post} />;
-    }),
-);
-
-let mounted = router.mount(document.body);
+// app/entry.worker.ts
+export default createAppRouter([localAuth(indexedDBStore), localStore(indexedDBStore), render()]);
 ```
 
-Controllers map the direct leaves of a route map, mirroring the server-side `createController`:
+The route manifest assigns each controller one execution policy:
 
-```tsx
-import { createController, createRouter } from "pitlane/browser-router";
+- **Server** — authentication flows, payments, uploads, irreversible side effects, and routes that require secrets. The worker passes these requests through.
+- **Local** — device-only data and utility routes.
+- **Server and local** — application routes whose controller can render against either server or IndexedDB adapters.
 
-let router = createRouter();
+Server-only modules are excluded from the worker graph at build time rather than guarded by runtime checks.
 
-router.map(
-    routes.posts,
-    createController(routes.posts, {
-        actions: {
-            index() {
-                return <h1>Posts</h1>;
-            },
-            show(ctx) {
-                return <h1>Post {ctx.params.id}</h1>;
-            },
-        },
-    }),
-);
+#### Native navigation and forms
+
+Once the worker controls the page, ordinary HTML requires no component hydration:
+
+```html
+<a href="/projects/123/tasks">Tasks</a>
+
+<form action="/projects/123/tasks" method="post">
+    <input name="title" />
+    <button>Add task</button>
+</form>
 ```
 
-The rest of the surface mirrors Remix's server router on the client:
+The browser sends the navigation or submission to the service worker, the Remix router executes the shared controller against IndexedDB, and the resulting document or redirect follows normal browser semantics. Without a controlling worker, the same request reaches the server and executes the same controller against server adapters.
 
-- **Mutations & fetchers** — `router.submit()` and `router.getFetcher()` run route actions and then navigate/revalidate like a form submission; `fetcher.form()` / `router.form()` return `mix` form mixins, and `router.revalidate()` re-runs the current action across mounted roots.
-- **Middleware** — global (on `createRouter`), per-controller, or per-action `(ctx, next)` middleware sharing the same mutable `ctx`; return a result to short-circuit or `next()` to continue. `createContextKey()` stores request-scoped values.
-- **Context** — every render is wrapped in `RouterProvider`; descendants read the router plus the current `match`, `url`, `params`, and `route` via `handle.context.get(RouterProvider)`.
-- **Frames** — mounted routers wire Remix UI's `<Frame>` resolver so a frame `src` renders through the same action pipeline (middleware, params, actions); reload with `handle.frame.reload()` or `handle.frames.get(name)?.reload()`.
-- **Navigation** — `router.navigate(to, { mask, replace, state })` uses the Navigation API with a History fallback; `mask` supports modal-style routes.
+The small window runtime may intercept navigations for Remix Frame morphing and pending UI, but the route remains correct as a native document navigation. It also listens for local-store invalidations and re-resolves only affected Frames. Client entries remain available for editors, drag and drop, gestures, and other interactions that require component-local state.
+
+The client-routing work in [remix-run/remix#11629](https://github.com/remix-run/remix/pull/11629) is the optional in-memory SPA path; Pitlane does not build a competing routing package. Both execution styles can use `@pitlane/local-store`, but the service-worker path is the default when an application wants server rendering, native navigation, and later offline takeover.
+
+#### Background installation
+
+The worker bundle is separate from the initial page bundle and registers after the initial `load`, optionally during an idle period. Registration downloads and installs its statically imported route graph in the background, so worker route code neither increases the initial page JavaScript payload nor executes on the main thread.
+
+Dynamic `import()` is [not available inside service workers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import#description), so the active worker cannot lazily import a route implementation on first use. Deferred registration—not runtime code splitting inside the worker—is the loading strategy.
+
+The initial server-rendered page remains usable while the worker installs; registration does not force a reload. New versions stage until the page and worker coordinate activation. The package never applies unconditional `skipWaiting()` across an application or local-store schema change.
+
+#### Process lifetime and synchronization
+
+A service worker may be terminated whenever it has no active event, so it cannot own the only query cache, command queue, or synchronization connection. It reads durable state from IndexedDB for each request and may perform opportunistic synchronization while handling requests or Background Sync events.
+
+The window-global local-store runtime owns the foreground connection. One window becomes transport leader through Web Locks and broadcasts committed changes through `BroadcastChannel`; another window takes over when the leader closes. Ordinary IndexedDB writes do not pass through that leader because IndexedDB already serializes overlapping read/write transactions.
 
 ### The rest
 
@@ -1075,7 +1195,7 @@ The local CLI and GitHub Action share the same target-deployment implementation,
 ### Post-MVP
 
 - Additional targets — Netlify and Vercel adapters across every capability
-- Remaining feature packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/theme`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/browser-router`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/realtime`, `@pitlane/email`, `@pitlane/fonts`
+- Remaining packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/theme`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/local-store`, `@pitlane/local-store-indexeddb`, `@pitlane/local-store-cloudflare`, `@pitlane/service-worker`, `@pitlane/email`, `@pitlane/fonts`
 - Log streaming (covered by the provider's own log tail for now)
 - Dashboard / web UI
 
@@ -1129,14 +1249,14 @@ This package scaffolds a Remix 3 project using `pitlane/dev`, `pitlane/platform`
 The base template includes:
 
 - `vite.config.ts` with `remix()` from `pitlane/dev` and `platform({ target })` from `pitlane/platform`
-- `entry.server.tsx` with the router, adapters, and worker export
+- `entry.server.tsx` with the router, adapters, and target handler export
 - `pitlane` CLI as a dev dependency
 - `.pitlane/` in `.gitignore`
 - No hand-written target config — the platform plugin generates it
 
 ### Optional features
 
-After selecting the target, the interactive prompts present optional features in two groups — platform features (provider-backed capabilities) and project features (framework-level concerns). Each platform feature installs the adapter matching the chosen target.
+After selecting the target, the interactive prompts present optional features in two groups — platform features (provider-backed capabilities) and project features (application and runtime concerns). Each platform feature installs the adapter matching the chosen target.
 
 ```
 ? Platform features:
@@ -1149,9 +1269,10 @@ After selecting the target, the interactive prompts present optional features in
   ☐ Image Optimization
   ☐ Feature Flags
   ☐ Route Caching
-  ☐ Realtime
 
 ? Project features:
+  ☐ Local Store (IndexedDB)
+  ☐ Service Worker
   ☐ Authentication
   ☐ Testing
   ☐ Prerendering
@@ -1187,9 +1308,13 @@ Each platform feature adds the relevant `platform()` config, installs the target
 
 **Scheduled Jobs** — Prompts for a cron expression (defaults to `"0 * * * *"`), adds `cron` to config, scaffolds a `createScheduledJobs(scheduler, {...})` mapping, and wires the `scheduled` handler.
 
-Other platform features (Email, Image Optimization, Feature Flags, Route Caching, Realtime) install their capability package plus the target-matched adapter and scaffold a minimal wiring stub.
+Other platform features (Email, Image Optimization, Feature Flags, Route Caching) install their capability package plus the target-matched adapter and scaffold a minimal wiring stub.
 
 #### Project features
+
+**Local Store (IndexedDB)** — Installs `@pitlane/local-store` and `@pitlane/local-store-indexeddb`, scaffolds collections and a versioned command, adds the local-store middleware, and creates deterministic memory-adapter tests. Selecting it preselects the Service Worker feature for native offline route execution; the service worker can still be deselected.
+
+**Service Worker** — Installs `@pitlane/service-worker`, adds `app/entry.worker.ts`, contributes the worker environment to Vite, partitions server-only routes, and registers the emitted worker after the initial page load. It reuses the application's existing controllers rather than scaffolding a second route implementation.
 
 **Authentication** — Follow-up prompt asks which provider. _Remix (`remix/auth`)_: built-in auth middleware with session handling. _Clerk_: adds `@pitlane/auth-clerk`. _Netlify Identity_: adds `@pitlane/auth-netlify-identity`.
 
@@ -1231,18 +1356,18 @@ With no features selected, it's the minimal Remix 3 starting point for the chose
 
 ## How this compares to Void
 
-| Concern | Void | Pitlane |
-| --- | --- | --- |
-| Platform primitives | Magic global imports (`void/db`) | Explicit adapters + controllers |
-| Provider model | Single hidden platform | Multi-provider via adapters (Cloudflare, Netlify, Vercel, …) |
-| Resource provisioning | Auto on deploy | Explicit `pitlane resources create` |
-| Cloud account | Hidden, not required | Required, user's own account |
-| Deploy config | None, fully hidden | Generated in `.pitlane/`, inspectable |
-| Framework | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only |
-| Component model | Framework-delegated | Remix's own component system |
-| Build tool | Vite 8 beta | Vite+ (Rolldown-based) |
-| Scaffolding | `void init` | `vp create pitlane` |
-| Dev server | `void dev` / `vp dev` | `vp dev` |
-| Deploy | `void deploy` | `pitlane-tools/deploy-action` (CI) / `pitlane deploy` (local) |
-| MCP | Built-in | Skills + CLI instead |
-| Philosophy | Platform SDK — hides the platform | DX layer — portable platform integration you can inspect |
+| Concern               | Void                                        | Pitlane                                                       |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| Platform primitives   | Magic global imports (`void/db`)            | Explicit adapters + controllers                               |
+| Provider model        | Single hidden platform                      | Multi-provider via adapters (Cloudflare, Netlify, Vercel, …)  |
+| Resource provisioning | Auto on deploy                              | Explicit `pitlane resources create`                           |
+| Cloud account         | Hidden, not required                        | Required, user's own account                                  |
+| Deploy config         | None, fully hidden                          | Generated in `.pitlane/`, inspectable                         |
+| Framework             | Multi-framework (React, Vue, Svelte, Solid) | Remix 3 only                                                  |
+| Component model       | Framework-delegated                         | Remix's own component system                                  |
+| Build tool            | Vite 8 beta                                 | Vite+ (Rolldown-based)                                        |
+| Scaffolding           | `void init`                                 | `vp create pitlane`                                           |
+| Dev server            | `void dev` / `vp dev`                       | `vp dev`                                                      |
+| Deploy                | `void deploy`                               | `pitlane-tools/deploy-action` (CI) / `pitlane deploy` (local) |
+| MCP                   | Built-in                                    | Skills + CLI instead                                          |
+| Philosophy            | Platform SDK — hides the platform           | DX layer — portable platform integration you can inspect      |
