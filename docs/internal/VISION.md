@@ -180,8 +180,9 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 ```
 @pitlane/local-store
-  @pitlane/local-store-indexeddb
-  @pitlane/local-store-cloudflare
+  @pitlane/local-store-replica-indexeddb
+  @pitlane/local-store-server-data-table
+  @pitlane/local-store-sync-cloudflare-durable-objects
 
 @pitlane/image
   @pitlane/image-cloudflare
@@ -673,7 +674,7 @@ import { Image, Picture } from "pitlane/image";
 
 `@pitlane/local-store` is Pitlane's IndexedDB-first data engine for applications that read and write locally, synchronize in the background, and progressively enhance server-rendered HTML. It is a scoped projection of the useful behavior in [TanStack DB](https://tanstack.com/db/latest) and Convex's [local-store experiment](https://github.com/get-convex/curvilinear/tree/main/local-store), built around Remix controllers and runtime primitives rather than wrapped around either dependency.
 
-Application code uses Pitlane-owned **collections**, **queries**, and **commands**. The same controller runs against an IndexedDB adapter in the browser or service worker and a server-backed adapter on Cloudflare, Node, or another target. Swapping the adapter import does not change controllers or expose provider types.
+Application code uses Pitlane-owned **collections**, **queries**, and **commands**. The same controller runs against replica storage in the browser or service worker and server storage on Cloudflare, Node, or another target. Swapping either storage adapter does not change controllers or expose provider types.
 
 ```ts
 import { collection, command } from "pitlane/local-store";
@@ -738,15 +739,56 @@ export default createController(routes.tasks, {
 });
 ```
 
-#### Storage model
+#### Adapter families
 
-`@pitlane/local-store-indexeddb` is the canonical web adapter. It uses native IndexedDB directly: no SQLite or WASM payload, no mandatory worker bridge, and no third-party database wrapper. A memory adapter under `pitlane/local-store/testing` runs the same behavioral contract in deterministic tests.
+The local-store capability has two complementary storage contracts and one optional transport contract. They are different seams, not interchangeable implementations of one interface:
+
+| Contract                | Runs in                     | Responsibility                                                                                                                                           |
+| ----------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ReplicaStorageAdapter` | Browser or device runtime   | Visible records and indexes, synchronized base, pending commands, failures, coverage, checkpoints, and local metadata                                    |
+| `ServerStorageAdapter`  | Trusted server runtime      | Authoritative records, command idempotency and outcomes, ordered change log, tombstones, checkpoints, compaction, and scoped query execution             |
+| `SyncTransportAdapter`  | Replica and server boundary | Moves commands and changes and optionally wakes connected replicas; it does not define persistence, query, command, authorization, or conflict semantics |
+
+The controller-facing API composes the appropriate contracts for each runtime:
+
+```ts
+// Browser and service worker
+let replicaStore = createReplicaStore({
+    storage: new IndexedDBReplicaStorage({ name: "my-app" }),
+    transport: createFetchSyncTransport({ endpoint: "/_pitlane/local-store" }),
+});
+
+// Server
+let serverStore = createServerStore({
+    storage: new DataTableServerStorage(db),
+    commands,
+    authorize,
+});
+```
+
+Both objects satisfy the `LocalStore` context contract used by application controllers. Their low-level storage adapters do not satisfy each other's contracts.
+
+##### Replica storage
+
+`@pitlane/local-store-replica-indexeddb` is the canonical browser replica adapter. It uses native IndexedDB directly: no SQLite or WASM payload, no mandatory worker bridge, and no third-party database wrapper. A memory replica adapter under `pitlane/local-store/testing` runs the same behavioral contract in deterministic tests.
 
 The IndexedDB implementation maintains a small fixed set of physical stores for metadata, records, materialized indexes, commands, failures, and synchronized range coverage. Application indexes are encoded into the materialized index store rather than requiring an IndexedDB structural migration for every schema change. Every visible mutation commits its records, indexes, command envelope, and change metadata in one transaction before notifying the UI or network.
 
 The service worker is disposable and never owns critical in-memory state. IndexedDB remains the durable source of truth across windows, workers, restarts, and browser process termination.
 
 The runtime requests persistent storage after the application first writes meaningful user data and reports whether the browser granted it. A denial does not break the store, but status remains `best-effort` rather than implying durability the browser did not promise. Quota, transaction, migration, and eviction-recovery failures are observable events rather than silent fallbacks.
+
+##### Server storage
+
+`@pitlane/local-store-server-data-table` is the canonical server adapter. It composes with a provider-neutral `Database` from `remix/data-table`; changing D1, Durable Object SQL, Neon, or another database adapter does not change the local-store server contract.
+
+The adapter executes an accepted command and writes its authoritative records, idempotency result, ordered change entries, and tombstones in the same database transaction. Pull requests read scoped changes after a checkpoint and may use the same Pitlane query plan for initial data. Synchronized collections must be mutated through the command pipeline or an explicit ingestion adapter so every server change has a durable log entry.
+
+##### Sync transport
+
+The core package includes fetch-compatible push and pull controllers as the portable baseline. `@pitlane/local-store-sync-cloudflare-durable-objects` is an optional low-latency transport that uses Durable Objects to notify connected replicas that new durable changes are available. The server storage remains authoritative; notifications may be dropped and recovered by pulling from the last checkpoint.
+
+A future server-sequenced implementation belongs to the server-storage family—for example, a Durable Object SQL server adapter whose operation log is canonical—not to the transport adapter. Cloudflare types never enter collection, query, command, controller, or storage contracts.
 
 #### Queries and coverage
 
@@ -777,8 +819,6 @@ The first synchronization profile is server-authoritative:
 The visible store is always the synchronized base plus the ordered replay of pending commands. A permanent server rejection moves the complete command envelope and user input into a recoverable failure queue; user work never silently disappears.
 
 Command envelopes include a stable command ID, replica ID, command name and version, input, local sequence, creation time, and optional base checkpoint. This protocol leaves a deliberate path toward server-sequenced replicas: a future server may authenticate and globally order operations while every replica applies the same reducer. CRDTs are deferred until a domain requires automatic merging without central ordering or application conflict rules.
-
-`@pitlane/local-store-cloudflare` may add Durable Object notifications or sequencing, but the base protocol works through ordinary fetch-compatible Remix routes. Cloudflare transport types never enter collection, query, command, or controller APIs.
 
 #### Evolution and ownership
 
@@ -893,7 +933,7 @@ The route manifest assigns each controller one execution policy:
 
 - **Server** — authentication flows, payments, uploads, irreversible side effects, and routes that require secrets. The worker passes these requests through.
 - **Local** — device-only data and utility routes.
-- **Server and local** — application routes whose controller can render against either server or IndexedDB adapters.
+- **Server and local** — application routes whose controller can render against either server-storage or replica-storage adapters.
 
 Server-only modules are excluded from the worker graph at build time rather than guarded by runtime checks.
 
@@ -1195,7 +1235,7 @@ The local CLI and GitHub Action share the same target-deployment implementation,
 ### Post-MVP
 
 - Additional targets — Netlify and Vercel adapters across every capability
-- Remaining packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/theme`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/local-store`, `@pitlane/local-store-indexeddb`, `@pitlane/local-store-cloudflare`, `@pitlane/service-worker`, `@pitlane/email`, `@pitlane/fonts`
+- Remaining packages — `@pitlane/content`, `@pitlane/meta`, `@pitlane/i18n`, `@pitlane/env`, `@pitlane/theme`, `@pitlane/sprites`, `@pitlane/logger`, `@pitlane/typed-routes`, `@pitlane/image`, `@pitlane/flags`, `@pitlane/cache`, `@pitlane/local-store`, `@pitlane/local-store-replica-indexeddb`, `@pitlane/local-store-server-data-table`, `@pitlane/local-store-sync-cloudflare-durable-objects`, `@pitlane/service-worker`, `@pitlane/email`, `@pitlane/fonts`
 - Log streaming (covered by the provider's own log tail for now)
 - Dashboard / web UI
 
@@ -1271,7 +1311,7 @@ After selecting the target, the interactive prompts present optional features in
   ☐ Route Caching
 
 ? Project features:
-  ☐ Local Store (IndexedDB)
+  ☐ Local Store
   ☐ Service Worker
   ☐ Authentication
   ☐ Testing
@@ -1312,7 +1352,7 @@ Other platform features (Email, Image Optimization, Feature Flags, Route Caching
 
 #### Project features
 
-**Local Store (IndexedDB)** — Installs `@pitlane/local-store` and `@pitlane/local-store-indexeddb`, scaffolds collections and a versioned command, adds the local-store middleware, and creates deterministic memory-adapter tests. Selecting it preselects the Service Worker feature for native offline route execution; the service worker can still be deselected.
+**Local Store** — Follow-up prompt selects _Local only_ or _Synchronized_ (default). Both install `@pitlane/local-store` and `@pitlane/local-store-replica-indexeddb`, scaffold collections and a versioned command, add the local-store middleware, and create deterministic memory-adapter tests. Synchronized mode also preselects Database, installs `@pitlane/local-store-server-data-table`, and wires command plus pull/push controllers. On Cloudflare, a further optional prompt installs `@pitlane/local-store-sync-cloudflare-durable-objects` for low-latency change notifications; ordinary fetch synchronization remains the default. The Service Worker feature is preselected for native offline route execution but can be deselected.
 
 **Service Worker** — Installs `@pitlane/service-worker`, adds `app/entry.worker.ts`, contributes the worker environment to Vite, partitions server-only routes, and registers the emitted worker after the initial page load. It reuses the application's existing controllers rather than scaffolding a second route implementation.
 
