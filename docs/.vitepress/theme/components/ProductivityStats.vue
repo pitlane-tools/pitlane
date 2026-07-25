@@ -13,34 +13,29 @@
         <div class="stats">
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>3<span class="stat-unit">lines</span>
+                    <span class="lap-stat__dot">·</span>1<span class="stat-unit">plugin</span>
                 </div>
                 <div class="stat-label">
-                    To wire a Cloudflare primitive into a Remix route — import, mount middleware,
-                    read from context.
+                    <code>plugins: [remix()]</code> is the whole build config: SSR + client builds,
+                    dev, preview, and hydration.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>330<span class="stat-unit">+</span>
+                    <span class="lap-stat__dot">·</span>2<span class="stat-unit">peer deps</span>
                 </div>
                 <div class="stat-label">
-                    Edge cities your app runs in by default, on Cloudflare's global Workers network.
+                    <code>remix</code> and <code>vite</code> are the only dependencies Pitlane
+                    requires.
                 </div>
             </div>
             <div class="stat">
                 <div class="lap-stat stat-value">
-                    <span class="lap-stat__dot">·</span>0<span class="stat-unit">ms</span>
+                    <span class="lap-stat__dot">·</span>6<span class="stat-unit">guides</span>
                 </div>
                 <div class="stat-label">
-                    Cold start. V8 isolates, not containers — your routes are warm everywhere.
-                </div>
-            </div>
-            <div class="stat">
-                <div class="lap-stat stat-value"><span class="lap-stat__dot">·</span>0</div>
-                <div class="stat-label">
-                    <code>wrangler.toml</code> files to maintain by hand. Pitlane generates them
-                    from <code>platform()</code>.
+                    Learn how to deploy a Remix app to Cloudflare, Netlify, Vercel, Railway, Deno
+                    Deploy, or GitHub Pages in the documentation.
                 </div>
             </div>
         </div>
@@ -56,7 +51,7 @@
 
 @media (min-width: 900px) {
     .stats {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
@@ -80,7 +75,7 @@
 
 .stat-unit {
     font-size: 0.34em;
-    margin-left: 0.25em;
+    margin-left: 0.5em;
     color: var(--vp-c-text-2);
     font-weight: 600;
     text-transform: lowercase;

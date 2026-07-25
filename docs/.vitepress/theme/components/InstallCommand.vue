@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from "vue";
 
-const command = "vp create pitlane my-app";
+const command = "vp add -D @pitlane/dev";
 const copied = ref(false);
 
 async function copy() {
@@ -32,9 +32,6 @@ async function copy() {
                     {{ copied ? "Copied" : "Copy" }}
                 </button>
             </div>
-            <p class="opacity-70 text-sm">
-                Scaffolds a Remix app wired for Vite+ and Pitlane on Cloudflare.
-            </p>
         </div>
     </section>
 </template>

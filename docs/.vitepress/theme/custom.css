@@ -25,6 +25,20 @@ img[src*="logo"] {
         Consolas, Monaco, "Liberation Mono", "Lucida Console", monospace;
 }
 
+/* Custom containers: VitePress derives `tip` colors from the brand palette,
+   and our brand is red — which makes every tip read as a danger alert.
+   Remap tips to the default theme's green tokens (light and dark variants
+   come with them); info stays gray, warning yellow, danger red. */
+:root {
+    --vp-c-tip-1: var(--vp-c-green-1);
+    --vp-c-tip-2: var(--vp-c-green-2);
+    --vp-c-tip-3: var(--vp-c-green-3);
+    --vp-custom-block-tip-border: transparent;
+    --vp-custom-block-tip-text: var(--vp-c-text-1);
+    --vp-custom-block-tip-bg: var(--vp-c-green-soft);
+    --vp-custom-block-tip-code-bg: var(--vp-c-green-soft);
+}
+
 /* Brand colors — dark mode */
 :root.dark:not([data-theme]),
 :root[data-theme="dark"] {
@@ -224,4 +238,129 @@ footer > div > section:first-of-type {
 .button.button--primary::before {
     background-image: unset;
     background-color: var(--vp-c-brand-1);
+}
+
+/* ── Streaming-safe package-manager tabs ────────────────────────────────
+   The inline head script (pm-tabs.ts) sets html[data-pm] synchronously
+   before the body parses. Within install code-groups (identified by their
+   npm tab - the first label, so the scope matches from the group's first
+   streamed bytes), these rules drive the active tab bar and the visible
+   block from that attribute instead of radio state, so a partially
+   streamed group can never paint the npm default - the flash a packet
+   boundary inside the group otherwise causes. The script's observer still
+   fixes the radios for semantics once nodes arrive.
+
+   The active-tab rules carry a `.tabs` class to outweigh the generic
+   suppression rules below them in specificity.
+
+   Block mapping relies on the standardized tab order:
+   npm(1) yarn(2) pnpm(3) bun(4) deno(5) vp(6) vlt(7) nub(8).
+   Keep that order in every install code-group. */
+
+html[data-pm] .vp-code-group:has(> .tabs > label[data-title='npm']) input:checked + label {
+    color: var(--vp-code-tab-text-color);
+}
+
+html[data-pm] .vp-code-group:has(> .tabs > label[data-title='npm']) input:checked + label::after {
+    background-color: transparent;
+}
+
+html[data-pm] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div {
+    display: none;
+}
+
+html[data-pm='npm'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='npm'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='npm'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='npm']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='npm'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(1) {
+    display: block;
+}
+
+html[data-pm='yarn'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='yarn'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='yarn'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='yarn']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='yarn'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(2) {
+    display: block;
+}
+
+html[data-pm='pnpm'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='pnpm'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='pnpm'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='pnpm']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='pnpm'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(3) {
+    display: block;
+}
+
+html[data-pm='bun'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='bun'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='bun'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='bun']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='bun'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(4) {
+    display: block;
+}
+
+html[data-pm='deno'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='deno'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='deno'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='deno']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='deno'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(5) {
+    display: block;
+}
+
+html[data-pm='vp'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='vp'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='vp'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='vp']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='vp'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(6) {
+    display: block;
+}
+
+html[data-pm='vlt'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='vlt'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='vlt'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='vlt']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='vlt'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(7) {
+    display: block;
+}
+
+html[data-pm='nub'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='nub'] {
+    color: var(--vp-code-tab-active-text-color);
+}
+
+html[data-pm='nub'] .vp-code-group:has(> .tabs > label[data-title='npm']) .tabs label[data-title='nub']::after {
+    background-color: var(--vp-code-tab-active-bar-color);
+}
+
+html[data-pm='nub'] .vp-code-group:has(> .tabs > label[data-title='npm']) .blocks > div:nth-child(8) {
+    display: block;
 }

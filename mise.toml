@@ -23,10 +23,17 @@ run = "tsc"
 depends = "docs:build"
 run = ["oxfmt --check", "oxlint", "tsc"]
 
+[tasks."docs:api"]
+run = "typedoc"
+
+# The sidebar links /package/dev/*, which only exists once typedoc has emitted
+# it; VitePress fails the build on those dead links otherwise.
 [tasks."docs:dev"]
+depends = "docs:api"
 run = "vitepress dev docs --port 1337"
 
 [tasks."docs:build"]
+depends = "docs:api"
 run = "vitepress build docs"
 
 [tasks."docs:serve"]

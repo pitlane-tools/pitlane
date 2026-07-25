@@ -22,12 +22,12 @@ import CheckerDivider from "./CheckerDivider.vue";
                     <img
                         src="/media/remix-logo-black.svg"
                         alt="Remix"
-                        class="partner-logo partner-logo--light"
+                        class="partner-logo partner-logo--light remix"
                     />
                     <img
                         src="/media/remix-logo-white.svg"
                         alt="Remix"
-                        class="partner-logo partner-logo--dark"
+                        class="partner-logo partner-logo--dark remix"
                     />
                 </a>
                 <span class="partner-sep" aria-hidden="true">+</span>
@@ -49,7 +49,7 @@ import CheckerDivider from "./CheckerDivider.vue";
                         class="partner-logo partner-logo--dark"
                     />
                 </a>
-                <span class="partner-sep" aria-hidden="true">+</span>
+                <!-- <span class="partner-sep" aria-hidden="true">+</span>
                 <a
                     class="partner"
                     href="https://workers.cloudflare.com"
@@ -67,7 +67,7 @@ import CheckerDivider from "./CheckerDivider.vue";
                         alt="Cloudflare"
                         class="partner-logo partner-logo--dark"
                     />
-                </a>
+                </a> -->
             </div>
         </div>
         <CheckerDivider class="mt-12" />
@@ -89,6 +89,10 @@ import CheckerDivider from "./CheckerDivider.vue";
     transition: opacity 160ms ease;
     opacity: 1;
     min-width: 0;
+}
+
+.remix {
+    height: clamp(1.25rem, 5vw, 2.5rem) !important;
 }
 
 .partner:hover {

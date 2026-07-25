@@ -9,10 +9,6 @@ permissions:
     contents: read
     deployments: write
 
-# use the GitHub repo name as the Workers project name
-env:
-    PROJECT_NAME: ${{ github.event.repository.name }}
-
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
@@ -30,6 +26,8 @@ jobs:
               run: vp run docs:build
 
             - name: ☁️ Deploy Worker
-              run: vpx wrangler deploy --name=${{ env.PROJECT_NAME }} --config wrangler.jsonc
+              # Worker name and custom domain are pinned in wrangler.jsonc so a
+              # repository rename can never redirect deploys to a new worker.
+              run: vpx wrangler deploy --config wrangler.jsonc
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

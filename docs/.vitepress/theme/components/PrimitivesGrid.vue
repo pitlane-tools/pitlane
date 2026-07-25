@@ -8,18 +8,12 @@ const rawSnippets = import.meta.glob<string>("./snippets/*.{ts,tsx}", {
 });
 
 const snippetOrder = {
-    database: "database",
-    fileStorage: "file-storage",
-    sessions: "sessions",
-    jobs: "jobs",
-    cron: "cron",
-    ai: "ai",
-    flags: "flags",
-    realtime: "realtime",
+    config: "config",
+    serverEntry: "server-entry",
+    clientEntry: "client-entry",
     assets: "assets",
-    contentUsage: "content-1",
-    contentDefinition: "content-2",
-    metadata: "metadata",
+    compose: "compose",
+    options: "options",
 } as const;
 
 type SnippetKey = keyof typeof snippetOrder;
@@ -44,109 +38,61 @@ for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]
             <div class="section-eyebrow">
                 <span class="section-eyebrow-bar" />
                 <span class="text-xs font-medium font-mono uppercase tracking-wide opacity-70">
-                    Primitives
+                    The Plugin
                 </span>
             </div>
             <h3 class="text-balance max-w-2xl">
-                Cloudflare platform primitives, designed for Remix.
+                Build orchestration, hydration, and assets — designed for Remix 3.
             </h3>
         </div>
 
         <div class="grid gap-5 lg:grid-cols-2">
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>D1 Database</h5>
-                    <span class="prim-tag">pitlane/data-table-d1</span>
+                    <h5>One-plugin build</h5>
+                    <span class="prim-tag">@pitlane/dev</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.database" />
+                <div class="prim-code" v-html="highlighted.config" />
             </article>
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>R2 File Storage</h5>
-                    <span class="prim-tag">pitlane/file-storage-r2</span>
+                    <h5>Fetch-handler contract</h5>
+                    <span class="prim-tag">remix/router</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.fileStorage" />
+                <div class="prim-code" v-html="highlighted.serverEntry" />
             </article>
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>KV Sessions</h5>
-                    <span class="prim-tag">pitlane/session-storage-kv</span>
+                    <h5>Islands, marked in source</h5>
+                    <span class="prim-tag">remix/ui</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.sessions" />
+                <div class="prim-code" v-html="highlighted.clientEntry" />
             </article>
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Images</h5>
-                    <span class="prim-tag">pitlane/assets</span>
+                    <h5>The asset runtime</h5>
+                    <span class="prim-tag">@pitlane/dev/runtime</span>
                 </header>
                 <div class="prim-code" v-html="highlighted.assets" />
             </article>
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Content Definition</h5>
-                    <span class="prim-tag">pitlane/content</span>
+                    <h5>Compose a platform</h5>
+                    <span class="prim-tag">@cloudflare/vite-plugin</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.contentDefinition" />
+                <div class="prim-code" v-html="highlighted.compose" />
             </article>
 
             <article class="prim-card">
                 <header class="prim-head">
-                    <h5>Content Usage</h5>
-                    <span class="prim-tag">pitlane/content</span>
+                    <h5>Options, all defaulted</h5>
+                    <span class="prim-tag">RemixPluginOptions</span>
                 </header>
-                <div class="prim-code" v-html="highlighted.contentUsage" />
-            </article>
-
-            <article class="prim-card">
-                <header class="prim-head">
-                    <h5>Feature Flags</h5>
-                    <span class="prim-tag">pitlane/flags</span>
-                </header>
-                <div class="prim-code" v-html="highlighted.flags" />
-            </article>
-
-            <article class="prim-card">
-                <header class="prim-head">
-                    <h5>Realtime</h5>
-                    <span class="prim-tag">pitlane/realtime</span>
-                </header>
-                <div class="prim-code" v-html="highlighted.realtime" />
-            </article>
-
-            <article class="prim-card">
-                <header class="prim-head">
-                    <h5>Scheduled Jobs</h5>
-                    <span class="prim-tag">pitlane/job</span>
-                </header>
-                <div class="prim-code" v-html="highlighted.cron" />
-            </article>
-
-            <article class="prim-card">
-                <header class="prim-head">
-                    <h5>Background Jobs</h5>
-                    <span class="prim-tag">pitlane/job</span>
-                </header>
-                <div class="prim-code" v-html="highlighted.jobs" />
-            </article>
-
-            <article class="prim-card">
-                <header class="prim-head">
-                    <h5>Workers AI</h5>
-                    <span class="prim-tag">pitlane/ai</span>
-                </header>
-                <div class="prim-code" v-html="highlighted.ai" />
-            </article>
-
-            <article class="prim-card">
-                <header class="prim-head">
-                    <h5><code>&lt;head&gt;</code> management</h5>
-                    <span class="prim-tag">pitlane/metadata</span>
-                </header>
-                <div class="prim-code" v-html="highlighted.metadata" />
+                <div class="prim-code" v-html="highlighted.options" />
             </article>
 
             <!-- https://developers.cloudflare.com/workflows/ -->

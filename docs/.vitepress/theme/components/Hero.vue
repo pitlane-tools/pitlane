@@ -6,14 +6,11 @@
             >
                 <h1 class="text-pretty">Platform Integration for Remix Apps</h1>
                 <p class="text-lg max-w-md text-pretty opacity-80">
-                    Running on Cloudflare and built around Vite+, explicit config, and typed runtime
-                    primitives.
+                    One <code>remix()</code> Vite plugin enables you to package your app for
+                    Cloudflare, Netlify, Vercel, Node, Bun, or Deno.
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
-                    <a
-                        href="/guides/getting-started"
-                        class="button button--primary inline-block w-fit"
-                    >
+                    <a href="/guides/vite-plugin" class="button button--primary inline-block w-fit">
                         <span>Get Started</span>
                     </a>
                     <a
@@ -32,11 +29,11 @@
                 class="relative px-6 sm:px-16 h-full flex flex-col justify-center overflow-clip py-8 sm:py-16 hero-background"
             >
                 <div class="terminal-panel">
-                    <div class="terminal-row">$ vp create pitlane my-app</div>
-                    <div class="terminal-row">$ vp install</div>
+                    <div class="terminal-row">$ vp add -D @pitlane/dev</div>
                     <div class="terminal-row">$ vp dev</div>
-                    <div class="terminal-row">$ pitlane resources create</div>
-                    <div class="terminal-row terminal-row--accent">$ pitlane deploy</div>
+                    <div class="terminal-row">$ vp build</div>
+                    <div class="terminal-row">$ vp preview</div>
+                    <div class="terminal-row terminal-row--accent">$ git push</div>
                 </div>
             </div>
         </div>

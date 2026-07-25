@@ -1,0 +1,86 @@
+name: 🔭 Build & Deploy Branch Preview
+
+on:
+    push:
+        branches-ignore:
+            - main
+
+concurrency:
+    group: pitlane-docs-preview-${{ github.ref_name }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    deployments: write
+    pull-requests: write
+
+jobs:
+    build-and-preview:
+        runs-on: ubuntu-latest
+
+        environment:
+            name: Preview
+            url: ${{ steps.upload.outputs.preview-url }}
+
+        steps:
+            - name: 📥 Checkout code
+              uses: actions/checkout@v4
+
+            - name: ⚡️ Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  cache: true
+
+            - name: 🚀 Build docs (VitePress)
+              run: vp run docs:build
+
+            # `wrangler versions upload` routes zero production traffic to the
+            # new version; the preview URL is what reviewers open.
+            - name: ☁️ Upload preview version
+              id: upload
+              shell: bash
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+              run: |
+                  vpx wrangler versions upload \
+                      --config wrangler.jsonc \
+                      --message "Preview: $GITHUB_REF_NAME @ ${GITHUB_SHA::7}" \
+                      2>&1 | tee upload.log
+
+                  preview_url="$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' upload.log | head -1)"
+                  version_id="$(sed -n 's/^Worker Version ID: //p' upload.log | tr -d '[:space:]')"
+
+                  if [ -z "$preview_url" ]; then
+                      echo "::error::wrangler output did not contain a preview URL"
+                      exit 1
+                  fi
+
+                  echo "preview-url=$preview_url" >> "$GITHUB_OUTPUT"
+                  echo "version-id=$version_id" >> "$GITHUB_OUTPUT"
+
+            - name: 📝 Report preview URL
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PREVIEW_URL: ${{ steps.upload.outputs.preview-url }}
+                  VERSION_ID: ${{ steps.upload.outputs.version-id }}
+              run: |
+                  {
+                      echo "### 🔭 Docs preview deployed"
+                      echo ""
+                      echo "| | |"
+                      echo "| --- | --- |"
+                      echo "| **URL** | $PREVIEW_URL |"
+                      echo "| **Version** | \`$VERSION_ID\` |"
+                      echo "| **Commit** | \`${GITHUB_SHA::7}\` |"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+                  # backticks in the printf format string are literal markdown
+                  # shellcheck disable=SC2016
+                  body="$(printf '🔭 **Docs preview deployed:** %s\n\nVersion: `%s` · Commit: `%s`\n\n_No production traffic is routed to this version; merging the PR is what publishes._' \
+                      "$PREVIEW_URL" "$VERSION_ID" "${GITHUB_SHA::7}")"
+
+                  # Comment on the branch's PR if one exists; edit our previous
+                  # comment instead of stacking a new one per push.
+                  gh pr comment "$GITHUB_REF_NAME" --edit-last --body "$body" ||
+                      gh pr comment "$GITHUB_REF_NAME" --body "$body" ||
+                      echo "No open PR for $GITHUB_REF_NAME yet — preview URL is in the step summary."

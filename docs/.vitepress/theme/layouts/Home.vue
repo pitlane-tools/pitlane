@@ -19,18 +19,18 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
     <InstallCommand />
     <Stack3Col />
     <Intro />
-    <Suspense>
+    <!-- <Suspense>
         <PrimitivesGrid />
-    </Suspense>
+    </Suspense> -->
     <CheckerDivider />
     <TerminalTranscript />
     <OperationsArt />
     <ProductivityStats />
     <PartnerLogos />
     <Footer
-        heading="Start with Pitlane"
-        subheading="Create a Remix app, configure Cloudflare resources, and deploy through the same Vite+ workflow you use every day."
+        heading="It's lights out and away we go!"
+        subheading="Add the Pitlane Remix plugin to your Vite config, keep the workflow you have, and deploy your app anywhere."
         button-text="Get started"
-        button-link="/guides/getting-started"
+        button-link="/guides/vite-plugin"
     />
 </template>

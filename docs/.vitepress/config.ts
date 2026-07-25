@@ -1,162 +1,43 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
 import { type DefaultTheme, defineConfig } from "vitepress";
-import { groupIconMdPlugin, groupIconVitePlugin } from "vitepress-plugin-group-icons";
+import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
+import {
+    groupIconMdPlugin,
+    groupIconVitePlugin,
+    localIconLoader,
+} from "vitepress-plugin-group-icons";
+
+import { pmTabsInlineScript } from "./pm-tabs.ts";
 
 const SITE_URL = "https://pitlane.tools";
 const SITE_NAME = "Pitlane";
-const SITE_DESCRIPTION = "Platform integration for Remix apps on Cloudflare.";
+const SITE_DESCRIPTION = "Portable platform integration for Remix 3.";
 const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
+// Sidebar sections for unreleased packages live in git history; they return
+// as their packages ship. The published site documents released surface only.
+// (The pre-release Cloudflare-era guides sit in docs/internal/legacy-guides.)
+
+// Shared by /guides/ and /deploy/ so both prefixes present one "Guides"
+// section: general usage guides first, deployment guides under Deploy.
 let guides: DefaultTheme.SidebarItem[] = [
-    // {
-    //     text: "Introduction",
-    //     items: [
-    //         { text: "Getting Started", link: "/guides/getting-started" },
-    //         { text: "Creating a Project", link: "/guides/create" },
-    //         { text: "Installing Dependencies", link: "/guides/install" },
-    //     ],
-    // },
     {
-        text: "Guide",
+        text: "Guides",
         items: [
-            // { text: "Features", link: "/guides/features" },
-            // { text: "Routing", link: "/guides/routing" },
-            // { text: "Frames", link: "/guides/frames" },
-            // { text: "Hydration", link: "/guides/hydration" },
             { text: "Styling", link: "/guides/styling" },
-            //     { text: "Pending UI", link: "/guides/pending-ui" },
-            //     { text: "Sessions and Cookies", link: "/guides/sessions-cookies" },
-            //     { text: "Background Jobs", link: "/guides/jobs" },
-            //     { text: "Cron Jobs", link: "/guides/cron" },
-            //     { text: "Error Reporting", link: "/guides/errors" },
-            //     { text: "File Uploads", link: "/guides/file-uploads" },
-            //     { text: "Validation", link: "/guides/validation" },
-            //     { text: "Content Layer", link: "/guides/content" },
-            //     { text: "Authentication", link: "/guides/auth" },
-            //     { text: "Testing", link: "/guides/testing" },
-            //     { text: "Pre-Rendering", link: "/guides/pre-rendering" },
-            //     { text: "Progressive Enhancement", link: "/guides/progressive-enhancement" },
+            { text: "Vite Plugin", link: "/guides/vite-plugin" },
         ],
     },
-    //     {
-    //         text: "Tools",
-    //         items: [
-    //             { text: "Vite+", link: "/guides/vite-plus" },
-    //             { text: "Pitlane CLI", link: "/guides/cli" },
-    //             { text: "GitHub Actions", link: "/guides/actions" },
-    //         ],
-    //     },
-    //     {
-    //         text: "Deploy",
-    //         items: [
-    //             { text: "Setup", link: "/guides/setup" },
-    //             { text: "Environment Variables", link: "/guides/env" },
-    //             { text: "Secrets", link: "/guides/secrets" },
-    //             { text: "Resources", link: "/guides/resources" },
-    //             { text: "Database Migrations", link: "/guides/migrations" },
-    //             { text: "Deployment", link: "/guides/deployment" },
-    //         ],
-    //     },
-];
-
-let packages: DefaultTheme.SidebarItem[] = [
     {
-        text: "Packages",
+        text: "Deploy",
         items: [
-            //             { text: "pitlane", link: "/package/pitlane" },
-            //
-            //             {
-            //                 text: "@pitlane/data-table-cloudflare-d1",
-            //                 link: "/package/data-table-cloudflare-d1",
-            //             },
-            //             {
-            //                 text: "@pitlane/data-table-cloudflare-durable-object-sql",
-            //                 link: "/package/data-table-cloudflare-durable-object-sql",
-            //             },
-            //             {
-            //                 text: "@pitlane/data-table-netlify-database",
-            //                 link: "/package/data-table-netlify-database",
-            //             },
-            //             { text: "@pitlane/data-table-neon", link: "/package/data-table-neon" },
-            //             {
-            //                 text: "@pitlane/file-storage-cloudflare-r2",
-            //                 link: "/package/file-storage-cloudflare-r2",
-            //             },
-            //             {
-            //                 text: "@pitlane/file-storage-netlify-blobs",
-            //                 link: "/package/file-storage-netlify-blobs",
-            //             },
-            //             {
-            //                 text: "@pitlane/file-storage-vercel-blob",
-            //                 link: "/package/file-storage-vercel-blob",
-            //             },
-            //             {
-            //                 text: "@pitlane/session-storage-cloudflare-kv",
-            //                 link: "/package/session-storage-cloudflare-kv",
-            //             },
-            //             {
-            //                 text: "@pitlane/session-storage-netlify-blobs",
-            //                 link: "/package/session-storage-netlify-blobs",
-            //             },
-            //             { text: "@pitlane/session-storage-redis", link: "/package/session-storage-redis" },
-            //             { text: "@pitlane/auth-netlify-identity", link: "/package/auth-netlify-identity" },
-            //             { text: "@pitlane/auth-clerk", link: "/package/auth-clerk" },
-            //
-            //             { text: "@pitlane/dev", link: "/package/dev" },
-            //             { text: "@pitlane/content", link: "/package/content" },
-            //             { text: "@pitlane/meta", link: "/package/meta" },
-            //             { text: "@pitlane/i18n", link: "/package/i18n" },
-            //             { text: "@pitlane/env", link: "/package/env" },
-            { text: "@pitlane/theme", link: "/package/theme" },
-            //             { text: "@pitlane/sprites", link: "/package/sprites" },
-            //             { text: "@pitlane/logger", link: "/package/logger" },
-            //             { text: "@pitlane/browser-router", link: "/package/browser-router" },
-            //             { text: "@pitlane/typed-routes", link: "/package/typed-routes" },
-            //
-            //             { text: "@pitlane/image", link: "/package/image" },
-            //             { text: "@pitlane/image-cloudflare", link: "/package/image-cloudflare" },
-            //             { text: "@pitlane/image-netlify", link: "/package/image-netlify" },
-            //             { text: "@pitlane/image-vercel", link: "/package/image-vercel" },
-            //
-            //             { text: "@pitlane/flags", link: "/package/flags" },
-            //             { text: "@pitlane/flags-cloudflare", link: "/package/flags-cloudflare" },
-            //             { text: "@pitlane/flags-netlify", link: "/package/flags-netlify" },
-            //             { text: "@pitlane/flags-vercel", link: "/package/flags-vercel" },
-            //
-            //             { text: "@pitlane/job", link: "/package/job" },
-            //             { text: "@pitlane/job-storage-data-table", link: "/package/job-storage-data-table" },
-            //             {
-            //                 text: "@pitlane/job-storage-cloudflare-kv",
-            //                 link: "/package/job-storage-cloudflare-kv",
-            //             },
-            //             { text: "@pitlane/job-storage-redis", link: "/package/job-storage-redis" },
-            //             {
-            //                 text: "@pitlane/job-scheduler-cloudflare",
-            //                 link: "/package/job-scheduler-cloudflare",
-            //             },
-            //             { text: "@pitlane/job-scheduler-netlify", link: "/package/job-scheduler-netlify" },
-            //             { text: "@pitlane/job-scheduler-vercel", link: "/package/job-scheduler-vercel" },
-            //
-            //             { text: "@pitlane/cache", link: "/package/cache" },
-            //             { text: "@pitlane/cache-cloudflare", link: "/package/cache-cloudflare" },
-            //             { text: "@pitlane/cache-netlify", link: "/package/cache-netlify" },
-            //             { text: "@pitlane/cache-vercel", link: "/package/cache-vercel" },
-            //
-            //             { text: "@pitlane/realtime", link: "/package/realtime" },
-            //             {
-            //                 text: "@pitlane/realtime-cloudflare-durable-objects",
-            //                 link: "/package/realtime-cloudflare-durable-objects",
-            //             },
-            //
-            //             { text: "@pitlane/email", link: "/package/email" },
-            //             { text: "@pitlane/email-cloudflare", link: "/package/email-cloudflare" },
-            //             { text: "@pitlane/email-resend", link: "/package/email-resend" },
-            //
-            //             { text: "@pitlane/fonts", link: "/package/fonts" },
-            //             { text: "@pitlane/fonts-adobe", link: "/package/fonts-adobe" },
-            //             { text: "@pitlane/fonts-google", link: "/package/fonts-google" },
-            //             { text: "@pitlane/fonts-fontsource", link: "/package/fonts-fontsource" },
+            { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
+            { text: "Netlify", link: "/deploy/netlify" },
+            { text: "Vercel", link: "/deploy/vercel" },
+            { text: "Railway", link: "/deploy/railway" },
+            { text: "Deno Deploy", link: "/deploy/deno-deploy" },
+            { text: "GitHub Pages", link: "/deploy/github-pages" },
         ],
     },
 ];
@@ -166,6 +47,7 @@ let config = defineConfig({
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
     srcExclude: ["superpowers/**", "internal/**"],
+    cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
         let slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
@@ -192,28 +74,70 @@ let config = defineConfig({
         },
         config(md) {
             md.use(groupIconMdPlugin);
+            md.use(copyOrDownloadAsMarkdownButtons);
         },
     },
     vite: {
-        plugins: [groupIconVitePlugin() as any],
+        plugins: [
+            groupIconVitePlugin({
+                customIcon: {
+                    vp: localIconLoader(import.meta.url, "../public/icons/vp.svg"),
+                    vlt: localIconLoader(import.meta.url, "../public/icons/vlt.svg"),
+                    nub: localIconLoader(import.meta.url, "../public/icons/nub.svg"),
+                },
+            }),
+            // Emits llms.txt, llms-full.txt, and a raw-Markdown twin of every
+            // page into the dist assets (build only). Mirrors `srcExclude`:
+            // those pages are not on the site, so LLMs don't get them either.
+            llmstxt({
+                ignoreFiles: ["superpowers/**", "internal/**"],
+                // The theme sidebar maps two prefixes ("/guides/", "/deploy/")
+                // to the same `guides` array; the llms.txt TOC builder flattens
+                // sidebar values and would list every section twice. Hand it
+                // one deduped sidebar, with the API pages as a named section
+                // instead of the fallback "Other" bucket.
+                sidebar: [
+                    ...guides,
+                    {
+                        text: "Packages",
+                        items: [
+                            { text: "@pitlane/dev", link: "/package/dev/index" },
+                            {
+                                text: "@pitlane/dev/runtime",
+                                link: "/package/dev/runtime",
+                            },
+                            { text: "@pitlane/theme", link: "/package/theme" },
+                        ],
+                    },
+                ],
+            }),
+        ],
     },
     themeConfig: {
         logo: "/favicon.svg",
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
         nav: [
-            { text: "Guide", link: "/guides/styling", activeMatch: "/guides/" },
-            { text: "Packages", link: "/package/theme", activeMatch: "/package/" },
+            { text: "Guides", link: "/guides/styling", activeMatch: "^/(guides|deploy)/" },
+            { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
         ],
         sidebar: {
+            "/package/": [
+                { text: "@pitlane/dev", link: "/package/dev/" },
+                { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
+                { text: "@pitlane/theme", link: "/package/theme" },
+            ],
             "/guides/": guides,
-            "/package/": packages,
+            "/deploy/": guides,
         },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
         },
     },
     head: [
+        // Runs before the body streams in so stored package-manager tabs
+        // apply before first paint - no flash of the default tab.
+        ["script", {}, pmTabsInlineScript],
         ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
         ["meta", { property: "og:site_name", content: SITE_NAME }],
         ["meta", { property: "og:type", content: "website" }],
