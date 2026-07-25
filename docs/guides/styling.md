@@ -248,7 +248,21 @@ function SaveButton(handle: Handle<{ intent?: ButtonProps["intent"] }>) {
 }
 ```
 
-The [reference](/package/theme) documents the full exported type surface, the property-by-property enforcement table, and the error catalog.
+Every variant prop is optional. To require one, wrap the component and
+re-declare that prop as required:
+
+```ts
+import type { TVAProps } from "@pitlane/theme";
+
+type ButtonVariants = TVAProps<typeof button>;
+
+interface IntentButtonProps
+    extends Omit<ButtonVariants, "intent">, Required<Pick<ButtonVariants, "intent">> {}
+
+export let intentButton = (props: IntentButtonProps) => button(props);
+```
+
+The [reference](/package/theme/) documents every export, the property-by-property enforcement table, and the error catalog.
 
 ## A complete component
 

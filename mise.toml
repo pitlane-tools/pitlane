@@ -24,10 +24,11 @@ depends = "docs:build"
 run = ["oxfmt --check", "oxlint", "tsc"]
 
 [tasks."docs:api"]
-run = "typedoc"
+run = ["typedoc --options typedoc.dev.json", "typedoc --options typedoc.theme.json"]
 
-# The sidebar links /package/dev/*, which only exists once typedoc has emitted
-# it; VitePress fails the build on those dead links otherwise.
+# The sidebar links /package/dev/* and /package/theme/*, which only exist once
+# typedoc has emitted them; VitePress fails the build on those dead links
+# otherwise.
 [tasks."docs:dev"]
 depends = "docs:api"
 run = "vitepress dev docs --port 1337"

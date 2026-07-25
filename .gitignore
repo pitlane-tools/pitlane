@@ -11,3 +11,4 @@ demos/*/dist
 dist
 .wrangler
 docs/package/dev
+docs/package/theme

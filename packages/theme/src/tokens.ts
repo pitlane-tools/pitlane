@@ -3,10 +3,37 @@ import type { DTCGDocument } from "./types.ts";
 
 import { TOKEN_TYPES } from "./brands.ts";
 
+/**
+ * The error {@link createTheme} throws for every validation and
+ * serialization failure. Validation is eager, so a bad document never
+ * emits CSS. Every message names the offending token path.
+ *
+ * | Condition | Message shape |
+ * | --- | --- |
+ * | Unknown `$type` | `"color.brand" has unknown $type "sparkles"` |
+ * | Unresolvable `$type` | `"color.brand" has no resolvable $type` |
+ * | Typography token | `"heading": typography tokens are not supported in v1` |
+ * | Reserved character in a name | `Token or group name "a.b" contains characters reserved by DTCG references (".", "{", "}")` |
+ * | Empty CSS identifier | `Token path segment "!" produces an empty CSS identifier` |
+ * | Malformed node | `"color.bg" is neither a group nor a token` |
+ * | Variable-name collision | `Tokens "a" and "b" both produce the CSS variable --x` |
+ * | Alias to a missing token | `"color.bg" references unknown token "color.white"` |
+ * | Alias to a wrong-typed token | `"x" references "space.sm" of type "dimension" where "color" is required` |
+ * | Alias cycle | `Alias cycle: a → b → a` |
+ * | Invalid value for a declared type | `"x" has an invalid color value: …` — also `unknown colorSpace`, `unknown fontWeight keyword`, and `unknown strokeStyle keyword`; an empty `fontFamily` array counts |
+ * | Bad mode override | `Mode override "x" does not exist in the base document`, `Mode override "x" may only set $value`, or (via a cross-type alias) the wrong-typed-alias message |
+ * | Unminted `raw()` ref | `raw(): "var(--x)" names a var this theme never minted` |
+ */
 export class ThemeError extends Error {
     override name = "ThemeError";
 }
 
+/**
+ * A parsed token: its dotted key, path segments, CSS variable name,
+ * resolved type, raw value, and alias target if any.
+ *
+ * @internal
+ */
 export interface ParsedToken {
     key: string;
     path: readonly string[];
@@ -18,12 +45,24 @@ export interface ParsedToken {
 
 const ALIAS_RE = /^\{([^{}]+)\}$/;
 
+/**
+ * Extracts the target key from a `"{path.to.token}"` alias string, or
+ * `null` when the value is not an alias reference.
+ *
+ * @internal
+ */
 export function aliasTarget(value: unknown): string | null {
     if (typeof value !== "string") return null;
     let match = ALIAS_RE.exec(value);
     return match ? match[1] : null;
 }
 
+/**
+ * Kebab-cases one path segment for a CSS variable name. Throws when
+ * the segment reduces to an empty identifier.
+ *
+ * @internal
+ */
 export function kebabSegment(segment: string): string {
     let kebab = segment
         .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -44,6 +83,12 @@ interface RawEntry {
     value: unknown;
 }
 
+/**
+ * Walks a document, resolves every token's type and CSS variable
+ * name, and returns the parsed tokens keyed by dotted path.
+ *
+ * @internal
+ */
 export function parseTokens(document: DTCGDocument): Map<string, ParsedToken> {
     let entries = new Map<string, RawEntry>();
     walk(document, [], validateType(document.$type, "$root"), entries);

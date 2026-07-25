@@ -42,6 +42,35 @@ type Repeat1to4<V> = readonly [V] | readonly [V, V] | readonly [V, V, V] | reado
 type PadItem = DimensionToken | 0;
 type MarginItem = DimensionToken | 0 | "auto";
 
+/**
+ * The style-object type accepted by {@link css} and every {@link tva}
+ * slot. Token-mapped longhands enforce the matching token brand plus a
+ * small set of CSS keywords and the literal `0`; every other property
+ * stays loosely typed, and nested selectors and media queries recurse.
+ *
+ * `Wide` below is the CSS-wide keyword union
+ * `"inherit" | "initial" | "unset" | "revert" | "revert-layer"`.
+ *
+ * | Property family | Accepted values |
+ * | --- | --- |
+ * | `color`, `backgroundColor`, `borderColor`, `borderTopColor`, `borderRightColor`, `borderBottomColor`, `borderLeftColor`, `outlineColor`, `textDecorationColor`, `columnRuleColor`, `caretColor`, `accentColor`, `fill`, `stroke` | `ColorToken \| "transparent" \| "currentColor" \| Wide` |
+ * | `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `flexBasis` | `DimensionToken \| 0 \| "auto" \| "min-content" \| "max-content" \| "fit-content" \| Wide` |
+ * | `top`, `right`, `bottom`, `left`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft` | `DimensionToken \| 0 \| "auto" \| Wide` |
+ * | `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `fontSize`, `textIndent`, `outlineOffset`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`, `rowGap`, `columnGap` | `DimensionToken \| 0 \| Wide` |
+ * | `letterSpacing`, `wordSpacing` | `DimensionToken \| 0 \| "normal" \| Wide` |
+ * | `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`, `outlineWidth` | `DimensionToken \| 0 \| "thin" \| "medium" \| "thick" \| Wide` |
+ * | `padding`, `margin`, `inset`, `borderRadius` (box shorthands) | a single value as the longhand, or a tuple of 1–4 such values, space-joined |
+ * | `gap` | `DimensionToken \| 0 \| Wide`, or a 2-tuple |
+ * | `fontFamily` | `FontFamilyToken \| Wide` |
+ * | `fontWeight` | `FontWeightToken \| "normal" \| "bold" \| "lighter" \| "bolder" \| Wide` |
+ * | `lineHeight` | `NumberToken \| DimensionToken \| "normal" \| Wide` |
+ * | `opacity`, `zIndex`, `flexGrow`, `flexShrink`, `order` | `NumberToken \| number \| Wide` (plain numbers stay legal) |
+ * | `transitionDuration`, `transitionDelay`, `animationDuration`, `animationDelay` | `DurationToken \| Wide` |
+ * | `transitionTimingFunction`, `animationTimingFunction` | `CubicBezierToken \| "ease" \| "linear" \| "ease-in" \| "ease-out" \| "ease-in-out" \| "step-start" \| "step-end" \| Wide` |
+ * | `boxShadow`, `textShadow` | `ShadowToken \| "none" \| Wide` |
+ *
+ * @see {@link css}
+ */
 export interface ThemedCSSProps {
     // Colors
     color?: ColorLike;

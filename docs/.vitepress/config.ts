@@ -106,7 +106,7 @@ let config = defineConfig({
                                 text: "@pitlane/dev/runtime",
                                 link: "/package/dev/runtime",
                             },
-                            { text: "@pitlane/theme", link: "/package/theme" },
+                            { text: "@pitlane/theme", link: "/package/theme/index" },
                         ],
                     },
                 ],
@@ -125,7 +125,7 @@ let config = defineConfig({
             "/package/": [
                 { text: "@pitlane/dev", link: "/package/dev/" },
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
-                { text: "@pitlane/theme", link: "/package/theme" },
+                { text: "@pitlane/theme", link: "/package/theme/" },
             ],
             "/guides/": guides,
             "/deploy/": guides,

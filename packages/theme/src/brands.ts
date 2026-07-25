@@ -1,3 +1,8 @@
+/**
+ * The twelve DTCG token types, in canonical order.
+ *
+ * @internal
+ */
 export const TOKEN_TYPES = [
     "color",
     "dimension",
@@ -13,6 +18,7 @@ export const TOKEN_TYPES = [
     "strokeStyle",
 ] as const;
 
+/** The twelve DTCG token `$type` values. @see {@link AnyToken} */
 export type TokenType = (typeof TOKEN_TYPES)[number];
 
 // The symbols are declared, never created — they exist only in the type system,
@@ -30,19 +36,36 @@ declare const TRANSITION: unique symbol;
 declare const GRADIENT: unique symbol;
 declare const STROKE_STYLE: unique symbol;
 
+/** Compile-time brand for a `color` token. */
 export type ColorToken = string & { readonly [COLOR]: true };
+/** Compile-time brand for a `dimension` token. */
 export type DimensionToken = string & { readonly [DIMENSION]: true };
+/** Compile-time brand for a `duration` token. */
 export type DurationToken = string & { readonly [DURATION]: true };
+/** Compile-time brand for a `fontFamily` token. */
 export type FontFamilyToken = string & { readonly [FONT_FAMILY]: true };
+/** Compile-time brand for a `fontWeight` token. */
 export type FontWeightToken = string & { readonly [FONT_WEIGHT]: true };
+/** Compile-time brand for a `number` token. */
 export type NumberToken = string & { readonly [NUMBER]: true };
+/** Compile-time brand for a `cubicBezier` token. */
 export type CubicBezierToken = string & { readonly [CUBIC_BEZIER]: true };
+/** Compile-time brand for a `shadow` token. */
 export type ShadowToken = string & { readonly [SHADOW]: true };
+/** Compile-time brand for a `border` token. */
 export type BorderToken = string & { readonly [BORDER]: true };
+/** Compile-time brand for a `transition` token. */
 export type TransitionToken = string & { readonly [TRANSITION]: true };
+/** Compile-time brand for a `gradient` token. */
 export type GradientToken = string & { readonly [GRADIENT]: true };
+/** Compile-time brand for a `strokeStyle` token. */
 export type StrokeStyleToken = string & { readonly [STROKE_STYLE]: true };
 
+/**
+ * Maps each {@link TokenType} to its token brand.
+ *
+ * @internal
+ */
 export interface BrandByType {
     color: ColorToken;
     dimension: DimensionToken;
@@ -58,4 +81,12 @@ export interface BrandByType {
     strokeStyle: StrokeStyleToken;
 }
 
+/**
+ * The union of all twelve token brands. Brands are compile-time tags
+ * naming each token's type; they let {@link css} reject a dimension
+ * where a color belongs. They exist only in the type system — every
+ * ref is a plain string at runtime, so brands cost nothing — and they
+ * are theme-independent, so tokens minted by two different
+ * {@link createTheme} calls mix freely in one {@link css} call.
+ */
 export type AnyToken = BrandByType[TokenType];
