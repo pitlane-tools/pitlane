@@ -44,65 +44,110 @@ solve composition across documents.
 
 ### Proposal
 
-A standalone merge, not a method on the result:
+`.extend()` on the compiled theme, taking either a document fragment or a
+callback that receives the branded accessor:
 
 ```ts
-import { createTheme, mergeTokens } from "@pitlane/theme";
+import { createTheme } from "@pitlane/theme";
 import { DefaultTheme } from "@pitlane/theme/default";
 
-export let { token: t, Theme } = createTheme(
-    mergeTokens(DefaultTheme, {
-        colors: {
-            $type: "color",
-            text: {
-                primary: { $value: "{color.gray.900}" },
-                warning: { $value: "{color.red.500}" },
-            },
+export let { token: t, Theme } = createTheme(DefaultTheme).extend(base => ({
+    colors: {
+        $type: "color",
+        text: {
+            primary: { $value: base.color.gray[900] },
+            warning: { $value: base.color.red[500] },
         },
-    }),
-    { modes: { dark: { colors: { text: { primary: { $value: "{color.gray.100}" } } } } } },
-);
+    },
+}));
 ```
 
-`mergeTokens(a, b)` deep-merges two documents and returns one. A node with a
-`$value` is a leaf and replaces wholesale; groups recurse. Its type is
-`DeepMerge<A, B>`, so `TokenTree` resolves aliases against the merged document
-and `t.colors.text.warning` is a `ColorToken` because `{color.red.500}` is.
+`DefaultTheme` stays a plain DTCG document. `createTheme` compiles it, `.extend`
+deep-merges the fragment and recompiles, and the result is another `ThemeResult`,
+so extends chain. A node carrying `$value` is a leaf and replaces wholesale;
+every other node recurses.
 
-### Why this shape rather than `.extend(t => …)`
+`base.color.gray[900]` is `"var(--color-gray-900)"`, which is character-for-character
+what the alias `"{color.gray.900}"` compiles to. The two forms are interchangeable
+in the callback; the accessor is the one that autocompletes.
 
-maitre-d puts `extend` on the compiled theme and passes the accessor to a
-callback, which buys autocomplete on `t.color.gray[50]` and lets an extension
-compute (`calc(${t.spacing} * 4)`).
+### The objections that killed this in the first draft, and why they were wrong
 
-For Pitlane that shape has two costs. `DefaultTheme` would have to be a compiled
-`ThemeResult`, so its CSS gets built and discarded on every extend. And a
-callback returning raw `var()` strings loses the token type: a value of
-`"var(--color-gray-50)"` is an opaque string, where `"{color.gray.50}"` carries
-its `$type` through `TypeAtPath` into the brand.
+The first draft of this document recommended a standalone
+`createTheme(mergeTokens(DefaultTheme, {…}))` on two grounds. Both were asserted,
+not checked. Checked, both fail.
 
-Keeping `DefaultTheme` as **data** rather than behavior means it is inspectable,
-diffable, publishable as JSON, and mergeable more than once. Composition happens
-before compilation, so `createTheme` stays the only compiler and validation still
-runs once over the finished document.
+**"Compiling the base and discarding its CSS is wasteful."** Measured on a
+284-token synthetic default theme (22 hues × 11 steps plus the usual scales):
+`createTheme` costs **0.55 ms**, and base-then-extend costs **0.82 ms**. The waste
+is **0.27 ms**, once, at module load. That is not an argument.
 
-`.extend()` remains available later as sugar over `mergeTokens` if the nesting
-gets tiresome. It is not needed first.
+**"A callback returning `var()` strings loses the token type."** It does not, for
+two reasons the first draft missed.
 
-### P1b — Typed alias strings
-
-The one thing the callback form clearly wins is autocomplete. Recover it by
-typing the alias syntax instead of the accessor:
+Accessor leaves are _branded_, and a brand is recoverable:
 
 ```ts
-type Alias<T> = `{${TokenPath<T>}}`;
+type TypeOfBrand<V> = [V] extends [ColorToken]
+    ? "color"
+    : [V] extends [DimensionToken]
+      ? "dimension"
+      : /* … the other ten … */ never;
 ```
 
-`TokenPath<T>` walks the document to a union of dotted paths. `$value:
-"{color.gry.500}"` then fails at the keystroke rather than throwing from
-`createTheme`. Cost: a template-literal union over a large document is real
-compiler work, and `DefaultTheme` would be the largest document anyone loads.
-Measure before shipping; gate behind the merged document being reasonably sized.
+Each brand carries its own `unique symbol`, so the arms are mutually exclusive.
+`TokenTypeOf` gains one branch for the branded case beside its existing
+`$type` / alias / inherited chain.
+
+And the `const` type-parameter modifier propagates into a callback's _return_
+inference, which the first draft assumed it would not:
+
+```ts
+declare function probe<const U extends DTCGDocument>(fn: (t: unknown) => U): U;
+```
+
+With `const`, `$type: "color"` and `$value: "#111827"` both stay literal inside the
+callback with no `as const` at the callsite. Dropping `const` widens `$value` to
+`string`, which would break alias resolution — so the modifier is load-bearing, and
+it works.
+
+A type spike covering brand recovery, `const` propagation, and `DeepMerge`
+confirmed all three against the real `types.ts` and `brands.ts`. The merged tree
+brands correctly in every case that matters: a token added into an existing group
+inherits that group's `$type`, an overridden leaf keeps its type, a wholly new
+group resolves on its own, and untouched groups still refuse cross-brand
+assignment. **The existing `TokenTree` needs no change for the fragment form.**
+
+### What is actually required
+
+| Form                                             | New machinery                                                                                                                                                  |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.extend(fragment)` with `"{alias}"` values      | `DeepMerge<A, B>` and the method. Nothing else.                                                                                                                |
+| `.extend(base => fragment)` with accessor values | The above, plus a `TypeOfBrand` branch in `TokenTypeOf`, plus `raw()` and alias validation learning to chase a `var(--x)` value the same way they chase `{x}`. |
+
+The second form is the one worth having, and its extra cost is one conditional
+type and one lookup table the compiler already builds (`varName` → key).
+
+The one real merit of the first draft survives: `DefaultTheme` must stay **data**,
+not a pre-compiled `ThemeResult`. A DTCG document is inspectable, diffable,
+publishable as JSON, and consumable by Style Dictionary or a Figma sync.
+`createTheme(DefaultTheme).extend(…)` keeps that property, since the document is
+the input rather than the exported artifact.
+
+### Open: where modes go
+
+`options.modes` is typed `DeepPartialTokens<T>` against the document, and
+`.extend` changes the document. Three candidates, none obviously right:
+
+1. `.extend(fragment, { modes })` — modes merge as you go. Reads heavy at the
+   callsite.
+2. `.modes(base => ({ dark: … }))` as its own chained step, typed against the
+   accumulated document. Symmetric with `.extend`, but leaves two ways to declare
+   modes once `createTheme(doc, { modes })` also exists.
+3. Modes stay on `createTheme` only, and an extended theme cannot add them. Simple,
+   and probably too restrictive for a `DefaultTheme` that ships dark values.
+
+Resolve this before implementing. It is the only part of P1 still undesigned.
 
 ## P2 — `DefaultTheme`
 
@@ -123,8 +168,8 @@ import { DefaultTheme } from "@pitlane/theme/default";
 Scope, following Tailwind v4's `@theme` defaults: the full color ramp, the
 spacing base, radius, shadow families (including inset), the type scale, font
 stacks, easing curves, and blur. No semantic names — no `color.text`, no
-`surface.lvl1`. Those belong to the app, layered on with `mergeTokens` and
-aliases, exactly as the templates do now.
+`surface.lvl1`. Those belong to the app, layered on with `.extend`, exactly as
+the templates do now.
 
 ### Cost, and why it needs solving first
 
@@ -304,15 +349,14 @@ is a real base type scale to attach line heights to.
 P1 first: without composition, `DefaultTheme` has no delivery mechanism. P2 and
 its `pick` come next, since they are what removes 268 lines from each starter. P3
 and P4's `lightDark` are small and independent and can land alongside either. The
-mode selector in P4 and all of P5 want their own design pass.
+mode question inside P1, the mode selector in P4, and all of P5 want their own
+design pass.
 
 ## Open questions
 
-- Does `mergeTokens` need to merge mode overrides too, or does the app always own
-  `options.modes`? A published `DefaultTheme` with opinionated dark values would
-  argue for the former.
-- How large can `TokenPath<T>` (P1b) get before it degrades editor
-  responsiveness? Measure against a full default palette before committing.
+- Where do mode overrides live on an extended theme? See "Open: where modes go"
+  under P1; a published `DefaultTheme` carrying opinionated dark values makes the
+  question urgent rather than theoretical.
 - Should `pick` narrow the _type_ as well as the runtime object? It must, or the
   accessor keeps offering tokens the document no longer declares.
 - Is a semantic layer (`color.text`, `surface.lvl1`) worth shipping as a second
