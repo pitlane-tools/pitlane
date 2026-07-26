@@ -4,6 +4,9 @@ export default defineConfig({
     fmt: {
         ignorePatterns: [
             ".agents/docs/**",
+            ".agents/skills/copyediting/**",
+            ".agents/skills/remix/**",
+            ".agents/skills/write-better-prose/**",
             "docs/.vitepress/cache/**",
             "docs/.vitepress/dist/**",
             "docs/.vitepress/.temp/**",
@@ -30,6 +33,14 @@ export default defineConfig({
             partitionByComment: true,
         },
         overrides: [
+            {
+                files: ["**/*.jsonc"],
+                options: { trailingComma: "none" },
+            },
+            {
+                files: ["**/.vscode/**"],
+                options: { trailingComma: "all" },
+            },
             {
                 files: [
                     "docs/.vitepress/theme/components/snippets/*.ts",

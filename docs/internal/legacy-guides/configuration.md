@@ -9,7 +9,7 @@ Pitlane configuration starts in `vite.config.ts`.
 
 ## Remix Plugin
 
-`remix()` configures the Remix framework build for Vite+:
+`remix()` configures the Remix build for Vite+:
 
 ```ts
 import { defineConfig } from "vite-plus";
@@ -27,7 +27,7 @@ export default defineConfig({
 });
 ```
 
-All options are optional. The plugin configures SSR and client Vite environments, transforms client entry references, wires preview server behavior, and suppresses expected abort errors from client disconnects.
+All options are optional. The plugin configures the SSR and client Vite environments and transforms client entry references. It also wires the preview server and suppresses expected abort errors from client disconnects.
 
 ## Platform Plugin
 

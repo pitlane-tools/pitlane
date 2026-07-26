@@ -1,0 +1,52 @@
+[tools]
+node = "26"
+pnpm = "11"
+vale = "3"
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+# CI installs must never silently repair a stale lockfile; local checkouts also
+# refresh the vendored Remix agent skills.
+[hooks.postinstall]
+run = '''
+if [ -n "$CI" ]; then
+    pnpm install --frozen-lockfile
+else
+    pnpm install && mise run update-remix-skills
+fi
+'''
+
+[tasks.fmt]
+run = "oxfmt"
+
+[tasks.lint]
+run = "oxlint --fix"
+
+[tasks.typecheck]
+depends = "docs:build"
+run = "tsc"
+
+[tasks.check]
+depends = "docs:build"
+run = ["oxfmt --check", "oxlint", "tsc"]
+
+[tasks."docs:api"]
+run = ["typedoc --options typedoc.dev.json", "typedoc --options typedoc.theme.json"]
+
+# The sidebar links /package/dev/* and /package/theme/*, which only exist once
+# typedoc has emitted them; VitePress fails the build on those dead links
+# otherwise.
+[tasks."docs:dev"]
+depends = "docs:api"
+run = "vitepress dev docs --port 1337"
+
+[tasks."docs:build"]
+depends = "docs:api"
+run = "vitepress build docs"
+
+[tasks."docs:serve"]
+run = "vitepress serve docs --port 1337"
+
+[tasks."docs:prose"]
+run = ["vale sync", "vale docs/package docs/guides"]

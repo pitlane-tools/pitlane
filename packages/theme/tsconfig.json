@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": ["esnext", "dom"],
+        "moduleDetection": "force",
+        "module": "preserve",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "noUnusedLocals": true,
+        "declaration": true,
+        "allowImportingTsExtensions": true,
+        "emitDeclarationOnly": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true
+    },
+    "include": ["src"]
+}

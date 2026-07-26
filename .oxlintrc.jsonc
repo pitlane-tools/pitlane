@@ -1,0 +1,39 @@
+{
+    "$schema": "node_modules/oxlint/configuration_schema.json",
+    "ignorePatterns": [
+        ".agents/docs/**",
+        "docs/.vitepress/cache/**",
+        "docs/.vitepress/dist/**",
+        "docs/.vitepress/theme/components/snippets/**",
+        "node_modules/**",
+        "packages/*/dist/**",
+        "demos/*/dist/**",
+        ".omp/**"
+    ],
+    "options": {
+        "typeAware": true,
+        "typeCheck": true
+    },
+    "jsPlugins": ["eslint-plugin-perfectionist", "eslint-plugin-prefer-let"],
+    "rules": {
+        "typescript/no-floating-promises": "allow",
+        "typescript/unbound-method": "allow",
+        "perfectionist/sort-jsx-props": "warn",
+        "import/extensions": [
+            "error",
+            "ignorePackages",
+            {
+                "cjs": "always",
+                "cts": "always",
+                "js": "always",
+                "jsx": "always",
+                "mjs": "always",
+                "mts": "always",
+                "ts": "always",
+                "tsx": "always"
+            }
+        ],
+        "eslint/prefer-const": "off",
+        "prefer-let/prefer-let": [2, { "forceUpperCaseConst": true }]
+    }
+}

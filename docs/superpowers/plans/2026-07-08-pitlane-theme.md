@@ -527,6 +527,14 @@ describe("parseTokens", () => {
         expect(bg?.aliasOf).toBe("color.white");
     });
 
+    it("prefers the alias target's type over a group-inherited $type (DTCG order)", () => {
+        let tokens = parseTokens({
+            motion: { $type: "duration", fast: { $value: "150ms" } },
+            color: { $type: "color", pulse: { $value: "{motion.fast}" } },
+        });
+        expect(tokens.get("color.pulse")?.type).toBe("duration");
+    });
+
     it("resolves alias chains", () => {
         let tokens = parseTokens({
             a: { $type: "color", $value: "#fff" },
@@ -735,9 +743,11 @@ function resolveType(key: string, entries: Map<string, RawEntry>, chain: string[
         );
     }
     if (entry.ownType) return entry.ownType;
-    if (entry.inheritedType) return entry.inheritedType;
     let alias = aliasTarget(entry.value);
+    // DTCG order: a reference token takes the referenced token's resolved
+    // type BEFORE any group-inherited $type.
     if (alias !== null) return resolveType(alias, entries, [...chain, key]);
+    if (entry.inheritedType) return entry.inheritedType;
     throw new ThemeError(`"${key}" has no resolvable $type`);
 }
 ```
@@ -2204,7 +2214,7 @@ type VariantShape = Record<string, Record<string, ThemedCSSProps>>;
 type VariantValue<K> = K extends "true" | "false" ? boolean : K;
 
 type Selection<V extends VariantShape> = {
-    [K in keyof V]?: VariantValue<keyof V[K] & string>;
+    -readonly [K in keyof V]?: VariantValue<keyof V[K] & string>;
 };
 
 export interface TVAConfig<V extends VariantShape> {
@@ -2371,7 +2381,9 @@ type UnionToIntersection<U> = (U extends unknown ? (arg: U) => void : never) ext
     : never;
 
 type CombinedProps<Fns extends readonly TVAFn<VariantShape>[]> = UnionToIntersection<
-    Parameters<Fns[number]>[0]
+    // Exclude the optional-parameter undefined per union member — it would
+    // otherwise poison the intersection into an uninhabited type.
+    Exclude<Parameters<Fns[number]>[0], undefined>
 > extends infer P
     ? { [K in keyof P]: P[K] }
     : never;
@@ -2954,6 +2966,14 @@ git commit -m "Add publish workflow for @pitlane/theme"
 ---
 
 ## Plan self-review notes
+
+> **Execution reconciliation (2026-07-08):** shipped code diverges from this plan's
+> Task 2/5 code blocks in three reviewed, controller-approved ways not re-inlined here:
+> commit `0010dcb` rewrote `TypeAtPath` with a `MatchKey` stringified-key matcher (numeric
+> alias-path segments) and seeded `TokenTree`/alias-branch inheritance with
+> `GroupType<T, undefined>` (root-level `$type`); the final-review fix taught `parseTokens`
+> the same root-`$type` seeding. `serializeColor` routes `srgb` through `color()` (spec
+> table amended to match). Git history is authoritative for these files.
 
 - **Spec coverage**: API surface (Tasks 5–11), pipeline + error catalog (Tasks 3–6), brands/TokenTree/ThemedCSSProps (Tasks 2, 8), workspace/package/build (Task 1), publishing (Task 13), testing strategy (every task; type tests in 2, 8, 9, 10), docs (Task 12). `raw` foreign-ref error: Task 5. Typography rejection: Task 3 (runtime) + `never` leaf noted in Task 2.
 - **Known intentional deviations**: none. Where the spec pins exact strings (var naming, mode emission format, error phrasing), tests assert them.

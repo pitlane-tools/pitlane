@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: Reference for the pitlane CLI — database, secrets, resources, and deploy commands.
+description: Reference for the pitlane CLI covering database, secrets, resources, and deploy commands.
 ---
 
 # CLI
@@ -29,7 +29,7 @@ pitlane secrets push
 pitlane secrets list
 ```
 
-`pitlane secrets push` reads `.env`, compares it with deployed Cloudflare secret names, and pushes changes. Cloudflare secret values are write-only.
+`pitlane secrets push` reads `.env` and compares it with deployed Cloudflare secret names, then pushes changes. Cloudflare secret values are write-only.
 
 ## Resources
 
@@ -48,7 +48,7 @@ pitlane deploy
 pitlane deploy --dry-run
 ```
 
-`pitlane deploy` builds the app, applies pending remote migrations, deploys with Wrangler, and prints the live URL.
+`pitlane deploy` builds the app and applies pending remote migrations, then deploys with Wrangler and prints the live URL.
 
 ## Setup
 
@@ -56,7 +56,7 @@ pitlane deploy --dry-run
 pitlane setup
 ```
 
-`pitlane setup` writes `.github/workflows/deploy.yml` using `pitlane-tools/deploy-action`. When `gh` is available and authenticated, it can help initialize the repository, create a GitHub remote, configure Cloudflare credentials, and write the workflow.
+`pitlane setup` writes `.github/workflows/deploy.yml` using `pitlane-tools/deploy-action`. When `gh` is available and authenticated, it can initialize the repository and create a GitHub remote, then configure Cloudflare credentials and write the workflow.
 
 ## Auth
 

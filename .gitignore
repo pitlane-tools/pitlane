@@ -4,6 +4,11 @@ docs/.vitepress/dist
 docs/.vitepress/.temp
 .vite
 .DS_Store
+.superpowers/
+packages/*/dist
+demos/*/dist
+.vale/
 dist
 .wrangler
 docs/package/dev
+docs/package/theme

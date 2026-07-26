@@ -1,6 +1,5 @@
 {
     "js/ts.preferences.importModuleSpecifierEnding": "js",
-    "js/ts.experimental.useTsgo": true,
 
     "oxc.enable.oxlint": true,
     "oxc.enable.oxfmt": true,
@@ -43,14 +42,17 @@
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
-        "package.json": ".github*, .npmrc, .vscode*, .node-version, mise.toml, pnpm-*.yaml, tsconfig.*, wrangler.toml, wrangler.*.toml, wrangler.json*, wrangler.*.json, wrangler.*.jsonc, workspace.json",
+        "package.json": ".npmrc, .node-version, pnpm-*.yaml, package-lock.json, workspace.json",
         // FIXME: Why isn't this nesting pattern working?
         "README.md": "AGENTS.md, CLAUDE.md",
-        "vite.config.*": "*.plugin.ts, worker-configuration.d.ts"
+        "vite.config.*": "*.plugin.ts, .oxfmtrc.json*, .oxlintrc.json*"
     },
     "files.exclude": {
         ".wrangler": true,
-        "dist": true
+        ".superpowers": true,
+        ".vale": true,
+        "dist": true,
+        "worker-configuration.d.ts": true
     },
 
     "npmx.ignore.vulnerability": ["@hiogawa/vite-plugin-fullstack@0.0.11"],

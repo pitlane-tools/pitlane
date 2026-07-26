@@ -1,6 +1,6 @@
 // @ts-expect-error: no types for this package
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config";
-import { defineConfig } from "vitepress";
+import { type DefaultTheme, defineConfig } from "vitepress";
 import {
     groupIconMdPlugin,
     groupIconVitePlugin,
@@ -21,10 +21,13 @@ const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
 // Shared by /guides/ and /deploy/ so both prefixes present one "Guides"
 // section: general usage guides first, deployment guides under Deploy.
-const guides = [
+let guides: DefaultTheme.SidebarItem[] = [
     {
         text: "Guides",
-        items: [{ text: "Vite Plugin", link: "/guides/vite-plugin" }],
+        items: [
+            { text: "Styling", link: "/guides/styling" },
+            { text: "Vite Plugin", link: "/guides/vite-plugin" },
+        ],
     },
     {
         text: "Deploy",
@@ -39,7 +42,7 @@ const guides = [
     },
 ];
 
-const config = defineConfig({
+let config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
@@ -47,11 +50,11 @@ const config = defineConfig({
     cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
-        const slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
-        const url = `${SITE_URL}/${slug}`;
-        const title = pageData.frontmatter.title ?? pageData.title ?? SITE_NAME;
-        const ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
-        const description =
+        let slug = pageData.relativePath.replace(/index\.md$/, "").replace(/\.md$/, "");
+        let url = `${SITE_URL}/${slug}`;
+        let title = pageData.frontmatter.title ?? pageData.title ?? SITE_NAME;
+        let ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
+        let description =
             pageData.frontmatter.description || pageData.description || SITE_DESCRIPTION;
 
         pageData.frontmatter.head ??= [];
@@ -103,6 +106,7 @@ const config = defineConfig({
                                 text: "@pitlane/dev/runtime",
                                 link: "/package/dev/runtime",
                             },
+                            { text: "@pitlane/theme", link: "/package/theme/index" },
                         ],
                     },
                 ],
@@ -114,13 +118,14 @@ const config = defineConfig({
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
         nav: [
-            { text: "Guides", link: "/guides/vite-plugin", activeMatch: "^/(guides|deploy)/" },
+            { text: "Guides", link: "/guides/styling", activeMatch: "^/(guides|deploy)/" },
             { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
         ],
         sidebar: {
             "/package/": [
                 { text: "@pitlane/dev", link: "/package/dev/" },
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
+                { text: "@pitlane/theme", link: "/package/theme/" },
             ],
             "/guides/": guides,
             "/deploy/": guides,

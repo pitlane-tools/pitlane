@@ -73,4 +73,4 @@ Vite+ owns format, lint, type checking, tests, development, and production build
 pitlane deploy
 ```
 
-`pitlane deploy` builds the app, runs pending remote D1 migrations, deploys with Wrangler using the generated `.pitlane/wrangler.jsonc`, and prints the live URL.
+`pitlane deploy` builds the app and runs pending remote D1 migrations, then deploys with Wrangler using the generated `.pitlane/wrangler.jsonc` and prints the live URL.

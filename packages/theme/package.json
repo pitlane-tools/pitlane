@@ -1,0 +1,53 @@
+{
+    "name": "@pitlane/theme",
+    "version": "0.1.0",
+    "description": "Type-safe styling with W3C design tokens for Remix 3.",
+    "keywords": [
+        "css-variables",
+        "design-tokens",
+        "dtcg",
+        "pitlane",
+        "remix",
+        "theme"
+    ],
+    "homepage": "https://pitlane.tools/package/theme/",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/theme"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "dependencies": {
+        "csstype": "^3.2.3"
+    },
+    "devDependencies": {
+        "remix": "3.0.0-beta.5",
+        "typescript": "^7.0.2",
+        "vite-plus": "^0.2.6"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0-beta.5"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
+}
