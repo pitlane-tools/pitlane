@@ -10,6 +10,7 @@ import type { Plugin, PluginOption } from "vite";
 import fullstack from "@hiogawa/vite-plugin-fullstack";
 
 import { build, buildCompat, runtimeInline } from "./build.ts";
+import { componentHmr, serverDataHmr } from "./hmr.ts";
 import { preview } from "./preview.ts";
 import { clientEntryTransform } from "./transform.ts";
 
@@ -68,6 +69,8 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         serverHandler = true,
     } = options;
 
+    let serverEnvironmentSet = new Set(serverEnvironments);
+
     return [
         fullstack({
             serverEnvironments,
@@ -79,7 +82,9 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         preview(),
         suppressAbortErrors(),
         normalizeWriteHead(),
-        clientEntryTransform(new Set(serverEnvironments)),
+        componentHmr(serverEnvironmentSet),
+        clientEntryTransform(serverEnvironmentSet),
+        ...(clientEntry === false ? [] : [serverDataHmr(serverEnvironmentSet, clientEntry)]),
     ];
 }
 

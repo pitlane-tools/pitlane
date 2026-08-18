@@ -70,8 +70,24 @@ run({
 
 `vite dev` serves the app through your router. `vite build` produces `dist/ssr` and `dist/client`. `vite preview` serves the production build through the same fetch handler production runs.
 
-> [!NOTE]
-> Dev updates are coarse-grained today: the server entry is re-imported per request, and client edits trigger a page refresh. Remix UI's first-class HMR runtime is in progress upstream ([remix-run/remix#11515](https://github.com/remix-run/remix/pull/11515)) — we're tracking it, and `@pitlane/dev` will ship the companion transform once it lands so components hot-swap in place.
+## Hot module replacement
+
+`vite dev` hot-updates both halves of a Remix app in place, keeping live client state.
+
+**Components.** Editing a component swaps its implementation without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev, so it applies to components written as **named function forms** — `function` declarations or expressions:
+
+```tsx
+// Hot-swaps in place.
+export const Counter = clientEntry(import.meta.url, function Counter(handle) { /* ... */ });
+export function Card(handle) { /* ... */ }
+
+// Not an HMR boundary — an edit falls back to a server-data reload instead.
+export const Counter = clientEntry(import.meta.url, handle => { /* ... */ });
+```
+
+Arrow-function components still render and hydrate correctly; they just aren't hot-swap boundaries, because stable component identity requires a named function.
+
+**Server data.** Editing a server-only module — the document, a middleware, a route handler, any module the client never imports — re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router. It needs a client entry (`clientEntry: false` apps fall back to Vite's default reload).
 
 ## Options
 

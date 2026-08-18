@@ -1,5 +1,22 @@
 # @pitlane/dev
 
+## 0.3.0
+
+Dev-time hot module replacement.
+
+- Component HMR: `function`-form components and `clientEntry()` exports
+  hot-swap in place during `vite dev`, preserving live island state, via the
+  `remix/ui-hmr` browser and server transforms. Arrow-function components keep
+  rendering and hydrating but are not hot-swap boundaries — stable component
+  identity requires a named function.
+- Server-data HMR: editing a server-only module re-fetches the current page
+  through the app's fetch handler and reconciles the new server-rendered HTML
+  into the DOM, keeping hydrated island state — the Remix 3 analog of React
+  Router's loader/action revalidation, driven through the frame runtime. A
+  changed module the client also imports is left to component HMR instead.
+- Both are dev-only and require a client entry; production builds are
+  unchanged.
+
 ## 0.2.0
 
 Target Remix `3.0.0-beta.10`.
