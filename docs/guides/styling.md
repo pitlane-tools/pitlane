@@ -17,7 +17,7 @@ function Card() {
 
 That works, but every value is a loose string. Nothing stops `#111` here and `#121212` two files over. `@pitlane/theme` layers design tokens and type safety on top, and this guide walks the whole surface. If you prefer reading code, the [demo app](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) covers the same ground as a running Remix app.
 
-First, install the package. `remix` 3.0.0-beta.5 or later is a peer dependency:
+First, install the package. `remix` 3.0.0-beta.10 or later is a peer dependency:
 
 ```bash
 vp add @pitlane/theme

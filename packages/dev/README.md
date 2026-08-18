@@ -12,7 +12,7 @@ npm install --save-dev @pitlane/dev
 vp add -D @pitlane/dev
 ```
 
-Requires `remix@^3.0.0-beta.5` and `vite@>=7` as peers. v0.1.0 is tested against **Vite 8.1** (Rolldown), **Vite+ 0.2** (`vp`), and `remix@3.0.0-beta.5` — the [templates](https://github.com/pitlane-tools/templates) are the continuously tested reference.
+Requires `remix@^3.0.0-beta.10` and `vite@>=7` as peers. Tested against **Vite 8.1** (Rolldown), **Vite+ 0.2** (`vp`), and `remix@3.0.0-beta.10` — the [templates](https://github.com/pitlane-tools/templates) are the continuously tested reference.
 
 ## Quick start
 
@@ -64,10 +64,6 @@ run({
     async loadModule(moduleUrl, exportName) {
         let mod = await import(/* @vite-ignore */ moduleUrl);
         return mod[exportName];
-    },
-    async resolveFrame(src, signal) {
-        let response = await fetch(src, { headers: { accept: "text/html" }, signal });
-        return response.body ?? (await response.text());
     },
 });
 ```
@@ -293,7 +289,7 @@ dist/
 | ----------- | -------------- |
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
-| `remix`     | 3.0.0-beta.5   |
+| `remix`     | 3.0.0-beta.10  |
 | Node        | 24 LTS, 25     |
 
 Remix 3 is in beta; each `@pitlane/dev` release records the exact beta it was verified against. Rolldown is not required — the transform runs identically on generic Vite and Vite+.
