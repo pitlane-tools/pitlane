@@ -1,5 +1,11 @@
 # @pitlane/theme
 
+## 0.2.0
+
+- Raised the `remix` peer dependency to `^3.0.0-beta.10` (from
+  `^3.0.0-beta.5`). No API changes — `createTheme`, `<Theme />`, and the
+  `css`/`tva`/`combine`/`cx` helpers are unchanged.
+
 ## 0.1.0
 
 Initial release.
