@@ -5,20 +5,20 @@ description: How @pitlane/dev hot-updates a Remix 3 app during vite dev, coverin
 
 # Hot module replacement
 
-`vite dev` updates a running app in place. Editing a component swaps its new code in without remounting, so hydrated islands keep their open menus, typed input, and counters. Editing a server-only module refetches the current page through your fetch handler and reconciles the new HTML into the DOM, which keeps that same island state while the server output changes underneath it.
+`vite dev` updates a running app in place. Editing a component swaps its new code in without remounting, so hydrated islands keep their open menus, input values, and counters. Editing a server-only module refetches the current page through your fetch handler and reconciles the new HTML into the DOM, which keeps that same island state while the server output changes underneath it.
 
 Both halves come with `remix()` and need no configuration. Neither exists in a production build, because the transforms are `apply: "serve"` only. For the rest of the plugin's behavior, see [Using the Vite plugin](/guides/vite-plugin).
 
 ## What each kind of edit does
 
-| You edit                                         | What happens                                      | What keeps its state                 |
-| ------------------------------------------------ | ------------------------------------------------- | ------------------------------------ |
-| The render function of an instrumented component | Its new code is swapped in place                  | Every island, including this one     |
-| The setup scope of an instrumented component     | That component remounts                           | Every other island                   |
-| A component export the transform skips           | The page refetches and reconciles                 | Every other island                   |
-| A server-only module                             | The page refetches and reconciles                 | Every island                         |
-| A non-component module the browser imports       | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
-| CSS                                              | Vite's own CSS handling                           | Every island                         |
+| You edit | What happens | What keeps its state |
+| --- | --- | --- |
+| The render function of an HMR-compatible component | Its new code is swapped in place | Every island, including this one |
+| The setup scope of an HMR-compatible component | That component remounts | Every other island |
+| A component export the transform skips | The page refetches and reconciles | Every other island |
+| A server-only module | The page refetches and reconciles | Every island |
+| A non-component module the browser imports | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
+| CSS | Vite's own CSS handling | Every island |
 
 No row in that table is a full page reload. A reload is the fallback when revalidation cannot run at all, covered under [requirements](#requirements).
 
@@ -28,9 +28,9 @@ Component edits run through the [`remix/ui-hmr`](https://github.com/remix-run/re
 
 ### Which exports are boundaries
 
-An export is instrumented when all of these hold:
+An exported symbol is injected with the HMR runtime with when all of these hold (e.g. when it is "HMR-compatible"):
 
-- **The file ends in `.tsx` or `.jsx`** and does not live under `node_modules`. A component in a `.ts` file is never instrumented.
+- **The file ends in `.tsx` or `.jsx`** and does not live under `node_modules`. A component in a `.ts` file is never injected with the HMR runtime.
 - **The export is named and top level.** Default exports are skipped, because the hydration protocol needs an export name.
 - **The name starts with a capital letter.** `Counter` qualifies, `counter` does not.
 - **The setup function returns a render function**, or the export is a `clientEntry(import.meta.url, setup)` call.
@@ -50,11 +50,11 @@ export function Panel(handle) {
 }
 ```
 
-`ui-hmr` only recognizes a setup function that carries a name. Arrow forms are the idiomatic Remix style, so `@pitlane/dev` rewrites qualifying arrow exports before `ui-hmr` sees them. `export const Counter = clientEntry(url, handle => …)` becomes `export const Counter = clientEntry(url, function Counter(handle) { … })` in the dev transform only. Setup functions never rely on a lexical `this` or `arguments`, so the rewrite is behavior-identical. When `ui-hmr` declines to instrument the module the rewrite is thrown away, which leaves non-component arrows untouched.
+`remix/ui-hmr` only recognizes a setup function that carries a name. To allow you to define your components using arrow functions, `@pitlane/dev` rewrites qualifying arrow exports before `remix/ui-hmr` sees them. `export const Counter = clientEntry(url, handle => …)` becomes `export const Counter = clientEntry(url, function Counter(handle) { … })` in the dev transform only. Setup functions never rely on a lexical `this` or `arguments`, so the rewrite is behavior-identical. If `remix/ui-hmr` declines to inject the component with the HMR runtime, the named-function rewrite is discarded, which leaves non-component arrow functions untouched.
 
 ### State survives a render edit and resets on a setup edit
 
-This is the line that decides whether your counter keeps counting. `ui-hmr` hashes the setup scope, meaning the source from the start of the setup body up to its `return`. While that hash stays the same, the new render function replaces the old one and the live component keeps its state. Change it and the component is marked stale, then remounts.
+This is the line that decides whether your counter keeps counting. `remix/ui-hmr` hashes the setup scope, meaning the source from the start of the setup body up to its `return`. While that hash stays the same, the new render function replaces the old one and the live component keeps its state. Change it and the component is marked stale, then remounts.
 
 ```tsx
 export const Counter = clientEntry(import.meta.url, handle => {
@@ -82,7 +82,7 @@ Iterating on markup and styles keeps the count. Changing how state is declared r
 
 An export that misses one of the four conditions is left alone, and nothing is logged. The edit still reaches the server, so the server-data half picks it up. The page refetches and the DOM updates, other islands keep their state, and the edited component remounts. The change is never lost. It costs that one component's state.
 
-To make such a component hold its state across edits, check it against the four conditions above. The usual misses are a lowercase name and a setup function that returns JSX directly instead of returning a render function.
+To make such a component hold its state across edits, check it against the four conditions above.
 
 ## Server-data HMR
 
@@ -105,17 +105,17 @@ Files ending in `.ts`, `.tsx`, `.js`, and `.jsx` are considered. Other file type
 
 ### Bursts collapse into one refetch
 
-The broadcast waits 50ms. Two things fall out of that. A save that touches several files refetches once instead of once per file. And the request cannot reach your fetch handler while Vite is still applying the update to the server environment, which on slower runtimes such as workerd produced a dev error page reconciled over the app.
+The broadcast waits 50ms. Two things fall out of that. A save that touches several files refetches _once_ instead of _once per file_. And the request cannot reach your fetch handler while Vite is still applying the update to the server environment, which on slower runtimes (such as workerd) can produce an error in dev mode.
 
 Overlapping revalidations coalesce in the browser too. A revalidation that arrives while one is in flight queues a single follow-up rather than stacking.
 
 ## Requirements
 
-| Requirement                                   | Why                                                          | When unmet                               |
-| --------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------- |
-| A client entry (`clientEntry` is not `false`) | The revalidation listener is injected into it                | Server-data HMR is not installed         |
-| Remix's navigation interception is intact     | Revalidation goes through `navigate()`                       | Server edits leave the page unchanged    |
-| `serverEnvironments` matches your config      | It selects which environment classifies files as server-only | Neither half can tell client from server |
+| Requirement | Why | When unmet |
+| --- | --- | --- |
+| A client entry file (e.g. `entry.browser.tsx`) | The revalidation listener is injected into it | Server-data HMR is not installed |
+| Remix's navigation interception is intact | Revalidation goes through `navigate()` | Server edits leave the page unchanged |
+| `serverEnvironments` matches your config | It selects which environment classifies files as server-only | Neither half can tell client from server |
 
 Fully server-rendered apps (`clientEntry: false`) have no hydrated state to protect and no client runtime to receive the event, so server-data HMR is not registered for them. Reload to see server changes.
 
@@ -133,23 +133,6 @@ navigation.addEventListener("navigate", event => {
     event.stopImmediatePropagation();
 });
 ```
-
-:::
-
-## Checking it works in your app
-
-Hot updates and full reloads both end with correct content on screen, which makes them easy to confuse. Set a marker that only survives an in-place update:
-
-```js
-// in the browser console
-window.__alive = "check";
-```
-
-Then edit a component's rendered text. The text should change while `window.__alive` still reads `"check"`. Repeat with a server-only module. A marker that comes back `undefined` means the page reloaded and no state was preserved.
-
-::: info
-
-Read the DOM with `textContent`, not `innerText`, when you script this check. `innerText` skips visually hidden elements, which makes a working update look like a failed one.
 
 :::
 
