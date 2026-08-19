@@ -53,6 +53,19 @@ const FUNCTION_COMPONENT = `export function Card(handle) {
 }
 `;
 
+const ARROW_EXPR_ENTRY = `import { clientEntry } from "remix/ui";
+export const Counter = clientEntry(import.meta.url, (handle) => () => null);
+`;
+
+const ARROW_COMPONENT = `export const Card = (handle) => {
+    return () => null;
+};
+`;
+
+const NON_COMPONENT_ARROW = `export const NotAComponent = () => 42;
+export const helper = (handle) => () => null;
+`;
+
 describe("componentHmr", () => {
     it("is a dev-only plugin", () => {
         let plugin = componentHmr(new Set(["ssr"]));
@@ -82,9 +95,39 @@ describe("componentHmr", () => {
         expect(code).not.toContain("remix/ui-hmr/runtime/browser");
     });
 
-    it("leaves arrow-function components untouched", async () => {
+    it("hot-swaps arrow-form clientEntry islands by normalizing them to functions", async () => {
         let plugin = componentHmr(new Set(["ssr"]));
-        let result = await runTransform(plugin, "client", ARROW_ENTRY, "/project/app/counter.tsx");
+        let block = codeOf(await runTransform(plugin, "client", ARROW_ENTRY, "/project/app/a.tsx"));
+        let expr = codeOf(
+            await runTransform(plugin, "client", ARROW_EXPR_ENTRY, "/project/app/b.tsx"),
+        );
+
+        for (let code of [block, expr]) {
+            expect(code).toContain("remix/ui-hmr/runtime/browser");
+            expect(code).toContain("import.meta.hot.accept");
+            // The arrow was normalized to a named function before instrumentation.
+            expect(code).toContain("function Counter");
+        }
+    });
+
+    it("hot-swaps arrow-form component exports", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        let code = codeOf(
+            await runTransform(plugin, "client", ARROW_COMPONENT, "/project/app/card.tsx"),
+        );
+
+        expect(code).toContain("import.meta.hot.accept");
+        expect(code).toContain("function Card");
+    });
+
+    it("leaves non-component arrows untouched", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        let result = await runTransform(
+            plugin,
+            "client",
+            NON_COMPONENT_ARROW,
+            "/project/app/misc.tsx",
+        );
 
         expect(result).toBeUndefined();
     });

@@ -74,18 +74,23 @@ run({
 
 `vite dev` hot-updates both halves of a Remix app in place, keeping live client state.
 
-**Components.** Editing a component swaps its implementation without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev, so it applies to components written as **named function forms** — `function` declarations or expressions:
+**Components.** Editing a component swaps its implementation without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev. Both authoring styles hot-swap — `@pitlane/dev` normalizes arrow-form component and `clientEntry()` exports to named functions before instrumenting them, so the idiomatic Remix style works with no changes:
 
 ```tsx
-// Hot-swaps in place.
-export const Counter = clientEntry(import.meta.url, function Counter(handle) { /* ... */ });
-export function Card(handle) { /* ... */ }
-
-// Not an HMR boundary — an edit falls back to a server-data reload instead.
-export const Counter = clientEntry(import.meta.url, handle => { /* ... */ });
+// All of these hot-swap in place, preserving live state:
+export const Counter = clientEntry(import.meta.url, handle => {
+    /* ... */
+});
+export const Toggle = clientEntry(import.meta.url, function Toggle(handle) {
+    /* ... */
+});
+export const Card = handle => () => <div />;
+export function Panel(handle) {
+    /* ... */
+}
 ```
 
-Arrow-function components still render and hydrate correctly; they just aren't hot-swap boundaries, because stable component identity requires a named function.
+Only named (PascalCase) component exports whose setup returns a render function are instrumented; other exports are left untouched.
 
 **Server data.** Editing a server-only module — the document, a middleware, a route handler, any module the client never imports — re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router. It needs a client entry (`clientEntry: false` apps fall back to Vite's default reload).
 

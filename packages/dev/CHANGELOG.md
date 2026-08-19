@@ -4,11 +4,12 @@
 
 Dev-time hot module replacement.
 
-- Component HMR: `function`-form components and `clientEntry()` exports
-  hot-swap in place during `vite dev`, preserving live island state, via the
-  `remix/ui-hmr` browser and server transforms. Arrow-function components keep
-  rendering and hydrating but are not hot-swap boundaries — stable component
-  identity requires a named function.
+- Component HMR: component and `clientEntry()` exports hot-swap in place
+  during `vite dev`, preserving live island state, via the `remix/ui-hmr`
+  browser and server transforms. Both named-function and arrow forms work —
+  arrow-form component/`clientEntry()` exports are normalized to named
+  function expressions before instrumentation, so idiomatic Remix code
+  hot-swaps with no source changes.
 - Server-data HMR: editing a server-only module re-fetches the current page
   through the app's fetch handler and reconciles the new server-rendered HTML
   into the DOM, keeping hydrated island state — the Remix 3 analog of React

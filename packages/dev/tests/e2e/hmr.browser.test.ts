@@ -161,16 +161,12 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
     });
 
-    it("falls back to a frame reload for arrow-form islands", async () => {
+    it("hot-swaps arrow-form islands while preserving their state", async () => {
         await openApp();
 
-        // Give the function-form island live state so the fallback can be shown
-        // to be a frame reload (which preserves it) rather than a hard refresh.
-        await page.click("[data-fn-counter]");
-        await page.click("[data-fn-counter]");
-        await page.click("[data-fn-counter]");
         await page.click("[data-arrow-counter]");
-        expect(await page.textContent("[data-arrow-count]")).toBe("1");
+        await page.click("[data-arrow-counter]");
+        expect(await page.textContent("[data-arrow-count]")).toBe("2");
 
         await page.evaluate(() => (window.__hmrAlive = "arrow"));
         await edit("arrow-counter.tsx", "Arrow label A:", "Arrow label B:");
@@ -184,12 +180,10 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             { timeout: 10_000 },
         );
 
-        // An arrow-form island is not a hot-swap boundary, so its own state
-        // re-initializes. But the fallback is a frame reload, not a hard
-        // refresh: the sibling function island keeps its state and the page's
-        // JS context (the sentinel) survives.
-        expect(await page.textContent("[data-arrow-count]")).toBe("0");
-        expect(await page.textContent("[data-fn-count]")).toBe("3");
+        // The plugin normalizes the arrow-form island to a named function, so it
+        // is now a hot-swap boundary too: the click count survives the edit and
+        // the page never fully reloaded.
+        expect(await page.textContent("[data-arrow-count]")).toBe("2");
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("arrow");
     });
 });
