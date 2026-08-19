@@ -13,6 +13,12 @@ export default defineConfig({
     run: {
         tasks: {
             dev: { command: "vp pack --watch" },
+            // Boots the HMR fixture's dev server for manual testing. Open the
+            // printed URL, edit files under tests/fixtures/hmr-app/app, and watch
+            // components hot-swap and server-only edits revalidate in place.
+            harness: {
+                command: "node tests/e2e/harness/dev-server.mjs tests/fixtures/hmr-app 7411",
+            },
             build: {
                 command: "rm -rf dist && vp pack && cp src/assets.d.ts dist/assets.d.mts",
             },

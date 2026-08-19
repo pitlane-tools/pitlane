@@ -3,6 +3,7 @@ import type { Plugin } from "vite";
 import { describe, expect, it } from "vitest";
 
 import { componentHmr, serverDataHmr } from "../src/hmr.ts";
+import { clientEntryTransform } from "../src/transform.ts";
 
 type TransformResult = { code: string; map?: unknown } | undefined | null | void;
 type TransformHandler = (
@@ -230,5 +231,107 @@ describe("serverDataHmr hotUpdate", () => {
         let sent = runHotUpdate(plugin, "client", [{ file: "/project/app/document.tsx" }], []);
 
         expect(sent).toEqual([]);
+    });
+});
+
+describe("componentHmr details", () => {
+    it("keys the browser registry on the module id", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        let code = codeOf(
+            await runTransform(plugin, "client", FUNCTION_ENTRY, "/project/app/counter.tsx"),
+        );
+
+        // The wrapper and its registration agree on the same module key, so the
+        // component stays identifiable across updates.
+        expect(code).toContain('"/project/app/counter.tsx", "Counter"');
+    });
+
+    it("emits a source map for transformed modules", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        let result = await runTransform(
+            plugin,
+            "client",
+            FUNCTION_ENTRY,
+            "/project/app/counter.tsx",
+        );
+
+        if (!result || typeof result !== "object") throw new Error("expected a transform result");
+        expect(result.map).toBeTruthy();
+    });
+});
+
+describe("serverDataHmr hotUpdate edge cases", () => {
+    it("does nothing when no modules changed", () => {
+        let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
+        expect(runHotUpdate(plugin, "ssr", [], [])).toEqual([]);
+    });
+
+    it("treats a module without a file as server-only", () => {
+        let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
+        expect(runHotUpdate(plugin, "ssr", [{ file: null }], [])).toEqual([
+            { type: "custom", event: "pitlane:server-update" },
+        ]);
+    });
+
+    it("broadcasts when there is no client environment to check against", () => {
+        let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
+        let hook = plugin.hotUpdate;
+        if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
+
+        let sent: Array<{ type: string; event?: string }> = [];
+        let server = {
+            hot: { send: (payload: { type: string; event?: string }) => sent.push(payload) },
+            environments: {},
+        };
+        let invoke = hook as unknown as (
+            this: { environment: { name: string } },
+            options: { modules: Array<{ file: string | null }>; server: unknown },
+        ) => void;
+        invoke.call(
+            { environment: { name: "ssr" } },
+            { modules: [{ file: "/project/app/document.tsx" }], server },
+        );
+
+        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+    });
+});
+
+describe("componentHmr composes with clientEntryTransform", () => {
+    async function runClientEntry(env: string, code: string, id: string): Promise<TransformResult> {
+        let plugin = clientEntryTransform(new Set(["ssr"]));
+        let hook = plugin.transform;
+        if (!hook || typeof hook === "function") {
+            throw new Error("expected an object-form transform hook");
+        }
+        return await (hook.handler as TransformHandler).call(
+            { environment: { name: env, config: { root: "/project" } } },
+            code,
+            id,
+        );
+    }
+
+    it("keeps the clientEntry URL rewrite after the ui-hmr transform (client)", async () => {
+        let id = "/project/app/counter.tsx";
+        let instrumented = codeOf(
+            await runTransform(componentHmr(new Set(["ssr"])), "client", FUNCTION_ENTRY, id),
+        );
+        let final = codeOf(await runClientEntry("client", instrumented, id));
+
+        // The ui-hmr accept boundary survives the second transform...
+        expect(final).toContain("import.meta.hot.accept");
+        expect(final).toContain("getCurrentComponentForHmr");
+        // ...and the clientEntry URL fragment rewrite is applied on top of it.
+        expect(final).toContain('import.meta.url + "#Counter"');
+    });
+
+    it("resolves the client asset URL on the server after the ui-hmr transform", async () => {
+        let id = "/project/app/counter.tsx";
+        let instrumented = codeOf(
+            await runTransform(componentHmr(new Set(["ssr"])), "ssr", FUNCTION_ENTRY, id),
+        );
+        let final = codeOf(await runClientEntry("ssr", instrumented, id));
+
+        expect(final).toContain("?assets=client");
+        expect(final).toContain('.entry + "#Counter"');
     });
 });
