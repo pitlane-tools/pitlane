@@ -15,6 +15,9 @@ declare global {
         // Sentinel set after each navigation. A state-preserving HMR update keeps
         // it; a full page reload wipes it — the difference the tests assert on.
         __hmrAlive?: string;
+        // Navigation types the app observed. The injected fallback revalidates by
+        // navigating, so it shows up here; a direct frame reload does not.
+        __navigations?: string[];
     }
 }
 
@@ -96,9 +99,9 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         await writeFile(path, contents.replace(from, to));
     }
 
-    async function openApp(): Promise<Page> {
+    async function openApp(path = ""): Promise<Page> {
         page = await browser.newPage();
-        await page.goto(baseUrl, { waitUntil: "networkidle" });
+        await page.goto(baseUrl.replace(/\/$/, "") + "/" + path, { waitUntil: "networkidle" });
         await page.waitForSelector("[data-fn-counter]");
         return page;
     }
@@ -159,6 +162,35 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         // the hydrated island keeps its state and there was no full reload.
         expect(await page.textContent("[data-fn-count]")).toBe("2");
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
+    });
+
+    it("revalidates through a frame handle without navigating", async () => {
+        await openApp("claimed");
+        await page.waitForSelector("[data-frame-counter]");
+
+        await page.click("[data-frame-counter]");
+        await page.click("[data-frame-counter]");
+        await page.click("[data-fn-counter]");
+
+        await page.evaluate(() => {
+            window.__hmrAlive = "frame-handle";
+            window.__navigations!.length = 0;
+        });
+        await edit("document.tsx", "Server heading A", "Server heading B");
+
+        await page.waitForFunction(
+            () => document.querySelector("[data-h1]")?.textContent === "Server heading B",
+            undefined,
+            { timeout: 10_000 },
+        );
+
+        // `acceptServerUpdates` reloaded the top frame directly: every island
+        // keeps its state, the page never reloaded, and no navigation happened —
+        // which is also how we know the injected fallback stood down.
+        expect(await page.textContent("[data-frame-count]")).toBe("2");
+        expect(await page.textContent("[data-fn-count]")).toBe("1");
+        expect(await page.evaluate(() => window.__hmrAlive)).toBe("frame-handle");
+        expect(await page.evaluate(() => window.__navigations)).toEqual([]);
     });
 
     it("hot-swaps arrow-form islands while preserving their state", async () => {

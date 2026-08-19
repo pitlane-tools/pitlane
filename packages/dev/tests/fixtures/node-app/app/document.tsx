@@ -1,5 +1,6 @@
 import "./styles.css";
-import { mergeAssets } from "../../../../src/runtime.ts";
+import { mergeAssets } from "@pitlane/dev/runtime";
+
 import { Counter } from "./counter.tsx";
 import clientAssets from "./entry.browser.ts?assets=client";
 import serverAssets from "./entry.server.tsx?assets=ssr";

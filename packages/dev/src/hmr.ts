@@ -6,6 +6,8 @@ import { resolve as resolvePath } from "node:path";
 import { parseSync } from "oxc-parser";
 import { transformComponentsForBrowser, transformComponentsForServer } from "remix/ui-hmr";
 
+import { REVALIDATION_CLAIM, SERVER_UPDATE_EVENT } from "./hmr-protocol.ts";
+
 /**
  * Component modules Remix authors as `.tsx`/`.jsx`. The `remix/ui-hmr` transform
  * self-guards (it returns the source unchanged when a module holds no
@@ -14,9 +16,6 @@ import { transformComponentsForBrowser, transformComponentsForServer } from "rem
  * dependencies — before the parse cost.
  */
 const COMPONENT_ID_FILTER = /\.[jt]sx$/;
-
-/** Custom Vite HMR event that asks the browser to revalidate server-rendered data. */
-const SERVER_UPDATE_EVENT = "pitlane:server-update";
 
 /**
  * How long to wait after a server module changes before asking the browser to
@@ -159,10 +158,17 @@ export function serverDataHmr(serverEnvironments: Set<string>, clientEntry: stri
 }
 
 /**
- * Client runtime for {@link serverDataHmr}. On a `pitlane:server-update` event it
- * re-navigates to the current URL through the Remix frame runtime, coalescing
- * overlapping reloads. Falls back to a full page reload when the frame runtime
- * cannot handle the navigation (e.g. no Navigation API).
+ * Client fallback for {@link serverDataHmr}, injected into the client entry. On
+ * a `pitlane:server-update` event it re-navigates to the current URL through the
+ * Remix frame runtime, coalescing overlapping reloads, and falls back to a full
+ * page reload when the frame runtime cannot handle the navigation (e.g. no
+ * Navigation API).
+ *
+ * A navigation is the only route to the frame runtime from a plain module, since
+ * `remix/ui` exposes the top frame to components only. Apps that call
+ * `acceptServerUpdates(handle)` revalidate through the frame directly and set
+ * {@link REVALIDATION_CLAIM}, which switches this fallback off so the update is
+ * never fetched twice.
  */
 const DEV_CLIENT_SOURCE = `import { navigate } from "remix/ui";
 
@@ -171,6 +177,7 @@ if (import.meta.hot) {
     let queued = false;
 
     async function revalidate() {
+        if (globalThis[${JSON.stringify(REVALIDATION_CLAIM)}]) return;
         if (inFlight) {
             queued = true;
             return;

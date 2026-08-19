@@ -2,7 +2,9 @@ import type { Plugin } from "vite";
 
 import { describe, expect, it } from "vitest";
 
+import { REVALIDATION_CLAIM } from "../src/hmr-protocol.ts";
 import { componentHmr, serverDataHmr } from "../src/hmr.ts";
+import { acceptServerUpdates } from "../src/runtime.ts";
 import { clientEntryTransform } from "../src/transform.ts";
 
 type TransformResult = { code: string; map?: unknown } | undefined | null | void;
@@ -417,5 +419,18 @@ describe("componentHmr composes with clientEntryTransform", () => {
 
         expect(final).toContain("?assets=client");
         expect(final).toContain('.entry + "#Counter"');
+    });
+});
+
+describe("acceptServerUpdates", () => {
+    it("is inert without a hot context, so production and SSR never touch a frame", () => {
+        let reloads = 0;
+        let handle = { frames: { top: { reload: () => reloads++ } } };
+
+        // No `import.meta.hot` here, which is what a production build and a
+        // non-Vite consumer look like.
+        expect(() => acceptServerUpdates(handle)).not.toThrow();
+        expect(reloads).toBe(0);
+        expect((globalThis as Record<string, unknown>)[REVALIDATION_CLAIM]).toBeUndefined();
     });
 });

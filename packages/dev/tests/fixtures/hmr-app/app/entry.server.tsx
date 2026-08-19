@@ -18,6 +18,7 @@ export let router = createRouter<AppContext>({
 });
 
 router.map(routes.home, ({ render }) => render(<Document />));
+router.map(routes.claimed, ({ render }) => render(<Document claimed />));
 
 export default router;
 
