@@ -1,0 +1,47 @@
+name: 📦 Publish package preview (pkg.pr.new)
+
+# Publishes an installable preview build of @pitlane/dev for every branch push
+# and PR, so the plugin can be tried in other projects before release:
+#
+#     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/dev@<commit>
+#
+# One-time setup: install the pkg.pr.new GitHub App on the repository
+# (https://github.com/apps/pkg-pr-new). Until then this job fails at the publish
+# step — nothing else is affected.
+on:
+    push:
+        branches-ignore:
+            - main
+    pull_request:
+        branches:
+            - main
+
+concurrency:
+    group: pkg-preview-${{ github.ref_name }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Install
+              run: vp install --frozen-lockfile
+
+            - name: Build @pitlane/dev
+              working-directory: packages/dev
+              run: vp run build
+
+            - name: Publish preview to pkg.pr.new
+              run: npx pkg-pr-new publish './packages/dev'

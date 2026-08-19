@@ -70,8 +70,45 @@ run({
 
 `vite dev` serves the app through your router. `vite build` produces `dist/ssr` and `dist/client`. `vite preview` serves the production build through the same fetch handler production runs.
 
-> [!NOTE]
-> Dev updates are coarse-grained today: the server entry is re-imported per request, and client edits trigger a page refresh. Remix UI's first-class HMR runtime is in progress upstream ([remix-run/remix#11515](https://github.com/remix-run/remix/pull/11515)) — we're tracking it, and `@pitlane/dev` will ship the companion transform once it lands so components hot-swap in place.
+## Hot module replacement
+
+`vite dev` hot-updates both halves of a Remix app in place, keeping live client state. Full details, including which edits preserve state and which remount, are in the [HMR guide](https://pitlane.tools/guides/hmr).
+
+**Components.** Editing a component swaps its new code in without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev. Both authoring styles hot-swap, because `@pitlane/dev` normalizes arrow-form component and `clientEntry()` exports to named functions before instrumenting them:
+
+```tsx
+// All of these hot-swap in place, preserving live state:
+export const Counter = clientEntry(import.meta.url, handle => {
+    /* ... */
+});
+export const Toggle = clientEntry(import.meta.url, function Toggle(handle) {
+    /* ... */
+});
+export const Card = handle => () => <div />;
+export function Panel(handle) {
+    /* ... */
+}
+```
+
+Only named (PascalCase) component exports in `.tsx`/`.jsx` files whose setup returns a render function are instrumented; other exports are left untouched. Editing the render function keeps live state. Editing the setup scope above the `return` remounts the component, so its state resets.
+
+**Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
+
+It needs one line in your document:
+
+```tsx
+import { HMR } from "pitlane:dev";
+
+// ...
+<body>
+    <HMR />
+    {/* ... */}
+</body>;
+```
+
+`<HMR />` is a hydrated island, so it has a component handle, and it revalidates with `handle.frames.top.reload()`. Remix hands the top frame to components only, which is why this is a component rather than something the plugin injects. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
+
+Leave it unguarded: in a production build the specifier resolves to a component that renders nothing and carries no client code. Apps with `clientEntry: false` have nothing to hydrate it, so it stays inert there too. See the [HMR guide](https://pitlane.tools/guides/hmr).
 
 ## Options
 

@@ -1,7 +1,8 @@
 /**
  * The `remix()` Vite plugin — Remix 3 build orchestration, the `clientEntry()`
- * hydration transform, dev serving through the app's fetch handler, and a
- * preview server, for any Vite or Vite+ project.
+ * hydration transform, dev serving through the app's fetch handler, hot module
+ * replacement for components and server-rendered data, and a preview server,
+ * for any Vite or Vite+ project.
  *
  * @module @pitlane/dev
  */
@@ -10,6 +11,8 @@ import type { Plugin, PluginOption } from "vite";
 import fullstack from "@hiogawa/vite-plugin-fullstack";
 
 import { build, buildCompat, runtimeInline } from "./build.ts";
+import { hmrComponent } from "./hmr-component.ts";
+import { componentHmr, serverDataHmr } from "./hmr.ts";
 import { preview } from "./preview.ts";
 import { clientEntryTransform } from "./transform.ts";
 
@@ -55,6 +58,13 @@ export interface RemixPluginOptions {
  * `clientEntry(import.meta.url, …)` hydration transform, dev serving through
  * the app's fetch handler, and a preview server for the production build.
  *
+ * During `vite dev` it also installs hot module replacement: component edits
+ * swap in place through the `remix/ui-hmr` transforms, and edits to modules the
+ * browser never loads refetch the current page through the app's fetch handler,
+ * keeping hydrated island state. Both are dev-only. The second half needs the
+ * app to render `<HMR />` from the `pitlane:dev` module, which resolves to an
+ * inert component in a build and when `clientEntry` is `false`.
+ *
  * Platform-agnostic by design: deploy targets compose alongside it in the
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
  * `nitro/vite`), or the built fetch handler runs directly on Node, Bun, and
@@ -68,6 +78,8 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         serverHandler = true,
     } = options;
 
+    let serverEnvironmentSet = new Set(serverEnvironments);
+
     return [
         fullstack({
             serverEnvironments,
@@ -79,7 +91,10 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         preview(),
         suppressAbortErrors(),
         normalizeWriteHead(),
-        clientEntryTransform(new Set(serverEnvironments)),
+        componentHmr(serverEnvironmentSet),
+        hmrComponent(clientEntry),
+        clientEntryTransform(serverEnvironmentSet),
+        serverDataHmr(serverEnvironmentSet),
     ];
 }
 

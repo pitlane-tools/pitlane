@@ -1,10 +1,13 @@
 import { clientEntry, on } from "remix/ui";
 
-export const Counter = clientEntry(import.meta.url, function Counter(handle) {
+// Named function form: an HMR boundary. Editing this component hot-swaps in
+// place while preserving the live count.
+export const FnCounter = clientEntry(import.meta.url, function FnCounter(handle) {
     let count = 0;
 
     return () => (
         <button
+            data-fn-counter
             mix={[
                 on("click", () => {
                     count++;
@@ -12,7 +15,7 @@ export const Counter = clientEntry(import.meta.url, function Counter(handle) {
                 }),
             ]}
         >
-            Count: <span data-count>{count}</span>
+            Fn label A: <span data-fn-count>{count}</span>
         </button>
     );
 });

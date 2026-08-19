@@ -1,11 +1,11 @@
-import { mergeAssets } from "@pitlane/dev/runtime";
-
-import "./styles.css";
 import { HMR } from "pitlane:dev";
 
-import { Counter } from "./counter.tsx";
+import "./styles.css";
+import { mergeAssets } from "../../../../src/runtime.ts";
+import { ArrowCounter } from "./arrow-counter.tsx";
 import clientAssets from "./entry.browser.ts?assets=client";
 import serverAssets from "./entry.server.tsx?assets=ssr";
+import { FnCounter } from "./fn-counter.tsx";
 
 export function Document() {
     let assets = mergeAssets(clientAssets, serverAssets);
@@ -14,7 +14,7 @@ export function Document() {
         <html lang="en">
             <head>
                 <meta charSet="utf-8" />
-                <title>Node fixture</title>
+                <title>HMR fixture</title>
                 {assets.css.map(attrs => (
                     <link key={attrs.href} {...attrs} rel="stylesheet" />
                 ))}
@@ -24,9 +24,9 @@ export function Document() {
                 ))}
             </head>
             <body>
-                <h1>Node fixture</h1>
-                <Counter />
-                {/* Rendered unguarded: the plugin makes it inert in a build. */}
+                <h1 data-h1>Server heading A</h1>
+                <FnCounter />
+                <ArrowCounter />
                 <HMR />
             </body>
         </html>

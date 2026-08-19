@@ -1,5 +1,43 @@
 # @pitlane/dev
 
+## 0.3.0
+
+Dev-time hot module replacement.
+
+- Component HMR: component and `clientEntry()` exports hot-swap in place
+  during `vite dev`, preserving live island state, via the `remix/ui-hmr`
+  browser and server transforms. Both named-function and arrow forms work —
+  arrow-form component/`clientEntry()` exports are normalized to named
+  function expressions before instrumentation, so idiomatic Remix code
+  hot-swaps with no source changes.
+- Server-data HMR: editing a server-only module re-fetches the current page
+  through the app's fetch handler and reconciles the new server-rendered HTML
+  into the DOM, keeping hydrated island state — the Remix 3 analog of React
+  Router's loader/action revalidation, driven through the frame runtime. A
+  changed file the client graph serves as a script is left to component HMR
+  instead. Only `js` client modules count as client-served: plugins that scan
+  sources for their own purposes register non-script nodes for ordinary server
+  files (Tailwind's content scanner, for one), which previously classified
+  every server module as client-owned and silenced server-data HMR for the
+  whole app.
+- Revalidating is one line in the document, `<HMR />` from the new `pitlane:dev`
+  module. It is a hydrated island, so it holds a component handle and
+  revalidates with `handle.frames.top.reload()`; `remix/ui` hands the top frame
+  to components only, so nothing the plugin injects could reach it. A frame
+  reload produces no history entry and fires no `navigate` event, which leaves
+  apps that intercept navigation themselves working unchanged. Needs no
+  environment guard: in a build, and in apps with no client runtime to hydrate
+  it, the specifier resolves to a component that renders nothing and carries no
+  client code. Types come with `@pitlane/dev/assets`.
+- Revalidation waits a beat after a server change before refetching, so it
+  cannot reach the fetch handler while the server entry is still half-applied
+  (which served a dev error page on slower runtimes like workerd), and a burst
+  of saves coalesces into one refetch.
+- `@pitlane/dev/runtime` imports now inline this package's real runtime module
+  rather than a hand-written copy of `mergeAssets`, so every export stays in
+  one place. What that module imports is bundled too, which keeps the built
+  server free of any dev-dependency import.
+
 ## 0.2.0
 
 Target Remix `3.0.0-beta.10`.

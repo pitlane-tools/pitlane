@@ -2,8 +2,7 @@ import type { Plugin, ViteBuilder } from "vite";
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-
-import { mergeAssets } from "./runtime.ts";
+import * as url from "node:url";
 
 export interface BuildPluginOptions {
     clientEntry: string | false;
@@ -306,7 +305,13 @@ export function build({ clientEntry, serverEntry }: BuildPluginOptions): Plugin 
                             // @pitlane/dev is a dev dependency, so the built
                             // server can never require it at runtime (pruned
                             // containers, Deno import maps, serverless bundles).
-                            noExternal: [/^@pitlane\/dev(\/|$)/],
+                            // The same applies to what the runtime itself
+                            // imports, which reaches the app only through this
+                            // package.
+                            noExternal: [
+                                /^@pitlane\/dev(\/|$)/,
+                                /^@hiogawa\/vite-plugin-fullstack(\/|$)/,
+                            ],
                         },
                         build: {
                             outDir: "dist/ssr",
@@ -330,6 +335,11 @@ const RUNTIME_MODULE_FILTER = new RegExp(`^${RUNTIME_MODULE_ID}$`);
  * import it at runtime (pruned containers, Deno import maps, serverless
  * bundles), and dependency-externalization behavior varies across cores and
  * orchestrators — inlining by construction removes the variable.
+ *
+ * The virtual module re-exports this package's own runtime file by absolute
+ * path, so the bundler inlines it and every export stays in one place. Emitting
+ * hand-written source here instead would drift from the real module the moment
+ * it gained an export.
  */
 export function runtimeInline(): Plugin {
     return {
@@ -345,9 +355,23 @@ export function runtimeInline(): Plugin {
             filter: { id: RUNTIME_MODULE_FILTER },
             handler(id) {
                 if (id === RUNTIME_MODULE_ID) {
-                    return `export const mergeAssets = ${mergeAssets.toString()};\n`;
+                    return `export * from ${JSON.stringify(runtimeImplementationPath())};\n`;
                 }
             },
         },
     };
+}
+
+/**
+ * Absolute path to this package's runtime module. Sits beside the built plugin
+ * as `runtime.mjs` in an installed package, and beside the source as
+ * `runtime.ts` when the repo's own fixtures load the plugin from `src`.
+ */
+function runtimeImplementationPath(): string {
+    let here = path.dirname(url.fileURLToPath(import.meta.url));
+    for (let name of ["runtime.mjs", "runtime.ts"]) {
+        let candidate = path.join(here, name);
+        if (fs.existsSync(candidate)) return candidate;
+    }
+    throw new Error(`@pitlane/dev: runtime module not found next to ${here}`);
 }

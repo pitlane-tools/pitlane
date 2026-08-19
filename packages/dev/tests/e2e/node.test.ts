@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -35,6 +35,19 @@ describe("production build", () => {
         let assets = readdirSync(join(FIXTURE, "dist/client/assets"));
         expect(assets.some(file => file.endsWith(".js"))).toBe(true);
         expect(assets.some(file => file.endsWith(".css"))).toBe(true);
+    });
+
+    it("inlines this package's runtime instead of importing it at run time", async () => {
+        // The fixture imports `@pitlane/dev/runtime` the way an app does, and
+        // @pitlane/dev is a devDependency: a bare import of it (or of anything
+        // it pulls in) would fail on a pruned production install.
+        let bundle = readFileSync(join(FIXTURE, "dist/ssr/index.js"), "utf8");
+        let bareImports = [...bundle.matchAll(/^import[^'"]*['"]([^.'"][^'"]*)['"]/gm)].map(
+            match => match[1],
+        );
+
+        expect(bareImports.length).toBeGreaterThan(0);
+        expect(bareImports.filter(specifier => !specifier.startsWith("remix/"))).toEqual([]);
     });
 
     it("serves HTML with resolved asset URLs from the built fetch handler", async () => {
