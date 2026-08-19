@@ -107,6 +107,12 @@ Apps needing extra care:
   to SQL directories, one JS migration extracted to `db/seed-dev-menus.ts`).
   Keep `scripts/probe-outline.ts` untracked; it predates this work.
 - **`mapper`** — Bun, so `bun add -d` and `bun.lock`.
+- **Cloudflare apps** — booting dev runs `wrangler types`, which rewrites the
+  tracked `worker-configuration.d.ts`. On `commonwealth-platform` that
+  regeneration dropped the `DB: D1Database` binding (its wrangler config differs
+  by branch) and bumped the workerd version. Treat the committed file as the
+  source of truth and `git restore` it after a dev boot rather than committing
+  the regenerated version.
 
 ## Booting each app for a manual HMR check
 
