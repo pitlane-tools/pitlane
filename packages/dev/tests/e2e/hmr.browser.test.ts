@@ -99,9 +99,9 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         await writeFile(path, contents.replace(from, to));
     }
 
-    async function openApp(path = ""): Promise<Page> {
+    async function openApp(): Promise<Page> {
         page = await browser.newPage();
-        await page.goto(baseUrl.replace(/\/$/, "") + "/" + path, { waitUntil: "networkidle" });
+        await page.goto(baseUrl, { waitUntil: "networkidle" });
         await page.waitForSelector("[data-fn-counter]");
         return page;
     }
@@ -142,38 +142,15 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("component");
     });
 
-    it("revalidates server-rendered content while preserving island state", async () => {
+    it("revalidates server-rendered content without navigating", async () => {
         await openApp();
 
         await page.click("[data-fn-counter]");
         await page.click("[data-fn-counter]");
-        expect(await page.textContent("[data-fn-count]")).toBe("2");
-
-        await page.evaluate(() => (window.__hmrAlive = "server-data"));
-        await edit("document.tsx", "Server heading A", "Server heading B");
-
-        await page.waitForFunction(
-            () => document.querySelector("[data-h1]")?.textContent === "Server heading B",
-            undefined,
-            { timeout: 10_000 },
-        );
-
-        // A server-only edit re-fetched the page and reconciled it in place:
-        // the hydrated island keeps its state and there was no full reload.
-        expect(await page.textContent("[data-fn-count]")).toBe("2");
-        expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
-    });
-
-    it("revalidates through a frame handle without navigating", async () => {
-        await openApp("claimed");
-        await page.waitForSelector("[data-frame-counter]");
-
-        await page.click("[data-frame-counter]");
-        await page.click("[data-frame-counter]");
-        await page.click("[data-fn-counter]");
+        await page.click("[data-arrow-counter]");
 
         await page.evaluate(() => {
-            window.__hmrAlive = "frame-handle";
+            window.__hmrAlive = "server-data";
             window.__navigations!.length = 0;
         });
         await edit("document.tsx", "Server heading A", "Server heading B");
@@ -184,12 +161,12 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             { timeout: 10_000 },
         );
 
-        // `acceptServerUpdates` reloaded the top frame directly: every island
-        // keeps its state, the page never reloaded, and no navigation happened —
-        // which is also how we know the injected fallback stood down.
-        expect(await page.textContent("[data-frame-count]")).toBe("2");
-        expect(await page.textContent("[data-fn-count]")).toBe("1");
-        expect(await page.evaluate(() => window.__hmrAlive)).toBe("frame-handle");
+        // `<HMR />` reloaded the top frame: the page refetched through the app's
+        // fetch handler, every island kept its state, and nothing navigated,
+        // which is what distinguishes a frame reload from the alternatives.
+        expect(await page.textContent("[data-fn-count]")).toBe("2");
+        expect(await page.textContent("[data-arrow-count]")).toBe("1");
+        expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
         expect(await page.evaluate(() => window.__navigations)).toEqual([]);
     });
 

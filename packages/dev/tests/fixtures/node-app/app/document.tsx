@@ -1,5 +1,7 @@
-import "./styles.css";
 import { mergeAssets } from "@pitlane/dev/runtime";
+
+import "./styles.css";
+import { HMR } from "pitlane:dev";
 
 import { Counter } from "./counter.tsx";
 import clientAssets from "./entry.browser.ts?assets=client";
@@ -24,6 +26,8 @@ export function Document() {
             <body>
                 <h1>Node fixture</h1>
                 <Counter />
+                {/* Rendered unguarded: the plugin makes it inert in a build. */}
+                <HMR />
             </body>
         </html>
     );

@@ -94,18 +94,21 @@ Only named (PascalCase) component exports in `.tsx`/`.jsx` files whose setup ret
 
 **Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
 
-Revalidation needs a client entry, so it is not installed when `clientEntry: false`. By default it goes through Remix's `navigate()`, which is the only route to the frame runtime from a plain module. An app with a hydrated island can skip the navigation and reload the top frame directly:
+It needs one line in your document:
 
 ```tsx
-import { acceptServerUpdates } from "@pitlane/dev/runtime";
+import { HMR } from "pitlane:dev";
 
-export const Counter = clientEntry(import.meta.url, handle => {
-    acceptServerUpdates(handle);
-    /* ... */
-});
+// ...
+<body>
+    <HMR />
+    {/* ... */}
+</body>;
 ```
 
-That produces no history entry and no `navigate` event, and it keeps working in apps that intercept navigation themselves (which otherwise opt out of revalidation). It is inert outside `vite dev`. The [HMR guide](https://pitlane.tools/guides/hmr) covers both paths.
+`<HMR />` is a hydrated island, so it has a component handle, and it revalidates with `handle.frames.top.reload()`. Remix hands the top frame to components only, which is why this is a component rather than something the plugin injects. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
+
+Leave it unguarded: in a production build the specifier resolves to a component that renders nothing and carries no client code. Apps with `clientEntry: false` have nothing to hydrate it, so it stays inert there too. See the [HMR guide](https://pitlane.tools/guides/hmr).
 
 ## Options
 

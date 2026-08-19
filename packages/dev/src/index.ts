@@ -11,6 +11,7 @@ import type { Plugin, PluginOption } from "vite";
 import fullstack from "@hiogawa/vite-plugin-fullstack";
 
 import { build, buildCompat, runtimeInline } from "./build.ts";
+import { hmrComponent } from "./hmr-component.ts";
 import { componentHmr, serverDataHmr } from "./hmr.ts";
 import { preview } from "./preview.ts";
 import { clientEntryTransform } from "./transform.ts";
@@ -60,8 +61,9 @@ export interface RemixPluginOptions {
  * During `vite dev` it also installs hot module replacement: component edits
  * swap in place through the `remix/ui-hmr` transforms, and edits to modules the
  * browser never loads refetch the current page through the app's fetch handler,
- * keeping hydrated island state. Both are dev-only. Server-data HMR requires a
- * client entry, so it is skipped when `clientEntry` is `false`.
+ * keeping hydrated island state. Both are dev-only. The second half needs the
+ * app to render `<HMR />` from the `pitlane:dev` module, which resolves to an
+ * inert component in a build and when `clientEntry` is `false`.
  *
  * Platform-agnostic by design: deploy targets compose alongside it in the
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
@@ -90,8 +92,9 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         suppressAbortErrors(),
         normalizeWriteHead(),
         componentHmr(serverEnvironmentSet),
+        hmrComponent(clientEntry),
         clientEntryTransform(serverEnvironmentSet),
-        ...(clientEntry === false ? [] : [serverDataHmr(serverEnvironmentSet, clientEntry)]),
+        serverDataHmr(serverEnvironmentSet),
     ];
 }
 

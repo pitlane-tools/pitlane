@@ -2,11 +2,10 @@ import type { Expression } from "oxc-parser";
 import type { Plugin } from "vite";
 
 import MagicString from "magic-string";
-import { resolve as resolvePath } from "node:path";
 import { parseSync } from "oxc-parser";
 import { transformComponentsForBrowser, transformComponentsForServer } from "remix/ui-hmr";
 
-import { REVALIDATION_CLAIM, SERVER_UPDATE_EVENT } from "./hmr-protocol.ts";
+import { SERVER_UPDATE_EVENT } from "./hmr-protocol.ts";
 
 /**
  * Component modules Remix authors as `.tsx`/`.jsx`. The `remix/ui-hmr` transform
@@ -25,9 +24,6 @@ const COMPONENT_ID_FILTER = /\.[jt]sx$/;
  * the new content. The delay also coalesces bursts of saves into one refetch.
  */
 const SERVER_UPDATE_SETTLE_MS = 50;
-
-const DEV_CLIENT_ID = "virtual:pitlane-dev/server-data-hmr";
-const RESOLVED_DEV_CLIENT_ID = `\0${DEV_CLIENT_ID}`;
 
 /**
  * Instruments Remix UI components and `clientEntry()` exports with the
@@ -82,61 +78,30 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
 }
 
 /**
- * Server-side data HMR: when a server-only module changes, the browser
- * revalidates its server-rendered content without a full reload, keeping
- * hydrated client-entry state intact — the Remix 3 analog of React Router's
- * loader/action hot revalidation.
+ * Server-data HMR, broadcast half: when a server-only module changes, tell the
+ * browser to revalidate its server-rendered content. The `<HMR />` component
+ * from the `pitlane:dev` module receives the event and reloads the top frame,
+ * which refetches the page through the app's fetch handler and reconciles it,
+ * keeping hydrated island state. This is the Remix 3 analog of React Router's
+ * loader/action revalidation.
  *
- * Two halves cooperate:
+ * A file counts as server-only when the client graph does not serve it as a
+ * script; those are left to the client component-HMR boundary, so a
+ * `function`-form component edit still hot-swaps instantly instead of triggering
+ * a network reload. Only `js` client modules count: plugins that scan sources
+ * for other reasons (Tailwind's content scanner, for one) register `asset` nodes
+ * for ordinary server files, and treating those as client modules would silently
+ * disable server-data HMR for the whole app.
  *
- * - A `hotUpdate` hook on the server environment(s) detects changes to files
- *   that the client graph does not serve as a script and broadcasts a
- *   `pitlane:server-update` event. Files the client graph serves as a script are
- *   left to the client component-HMR boundary, so a `function`-form component
- *   edit still hot-swaps instantly instead of triggering a network reload.
- *   Only `js` client modules count: plugins that scan sources for other reasons
- *   (Tailwind's content scanner, for one) register `asset` nodes for ordinary
- *   server files, and treating those as client modules would silently disable
- *   server-data HMR for the whole app.
- * - A virtual client module, injected into the client entry, listens for the
- *   event and re-navigates to the current URL. That routes through the Remix
- *   frame runtime, which re-fetches the server-rendered HTML and reconciles it
- *   in place — preserving hydrated component state the way `router.revalidate()`
- *   does under React Router.
- *
- * Dev-only, and only meaningful when a client entry exists (a fully
- * server-rendered app has no client state to preserve).
+ * Dev-only. An app that never renders `<HMR />` simply has no listener, so the
+ * event is inert.
  */
-export function serverDataHmr(serverEnvironments: Set<string>, clientEntry: string): Plugin {
+export function serverDataHmr(serverEnvironments: Set<string>): Plugin {
     let pending: ReturnType<typeof setTimeout> | undefined;
 
     return {
         name: "pitlane-remix-server-data-hmr",
         apply: "serve",
-
-        resolveId(id) {
-            if (id === DEV_CLIENT_ID) return RESOLVED_DEV_CLIENT_ID;
-        },
-
-        load(id) {
-            if (id === RESOLVED_DEV_CLIENT_ID) return DEV_CLIENT_SOURCE;
-        },
-
-        transform: {
-            filter: { id: { include: /\.[jt]sx?$/, exclude: /\/node_modules\// } },
-            handler(code, id) {
-                if (serverEnvironments.has(this.environment.name)) return;
-                if (!isEntryModule(id, this.environment.config.root, clientEntry)) return;
-
-                let rewritten = new MagicString(code);
-                rewritten.prepend(`import ${JSON.stringify(DEV_CLIENT_ID)};\n`);
-
-                return {
-                    code: rewritten.toString(),
-                    map: rewritten.generateMap({ hires: "boundary", source: id }),
-                };
-            },
-        },
 
         hotUpdate({ file, server }) {
             if (!serverEnvironments.has(this.environment.name)) return;
@@ -155,61 +120,6 @@ export function serverDataHmr(serverEnvironments: Set<string>, clientEntry: stri
             pending.unref?.();
         },
     };
-}
-
-/**
- * Client fallback for {@link serverDataHmr}, injected into the client entry. On
- * a `pitlane:server-update` event it re-navigates to the current URL through the
- * Remix frame runtime, coalescing overlapping reloads, and falls back to a full
- * page reload when the frame runtime cannot handle the navigation (e.g. no
- * Navigation API).
- *
- * A navigation is the only route to the frame runtime from a plain module, since
- * `remix/ui` exposes the top frame to components only. Apps that call
- * `acceptServerUpdates(handle)` revalidate through the frame directly and set
- * {@link REVALIDATION_CLAIM}, which switches this fallback off so the update is
- * never fetched twice.
- */
-const DEV_CLIENT_SOURCE = `import { navigate } from "remix/ui";
-
-if (import.meta.hot) {
-    let inFlight = false;
-    let queued = false;
-
-    async function revalidate() {
-        if (globalThis[${JSON.stringify(REVALIDATION_CLAIM)}]) return;
-        if (inFlight) {
-            queued = true;
-            return;
-        }
-        inFlight = true;
-        try {
-            await navigate(location.href, { history: "replace", resetScroll: false });
-        } catch {
-            location.reload();
-            return;
-        } finally {
-            inFlight = false;
-        }
-        if (queued) {
-            queued = false;
-            revalidate();
-        }
-    }
-
-    import.meta.hot.on(${JSON.stringify(SERVER_UPDATE_EVENT)}, revalidate);
-}
-`;
-
-/**
- * Matches a resolved module id against the configured client entry, which the
- * user supplies without an extension (e.g. `"app/entry.browser"`).
- */
-function isEntryModule(id: string, root: string, entry: string): boolean {
-    let withoutQuery = id.split("?")[0];
-    let withoutExtension = withoutQuery.replace(/\.[jt]sx?$/, "");
-    let target = resolvePath(root, entry);
-    return withoutExtension === target;
 }
 
 /**

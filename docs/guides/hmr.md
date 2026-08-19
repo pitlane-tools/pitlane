@@ -7,7 +7,7 @@ description: How @pitlane/dev hot-updates a Remix 3 app during vite dev, coverin
 
 `vite dev` updates a running app in place. Editing a component swaps its new code in without remounting, so hydrated islands keep their open menus, input values, and counters. Editing a server-only module refetches the current page through your fetch handler and reconciles the new HTML into the DOM, which keeps that same island state while the server output changes underneath it.
 
-Both halves come with `remix()` and need no configuration. Neither exists in a production build, because the transforms are `apply: "serve"` only. For the rest of the plugin's behavior, see [Using the Vite plugin](/guides/vite-plugin).
+Component HMR needs no configuration. Server-data revalidation needs one line in your document, described under [Setup](#setup). Neither exists in a production build, because the transforms are `apply: "serve"` only. For the rest of the plugin's behavior, see [Using the Vite plugin](/guides/vite-plugin).
 
 ## What each kind of edit does
 
@@ -20,7 +20,37 @@ Both halves come with `remix()` and need no configuration. Neither exists in a p
 | A non-component module the browser imports         | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
 | CSS                                                | Vite's own CSS handling                           | Every island                         |
 
-No row in that table is a full page reload. A reload is the fallback when revalidation cannot run at all, covered under [requirements](#requirements).
+No row in that table is a full page reload.
+
+## Setup
+
+Render `<HMR />` once, anywhere in your document. It drives server-data revalidation:
+
+```tsx
+import { HMR } from "pitlane:dev";
+
+export function Document() {
+    return () => (
+        <html lang="en">
+            <head>{/* ... */}</head>
+            <body>
+                <HMR />
+                {/* ... */}
+            </body>
+        </html>
+    );
+}
+```
+
+No environment guard needed. In a production build the specifier resolves to a component that renders nothing and carries no client code, so it costs nothing to leave in. Wrapping it in `{import.meta.env.DEV && <HMR />}` also works if you prefer the intent visible.
+
+Component HMR is independent of it and runs whether or not you render it. Without it, server-only edits reach the server and the page does not change until you reload.
+
+Add the types to your tsconfig if you have not already, which covers `pitlane:dev` and the `?assets=` imports:
+
+```jsonc
+{ "compilerOptions": { "types": ["@pitlane/dev/assets"] } }
+```
 
 ## Component HMR
 
@@ -92,37 +122,10 @@ Editing the document, a middleware, a route handler, a data module, or anything 
 
 1. The changed file is classified in your server environment. A file counts as server-only when the client module graph does not serve it as a script.
 2. The plugin broadcasts a `pitlane:server-update` event to the browser.
-3. Browser code receives the event and reloads the top frame.
+3. `<HMR />` receives the event and calls `handle.frames.top.reload()`.
 4. The frame runtime refetches the page through your fetch handler and reconciles the new HTML in place.
 
-Step 3 has two implementations. By default the plugin injects a module into your
-client entry that calls `navigate(location.href, { history: "replace", resetScroll: false })`,
-because a plain module has no other route to the frame runtime: `remix/ui` hands
-the top frame to components only. That works, and it costs one `navigate` event
-per edit, which any listener in your app sees.
-
-An app that has a hydrated island can revalidate through the frame directly and
-skip the navigation. Call `acceptServerUpdates` in the setup scope of any island:
-
-```tsx
-import { clientEntry } from "remix/ui";
-import { acceptServerUpdates } from "@pitlane/dev/runtime";
-
-export const Counter = clientEntry(import.meta.url, handle => {
-    acceptServerUpdates(handle);
-    // ...
-});
-```
-
-That calls `handle.frames.top.reload()`, which is the same refetch-and-reconcile
-the navigation ends in, without the navigation. No history entry, no `navigate`
-event, and no dependence on Remix's navigation interception. Registering it also
-switches the injected fallback off, so an update is never fetched twice. It is
-inert outside `vite dev`, because `import.meta.hot` is undefined in a production
-build.
-
-Prefer it when your app intercepts navigation itself, or when a `navigate` event
-per edit would disturb app-level state such as a loading indicator.
+`<HMR />` is a hydrated island, which is what gives step 3 a component handle. Remix hands the top frame to components only, so a plain module has no route to it. Reloading the frame directly is what revalidation means here. It produces no history entry and fires no `navigate` event, so an app that intercepts navigation itself keeps working, and a listener watching for real navigations never sees dev traffic.
 
 ### What counts as server-only
 
@@ -138,32 +141,19 @@ Overlapping revalidations coalesce in the browser too. A revalidation that arriv
 
 ## Requirements
 
-| Requirement                                    | Why                                                                                        | When unmet                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| A client entry file (e.g. `entry.browser.tsx`) | It hosts the browser half                                                                  | Server-data HMR is not installed                           |
-| A route to the frame runtime                   | Either Remix's navigation interception is intact, or an island calls `acceptServerUpdates` | Server edits reach the server and the page does not change |
-| `serverEnvironments` matches your config       | It selects which environment classifies files as server-only                               | Neither half can tell client from server                   |
+| Requirement                                    | Why                                                           | When unmet                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `<HMR />` rendered in the document             | It is the browser half, and hydration gives it a frame handle | Server edits reach the server and the page does not change |
+| A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island                           | `<HMR />` renders nothing and revalidation never runs      |
+| `serverEnvironments` matches your config       | It selects which environment classifies files as server-only  | Neither half can tell client from server                   |
 
 If a platform plugin renames the server environment, pass the same names to `remix({ serverEnvironments })`. `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
 
-::: warning Footgun Warning
-
-The default revalidation is a navigation, so the frame runtime has to see it. An app that installs its own `navigate` listener and calls `stopImmediatePropagation()` for every navigation opts out. Server-only edits then reach the server, and the page either does not change or reloads outright, depending on whether the current URL carries a hash.
-
-Two fixes. Call `acceptServerUpdates(handle)` in an island, which bypasses navigation entirely and is the better option. Or let same-URL replacements through:
-
-```ts
-navigation.addEventListener("navigate", event => {
-    if (event.navigationType === "replace" && event.destination.url === location.href) return;
-    event.stopImmediatePropagation();
-});
-```
-
-:::
+Nothing here depends on navigation, so an app that installs its own `navigate` listener and stops Remix from seeing navigations still revalidates normally.
 
 ### Fully server-rendered apps
 
-`clientEntry: false` turns off the client environment, so nothing calls `run()`, nothing hydrates, and no script tag reaches the browser. There is no client runtime to receive the event and no frame to reload, so server-data HMR is not installed. A component cannot close that gap: a component needs `run()` to hydrate it.
+`clientEntry: false` turns off the client environment, so nothing calls `run()`, nothing hydrates, and no script tag reaches the browser. `<HMR />` resolves to the inert component there, because an island with no client runtime cannot receive anything.
 
 To serve no browser JavaScript in production and still revalidate in dev, keep the client entry and gate the script tag instead:
 
@@ -173,7 +163,7 @@ To serve no browser JavaScript in production and still revalidate in dev, keep t
 }
 ```
 
-Production drops the tag and serves zero JavaScript, since the hydration markers are inert HTML on their own. Dev keeps the full client runtime, so both halves of HMR work. The production build still emits an unused client chunk under `dist/client`.
+Production drops the tag and serves zero JavaScript, since the hydration markers are inert HTML on their own. Dev keeps the full client runtime, so both halves of HMR work. The production build still emits an unused client chunk under `dist/client`. Dev also carries a client runtime that production does not, so links soft-navigate through the frame runtime in dev while production loads whole documents.
 
 ## Limits
 

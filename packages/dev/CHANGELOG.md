@@ -20,21 +20,19 @@ Dev-time hot module replacement.
   files (Tailwind's content scanner, for one), which previously classified
   every server module as client-owned and silenced server-data HMR for the
   whole app.
+- Revalidating is one line in the document, `<HMR />` from the new `pitlane:dev`
+  module. It is a hydrated island, so it holds a component handle and
+  revalidates with `handle.frames.top.reload()`; `remix/ui` hands the top frame
+  to components only, so nothing the plugin injects could reach it. A frame
+  reload produces no history entry and fires no `navigate` event, which leaves
+  apps that intercept navigation themselves working unchanged. Needs no
+  environment guard: in a build, and in apps with no client runtime to hydrate
+  it, the specifier resolves to a component that renders nothing and carries no
+  client code. Types come with `@pitlane/dev/assets`.
 - Revalidation waits a beat after a server change before refetching, so it
   cannot reach the fetch handler while the server entry is still half-applied
   (which served a dev error page on slower runtimes like workerd), and a burst
   of saves coalesces into one refetch.
-- New `acceptServerUpdates(handle)` export from `@pitlane/dev/runtime`. Called
-  in the setup scope of any hydrated island, it revalidates by reloading the
-  top frame (`handle.frames.top.reload()`) instead of navigating: no history
-  entry, no `navigate` event, and no dependence on Remix's navigation
-  interception. It also switches the injected fallback off, so an update is
-  never fetched twice. Inert outside `vite dev`.
-- Both are dev-only and require a client entry; production builds are
-  unchanged. Without `acceptServerUpdates`, revalidation goes through Remix's
-  `navigate()`, which is the only route to the frame runtime from a plain
-  module, so an app that suppresses Remix's navigation interception opts out of
-  it; see the README.
 - `@pitlane/dev/runtime` imports now inline this package's real runtime module
   rather than a hand-written copy of `mergeAssets`, so every export stays in
   one place. What that module imports is bundled too, which keeps the built

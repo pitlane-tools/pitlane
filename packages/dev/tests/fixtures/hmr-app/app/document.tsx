@@ -1,4 +1,4 @@
-import type { Handle } from "remix/ui";
+import { HMR } from "pitlane:dev";
 
 import "./styles.css";
 import { mergeAssets } from "../../../../src/runtime.ts";
@@ -6,9 +6,8 @@ import { ArrowCounter } from "./arrow-counter.tsx";
 import clientAssets from "./entry.browser.ts?assets=client";
 import serverAssets from "./entry.server.tsx?assets=ssr";
 import { FnCounter } from "./fn-counter.tsx";
-import { FrameCounter } from "./frame-counter.tsx";
 
-export function Document(handle: Handle<{ claimed?: boolean }>) {
+export function Document() {
     let assets = mergeAssets(clientAssets, serverAssets);
 
     return () => (
@@ -28,10 +27,7 @@ export function Document(handle: Handle<{ claimed?: boolean }>) {
                 <h1 data-h1>Server heading A</h1>
                 <FnCounter />
                 <ArrowCounter />
-                {/* Only the /claimed route drives revalidation through a frame
-                    handle, so the default route keeps covering the injected
-                    navigation fallback. */}
-                {handle.props.claimed && <FrameCounter />}
+                <HMR />
             </body>
         </html>
     );
