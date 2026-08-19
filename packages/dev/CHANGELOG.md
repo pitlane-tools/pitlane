@@ -14,9 +14,15 @@ Dev-time hot module replacement.
   through the app's fetch handler and reconciles the new server-rendered HTML
   into the DOM, keeping hydrated island state — the Remix 3 analog of React
   Router's loader/action revalidation, driven through the frame runtime. A
-  changed module the client also imports is left to component HMR instead.
+  changed file the client graph serves as a script is left to component HMR
+  instead. Only `js` client modules count as client-served: plugins that scan
+  sources for their own purposes register non-script nodes for ordinary server
+  files (Tailwind's content scanner, for one), which previously classified
+  every server module as client-owned and silenced server-data HMR for the
+  whole app.
 - Both are dev-only and require a client entry; production builds are
-  unchanged.
+  unchanged. Revalidation goes through Remix's `navigate()`, so an app that
+  suppresses Remix's navigation interception opts out of it; see the README.
 
 ## 0.2.0
 

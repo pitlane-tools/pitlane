@@ -94,6 +94,19 @@ Only named (PascalCase) component exports whose setup returns a render function 
 
 **Server data.** Editing a server-only module — the document, a middleware, a route handler, any module the client never imports — re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router. It needs a client entry (`clientEntry: false` apps fall back to Vite's default reload).
 
+Revalidation runs through Remix's `navigate()`, so the frame runtime has to be
+able to see the navigation. An app whose own `navigate` listener suppresses
+Remix's interception opts out of frame revalidation, and server-only edits then
+leave the page untouched. Let same-URL replacements through if you intercept
+navigation yourself:
+
+```ts
+navigation.addEventListener("navigate", event => {
+    if (event.navigationType === "replace" && event.destination.url === location.href) return;
+    event.stopImmediatePropagation();
+});
+```
+
 ## Options
 
 ```ts

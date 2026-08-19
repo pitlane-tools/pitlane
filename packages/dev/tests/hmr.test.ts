@@ -201,18 +201,20 @@ describe("serverDataHmr", () => {
 
 type HotUpdateContext = { environment: { name: string } };
 type HotUpdateModule = { file: string | null };
+type ClientModuleGraphEntry = { type: string };
 
 function runHotUpdate(
     plugin: Plugin,
     environment: string,
     modules: HotUpdateModule[],
-    clientFiles: string[],
+    clientGraphFiles: Record<string, ClientModuleGraphEntry[]>,
+    file = modules[0]?.file ?? "/project/app/unknown.ts",
 ): Array<{ type: string; event?: string }> {
     let hook = plugin.hotUpdate;
     if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
     let invoke = hook as unknown as (
         this: HotUpdateContext,
-        options: { modules: HotUpdateModule[]; server: unknown },
+        options: { file: string; modules: HotUpdateModule[]; server: unknown },
     ) => void;
 
     let sent: Array<{ type: string; event?: string }> = [];
@@ -225,53 +227,57 @@ function runHotUpdate(
         environments: {
             client: {
                 moduleGraph: {
-                    getModulesByFile(file: string) {
-                        return clientFiles.includes(file) ? new Set([{}]) : undefined;
+                    getModulesByFile(moduleFile: string) {
+                        let entries = clientGraphFiles[moduleFile];
+                        return entries ? new Set(entries) : undefined;
                     },
                 },
             },
         },
     };
 
-    invoke.call({ environment: { name: environment } }, { modules, server });
+    invoke.call({ environment: { name: environment } }, { file, modules, server });
     return sent;
 }
 
 describe("serverDataHmr hotUpdate", () => {
     it("broadcasts a server-update when a server-only module changes", () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/document.tsx" }], []);
+        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/document.tsx" }], {});
 
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
-    it("stays quiet when the changed module is also a client module", () => {
+    it("stays quiet when the client graph serves the file as a script", () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(
-            plugin,
-            "ssr",
-            [{ file: "/project/app/counter.tsx" }],
-            ["/project/app/counter.tsx"],
-        );
+        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/counter.tsx" }], {
+            "/project/app/counter.tsx": [{ type: "js" }],
+        });
 
         expect(sent).toEqual([]);
     });
 
-    it("broadcasts when at least one changed module is server-only", () => {
+    it("broadcasts when the client graph only holds a non-script node for the file", () => {
+        // Tailwind's content scanner registers `asset` nodes for ordinary server
+        // files; treating those as client modules disables server-data HMR.
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(
-            plugin,
-            "ssr",
-            [{ file: "/project/app/counter.tsx" }, { file: "/project/app/data.ts" }],
-            ["/project/app/counter.tsx"],
-        );
+        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/routes.tsx" }], {
+            "/project/app/routes.tsx": [{ type: "asset" }],
+        });
+
+        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+    });
+
+    it("broadcasts when the changed server file has no invalidated modules", () => {
+        let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
+        let sent = runHotUpdate(plugin, "ssr", [], {}, "/project/app/actions/projects.tsx");
 
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
     it("ignores updates outside the server environment", () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "client", [{ file: "/project/app/document.tsx" }], []);
+        let sent = runHotUpdate(plugin, "client", [{ file: "/project/app/document.tsx" }], {});
 
         expect(sent).toEqual([]);
     });
@@ -304,16 +310,9 @@ describe("componentHmr details", () => {
 });
 
 describe("serverDataHmr hotUpdate edge cases", () => {
-    it("does nothing when no modules changed", () => {
+    it("ignores non-script files even when no modules were invalidated", () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        expect(runHotUpdate(plugin, "ssr", [], [])).toEqual([]);
-    });
-
-    it("treats a module without a file as server-only", () => {
-        let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        expect(runHotUpdate(plugin, "ssr", [{ file: null }], [])).toEqual([
-            { type: "custom", event: "pitlane:server-update" },
-        ]);
+        expect(runHotUpdate(plugin, "ssr", [], {}, "/project/app/content.md")).toEqual([]);
     });
 
     it("broadcasts when there is no client environment to check against", () => {
@@ -328,11 +327,19 @@ describe("serverDataHmr hotUpdate edge cases", () => {
         };
         let invoke = hook as unknown as (
             this: { environment: { name: string } },
-            options: { modules: Array<{ file: string | null }>; server: unknown },
+            options: {
+                file: string;
+                modules: Array<{ file: string | null }>;
+                server: unknown;
+            },
         ) => void;
         invoke.call(
             { environment: { name: "ssr" } },
-            { modules: [{ file: "/project/app/document.tsx" }], server },
+            {
+                file: "/project/app/document.tsx",
+                modules: [{ file: "/project/app/document.tsx" }],
+                server,
+            },
         );
 
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);

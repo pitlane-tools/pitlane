@@ -81,11 +81,15 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
  *
  * Two halves cooperate:
  *
- * - A `hotUpdate` hook on the server environment(s) detects changes to modules
- *   that live only in the server graph and broadcasts a `pitlane:server-update`
- *   event. Changes to modules that also live in the client graph are left to the
- *   client component-HMR boundary, so a `function`-form component edit still
- *   hot-swaps instantly instead of triggering a network reload.
+ * - A `hotUpdate` hook on the server environment(s) detects changes to files
+ *   that the client graph does not serve as a script and broadcasts a
+ *   `pitlane:server-update` event. Files the client graph serves as a script are
+ *   left to the client component-HMR boundary, so a `function`-form component
+ *   edit still hot-swaps instantly instead of triggering a network reload.
+ *   Only `js` client modules count: plugins that scan sources for other reasons
+ *   (Tailwind's content scanner, for one) register `asset` nodes for ordinary
+ *   server files, and treating those as client modules would silently disable
+ *   server-data HMR for the whole app.
  * - A virtual client module, injected into the client entry, listens for the
  *   event and re-navigates to the current URL. That routes through the Remix
  *   frame runtime, which re-fetches the server-rendered HTML and reconciles it
@@ -124,17 +128,14 @@ export function serverDataHmr(serverEnvironments: Set<string>, clientEntry: stri
             },
         },
 
-        hotUpdate({ modules, server }) {
+        hotUpdate({ file, server }) {
             if (!serverEnvironments.has(this.environment.name)) return;
-            if (modules.length === 0) return;
+            if (!/\.[jt]sx?$/.test(file)) return;
 
             let clientGraph = server.environments.client?.moduleGraph;
-            let hasServerOnlyChange = modules.some(mod => {
-                if (!mod.file) return true;
-                let clientModules = clientGraph?.getModulesByFile(mod.file);
-                return !clientModules || clientModules.size === 0;
-            });
-            if (!hasServerOnlyChange) return;
+            let clientModules = clientGraph?.getModulesByFile(file);
+            let servedToClient = [...(clientModules ?? [])].some(module => module.type === "js");
+            if (servedToClient) return;
 
             server.hot.send({ type: "custom", event: SERVER_UPDATE_EVENT });
         },
