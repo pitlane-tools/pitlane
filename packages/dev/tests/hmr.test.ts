@@ -203,13 +203,13 @@ type HotUpdateContext = { environment: { name: string } };
 type HotUpdateModule = { file: string | null };
 type ClientModuleGraphEntry = { type: string };
 
-function runHotUpdate(
+async function runHotUpdate(
     plugin: Plugin,
     environment: string,
     modules: HotUpdateModule[],
     clientGraphFiles: Record<string, ClientModuleGraphEntry[]>,
     file = modules[0]?.file ?? "/project/app/unknown.ts",
-): Array<{ type: string; event?: string }> {
+): Promise<Array<{ type: string; event?: string }>> {
     let hook = plugin.hotUpdate;
     if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
     let invoke = hook as unknown as (
@@ -237,47 +237,81 @@ function runHotUpdate(
     };
 
     invoke.call({ environment: { name: environment } }, { file, modules, server });
+    await settleServerUpdate();
     return sent;
 }
 
+/** Outlasts the plugin's server-update settle window. */
+function settleServerUpdate(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, 120));
+}
+
 describe("serverDataHmr hotUpdate", () => {
-    it("broadcasts a server-update when a server-only module changes", () => {
+    it("broadcasts a server-update when a server-only module changes", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/document.tsx" }], {});
+        let sent = await runHotUpdate(plugin, "ssr", [{ file: "/project/app/document.tsx" }], {});
 
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
-    it("stays quiet when the client graph serves the file as a script", () => {
+    it("stays quiet when the client graph serves the file as a script", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/counter.tsx" }], {
+        let sent = await runHotUpdate(plugin, "ssr", [{ file: "/project/app/counter.tsx" }], {
             "/project/app/counter.tsx": [{ type: "js" }],
         });
 
         expect(sent).toEqual([]);
     });
 
-    it("broadcasts when the client graph only holds a non-script node for the file", () => {
+    it("broadcasts when the client graph only holds a non-script node for the file", async () => {
         // Tailwind's content scanner registers `asset` nodes for ordinary server
         // files; treating those as client modules disables server-data HMR.
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "ssr", [{ file: "/project/app/routes.tsx" }], {
+        let sent = await runHotUpdate(plugin, "ssr", [{ file: "/project/app/routes.tsx" }], {
             "/project/app/routes.tsx": [{ type: "asset" }],
         });
 
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
-    it("broadcasts when the changed server file has no invalidated modules", () => {
+    it("broadcasts when the changed server file has no invalidated modules", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "ssr", [], {}, "/project/app/actions/projects.tsx");
+        let sent = await runHotUpdate(plugin, "ssr", [], {}, "/project/app/actions/projects.tsx");
 
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
-    it("ignores updates outside the server environment", () => {
+    it("coalesces a burst of server changes into one revalidation", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        let sent = runHotUpdate(plugin, "client", [{ file: "/project/app/document.tsx" }], {});
+        let hook = plugin.hotUpdate;
+        if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
+
+        let sent: Array<{ type: string; event?: string }> = [];
+        let server = {
+            hot: { send: (payload: { type: string; event?: string }) => sent.push(payload) },
+            environments: {},
+        };
+        let invoke = hook as unknown as (
+            this: HotUpdateContext,
+            options: { file: string; modules: HotUpdateModule[]; server: unknown },
+        ) => void;
+
+        for (let file of ["/project/app/a.ts", "/project/app/b.ts", "/project/app/c.ts"]) {
+            invoke.call({ environment: { name: "ssr" } }, { file, modules: [{ file }], server });
+        }
+        await settleServerUpdate();
+
+        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+    });
+
+    it("ignores updates outside the server environment", async () => {
+        let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
+        let sent = await runHotUpdate(
+            plugin,
+            "client",
+            [{ file: "/project/app/document.tsx" }],
+            {},
+        );
 
         expect(sent).toEqual([]);
     });
@@ -310,12 +344,12 @@ describe("componentHmr details", () => {
 });
 
 describe("serverDataHmr hotUpdate edge cases", () => {
-    it("ignores non-script files even when no modules were invalidated", () => {
+    it("ignores non-script files even when no modules were invalidated", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
-        expect(runHotUpdate(plugin, "ssr", [], {}, "/project/app/content.md")).toEqual([]);
+        expect(await runHotUpdate(plugin, "ssr", [], {}, "/project/app/content.md")).toEqual([]);
     });
 
-    it("broadcasts when there is no client environment to check against", () => {
+    it("broadcasts when there is no client environment to check against", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]), "app/entry.browser");
         let hook = plugin.hotUpdate;
         if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
@@ -341,7 +375,7 @@ describe("serverDataHmr hotUpdate edge cases", () => {
                 server,
             },
         );
-
+        await settleServerUpdate();
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 });

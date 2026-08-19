@@ -20,6 +20,10 @@ Dev-time hot module replacement.
   files (Tailwind's content scanner, for one), which previously classified
   every server module as client-owned and silenced server-data HMR for the
   whole app.
+- Revalidation waits a beat after a server change before refetching, so it
+  cannot reach the fetch handler while the server entry is still half-applied
+  (which served a dev error page on slower runtimes like workerd), and a burst
+  of saves coalesces into one refetch.
 - Both are dev-only and require a client entry; production builds are
   unchanged. Revalidation goes through Remix's `navigate()`, so an app that
   suppresses Remix's navigation interception opts out of it; see the README.

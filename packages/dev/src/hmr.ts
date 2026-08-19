@@ -18,6 +18,15 @@ const COMPONENT_ID_FILTER = /\.[jt]sx$/;
 /** Custom Vite HMR event that asks the browser to revalidate server-rendered data. */
 const SERVER_UPDATE_EVENT = "pitlane:server-update";
 
+/**
+ * How long to wait after a server module changes before asking the browser to
+ * revalidate. Vite applies the update to the server environment on its own
+ * schedule; revalidating in the same tick can reach the fetch handler while the
+ * server entry is still half-applied, which serves a dev error page instead of
+ * the new content. The delay also coalesces bursts of saves into one refetch.
+ */
+const SERVER_UPDATE_SETTLE_MS = 50;
+
 const DEV_CLIENT_ID = "virtual:pitlane-dev/server-data-hmr";
 const RESOLVED_DEV_CLIENT_ID = `\0${DEV_CLIENT_ID}`;
 
@@ -100,6 +109,8 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
  * server-rendered app has no client state to preserve).
  */
 export function serverDataHmr(serverEnvironments: Set<string>, clientEntry: string): Plugin {
+    let pending: ReturnType<typeof setTimeout> | undefined;
+
     return {
         name: "pitlane-remix-server-data-hmr",
         apply: "serve",
@@ -137,7 +148,12 @@ export function serverDataHmr(serverEnvironments: Set<string>, clientEntry: stri
             let servedToClient = [...(clientModules ?? [])].some(module => module.type === "js");
             if (servedToClient) return;
 
-            server.hot.send({ type: "custom", event: SERVER_UPDATE_EVENT });
+            clearTimeout(pending);
+            pending = setTimeout(() => {
+                pending = undefined;
+                server.hot.send({ type: "custom", event: SERVER_UPDATE_EVENT });
+            }, SERVER_UPDATE_SETTLE_MS);
+            pending.unref?.();
         },
     };
 }
