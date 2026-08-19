@@ -27,6 +27,7 @@ let guides: DefaultTheme.SidebarItem[] = [
         items: [
             { text: "Styling", link: "/guides/styling" },
             { text: "Vite Plugin", link: "/guides/vite-plugin" },
+            { text: "Hot Module Replacement", link: "/guides/hmr" },
         ],
     },
     {

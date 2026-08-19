@@ -72,9 +72,9 @@ run({
 
 ## Hot module replacement
 
-`vite dev` hot-updates both halves of a Remix app in place, keeping live client state.
+`vite dev` hot-updates both halves of a Remix app in place, keeping live client state. Full details, including which edits preserve state and which remount, are in the [HMR guide](https://pitlane.tools/guides/hmr).
 
-**Components.** Editing a component swaps its implementation without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev. Both authoring styles hot-swap — `@pitlane/dev` normalizes arrow-form component and `clientEntry()` exports to named functions before instrumenting them, so the idiomatic Remix style works with no changes:
+**Components.** Editing a component swaps its new code in without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev. Both authoring styles hot-swap, because `@pitlane/dev` normalizes arrow-form component and `clientEntry()` exports to named functions before instrumenting them:
 
 ```tsx
 // All of these hot-swap in place, preserving live state:
@@ -90,22 +90,11 @@ export function Panel(handle) {
 }
 ```
 
-Only named (PascalCase) component exports whose setup returns a render function are instrumented; other exports are left untouched.
+Only named (PascalCase) component exports in `.tsx`/`.jsx` files whose setup returns a render function are instrumented; other exports are left untouched. Editing the render function keeps live state. Editing the setup scope above the `return` remounts the component, so its state resets.
 
-**Server data.** Editing a server-only module — the document, a middleware, a route handler, any module the client never imports — re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router. It needs a client entry (`clientEntry: false` apps fall back to Vite's default reload).
+**Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
 
-Revalidation runs through Remix's `navigate()`, so the frame runtime has to be
-able to see the navigation. An app whose own `navigate` listener suppresses
-Remix's interception opts out of frame revalidation, and server-only edits then
-leave the page untouched. Let same-URL replacements through if you intercept
-navigation yourself:
-
-```ts
-navigation.addEventListener("navigate", event => {
-    if (event.navigationType === "replace" && event.destination.url === location.href) return;
-    event.stopImmediatePropagation();
-});
-```
+Two requirements. It needs a client entry, so it is not installed when `clientEntry: false`. And revalidation runs through Remix's `navigate()`, so an app whose own `navigate` listener suppresses Remix's interception opts out of it, leaving server-only edits invisible in the browser. The [HMR guide](https://pitlane.tools/guides/hmr) covers both, with the one-line fix for the second.
 
 ## Options
 

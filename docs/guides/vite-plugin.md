@@ -5,7 +5,7 @@ description: How @pitlane/dev's remix() plugin behaves in your app day to day, a
 
 # Using the Vite plugin
 
-This guide covers living with `remix()` from `@pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
+This guide covers living with `remix()` from `@pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
 
 ## Installation
 
@@ -215,15 +215,15 @@ Only a top-level `export const Name = clientEntry(…)` call is rewritten. The `
 
 ### `serverEnvironments`
 
-The transform needs to know which environments are "server". Server environments get the `?assets=client` prepend, and the client gets `import.meta.url + "#Name"`. The default, `["ssr"]`, is right unless you've renamed or added server environments. If you have, pass the same names to `remix({ serverEnvironments })`.
+The transform needs to know which environments are "server". Server environments get the `?assets=client` prepend, and the client gets `import.meta.url + "#Name"`. The default, `["ssr"]`, is right unless you've renamed or added server environments. If you have, pass the same names to `remix({ serverEnvironments })`. [Hot module replacement](/guides/hmr) reads the same option to tell server modules from client ones, so a mismatch breaks both.
 
 ## Dev server semantics
 
 With the default `serverHandler: true`, every request is answered by your server entry through Vite's module runner. The entry is re-imported per request, so server-side edits are live without restarting. The `if (import.meta.hot) import.meta.hot.accept()` line in the server entry is what keeps those re-imports cheap, so keep it.
 
-::: info Client HMR
+::: info Hot module replacement
 
-Client edits currently refresh the page rather than hot-swapping components. Remix UI's HMR runtime is in progress upstream ([remix-run/remix#11515](https://github.com/remix-run/remix/pull/11515)), and `@pitlane/dev` will add the companion transform once that work merges.
+Component edits swap in place and keep live island state, and edits to server-only modules refetch the page through your fetch handler without discarding that state. Both are on by default in `vite dev`. See [Hot module replacement](/guides/hmr) for which edits preserve state, which remount, and the two requirements the server half has.
 
 :::
 

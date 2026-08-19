@@ -1,7 +1,8 @@
 /**
  * The `remix()` Vite plugin — Remix 3 build orchestration, the `clientEntry()`
- * hydration transform, dev serving through the app's fetch handler, and a
- * preview server, for any Vite or Vite+ project.
+ * hydration transform, dev serving through the app's fetch handler, hot module
+ * replacement for components and server-rendered data, and a preview server,
+ * for any Vite or Vite+ project.
  *
  * @module @pitlane/dev
  */
@@ -55,6 +56,12 @@ export interface RemixPluginOptions {
  * orchestration (`dist/ssr` + `dist/client`), the
  * `clientEntry(import.meta.url, …)` hydration transform, dev serving through
  * the app's fetch handler, and a preview server for the production build.
+ *
+ * During `vite dev` it also installs hot module replacement: component edits
+ * swap in place through the `remix/ui-hmr` transforms, and edits to modules the
+ * browser never loads refetch the current page through the app's fetch handler,
+ * keeping hydrated island state. Both are dev-only. Server-data HMR requires a
+ * client entry, so it is skipped when `clientEntry` is `false`.
  *
  * Platform-agnostic by design: deploy targets compose alongside it in the
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
