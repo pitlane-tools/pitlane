@@ -10,11 +10,21 @@ import type { Plugin, PluginOption } from "vite";
 
 import fullstack from "@hiogawa/vite-plugin-fullstack";
 
+import type { PrerenderOption } from "./prerender.ts";
+
 import { build, buildCompat, runtimeInline } from "./build.ts";
 import { hmrComponent } from "./hmr-component.ts";
 import { componentHmr, serverDataHmr } from "./hmr.ts";
 import { preview } from "./preview.ts";
 import { clientEntryTransform } from "./transform.ts";
+
+export type {
+    PrerenderConfig,
+    PrerenderContext,
+    PrerenderOption,
+    PrerenderPaths,
+    PrerenderPathsOption,
+} from "./prerender.ts";
 
 export interface RemixPluginOptions {
     /**
@@ -67,6 +77,22 @@ export interface RemixPluginOptions {
      * @default true
      */
     serverHandler?: boolean;
+    /**
+     * Render paths to static HTML at build time and write them into the client
+     * output, so a host can serve the file and skip the server entirely.
+     *
+     * `true` prerenders every static path in the app's route map, which the
+     * server entry must export as `routes`. An array prerenders exactly those
+     * paths. A function computes them, and receives `getStaticPaths()` for the
+     * route-map half of a list that also has dynamic paths in it. The object
+     * form adds `concurrency` and `spider`.
+     *
+     * Build-time only, and unsupported with `server: false`: prerendering
+     * renders through the server entry, and there is none.
+     *
+     * @default undefined
+     */
+    prerender?: PrerenderOption;
 }
 
 /**
@@ -94,9 +120,20 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         serverEntry = "app/entry.server",
         serverEnvironments = ["ssr"],
         serverHandler = true,
+        prerender,
     } = options;
 
-    if (!server) return spa();
+    if (!server) {
+        if (prerender !== undefined) {
+            throw new Error(
+                "[@pitlane/dev] remix({ server: false, prerender }) is not supported: " +
+                    "prerendering renders through the server entry, and `server: false` builds " +
+                    "no server. Drop `server: false` to prerender, or drop `prerender` to stay " +
+                    "a SPA.",
+            );
+        }
+        return spa();
+    }
 
     let serverEnvironmentSet = new Set(serverEnvironments);
 
@@ -106,7 +143,7 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
             serverHandler,
         }),
         buildCompat(),
-        build({ clientEntry, serverEntry }),
+        build({ clientEntry, serverEntry, prerender }),
         runtimeInline(),
         preview(),
         suppressAbortErrors(),
