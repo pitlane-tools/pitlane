@@ -104,31 +104,9 @@ export default defineConfig({
 
 The three-file core collapses to one. There is no `app/entry.server.tsx`, no
 server environment, and no `dist/ssr`; `index.html` is the entry, and
-`vite build` emits a static site beside it. The browser entry is whatever
-`index.html` loads, so `clientEntry`, `serverEntry`, `serverEnvironments`, and
-`serverHandler` all go unread.
-
-What the plugin still contributes is [component
-HMR](/guides/hmr#component-hmr): an edit swaps the component in
-place and keeps live state instead of reloading the page. Server-data HMR has
-nothing to revalidate, so `<HMR />` from `pitlane:dev` resolves to the inert
-component.
-
-Static hosts need every unknown URL pointed at `index.html` for the client
-router to resolve it: a copy of `index.html` at `404.html` on GitHub Pages, a
-`/* /index.html 200` redirect on Netlify. `vite preview` already does this.
-
-::: info Bundled dev mode
-
-SPA mode runs under Vite's experimental [bundled dev
-mode](https://github.com/vitejs/vite/discussions/22746)
-(`experimental.bundledDev`, or `vite dev --experimentalBundle`), component
-hot-swap included. Server-rendered apps do not. Bundled dev serves bundle
-entrypoints only, so the client module URLs an SSR render writes into its HTML
-have nothing behind them. Upstream tracks that as Phase 4, server environments,
-still a prototype.
-
-:::
+`vite build` emits a static site beside it. Every other option on this page
+goes unread, and the rest of this guide covers machinery a client-only app
+never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
 
 ## The asset runtime
 

@@ -174,10 +174,8 @@ does not apply. The client entry is whatever `index.html` loads, and there are
 no server environments to name.
 
 This is also the only mode that currently works under Vite's experimental
-[bundled dev mode](https://github.com/vitejs/vite/discussions/22746),
-component hot-swap included. Server-rendered apps do not: bundled dev serves
-bundle entrypoints only, so the client module URLs a server render writes into
-its HTML resolve to nothing.
+bundled dev mode, component hot-swap included. See
+[Single-page apps](/guides/spa) for the whole mode.
 
 ## Limits
 
