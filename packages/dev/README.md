@@ -114,6 +114,7 @@ Leave it unguarded: in a production build the specifier resolves to a component 
 
 ```ts
 remix({
+    ssr: true, // default — false selects SPA mode
     clientEntry: "app/entry.browser", // default — false disables the client build
     serverEntry: "app/entry.server", // default
     serverEnvironments: ["ssr"], // default
@@ -123,10 +124,49 @@ remix({
 
 | Option               | Type              | Default               | Purpose                                                                                                                                                           |
 | -------------------- | ----------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ssr`                | `boolean`         | `true`                | Server rendering. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                                                       |
 | `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                                               |
 | `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                                                |
 | `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                                               |
 | `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` owns dev-time request handling. |
+
+## SPA mode
+
+Some apps render entirely in the browser — a static host, a router that never
+touches a server. `remix({ ssr: false })` targets those, the same switch React
+Router spells `ssr: false`:
+
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ ssr: false })],
+});
+```
+
+There is no server environment, nothing is built to `dist/ssr`, and
+`vite build` emits a static site from your `index.html`. The plugin's one
+remaining job is the one a SPA still wants: component HMR. Editing a component
+swaps it in place and keeps live state, arrow forms included.
+
+`serverEntry`, `serverEnvironments`, `serverHandler`, and `clientEntry` are
+ignored — the browser entry is whatever `index.html` loads. `<HMR />` from
+`pitlane:dev` resolves to the inert component, because there is no server data
+to revalidate.
+
+Deploying means pointing every unknown URL at `index.html` so the client router
+can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`,
+on Netlify a `/* /index.html 200` redirect.
+
+SPA mode also works under Vite's experimental bundled dev mode
+(`experimental.bundledDev`, or `vite dev --experimentalBundle`), component
+hot-swap included. Server-rendered apps do not yet: bundled dev serves only
+bundle entrypoints, so the client module URLs an SSR render writes into its
+HTML resolve to nothing. That is upstream's
+[Phase 4](https://github.com/vitejs/vite/discussions/22746) — server
+environments — still a prototype.
 
 ## The server entry contract
 

@@ -165,6 +165,20 @@ To serve no browser JavaScript in production and still revalidate in dev, keep t
 
 Production drops the tag and serves zero JavaScript, since the hydration markers are inert HTML on their own. Dev keeps the full client runtime, so both halves of HMR work. The production build still emits an unused client chunk under `dist/client`. Dev also carries a client runtime that production does not, so links soft-navigate through the frame runtime in dev while production loads whole documents.
 
+### Client-rendered apps
+
+`remix({ ssr: false })` is the mirror image: everything renders in the browser,
+so component HMR is the whole story and there is no server data to revalidate.
+`<HMR />` resolves to the inert component, and the requirements table above
+does not apply. The client entry is whatever `index.html` loads, and there are
+no server environments to name.
+
+This is also the only mode that currently works under Vite's experimental
+[bundled dev mode](https://github.com/vitejs/vite/discussions/22746),
+component hot-swap included. Server-rendered apps do not: bundled dev serves
+bundle entrypoints only, so the client module URLs a server render writes into
+its HTML resolve to nothing.
+
 ## Limits
 
 **A shared module the browser imports can render stale output.** Editing a non-component module that a hydrated island imports (a constants file, a formatting helper) updates the island's boundary and keeps its state, but the rendered output can keep showing the previous value, including after an interaction re-renders the component. Reload to pick it up. Component modules and server-only modules are the two reliable boundaries.
