@@ -24,7 +24,7 @@ permissions:
     contents: read
 
 jobs:
-    publish:
+    preview:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
