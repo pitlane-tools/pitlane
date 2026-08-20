@@ -115,6 +115,7 @@ Leave it unguarded: in a production build the specifier resolves to a component 
 ```ts
 remix({
     server: true, // default — false selects SPA mode
+    prerender: undefined, // default — true, a path array, a function, or a config object
     clientEntry: "app/entry.browser", // default — false disables the client build
     serverEntry: "app/entry.server", // default
     serverEnvironments: ["ssr"], // default
@@ -122,13 +123,60 @@ remix({
 });
 ```
 
-| Option               | Type              | Default               | Purpose                                                                                                                                                           |
-| -------------------- | ----------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`             | `boolean`         | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                                           |
-| `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                                               |
-| `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                                                |
-| `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                                               |
-| `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` owns dev-time request handling. |
+| Option               | Type                               | Default               | Purpose                                                                                                                                                           |
+| -------------------- | ---------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`             | `boolean`                          | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                                           |
+| `prerender`          | `boolean \| string[] \| fn \| obj` | none                  | Render paths to static HTML at build time. See [Prerendering](#prerendering).                                                                                     |
+| `clientEntry`        | `string \| false`                  | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                                               |
+| `serverEntry`        | `string`                           | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                                                |
+| `serverEnvironments` | `string[]`                         | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                                               |
+| `serverHandler`      | `boolean`                          | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` owns dev-time request handling. |
+
+## Prerendering
+
+`prerender` renders paths to static HTML during `vite build` and writes them
+into the client output, so a CDN answers those URLs and the server never sees
+them. There is no second rendering path: the build sends a `Request` through
+the same fetch handler production runs.
+
+```ts
+remix({ prerender: ["/", "/blog", "/blog/hello-world"] });
+```
+
+`true` prerenders every static path in the app's route map, which the server
+entry exports alongside its handler:
+
+```ts
+// app/entry.server.tsx
+export { routes } from "./routes.ts";
+export default router;
+```
+
+A function computes the list, and gets `getStaticPaths()` for the route-map
+half of it:
+
+```ts
+remix({
+    async prerender({ getStaticPaths }) {
+        let slugs = await getPostSlugsFromCMS();
+        return [...getStaticPaths(), ...slugs.map(slug => `/blog/${slug}`)];
+    },
+});
+```
+
+The object form adds `concurrency`, and `spider` for following the links each
+rendered page contains:
+
+```ts
+remix({ prerender: { paths: ["/"], spider: true, concurrency: 4 } });
+```
+
+Each path lands at `<path>/index.html` under the client output. Rendering runs
+after both builds and the assets manifest, so the HTML names real hashed
+chunks. Unsupported with `server: false`, which builds no server to render
+with.
+Full details in the [prerendering guide](https://pitlane.tools/guides/prerendering);
+the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/).
 
 ## SPA mode
 
