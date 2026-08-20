@@ -47,9 +47,23 @@ export interface RemixPluginOptions {
      * Set to `false` when another plugin owns dev-time request handling —
      * e.g. `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite`.
      *
+     * Ignored in SPA mode (`ssr: false`), which has no fetch handler.
+     *
      * @default true
      */
     serverHandler?: boolean;
+    /**
+     * Server rendering. Pass `false` for SPA mode: the app is client-rendered
+     * only, so no server environment is configured, nothing is built to
+     * `dist/ssr`, and `vite build` emits a static site from `index.html`.
+     *
+     * In SPA mode `serverEntry`, `serverEnvironments`, and `serverHandler` are
+     * ignored — there is no server. `clientEntry` is ignored too: the browser
+     * entry is whatever `index.html` loads.
+     *
+     * @default true
+     */
+    ssr?: boolean;
 }
 
 /**
@@ -76,7 +90,10 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         serverEntry = "app/entry.server",
         serverEnvironments = ["ssr"],
         serverHandler = true,
+        ssr = true,
     } = options;
+
+    if (!ssr) return spa();
 
     let serverEnvironmentSet = new Set(serverEnvironments);
 
@@ -95,6 +112,27 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         hmrComponent(clientEntry),
         clientEntryTransform(serverEnvironmentSet),
         serverDataHmr(serverEnvironmentSet),
+    ];
+}
+
+/**
+ * SPA mode: the subset of `remix()` that applies when nothing renders on a
+ * server. Vite already serves `index.html` and builds it to a static site, so
+ * the only thing left to wire is component hot module replacement — which a
+ * client-rendered app wants just as much as a server-rendered one.
+ *
+ * Everything server-shaped is absent by construction: no server environment,
+ * no `dist/ssr`, no dev fetch handler, and no server-data HMR (there is no
+ * server data to revalidate, so `<HMR />` resolves to the inert component).
+ */
+function spa(): PluginOption {
+    // Every environment is a client one, so no environment name is "server".
+    let serverEnvironmentSet = new Set<string>();
+
+    return [
+        componentHmr(serverEnvironmentSet),
+        hmrComponent(false),
+        clientEntryTransform(serverEnvironmentSet),
     ];
 }
 

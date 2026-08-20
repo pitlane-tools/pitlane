@@ -102,6 +102,38 @@ describe("remix()", () => {
         expect(config?.environments).not.toHaveProperty("client");
         expect(config?.environments).toHaveProperty("ssr");
     });
+
+    it("drops every server-side plugin in SPA mode", () => {
+        let names = pluginsOf(remix({ ssr: false })).map(plugin => plugin.name);
+
+        // Vite already serves and builds index.html; only the HMR wiring and
+        // the clientEntry() transform remain.
+        expect(names).toStrictEqual([
+            "pitlane-remix-component-hmr",
+            "pitlane-remix-hmr-component",
+            "pitlane-remix-client-entry-transform",
+        ]);
+    });
+
+    it("resolves pitlane:dev to the inert component in SPA mode", () => {
+        let plugin = pluginsOf(remix({ ssr: false })).find(
+            entry => entry.name === "pitlane-remix-hmr-component",
+        );
+        if (!plugin || typeof plugin.resolveId !== "function") {
+            throw new Error("pitlane-remix-hmr-component must define a function resolveId hook");
+        }
+
+        // There is no server data to revalidate, so an app that renders <HMR />
+        // gets the component that renders nothing.
+        let resolved = plugin.resolveId.call(
+            { environment: { mode: "dev" } } as never,
+            "pitlane:dev",
+            undefined,
+            { isEntry: false },
+        );
+
+        expect(resolved).toBe("\0pitlane:dev?inert");
+    });
 });
 
 describe("pitlane-remix-suppress-abort-errors", () => {
