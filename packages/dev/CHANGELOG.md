@@ -30,7 +30,7 @@ Build-time prerendering.
 - Prerendered output is written relative to Vite's `base`: an app whose routes
   live under `/repo/` still writes `blog/index.html`, because the host mounts
   the client directory at the base.
-- `remix({ ssr: false, prerender })` throws. Prerendering renders through the
+- `remix({ server: false, prerender })` throws. Prerendering renders through the
   server entry, and SPA mode builds no server.
 - The crawler is a new package,
   [`@pitlane/crawler`](https://pitlane.tools/package/crawler/), installable on
