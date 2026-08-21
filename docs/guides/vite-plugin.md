@@ -108,6 +108,11 @@ server environment, and no `dist/ssr`; `index.html` is the entry, and
 goes unread, and the rest of this guide covers machinery a client-only app
 never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
 
+The switch removes the server, not the server rendering. An app that wants a
+browser-rendered UI in front of routes that still run per request keeps the
+default mode: see [client rendering with a
+server](/guides/spa#client-rendering-with-a-server).
+
 ## The asset runtime
 
 Server-rendered HTML has to name the hashed client assets. The plugin's answer is the `?assets=` import query plus `mergeAssets` from `@pitlane/dev/runtime`:

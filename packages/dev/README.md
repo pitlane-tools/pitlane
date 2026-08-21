@@ -160,6 +160,14 @@ Deploying means pointing every unknown URL at `index.html` so the client router
 can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`,
 on Netlify a `/* /index.html 200` redirect.
 
+`ssr: false` removes the server rather than the server rendering, which is what
+React Router's switch does too. For a browser-rendered UI in front of routes
+that still run per request, stay in the default mode and let the server entry
+answer JSON on its data routes and one shell on its document routes: nothing
+here asks it to render UI. [Client rendering with a
+server](https://pitlane.tools/guides/spa#client-rendering-with-a-server) shows
+the shape.
+
 SPA mode also works under Vite's experimental bundled dev mode
 (`experimental.bundledDev`, or `vite dev --experimentalBundle`), component
 hot-swap included. Server-rendered apps do not yet: bundled dev serves only

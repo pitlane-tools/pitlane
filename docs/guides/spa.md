@@ -19,11 +19,17 @@ export default defineConfig({
 });
 ```
 
-React Router spells the same idea `ssr: false`, so the concept transfers. The
-scope differs. React Router still server-renders your root route at build time
-to produce `index.html`, which keeps every route SSR-safe even in SPA mode.
-Pitlane does not prerender. Your `index.html` is served as written, and no part
-of your app runs outside a browser.
+React Router spells the same idea `ssr: false`, so the concept transfers,
+including the part people expect it to skip. React Router's SPA mode has no
+runtime server either: the build deletes the server bundle when it finishes,
+and a `loader` or `action` on any route it did not prerender is a build error.
+Data comes from `clientLoader` and `clientAction`, in the browser. See
+[SPA Mode](https://reactrouter.com/how-to/spa).
+
+One scope difference remains. React Router still server-renders your root
+route at build time to produce `index.html`, which keeps every route SSR-safe
+even in SPA mode. Pitlane does not prerender. Your `index.html` is served as
+written, and no part of your app runs outside a browser.
 
 ## What the switch changes
 
@@ -219,6 +225,58 @@ Server-rendered apps do not run under it. Bundled dev serves bundle
 entrypoints only, so the client module URLs a server render writes into its
 HTML resolve to nothing. Upstream tracks server environments as Phase 4 of the
 bundled-dev roadmap, and it is still a prototype.
+
+## Client rendering with a server
+
+`ssr: false` is about the server, not about rendering. It removes the server.
+If what you want is the narrower thing, a browser-rendered UI in front of
+routes that still run per request, stay in the default mode instead.
+
+Nothing in `remix()` asks the server entry to render UI. It asks for a fetch
+handler, and a fetch handler is free to answer JSON on its data routes and one
+shell on its document routes:
+
+```tsx
+// app/entry.server.tsx
+import { createRouter } from "remix/router";
+
+import clientAssets from "./entry.browser.tsx?assets=client";
+import { getPosts } from "./posts.ts";
+import { routes } from "./routes.ts";
+
+export let router = createRouter();
+
+router.map(routes.posts, () => Response.json(getPosts()));
+
+router.map(
+    routes.home,
+    () =>
+        new Response(
+            `<!doctype html><html lang="en"><head>` +
+                `<script type="module" src="${clientAssets.entry}"></script>` +
+                `</head><body><div id="app"></div></body></html>`,
+            { headers: { "content-type": "text/html; charset=utf-8" } },
+        ),
+);
+
+export default router;
+```
+
+`remix/ui` never loads on the server here. The browser entry mounts the app
+with `createRoot`, the same call SPA mode uses, and fetches its data from
+routes that are still alive in production. The `?assets=client` import is how
+the shell learns the hashed chunk URL after a build; the
+[Vite plugin guide](/guides/vite-plugin#the-asset-runtime) covers it.
+
+Staying in the default mode keeps `dist/ssr` and a deployable fetch handler,
+sessions and secrets that never reach the browser, `vite preview` against the
+real artifact, and [server-data HMR](/guides/hmr#server-data-hmr). What it
+gives up is the static host.
+
+React Router draws the same line. Its answer to "a route that runs on the
+server and renders no React" is a
+[resource route](https://reactrouter.com/how-to/resource-routes), and resource
+routes need `ssr: true` for the same reason.
 
 ## Choosing between the modes
 
