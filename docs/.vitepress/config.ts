@@ -30,6 +30,7 @@ let guides: DefaultTheme.SidebarItem[] = [
             { text: "Hot Module Replacement", link: "/guides/hmr" },
             { text: "Single-Page Apps", link: "/guides/spa" },
             { text: "Prerendering", link: "/guides/prerendering" },
+            { text: "Crawling", link: "/guides/crawler" },
         ],
     },
     {

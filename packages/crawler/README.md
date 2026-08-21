@@ -33,6 +33,8 @@ Requires `remix@^3.0.0-beta.10` as a peer.
 
 Using the [`remix()` Vite plugin](https://pitlane.tools/package/dev/)? You do not need this package directly — `remix({ prerender })` runs it for you. See the [prerendering guide](https://pitlane.tools/guides/prerendering).
 
+For everything else a walk is good for — static exports, sitemaps, link checks, render smoke tests — see the [crawling guide](https://pitlane.tools/guides/crawler).
+
 ## `crawl(router, options?)`
 
 Returns an async iterator of `{ pathname, filepath, response }`, one per fetched path.
