@@ -19,6 +19,8 @@ jobs:
             fail-fast: false
             matrix:
                 include:
+                    - package: "@pitlane/crawler"
+                      directory: packages/crawler
                     - package: "@pitlane/dev"
                       directory: packages/dev
                     - package: "@pitlane/theme"
@@ -44,6 +46,12 @@ jobs:
             - name: Install Playwright Chromium
               if: matrix.directory == 'packages/dev'
               run: npx playwright install --with-deps chromium
+
+            # Dev fixtures resolve @pitlane/crawler through package exports, which point at build output.
+            - name: Build crawler for dev fixtures
+              if: matrix.directory == 'packages/dev'
+              working-directory: packages/crawler
+              run: vp run build
 
             - name: Run tests
               run: vp test

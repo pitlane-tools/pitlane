@@ -29,6 +29,8 @@ let guides: DefaultTheme.SidebarItem[] = [
             { text: "Vite Plugin", link: "/guides/vite-plugin" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+            { text: "Prerendering", link: "/guides/prerendering" },
+            { text: "Crawling", link: "/guides/crawler" },
         ],
     },
     {
@@ -103,6 +105,7 @@ let config = defineConfig({
                     {
                         text: "Packages",
                         items: [
+                            { text: "@pitlane/crawler", link: "/package/crawler/index" },
                             { text: "@pitlane/dev", link: "/package/dev/index" },
                             {
                                 text: "@pitlane/dev/runtime",
@@ -125,6 +128,7 @@ let config = defineConfig({
         ],
         sidebar: {
             "/package/": [
+                { text: "@pitlane/crawler", link: "/package/crawler/" },
                 { text: "@pitlane/dev", link: "/package/dev/" },
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
                 { text: "@pitlane/theme", link: "/package/theme/" },

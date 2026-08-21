@@ -1,5 +1,42 @@
 # @pitlane/dev
 
+## 0.5.0
+
+Build-time prerendering.
+
+- `remix({ prerender })` renders paths to static HTML during `vite build` and
+  writes them into the client output, so a host answers those URLs and the
+  server never sees them. The API mirrors React Router's: `true` for every
+  static path in the route map, an array for an explicit list, a function
+  receiving `getStaticPaths()` for a list that mixes static and dynamic paths,
+  or an object adding `concurrency`. `spider` is one option beyond that set —
+  it follows the links each rendered page contains, which suits a site whose
+  pages all reach each other.
+- There is no second rendering path. The build sends a `Request` through the
+  same fetch handler production runs, after both environments are built and the
+  assets manifest is written, so the HTML on disk names real hashed chunks
+  rather than dev URLs.
+- `getStaticPaths()` reads the `routes` named export of the built server entry.
+  A Remix 3 router exposes no route table, but the route map it is built from
+  is an ordinary object, so exporting it is all the app has to do. A build that
+  asks for static paths without that export fails with a message saying so.
+- Bundles built for another runtime prerender too, with no extra
+  configuration. Node cannot import a Workers bundle, so when the import
+  fails the build starts the project's own preview server and renders through
+  that: `@cloudflare/vite-plugin` boots workerd with the app's real bindings,
+  and any platform plugin contributing a preview server works the same way. On
+  that path the route map is read from the module the server entry gets it
+  from, since the bundle holding the export is the thing that will not load.
+- Prerendered output is written relative to Vite's `base`: an app whose routes
+  live under `/repo/` still writes `blog/index.html`, because the host mounts
+  the client directory at the base.
+- `remix({ server: false, prerender })` throws. Prerendering renders through the
+  server entry, and SPA mode builds no server.
+- The crawler is a new package,
+  [`@pitlane/crawler`](https://pitlane.tools/package/crawler/), installable on
+  its own. It brings back the `crawl()` API from
+  [remix-run/remix#11150](https://github.com/remix-run/remix/pull/11150).
+
 ## 0.4.0
 
 SPA mode.
