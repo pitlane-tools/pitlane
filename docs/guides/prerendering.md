@@ -147,7 +147,7 @@ because the host mounts that whole directory at the base.
 
 ## Serving the output
 
-With `ssr: true`, which is the default, prerendering is an optimization rather
+With `server: true`, which is the default, prerendering is an optimization rather
 than a deployment mode. The server is still there. Put the client output in
 front of it and requests for a prerendered path never reach the handler; every
 other path renders as usual. A `staticFiles()` middleware in the server entry
@@ -165,9 +165,9 @@ be in the list.
 There is no revalidation mechanism here, and no incremental regeneration.
 Rebuild and redeploy, or leave the path out and let the server render it.
 
-## Not available in SPA mode
+## Not available without a server
 
-`remix({ ssr: false, prerender })` throws. Prerendering renders through the
+`remix({ server: false, prerender })` throws. Prerendering renders through the
 server entry, and [SPA mode](/guides/spa) builds no server, so there is nothing
 to render with. The two are alternatives: SPA mode serves one shell that
 hydrates any path, prerendering serves real HTML per path.
