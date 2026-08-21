@@ -113,7 +113,8 @@ Crawling stops where a crawler should stop: `rel="nofollow"` links,
 `<meta name="robots" content="nofollow">` pages, other origins, and
 non-navigable hrefs like `mailto:`. That is
 [`@pitlane/crawler`](/package/crawler/) underneath, which is installable on its
-own if you want the loop without the plugin.
+own for sitemaps, link checks, and static exports the plugin does not cover.
+The [crawling guide](/guides/crawler) walks through those.
 
 ## Output on disk
 
