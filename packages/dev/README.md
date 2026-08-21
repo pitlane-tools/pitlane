@@ -175,8 +175,16 @@ Each path lands at `<path>/index.html` under the client output. Rendering runs
 after both builds and the assets manifest, so the HTML names real hashed
 chunks. Unsupported with `server: false`, which builds no server to render
 with.
+
+A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and
+friends already contribute a preview server, so when the import fails the
+build starts that server and renders through it, inside the runtime that will
+serve the pages. Nothing extra to configure.
+
 Full details in the [prerendering guide](https://pitlane.tools/guides/prerendering);
-the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/).
+the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/),
+and the [crawling guide](https://pitlane.tools/guides/crawler) covers using it
+on its own.
 
 ## SPA mode
 

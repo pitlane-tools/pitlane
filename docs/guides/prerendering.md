@@ -172,9 +172,47 @@ server entry, and [SPA mode](/guides/spa) builds no server, so there is nothing
 to render with. The two are alternatives: SPA mode serves one shell that
 hydrates any path, prerendering serves real HTML per path.
 
-## Non-Node server bundles
+## Bundles Node cannot run
 
-Prerendering imports the built server bundle into the Vite build process, so it
-needs a bundle Node can run. A Workers bundle that imports `cloudflare:workers`
-cannot be, and the build says as much instead of failing obscurely. Deploy
-targets with their own runtime render at request time.
+Prerendering imports the built server bundle and calls its fetch handler in the
+build process. A bundle built for another runtime does not load there. A
+Workers bundle opens with `import { env } from "cloudflare:workers"`, which
+Node has no answer for.
+
+That is not a restriction on prerendering, only on how the request gets to the
+app. When the import fails, the build starts the project's own preview server
+and renders through that instead:
+
+```ts
+// vite.config.ts
+import { cloudflare } from "@cloudflare/vite-plugin";
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ prerender: true }), cloudflare()],
+});
+```
+
+Nothing there names the runtime twice. `@cloudflare/vite-plugin` already
+supplies a preview server that boots workerd with the app's real bindings, so
+the pages written to `dist/client` come from the runtime that will serve them.
+`env` reads resolve, and `navigator.userAgent` says `Cloudflare-Workers`. The
+same holds for any platform plugin that contributes a preview server.
+
+One thing does change on this path. `getStaticPaths()` normally reads the
+`routes` export off the built bundle, and that bundle is the thing that will
+not load. So the build follows the export back to its source instead:
+
+```ts
+// app/entry.server.tsx
+import { routes } from "./routes.ts";
+
+export { routes };
+export default router;
+```
+
+Either spelling works. `export { routes } from "./routes.ts"` says the same
+thing in one line. What the build needs is a module to point at. A route map
+written inline in the server entry has none, and the build says so; move it to
+its own file, which is where it belongs anyway.

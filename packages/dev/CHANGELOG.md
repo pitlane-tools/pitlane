@@ -20,6 +20,13 @@ Build-time prerendering.
   A Remix 3 router exposes no route table, but the route map it is built from
   is an ordinary object, so exporting it is all the app has to do. A build that
   asks for static paths without that export fails with a message saying so.
+- Bundles built for another runtime prerender too, with no extra
+  configuration. Node cannot import a Workers bundle, so when the import
+  fails the build starts the project's own preview server and renders through
+  that: `@cloudflare/vite-plugin` boots workerd with the app's real bindings,
+  and any platform plugin contributing a preview server works the same way. On
+  that path the route map is read from the module the server entry gets it
+  from, since the bundle holding the export is the thing that will not load.
 - Prerendered output is written relative to Vite's `base`: an app whose routes
   live under `/repo/` still writes `blog/index.html`, because the host mounts
   the client directory at the base.
