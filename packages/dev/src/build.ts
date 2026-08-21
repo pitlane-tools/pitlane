@@ -276,7 +276,7 @@ export function build({ clientEntry, serverEntry, prerender: paths }: BuildPlugi
             // Last: the server entry only resolves real client asset URLs once
             // both builds and the manifest are on disk.
             if (paths !== undefined) {
-                for (let written of await prerender(builder, paths)) {
+                for (let written of await prerender(builder, paths, serverEntry)) {
                     this.info(`prerendered ${written}`);
                 }
             }

@@ -5,7 +5,9 @@ import type { ResolvedConfig, ViteBuilder } from "vite";
 import { crawl, staticPaths } from "@pitlane/crawler";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as url from "node:url";
+
+import { openTarget, serverEntryPath } from "./prerender-target.ts";
+import { loadRouteMap } from "./route-map.ts";
 
 /**
  * What a `prerender` function receives.
@@ -62,15 +64,6 @@ export interface PrerenderConfig {
 
 export type PrerenderOption = PrerenderPathsOption | PrerenderConfig;
 
-/**
- * The server entry contract, plus the optional route map a `prerender`
- * function needs for `getStaticPaths()`.
- */
-interface ServerEntry {
-    default?: { fetch(request: Request): Response | Promise<Response> };
-    routes?: RouteMap;
-}
-
 function isPrerenderConfig(option: PrerenderOption): option is PrerenderConfig {
     return typeof option === "object" && !Array.isArray(option);
 }
@@ -87,9 +80,14 @@ function isPrerenderConfig(option: PrerenderOption): option is PrerenderConfig {
  *
  * @param builder The Vite builder mid-`buildApp`.
  * @param option The plugin's `prerender` option.
+ * @param serverEntry The plugin's `serverEntry` option.
  * @returns The paths written, in completion order.
  */
-export async function prerender(builder: ViteBuilder, option: PrerenderOption): Promise<string[]> {
+export async function prerender(
+    builder: ViteBuilder,
+    option: PrerenderOption,
+    serverEntry: string,
+): Promise<string[]> {
     let config = isPrerenderConfig(option) ? option : { paths: option };
     let { paths = true, concurrency = 1, spider = false } = config;
     if (paths === false) return [];
@@ -100,74 +98,56 @@ export async function prerender(builder: ViteBuilder, option: PrerenderOption): 
         throw new Error("[@pitlane/dev] prerender needs both an ssr and a client environment.");
     }
 
-    let entry = await loadServerEntry(ssrConfig);
-    let handler = entry.default;
-    if (!handler || typeof handler.fetch !== "function") {
-        throw new Error(
-            `[@pitlane/dev] prerender needs ${serverEntryPath(ssrConfig)} to default-export a ` +
-                `fetch handler (an object with fetch(request: Request)), e.g. ` +
-                `\`export default router\`.`,
-        );
-    }
-
-    let resolved = await resolvePaths(paths, entry, ssrConfig);
-    if (resolved.length === 0) return [];
-
+    let target = await openTarget(ssrConfig);
     let outDir = path.resolve(clientConfig.root, clientConfig.build.outDir);
     let written: string[] = [];
 
-    for await (let result of crawl(handler, {
-        paths: resolved,
-        spider,
-        // Vite already emitted every asset the pages reference. Fetching them
-        // back out of the router would duplicate the client build at best, and
-        // fail the crawl on a 404 for apps that serve no static files.
-        assets: false,
-        concurrency,
-    })) {
-        written.push(await writeResult(result, outDir, clientConfig.base));
+    try {
+        // An explicit path array is the whole answer already, so a bundle this
+        // process cannot import never pays for the source route map.
+        let routes =
+            target.routes ??
+            (Array.isArray(paths) ? undefined : await loadRouteMap(ssrConfig, serverEntry));
+
+        let resolved = await resolvePaths(paths, routes, ssrConfig);
+        if (resolved.length === 0) return [];
+
+        for await (let result of crawl(target, {
+            paths: resolved,
+            spider,
+            // Vite already emitted every asset the pages reference. Fetching
+            // them back out of the router would duplicate the client build at
+            // best, and fail the crawl on a 404 for apps that serve no static
+            // files.
+            assets: false,
+            concurrency,
+        })) {
+            written.push(await writeResult(result, outDir, clientConfig.base));
+        }
+    } catch (error) {
+        if (!target.viaPreviewServer) throw error;
+        throw new Error(
+            `[@pitlane/dev] prerender rendered through this project's preview server, because ` +
+                `${serverEntryPath(ssrConfig)} is a bundle built for another runtime that Node ` +
+                `cannot import. The preview server has to answer the paths being prerendered, ` +
+                `which is the platform plugin's job (\`@cloudflare/vite-plugin\` and the like).`,
+            { cause: error },
+        );
+    } finally {
+        await target.close();
     }
 
     return written;
 }
 
-/**
- * Imports the built server entry. Dynamic by necessity: the specifier is a
- * runtime-computed path into the app's own build output.
- *
- * The bundle's modification time rides along in the URL. Node's module
- * registry is keyed on the specifier, so without it a second build in the same
- * process (a watch rebuild, or one test after another) would prerender through
- * the first build's handler.
- */
-async function loadServerEntry(ssrConfig: ResolvedConfig): Promise<ServerEntry> {
-    let entryPath = serverEntryPath(ssrConfig);
-    try {
-        let specifier = url.pathToFileURL(entryPath);
-        specifier.searchParams.set("t", String((await fs.stat(entryPath)).mtimeMs));
-        return (await import(/* @vite-ignore */ specifier.href)) as ServerEntry;
-    } catch (error) {
-        throw new Error(
-            `[@pitlane/dev] prerender could not import ${entryPath}. Prerendering runs the ` +
-                `server bundle in this Node process, so it cannot render a bundle built for ` +
-                `another runtime (a Workers bundle importing \`cloudflare:workers\`, for one).`,
-            { cause: error },
-        );
-    }
-}
-
-function serverEntryPath(ssrConfig: ResolvedConfig): string {
-    return path.resolve(ssrConfig.root, ssrConfig.build.outDir, "index.js");
-}
-
 async function resolvePaths(
     // `false` is handled by the caller, which has nothing to render at all.
     paths: Exclude<PrerenderPathsOption, false>,
-    entry: ServerEntry,
+    routes: RouteMap | undefined,
     ssrConfig: ResolvedConfig,
 ): Promise<string[]> {
     let getStaticPaths = () => {
-        if (!entry.routes) {
+        if (!routes) {
             throw new Error(
                 `[@pitlane/dev] prerender needs ${serverEntryPath(ssrConfig)} to export its ` +
                     `route map to enumerate static paths: \`export { routes } from ` +
@@ -175,7 +155,7 @@ async function resolvePaths(
                     `if the app has no route map.`,
             );
         }
-        return staticPaths(entry.routes);
+        return staticPaths(routes);
     };
 
     if (paths === true) return getStaticPaths();
