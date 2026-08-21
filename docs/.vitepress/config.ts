@@ -27,6 +27,7 @@ let guides: DefaultTheme.SidebarItem[] = [
         items: [
             { text: "Styling", link: "/guides/styling" },
             { text: "Vite Plugin", link: "/guides/vite-plugin" },
+            { text: "File System Routing", link: "/guides/file-system-routing" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
             { text: "Single-Page Apps", link: "/guides/spa" },
             { text: "Prerendering", link: "/guides/prerendering" },
