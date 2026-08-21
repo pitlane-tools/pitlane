@@ -73,6 +73,7 @@ Every option has a sensible default. Most projects pass none.
 
 ```ts
 remix({
+    server: true, // false selects SPA mode
     clientEntry: "app/entry.browser", // false disables the client build
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
@@ -82,10 +83,35 @@ remix({
 
 | Option               | Type              | Default               | Purpose                                                                                                                                  |
 | -------------------- | ----------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`             | `boolean`         | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                  |
 | `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                      |
 | `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                       |
 | `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                      |
 | `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+
+## SPA mode
+
+Some apps have no server: the router runs in the browser, the build is a
+folder of static files. `remix({ server: false })` targets those. React Router
+spells the same switch `ssr: false`.
+
+```ts
+// vite.config.ts
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
+```
+
+The three-file core collapses to one. There is no `app/entry.server.tsx`, no
+server environment, and no `dist/ssr`; `index.html` is the entry, and
+`vite build` emits a static site beside it. Every other option on this page
+goes unread, and the rest of this guide covers machinery a client-only app
+never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
+
+The switch removes the server, not the server rendering. An app that wants a
+browser-rendered UI in front of routes that still run per request keeps the
+default mode: see [client rendering with a
+server](/guides/spa#client-rendering-with-a-server).
 
 ## The asset runtime
 

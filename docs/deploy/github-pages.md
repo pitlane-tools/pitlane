@@ -1,6 +1,6 @@
 ---
 title: Deploy to GitHub Pages
-description: Deploy a client-only Remix 3 app to GitHub Pages — plain Vite, no server, no @pitlane/dev.
+description: "Deploy a client-only Remix 3 app to GitHub Pages with remix({ server: false }), covering the base path and the 404.html fallback a project site needs."
 ---
 
 # GitHub Pages
@@ -11,7 +11,7 @@ description: Deploy a client-only Remix 3 app to GitHub Pages — plain Vite, no
 `npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 :::
 
-A client-only app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds the site.
+A client-only app runs `remix()` in [SPA mode](/guides/spa): `server: false` turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), which is why it earns its place in a static build.
 
 ## Setup
 
@@ -60,16 +60,25 @@ createRoot(document.getElementById("app")!).render(<App />);
 { "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
 ```
 
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
+```
+
 ## The two GitHub Pages quirks
 
 **Base path.** A project site is served from `https://<user>.github.io/<repo>/`, so Vite needs the base configured or every asset URL 404s:
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite";
-
 export default defineConfig({
     base: "/<repo>/",
+    plugins: [remix({ server: false })],
 });
 ```
 
