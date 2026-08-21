@@ -1,6 +1,6 @@
 ---
 title: Deploy to GitHub Pages
-description: "Deploy a client-only Remix 3 app to GitHub Pages with remix({ ssr: false }), covering the base path and the 404.html fallback a project site needs."
+description: "Deploy a client-only Remix 3 app to GitHub Pages with remix({ server: false }), covering the base path and the 404.html fallback a project site needs."
 ---
 
 # GitHub Pages
@@ -11,7 +11,7 @@ description: "Deploy a client-only Remix 3 app to GitHub Pages with remix({ ssr:
 `npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 :::
 
-A client-only app runs `remix()` in [SPA mode](/guides/spa): `ssr: false` turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), which is why it earns its place in a static build.
+A client-only app runs `remix()` in [SPA mode](/guides/spa): `server: false` turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), which is why it earns its place in a static build.
 
 ## Setup
 
@@ -66,7 +66,7 @@ import { remix } from "@pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [remix({ ssr: false })],
+    plugins: [remix({ server: false })],
 });
 ```
 
@@ -78,7 +78,7 @@ export default defineConfig({
 // vite.config.ts
 export default defineConfig({
     base: "/<repo>/",
-    plugins: [remix({ ssr: false })],
+    plugins: [remix({ server: false })],
 });
 ```
 

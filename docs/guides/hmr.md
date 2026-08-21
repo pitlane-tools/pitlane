@@ -167,7 +167,7 @@ Production drops the tag and serves zero JavaScript, since the hydration markers
 
 ### Client-rendered apps
 
-`remix({ ssr: false })` is the mirror image: everything renders in the browser,
+`remix({ server: false })` is the mirror image: everything renders in the browser,
 so component HMR is the whole story and there is no server data to revalidate.
 `<HMR />` resolves to the inert component, and the requirements table above
 does not apply. The client entry is whatever `index.html` loads, and there are

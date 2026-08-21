@@ -114,7 +114,7 @@ Leave it unguarded: in a production build the specifier resolves to a component 
 
 ```ts
 remix({
-    ssr: true, // default — false selects SPA mode
+    server: true, // default — false selects SPA mode
     clientEntry: "app/entry.browser", // default — false disables the client build
     serverEntry: "app/entry.server", // default
     serverEnvironments: ["ssr"], // default
@@ -124,7 +124,7 @@ remix({
 
 | Option               | Type              | Default               | Purpose                                                                                                                                                           |
 | -------------------- | ----------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ssr`                | `boolean`         | `true`                | Server rendering. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                                                       |
+| `server`             | `boolean`         | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                                           |
 | `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                                               |
 | `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                                                |
 | `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                                               |
@@ -132,9 +132,9 @@ remix({
 
 ## SPA mode
 
-Some apps render entirely in the browser — a static host, a router that never
-touches a server. `remix({ ssr: false })` targets those, the same switch React
-Router spells `ssr: false`:
+Some apps have no server — a static host, a router that never touches one.
+`remix({ server: false })` targets those. React Router spells the same switch
+`ssr: false`:
 
 ```ts
 // vite.config.ts
@@ -142,7 +142,7 @@ import { remix } from "@pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [remix({ ssr: false })],
+    plugins: [remix({ server: false })],
 });
 ```
 
@@ -151,20 +151,19 @@ There is no server environment, nothing is built to `dist/ssr`, and
 remaining job is the one a SPA still wants: component HMR. Editing a component
 swaps it in place and keeps live state, arrow forms included.
 
-`serverEntry`, `serverEnvironments`, `serverHandler`, and `clientEntry` are
-ignored — the browser entry is whatever `index.html` loads. `<HMR />` from
-`pitlane:dev` resolves to the inert component, because there is no server data
-to revalidate.
+Every `server*` option goes with it, and `clientEntry` too — the browser entry
+is whatever `index.html` loads. `<HMR />` from `pitlane:dev` resolves to the
+inert component, because there is no server data to revalidate.
 
 Deploying means pointing every unknown URL at `index.html` so the client router
 can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`,
 on Netlify a `/* /index.html 200` redirect.
 
-`ssr: false` removes the server rather than the server rendering, which is what
-React Router's switch does too. For a browser-rendered UI in front of routes
+The option removes the server, not the server rendering, which is what React
+Router's `ssr: false` does too. For a browser-rendered UI in front of routes
 that still run per request, stay in the default mode and let the server entry
-answer JSON on its data routes and one shell on its document routes: nothing
-here asks it to render UI. [Client rendering with a
+answer JSON on its data routes and one `remix/ui` shell on its document
+routes: nothing here asks it to render app UI. [Client rendering with a
 server](https://pitlane.tools/guides/spa#client-rendering-with-a-server) shows
 the shape.
 

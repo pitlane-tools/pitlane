@@ -73,7 +73,7 @@ Every option has a sensible default. Most projects pass none.
 
 ```ts
 remix({
-    ssr: true, // false selects SPA mode
+    server: true, // false selects SPA mode
     clientEntry: "app/entry.browser", // false disables the client build
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
@@ -83,7 +83,7 @@ remix({
 
 | Option               | Type              | Default               | Purpose                                                                                                                                  |
 | -------------------- | ----------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `ssr`                | `boolean`         | `true`                | Server rendering. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                              |
+| `server`             | `boolean`         | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                  |
 | `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                      |
 | `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                       |
 | `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                      |
@@ -91,14 +91,14 @@ remix({
 
 ## SPA mode
 
-Some apps never touch a server: the router runs in the browser, the build is a
-folder of static files. `remix({ ssr: false })` targets those, the same switch
-React Router spells `ssr: false`.
+Some apps have no server: the router runs in the browser, the build is a
+folder of static files. `remix({ server: false })` targets those. React Router
+spells the same switch `ssr: false`.
 
 ```ts
 // vite.config.ts
 export default defineConfig({
-    plugins: [remix({ ssr: false })],
+    plugins: [remix({ server: false })],
 });
 ```
 
