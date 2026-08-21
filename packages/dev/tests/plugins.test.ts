@@ -104,7 +104,7 @@ describe("remix()", () => {
     });
 
     it("drops every server-side plugin in SPA mode", () => {
-        let names = pluginsOf(remix({ ssr: false })).map(plugin => plugin.name);
+        let names = pluginsOf(remix({ server: false })).map(plugin => plugin.name);
 
         // Vite already serves and builds index.html; only the HMR wiring and
         // the clientEntry() transform remain.
@@ -116,7 +116,7 @@ describe("remix()", () => {
     });
 
     it("resolves pitlane:dev to the inert component in SPA mode", () => {
-        let plugin = pluginsOf(remix({ ssr: false })).find(
+        let plugin = pluginsOf(remix({ server: false })).find(
             entry => entry.name === "pitlane-remix-hmr-component",
         );
         if (!plugin || typeof plugin.resolveId !== "function") {

@@ -26,6 +26,21 @@ export interface RemixPluginOptions {
      */
     clientEntry?: string | false;
     /**
+     * Whether the app has a server at all. Pass `false` for SPA mode: no
+     * server environment is configured, nothing is built to `dist/ssr`, and
+     * `vite build` emits a static site from `index.html`.
+     *
+     * This is about the server, not about server rendering. With `false`
+     * every `server*` option below goes with it, because there is no server
+     * for them to describe, and `clientEntry` goes too: the browser entry is
+     * whatever `index.html` loads. An app that wants its UI rendered in the
+     * browser while its routes still answer per request keeps `true` and
+     * writes a server entry that serves data and a shell.
+     *
+     * @default true
+     */
+    server?: boolean;
+    /**
      * Server entry module, built as `dist/ssr/index.js`. Must default-export
      * a fetch handler: an object exposing
      * `fetch(request: Request): Response | Promise<Response>`, e.g. a
@@ -47,23 +62,11 @@ export interface RemixPluginOptions {
      * Set to `false` when another plugin owns dev-time request handling —
      * e.g. `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite`.
      *
-     * Ignored in SPA mode (`ssr: false`), which has no fetch handler.
+     * Ignored when `server` is `false`, which has no fetch handler.
      *
      * @default true
      */
     serverHandler?: boolean;
-    /**
-     * Server rendering. Pass `false` for SPA mode: the app is client-rendered
-     * only, so no server environment is configured, nothing is built to
-     * `dist/ssr`, and `vite build` emits a static site from `index.html`.
-     *
-     * In SPA mode `serverEntry`, `serverEnvironments`, and `serverHandler` are
-     * ignored — there is no server. `clientEntry` is ignored too: the browser
-     * entry is whatever `index.html` loads.
-     *
-     * @default true
-     */
-    ssr?: boolean;
 }
 
 /**
@@ -87,13 +90,13 @@ export interface RemixPluginOptions {
 export function remix(options: RemixPluginOptions = {}): PluginOption {
     let {
         clientEntry = "app/entry.browser",
+        server = true,
         serverEntry = "app/entry.server",
         serverEnvironments = ["ssr"],
         serverHandler = true,
-        ssr = true,
     } = options;
 
-    if (!ssr) return spa();
+    if (!server) return spa();
 
     let serverEnvironmentSet = new Set(serverEnvironments);
 
@@ -116,9 +119,9 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
 }
 
 /**
- * SPA mode: the subset of `remix()` that applies when nothing renders on a
- * server. Vite already serves `index.html` and builds it to a static site, so
- * the only thing left to wire is component hot module replacement — which a
+ * SPA mode: the subset of `remix()` that applies when there is no server.
+ * Vite already serves `index.html` and builds it to a static site, so the only
+ * thing left to wire is component hot module replacement — which a
  * client-rendered app wants just as much as a server-rendered one.
  *
  * Everything server-shaped is absent by construction: no server environment,

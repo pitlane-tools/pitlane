@@ -1,7 +1,7 @@
 # spa-app fixture
 
 A minimal client-rendered Remix 3 app wired through the local `remix()` plugin
-in SPA mode (`ssr: false`), used two ways:
+in SPA mode (`server: false`), used two ways:
 
 - **Automated** — `tests/e2e/spa.browser.test.ts` boots this app against both
   dev pipelines (unbundled and bundled) and edits the files below to assert
