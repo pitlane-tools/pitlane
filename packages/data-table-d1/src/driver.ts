@@ -7,10 +7,12 @@ import type {
     TransactionToken,
 } from "remix/data-table";
 
-import { getTablePrimaryKey } from "remix/data-table";
+import { getTableName, getTablePrimaryKey } from "remix/data-table";
 
 import type { D1Binding, D1Meta, D1Result } from "./d1.ts";
+import type { D1StatementObserver } from "./observer.ts";
 
+import { report } from "./observer.ts";
 import { compileSqliteOperation } from "./sql-compiler.ts";
 
 type Operation = DataManipulationRequest["operation"];
@@ -44,9 +46,11 @@ const NO_TRANSACTIONS =
  */
 export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
     #d1: D1Binding;
+    #onStatement: D1StatementObserver | undefined;
 
-    constructor(d1: D1Binding) {
+    constructor(d1: D1Binding, onStatement?: D1StatementObserver) {
         this.#d1 = d1;
+        this.#onStatement = onStatement;
     }
 
     get dialect(): "sqlite" {
@@ -75,6 +79,10 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
             .prepare(statement.text)
             .bind(...values)
             .all();
+
+        // After the await, so a statement that throws is never reported: D1
+        // returns no `meta` for one, and a zeroed report would read as free.
+        report(this.#onStatement, operation.kind, tableName(operation), result.meta);
 
         // One `all()` covers both shapes. The SQLite driver picks between
         // `all()` and `run()` by asking the prepared statement whether it
@@ -168,6 +176,11 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
     async releaseSavepoint(_token: TransactionToken, _name: string): Promise<void> {
         throw new Error(NO_TRANSACTIONS);
     }
+}
+
+/** The table an operation targeted. A raw statement names none. */
+function tableName(operation: Operation): string | undefined {
+    return operation.kind === "raw" ? undefined : getTableName(operation.table);
 }
 
 /**

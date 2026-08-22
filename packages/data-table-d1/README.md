@@ -36,7 +36,7 @@ What it can reuse is the SQL. This package pairs the SQLite SQL compiler with a 
 
 ### `createD1Database(binding, options?)`
 
-Wraps a D1 binding in a `Database`. `binding` is `env.DB`; `options` is forwarded to `Database`.
+Wraps a D1 binding in a `Database`. `binding` is `env.DB`; `options` takes everything `Database` takes, plus `onStatement`.
 
 ### `D1Database`
 
@@ -50,6 +50,40 @@ The bare `DatabaseDriver<"sqlite">`, for handing to `Database` directly or wrapp
 
 The slice of D1 this package uses: `prepare`, `batch`, `exec`. A real binding satisfies it, and so does a test double.
 
+### `onStatement`
+
+Called after each executed statement with what it cost:
+
+```ts
+let usage = { rowsRead: 0, rowsWritten: 0 };
+
+let db = createD1Database(env.DB, {
+    onStatement({ rowsRead, rowsWritten }) {
+        usage.rowsRead += rowsRead;
+        usage.rowsWritten += rowsWritten;
+    },
+});
+```
+
+D1 bills on rows read and written, and its analytics report per database rather than per query, so this is the only way to attribute cost to the query or the request that caused it. The figures ride on responses the driver already reads, so it costs no extra statement and no extra billable operation.
+
+The report is `{ kind, table, rowsRead, rowsWritten, durationMs }`. It runs once per statement on the hot path, so keep it cheap. Anything it throws is swallowed rather than failing the statement it was measuring. A statement that throws is not reported, because D1 returns no metadata for one and a zeroed entry would read as free. Figures D1 omits come through as `0`, never estimated.
+
+### Reuse the database
+
+A binding is stable for the isolate, so build the database once rather than per request:
+
+```ts
+let db: D1Database | null = null;
+
+export default {
+    fetch(request, env) {
+        db ??= createD1Database(env.DB);
+        // …
+    },
+};
+```
+
 ## What D1 cannot do
 
 **Transactions and savepoints throw.** D1 rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer and offers `d1.batch()` instead, which takes every statement up front. That cannot express the interleaved begin/execute/commit a `Database` transaction drives, so the driver reports `savepoints: false` and `transactionalDdl: false` and throws a message pointing at `batch()`. Failing at the call beats failing halfway through a write that cannot be rolled back.
@@ -57,6 +91,12 @@ The slice of D1 this package uses: `prepare`, `batch`, `exec`. A real binding sa
 **`wipe()` drops tables rather than deleting a file.** There is no file. D1's own `_cf_*` bookkeeping and SQLite's `sqlite_*` tables are left alone; dropping either breaks the binding.
 
 Everything else — `returning`, upserts, bulk inserts, migrations, schema inspection — works.
+
+## Prior art
+
+[`@pkg/data-table-d1`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-d1) by Sergio Xalambrí solves the same problem, and `onStatement` is its idea. It differs on transactions: it runs them non-atomically and warns loudly, so shared code that calls `transaction()` still runs on D1. This package throws instead, on the grounds that a silent loss of atomicity is worse than a loud failure. Both readings are defensible; that one is the difference to know about if you are choosing between them.
+
+Its sibling [`@pkg/data-table-sqlstorage`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-sqlstorage) covers Durable Object SQLite, which is synchronous and does support real transactions.
 
 ## Provenance
 

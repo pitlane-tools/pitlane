@@ -3,6 +3,7 @@ import { column as c, table } from "remix/data-table";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { D1Binding } from "./d1.ts";
+import type { D1StatementReport } from "./observer.ts";
 
 import { createD1Database, type D1Database } from "./database.ts";
 
@@ -16,6 +17,14 @@ let Post = table({
         id: c.integer().primaryKey(),
         title: c.text().notNull(),
         views: c.integer(),
+    },
+});
+
+let Post2 = table({
+    name: "metered",
+    columns: {
+        id: c.integer().primaryKey(),
+        title: c.text().notNull(),
     },
 });
 
@@ -108,5 +117,59 @@ describe("against real workerd", () => {
 
         await db.executeScript("create table post (id integer primary key, title text not null)");
         expect(await db.hasTable({ name: "post" })).toBe(true);
+    });
+});
+
+// The guide tells people to run migrations and multi-statement scripts through
+// the driver. Both were claims until this suite made them assertions.
+describe("migrations against real workerd", () => {
+    it("runs a multi-statement script", async () => {
+        await db.executeScript(
+            "create table alpha (id integer primary key);\ncreate table beta (id integer primary key);",
+        );
+
+        expect(await db.hasTable({ name: "alpha" })).toBe(true);
+        expect(await db.hasTable({ name: "beta" })).toBe(true);
+    });
+
+    it("applies migrations and records them as applied", async () => {
+        let result = await db.migrate([
+            {
+                id: "0001",
+                name: "create_widget",
+                up: "create table widget (id integer primary key)",
+            },
+        ]);
+
+        expect(result.applied.map(entry => entry.id)).toEqual(["0001"]);
+        expect(await db.hasTable({ name: "widget" })).toBe(true);
+
+        // Re-running is a no-op, which is the whole point of journalling.
+        let again = await db.migrate([
+            {
+                id: "0001",
+                name: "create_widget",
+                up: "create table widget (id integer primary key)",
+            },
+        ]);
+        expect(again.applied).toEqual([]);
+    });
+});
+
+describe("statement cost against real workerd", () => {
+    it("reports the rows D1 actually read and wrote", async () => {
+        let seen: D1StatementReport[] = [];
+        let observed = createD1Database((await mf.getD1Database("DB")) as unknown as D1Binding, {
+            onStatement: report => seen.push(report),
+        });
+
+        await observed.executeScript("create table metered (id integer primary key, title text)");
+        await observed.create(Post2, { title: "counted" });
+
+        // Real figures off D1's own meta, not the double's script.
+        expect(seen).toHaveLength(1);
+        expect(seen[0]?.kind).toBe("insert");
+        expect(seen[0]?.table).toBe("metered");
+        expect(seen[0]?.rowsWritten).toBeGreaterThan(0);
     });
 });

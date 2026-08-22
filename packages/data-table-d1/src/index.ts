@@ -10,5 +10,6 @@
  * @module @pitlane/data-table-d1
  */
 export type { D1Binding, D1Meta, D1PreparedStatement, D1Result } from "./d1.ts";
-export { createD1Database, D1Database } from "./database.ts";
+export { createD1Database, D1Database, type D1DatabaseOptions } from "./database.ts";
 export { D1DatabaseDriver } from "./driver.ts";
+export type { D1StatementObserver, D1StatementReport } from "./observer.ts";

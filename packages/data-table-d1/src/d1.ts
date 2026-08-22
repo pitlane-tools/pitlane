@@ -27,4 +27,10 @@ export interface D1Meta {
     changes: number;
     /** Rowid of the last inserted row, meaningful only after an insert. */
     last_row_id: number;
+    /** Rows D1 scanned. Billed, and absent on some responses. */
+    rows_read?: number;
+    /** Rows D1 persisted. Billed, and absent on some responses. */
+    rows_written?: number;
+    /** Wall time D1 spent on the statement, in milliseconds. */
+    duration?: number;
 }

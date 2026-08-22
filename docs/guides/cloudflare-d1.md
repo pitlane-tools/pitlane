@@ -100,6 +100,49 @@ console.log(result.applied.map(entry => entry.id));
 For a deployed database this runs through `wrangler d1 execute` or a one-off
 Worker, because the binding only exists inside the runtime.
 
+## Knowing what a query cost
+
+D1 bills on rows read and rows written, and its analytics report per database.
+That tells you the app got expensive, not which query did it. Every D1 response
+already carries the numbers per statement, and the driver already reads that
+metadata, so `onStatement` hands them over instead of discarding them:
+
+```ts
+let usage = { rowsRead: 0, rowsWritten: 0 };
+
+let db = createD1Database(env.DB, {
+    onStatement({ kind, table, rowsRead, rowsWritten, durationMs }) {
+        usage.rowsRead += rowsRead;
+        usage.rowsWritten += rowsWritten;
+    },
+});
+```
+
+The numbers come free, on responses the driver reads anyway. Attach the observer
+to a request-scoped object and a slow endpoint tells you which table it read a
+million rows from.
+
+It runs once per statement on the hot path, so keep it cheap. Anything it throws
+is swallowed, because measuring a write must not be able to fail it. A statement
+that throws is not reported, since D1 returns no metadata for one and a zeroed
+entry would read as free.
+
+## Reuse the database
+
+The binding is stable for the isolate, so build the database once rather than
+per request:
+
+```ts
+let db: D1Database | null = null;
+
+export default {
+    fetch(request, env) {
+        db ??= createD1Database(env.DB);
+        // …
+    },
+};
+```
+
 ## What D1 will not do
 
 Two things the driver reports rather than emulates.

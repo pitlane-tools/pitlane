@@ -26,6 +26,13 @@ Initial release.
 - Raw statements always come back with a rows array. The SQLite driver asks a
   prepared statement whether it returns columns; D1 exposes no equivalent, and
   its `all()` carries both `results` and `meta` regardless.
+- `onStatement` reports what each statement cost —
+  `{ kind, table, rowsRead, rowsWritten, durationMs }` — off the `meta` D1
+  already returns. D1 bills on rows read and written and reports analytics per
+  database, so this is the only per-query attribution available, and it costs
+  no extra statement. Observer throws are swallowed, statements that throw are
+  not reported, and figures D1 omits come through as `0` rather than estimated.
+  The idea is [`@pkg/data-table-d1`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-d1)'s.
 - The D1 API is declared structurally, so the package pulls in no Cloudflare
   types and no ambient globals.
 - `src/sql-compiler.ts` is vendored verbatim from

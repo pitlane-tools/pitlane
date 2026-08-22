@@ -11,6 +11,9 @@ export interface D1DoubleOptions {
     rows?: Record<string, unknown>[][];
     changes?: number;
     lastRowId?: number;
+    rowsRead?: number;
+    rowsWritten?: number;
+    durationMs?: number;
 }
 
 /**
@@ -65,6 +68,9 @@ export class D1Double implements D1Binding {
             meta: {
                 changes: this.#options.changes ?? 0,
                 last_row_id: this.#options.lastRowId ?? 0,
+                rows_read: this.#options.rowsRead,
+                rows_written: this.#options.rowsWritten,
+                duration: this.#options.durationMs,
             },
         };
     }

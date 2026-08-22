@@ -1,6 +1,8 @@
 import { column as c, table } from "remix/data-table";
 import { describe, expect, it } from "vitest";
 
+import type { D1StatementReport } from "./observer.ts";
+
 import { D1Double } from "./d1-double.ts";
 import { createD1Database } from "./database.ts";
 
@@ -155,5 +157,69 @@ describe("wipe", () => {
         await createD1Database(d1).wipe();
 
         expect(d1.batches).toEqual([]);
+    });
+});
+
+describe("statement reporting", () => {
+    it("hands the caller what D1 says the statement cost", async () => {
+        let d1 = new D1Double({ rows: [[{ id: 1, title: "x" }]], rowsRead: 4, durationMs: 2.5 });
+        let seen: D1StatementReport[] = [];
+
+        await createD1Database(d1, { onStatement: report => seen.push(report) })
+            .query(Post)
+            .all();
+
+        // Attribution per query, which D1's own per-database analytics cannot
+        // give, off metadata the driver already reads.
+        expect(seen).toEqual([
+            { kind: "select", table: "post", rowsRead: 4, rowsWritten: 0, durationMs: 2.5 },
+        ]);
+    });
+
+    it("reports zero rather than guessing when D1 omits the figures", async () => {
+        let d1 = new D1Double({ changes: 1 });
+        let seen: D1StatementReport[] = [];
+
+        await createD1Database(d1, { onStatement: report => seen.push(report) }).create(Post, {
+            title: "x",
+        });
+
+        expect(seen[0]).toMatchObject({ kind: "insert", rowsRead: 0, rowsWritten: 0 });
+    });
+
+    it("names no table for a raw statement", async () => {
+        let d1 = new D1Double();
+        let seen: D1StatementReport[] = [];
+
+        await createD1Database(d1, { onStatement: report => seen.push(report) }).exec("select 1");
+
+        expect(seen[0]?.table).toBeUndefined();
+        expect(seen[0]?.kind).toBe("raw");
+    });
+
+    it("survives an observer that throws", async () => {
+        let d1 = new D1Double({ rows: [[{ id: 1, title: "x" }]] });
+        let db = createD1Database(d1, {
+            onStatement: () => {
+                throw new Error("observer is broken");
+            },
+        });
+
+        // Measuring a write must never be able to fail it.
+        await expect(db.query(Post).all()).resolves.toHaveLength(1);
+    });
+
+    it("says nothing about a statement that never ran", async () => {
+        let d1 = new D1Double();
+        let seen: D1StatementReport[] = [];
+
+        await createD1Database(d1, { onStatement: report => seen.push(report) }).createMany(
+            Post,
+            [],
+        );
+
+        // The empty bulk insert short-circuits, so there is no cost to report
+        // and a zeroed entry would read as a statement that was free.
+        expect(seen).toEqual([]);
     });
 });
