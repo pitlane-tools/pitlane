@@ -1,5 +1,29 @@
 # @pitlane/dev
 
+## 0.4.0
+
+SPA mode.
+
+- `remix({ server: false })` targets client-rendered apps. No server
+  environment is configured, nothing builds to `dist/ssr`, and `vite build`
+  emits a static site from `index.html`. What remains is the part a SPA still
+  wants: component HMR through the `remix/ui-hmr` browser transform, including
+  the arrow-form normalization, so edits hot-swap in place and keep live
+  component state. Every `server*` option goes with it, and `clientEntry` too,
+  and `<HMR />` from `pitlane:dev` resolves to the inert component — there is
+  no server data to revalidate.
+- The option is named for what it removes. React Router spells the same switch
+  `ssr: false`, which reads like it only turns off server rendering; it does
+  not, in either plugin. An app that wants browser-rendered UI in front of
+  routes that still run per request keeps `server: true` and writes a server
+  entry that answers data and a shell.
+- SPA mode works under Vite's experimental bundled dev mode
+  (`experimental.bundledDev` / `vite dev --experimentalBundle`), component
+  hot-swap included. Server-rendered apps do not: bundled dev serves only
+  bundle entrypoints, so the client module URLs an SSR render writes into its
+  HTML have nothing behind them. That is upstream's Phase 4 (server
+  environments), still a prototype.
+
 ## 0.3.0
 
 Dev-time hot module replacement.

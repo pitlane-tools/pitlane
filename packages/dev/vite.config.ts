@@ -19,6 +19,15 @@ export default defineConfig({
             harness: {
                 command: "node tests/e2e/harness/dev-server.mjs tests/fixtures/hmr-app 7411",
             },
+            // The same, for the SPA-mode fixture. The :bundled variant runs
+            // Vite's experimental bundled dev mode.
+            "harness:spa": {
+                command: "node tests/e2e/harness/dev-server.mjs tests/fixtures/spa-app 7412",
+            },
+            "harness:spa:bundled": {
+                command:
+                    "node tests/e2e/harness/dev-server.mjs tests/fixtures/spa-app 7412 --bundled",
+            },
             build: {
                 command: "rm -rf dist && vp pack && cp src/assets.d.ts dist/assets.d.mts",
             },

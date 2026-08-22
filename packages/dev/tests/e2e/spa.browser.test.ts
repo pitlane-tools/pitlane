@@ -14,28 +14,34 @@ declare global {
         // Sentinel set after each navigation. A state-preserving HMR update keeps
         // it; a full page reload wipes it — the difference the tests assert on.
         __hmrAlive?: string;
-        // Navigation types the app observed. The injected fallback revalidates by
-        // navigating, so it shows up here; a direct frame reload does not.
-        __navigations?: string[];
     }
 }
 
-const FIXTURE = join(import.meta.dirname, "../fixtures/hmr-app");
+const FIXTURE = join(import.meta.dirname, "../fixtures/spa-app");
 const APP = join(FIXTURE, "app");
 
 // Files the scenarios rewrite; restored to their committed baseline after each
 // test so the fixture never drifts and the tests stay order-independent.
-const MUTABLE = ["fn-counter.tsx", "arrow-counter.tsx", "document.tsx"];
+const MUTABLE = ["fn-counter.tsx", "arrow-counter.tsx"];
 
 // The browser suite runs wherever Playwright's Chromium is installed (CI runs
 // `playwright install chromium`; locally, run it once). Skip cleanly otherwise
 // so `vp test` stays green on machines without a browser.
 let browserInstalled = existsSync(chromium.executablePath());
 
-describe.skipIf(!browserInstalled)("HMR in the browser", () => {
+// The same scenarios run against both dev pipelines. Bundled dev mode serves a
+// rolldown bundle instead of unbundled ESM modules, which rewrites every module
+// URL the HMR transforms bake in — the reason it is worth asserting separately.
+const PIPELINES = [
+    // Unbundled dev serves the source module at its own URL…
+    { name: "unbundled dev", bundled: false, entry: "/app/entry.browser.tsx" },
+    // …while bundled dev serves a rolldown chunk instead.
+    { name: "bundled dev", bundled: true, entry: "/assets/index.js" },
+];
+
+describe.skipIf(!browserInstalled).each(PIPELINES)("SPA mode in $name", ({ bundled, entry }) => {
     let server: DevServer;
     let browser: Browser;
-    let baseUrl: string;
     let page: Page;
     let baselines = new Map<string, string>();
 
@@ -44,9 +50,7 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             baselines.set(file, await readFile(join(APP, file), "utf8"));
         }
 
-        server = await startDevServer(FIXTURE);
-        baseUrl = server.url;
-
+        server = await startDevServer(FIXTURE, { bundled });
         browser = await chromium.launch({ headless: true });
     }, 90_000);
 
@@ -78,13 +82,26 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
 
     async function openApp(): Promise<Page> {
         page = await browser.newPage();
-        await page.goto(baseUrl, { waitUntil: "networkidle" });
+        await page.goto(server.url, { waitUntil: "networkidle" });
         await page.waitForSelector("[data-fn-counter]");
+        await page.evaluate(() => (window.__hmrAlive = "component"));
         return page;
     }
 
-    it("hydrates and drives both islands", async () => {
+    it("renders the app client-side with no server markup", async () => {
         await openApp();
+
+        // Nothing server-rendered: the document ships an empty container and
+        // the runtime fills it, so there are no hydration markers to import.
+        let html = await page.content();
+        expect(html).not.toContain("rmx-data");
+
+        // …and the document loads its script from the pipeline under test, so a
+        // harness that silently ignored --bundled would fail here.
+        let sources = await page.$$eval("script[src]", nodes =>
+            nodes.map(node => new URL((node as HTMLScriptElement).src).pathname),
+        );
+        expect(sources).toContain(entry);
 
         await page.click("[data-fn-counter]");
         await page.click("[data-fn-counter]");
@@ -96,7 +113,7 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         expect(await page.textContent("[data-arrow-count]")).toBe("2");
     });
 
-    it("hot-swaps a function-form island while preserving its state", async () => {
+    it("hot-swaps a function-form component while preserving its state", async () => {
         await openApp();
 
         await page.click("[data-fn-counter]");
@@ -104,7 +121,6 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         await page.click("[data-fn-counter]");
         expect(await page.textContent("[data-fn-count]")).toBe("3");
 
-        await page.evaluate(() => (window.__hmrAlive = "component"));
         await edit("fn-counter.tsx", "Fn label A:", "Fn label B:");
 
         await page.waitForFunction(
@@ -119,42 +135,13 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("component");
     });
 
-    it("revalidates server-rendered content without navigating", async () => {
-        await openApp();
-
-        await page.click("[data-fn-counter]");
-        await page.click("[data-fn-counter]");
-        await page.click("[data-arrow-counter]");
-
-        await page.evaluate(() => {
-            window.__hmrAlive = "server-data";
-            window.__navigations!.length = 0;
-        });
-        await edit("document.tsx", "Server heading A", "Server heading B");
-
-        await page.waitForFunction(
-            () => document.querySelector("[data-h1]")?.textContent === "Server heading B",
-            undefined,
-            { timeout: 10_000 },
-        );
-
-        // `<HMR />` reloaded the top frame: the page refetched through the app's
-        // fetch handler, every island kept its state, and nothing navigated,
-        // which is what distinguishes a frame reload from the alternatives.
-        expect(await page.textContent("[data-fn-count]")).toBe("2");
-        expect(await page.textContent("[data-arrow-count]")).toBe("1");
-        expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
-        expect(await page.evaluate(() => window.__navigations)).toEqual([]);
-    });
-
-    it("hot-swaps arrow-form islands while preserving their state", async () => {
+    it("hot-swaps an arrow-form component while preserving its state", async () => {
         await openApp();
 
         await page.click("[data-arrow-counter]");
         await page.click("[data-arrow-counter]");
         expect(await page.textContent("[data-arrow-count]")).toBe("2");
 
-        await page.evaluate(() => (window.__hmrAlive = "arrow"));
         await edit("arrow-counter.tsx", "Arrow label A:", "Arrow label B:");
 
         await page.waitForFunction(
@@ -166,10 +153,7 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             { timeout: 10_000 },
         );
 
-        // The plugin normalizes the arrow-form island to a named function, so it
-        // is now a hot-swap boundary too: the click count survives the edit and
-        // the page never fully reloaded.
         expect(await page.textContent("[data-arrow-count]")).toBe("2");
-        expect(await page.evaluate(() => window.__hmrAlive)).toBe("arrow");
+        expect(await page.evaluate(() => window.__hmrAlive)).toBe("component");
     });
 });
