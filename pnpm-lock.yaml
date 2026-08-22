@@ -99,6 +99,24 @@ importers:
 
   packages/create-pitlane: {}
 
+  packages/data-table-d1:
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.5
+      miniflare:
+        specifier: ^4.20260710.0
+        version: 4.20260722.0
+      remix:
+        specifier: 3.0.0-beta.10
+        version: 3.0.0-beta.10(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite-plus:
+        specifier: ^0.2.6
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+
   packages/dev:
     dependencies:
       '@hiogawa/vite-plugin-fullstack':

@@ -21,6 +21,8 @@ jobs:
                 include:
                     - package: "@pitlane/dev"
                       directory: packages/dev
+                    - package: "@pitlane/data-table-d1"
+                      directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
         defaults:
