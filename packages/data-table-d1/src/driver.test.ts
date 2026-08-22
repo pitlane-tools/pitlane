@@ -1,0 +1,159 @@
+import { column as c, table } from "remix/data-table";
+import { describe, expect, it } from "vitest";
+
+import { D1Double } from "./d1-double.ts";
+import { createD1Database } from "./database.ts";
+
+let Post = table({
+    name: "post",
+    columns: {
+        id: c.integer().primaryKey(),
+        title: c.text().notNull(),
+    },
+});
+
+let Tag = table({
+    name: "tag",
+    primaryKey: ["postId", "label"],
+    columns: {
+        postId: c.integer(),
+        label: c.text(),
+    },
+});
+
+describe("statement compilation", () => {
+    it("sends SQLite SQL with the values bound out of line", async () => {
+        let d1 = new D1Double({ rows: [[{ id: 1, title: "hello" }]] });
+
+        await createD1Database(d1).query(Post).where({ title: "hello" }).all();
+
+        expect(d1.statements).toHaveLength(1);
+        expect(d1.statements[0]?.sql).toContain('from "post"');
+        // Bound, not interpolated: the compiler is doing the work and the value
+        // never reaches the SQL text.
+        expect(d1.statements[0]?.sql).not.toContain("hello");
+        expect(d1.statements[0]?.values).toEqual(["hello"]);
+    });
+});
+
+describe("writes", () => {
+    it("reports affected rows and the generated key from D1 metadata", async () => {
+        let d1 = new D1Double({ changes: 1, lastRowId: 42 });
+
+        let result = await createD1Database(d1).create(Post, { title: "hello" });
+
+        expect(result.affectedRows).toBe(1);
+        expect(result.insertId).toBe(42);
+    });
+
+    it("reads the generated key back out of RETURNING when asked for the row", async () => {
+        let d1 = new D1Double({ rows: [[{ id: 7, title: "hello" }]], lastRowId: 999 });
+
+        let row = await createD1Database(d1).create(Post, { title: "hello" }, { returnRow: true });
+
+        // The row won, not the metadata: RETURNING is authoritative for the
+        // value the caller actually gets back.
+        expect(row).toEqual({ id: 7, title: "hello" });
+        expect(d1.statements[0]?.sql).toContain("returning");
+    });
+
+    it("sends nothing for an empty bulk insert", async () => {
+        let d1 = new D1Double();
+
+        let result = await createD1Database(d1).createMany(Post, []);
+
+        // D1 rejects an empty VALUES list, so the driver must not ask.
+        expect(d1.statements).toEqual([]);
+        expect(result.affectedRows).toBe(0);
+    });
+
+    it("reports no insert id for a composite primary key", async () => {
+        let d1 = new D1Double({ changes: 1, lastRowId: 5 });
+
+        let result = await createD1Database(d1).create(Tag, { postId: 1, label: "x" });
+
+        // last_row_id is a rowid, which says nothing about a two-column key.
+        expect(result.affectedRows).toBe(1);
+        expect(result.insertId).toBeUndefined();
+    });
+});
+
+describe("counts", () => {
+    it("returns a number when D1 answers with a bigint", async () => {
+        let d1 = new D1Double({ rows: [[{ count: 9n }]] });
+
+        expect(await createD1Database(d1).query(Post).count()).toBe(9);
+    });
+
+    it("returns a number when D1 answers with a string", async () => {
+        let d1 = new D1Double({ rows: [[{ count: "9" }]] });
+
+        expect(await createD1Database(d1).query(Post).count()).toBe(9);
+    });
+});
+
+describe("transactions", () => {
+    it("refuses, and says what to use instead", async () => {
+        let db = createD1Database(new D1Double());
+
+        // D1 rejects BEGIN/COMMIT at the SQL layer, so failing here beats
+        // failing halfway through a write that cannot be rolled back.
+        await expect(db.transaction(async () => {})).rejects.toThrow(/d1\.batch\(\)/);
+    });
+});
+
+// `hasTable`/`hasColumn` take a `TableRef` — a plain `{ name }` — not a table
+// definition. Schema inspection runs before the table exists, during a
+// migration, when there may be no definition to hand.
+describe("schema inspection", () => {
+    it("finds a table through sqlite_master", async () => {
+        let d1 = new D1Double({ rows: [[{ 1: 1 }]] });
+
+        expect(await createD1Database(d1).hasTable({ name: "post" })).toBe(true);
+        expect(d1.statements[0]?.values).toEqual(["table", "post"]);
+    });
+
+    it("reports a missing table as absent rather than throwing", async () => {
+        let d1 = new D1Double({ rows: [[]] });
+
+        expect(await createD1Database(d1).hasTable({ name: "post" })).toBe(false);
+    });
+
+    it("finds a column through pragma_table_info", async () => {
+        let d1 = new D1Double({ rows: [[{ name: "id" }, { name: "title" }]] });
+        let db = createD1Database(d1);
+
+        expect(await db.hasColumn({ name: "post" }, "title")).toBe(true);
+        expect(await db.hasColumn({ name: "post" }, "absent")).toBe(false);
+    });
+});
+
+describe("wipe", () => {
+    it("drops application tables and leaves D1 and SQLite bookkeeping alone", async () => {
+        let d1 = new D1Double({ rows: [[{ name: "post" }, { name: "tag" }]] });
+
+        await createD1Database(d1).wipe();
+
+        // The exclusions live in the query, so assert the query carries them.
+        let [listing] = d1.statements;
+        expect(listing?.sql).toContain("sqlite\\_%");
+        expect(listing?.sql).toContain("\\_cf\\_%");
+
+        // One batch: the pragma is per-session, so it has to travel with the
+        // drops rather than in a statement of its own.
+        expect(d1.batches).toHaveLength(1);
+        expect(d1.batches[0]?.map(statement => statement.sql)).toEqual([
+            "pragma defer_foreign_keys = true",
+            'drop table if exists "post"',
+            'drop table if exists "tag"',
+        ]);
+    });
+
+    it("does nothing when there is nothing to drop", async () => {
+        let d1 = new D1Double({ rows: [[]] });
+
+        await createD1Database(d1).wipe();
+
+        expect(d1.batches).toEqual([]);
+    });
+});
