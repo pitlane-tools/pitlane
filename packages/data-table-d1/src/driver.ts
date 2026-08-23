@@ -18,12 +18,32 @@ import { compileSqliteOperation } from "./sql-compiler.ts";
 type Operation = DataManipulationRequest["operation"];
 
 /**
+ * How the driver answers a `transaction()` call.
+ *
+ * - `throw` refuses, because D1 cannot honour it. The default.
+ * - `unsafe-nonatomic` accepts and runs each statement immediately, each
+ *   committing on its own. A failure part-way leaves the earlier writes
+ *   persisted, with no rollback. For code shared with a backend that does have
+ *   transactions, where the alternative is not running at all.
+ */
+export type D1TransactionMode = "throw" | "unsafe-nonatomic";
+
+export interface D1DriverOptions {
+    onStatement?: D1StatementObserver;
+    transactions?: D1TransactionMode;
+}
+
+/**
  * D1 speaks SQLite, so the query surface is the SQLite one. What it does not
  * have is transactions: `BEGIN`, `COMMIT`, `SAVEPOINT` and friends are
  * rejected at the SQL layer, and `batch()` is offered instead. `batch()` takes
  * a prepared array up front, which cannot express the interleaved
  * begin/execute/commit a `Database` transaction drives, so the capability is
  * reported as absent rather than faked.
+ *
+ * `savepoints: false` is what makes `Database` reject a nested transaction on
+ * its own, before any savepoint method here can be reached — which holds in
+ * `unsafe-nonatomic` too, where nesting would be even less meaningful.
  */
 const CAPABILITIES = Object.freeze({
     returning: true,
@@ -35,7 +55,13 @@ const CAPABILITIES = Object.freeze({
 
 const NO_TRANSACTIONS =
     "[@pitlane/data-table-d1] D1 rejects SQL transactions and savepoints. Group writes with " +
-    "`d1.batch()`, which is atomic, or model the operation so it does not need one.";
+    "`d1.batch()`, which is atomic, or model the operation so it does not need one. If the " +
+    "caller is shared with a backend that does have transactions and running without atomicity " +
+    'beats not running, opt in with `createD1Database(env.DB, { transactions: "unsafe-nonatomic" })`.';
+
+const NO_SAVEPOINTS =
+    "[@pitlane/data-table-d1] D1 rejects savepoints, so nested transactions are unavailable " +
+    "whatever `transactions` is set to.";
 
 /**
  * A `DatabaseDriver` backed by a Cloudflare D1 binding.
@@ -47,10 +73,13 @@ const NO_TRANSACTIONS =
 export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
     #d1: D1Binding;
     #onStatement: D1StatementObserver | undefined;
+    #transactions: D1TransactionMode;
+    #openedTransactions = 0;
 
-    constructor(d1: D1Binding, onStatement?: D1StatementObserver) {
+    constructor(d1: D1Binding, options: D1DriverOptions = {}) {
         this.#d1 = d1;
-        this.#onStatement = onStatement;
+        this.#onStatement = options.onStatement;
+        this.#transactions = options.transactions ?? "throw";
     }
 
     get dialect(): "sqlite" {
@@ -153,28 +182,45 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
     /** A binding is owned by the runtime; there is no connection to release. */
     close(): void {}
 
+    /**
+     * Opens a transaction, if the caller accepted that it will not be one.
+     *
+     * No `BEGIN` is sent, because D1 rejects it. The token exists so
+     * `Database` has something to carry; statements inside the scope run and
+     * commit exactly as they would outside it.
+     */
     async beginTransaction(_options?: TransactionOptions): Promise<TransactionToken> {
-        throw new Error(NO_TRANSACTIONS);
+        if (this.#transactions === "throw") throw new Error(NO_TRANSACTIONS);
+        return { id: `d1-nonatomic-${++this.#openedTransactions}` };
     }
 
+    /** Nothing to commit: every statement in the scope already did. */
     async commitTransaction(_token: TransactionToken): Promise<void> {
-        throw new Error(NO_TRANSACTIONS);
+        if (this.#transactions === "throw") throw new Error(NO_TRANSACTIONS);
     }
 
+    /**
+     * Nothing to roll back. This is the cost of `unsafe-nonatomic`, and it is
+     * silent by necessity: `Database` calls this while unwinding a failed
+     * callback, and throwing here would replace the caller's error with an
+     * `AggregateError` about a rollback that was never possible.
+     */
     async rollbackTransaction(_token: TransactionToken): Promise<void> {
-        throw new Error(NO_TRANSACTIONS);
+        if (this.#transactions === "throw") throw new Error(NO_TRANSACTIONS);
     }
 
+    // `capabilities.savepoints` is false in both modes, so `Database` rejects a
+    // nested transaction before reaching these.
     async createSavepoint(_token: TransactionToken, _name: string): Promise<void> {
-        throw new Error(NO_TRANSACTIONS);
+        throw new Error(NO_SAVEPOINTS);
     }
 
     async rollbackToSavepoint(_token: TransactionToken, _name: string): Promise<void> {
-        throw new Error(NO_TRANSACTIONS);
+        throw new Error(NO_SAVEPOINTS);
     }
 
     async releaseSavepoint(_token: TransactionToken, _name: string): Promise<void> {
-        throw new Error(NO_TRANSACTIONS);
+        throw new Error(NO_SAVEPOINTS);
     }
 }
 

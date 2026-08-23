@@ -147,7 +147,7 @@ export default {
 
 Two things the driver reports rather than emulates.
 
-### Transactions and savepoints throw
+### Transactions throw
 
 D1 rejects `BEGIN`, `COMMIT`, `ROLLBACK`, and `SAVEPOINT` at the SQL layer. Its
 answer is `d1.batch()`, which is atomic but takes every statement up front, and
@@ -173,6 +173,37 @@ await env.DB.batch([
     env.DB.prepare("insert into post (title) values (?)").bind("two"),
 ]);
 ```
+
+#### Opting out of the refusal
+
+There is one case the refusal serves badly: code shared with a backend that
+does have transactions, where the choice is between running without atomicity
+and not running at all. A repository layer used by both a Worker and a Postgres
+service, say.
+
+```ts
+let db = createD1Database(env.DB, { transactions: "unsafe-nonatomic" });
+```
+
+`transaction()` now runs the callback, and each statement commits on its own.
+The `unsafe` in the name means one specific thing: **a failure part-way through
+leaves the earlier writes in place**, because there is nothing to roll back.
+
+```ts
+await db.transaction(async tx => {
+    await tx.create(Ledger, { note: "first" }); // committed
+    await tx.create(Ledger, { note: "second" }); // committed
+    throw new Error("boom"); // both rows are still there
+});
+```
+
+Rollback stays silent rather than throwing, so the error you catch is your own
+rather than an `AggregateError` about a rollback that was never possible.
+Nested transactions still fail either way, because `savepoints: false` makes
+`data-table` reject them before the driver sees them.
+
+Reach for it when portability is worth more than atomicity, and prefer a single
+statement whenever one will do.
 
 ### `wipe()` drops tables
 

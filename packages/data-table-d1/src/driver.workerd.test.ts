@@ -28,6 +28,14 @@ let Post2 = table({
     },
 });
 
+let Ledger = table({
+    name: "ledger",
+    columns: {
+        id: c.integer().primaryKey(),
+        note: c.text().notNull(),
+    },
+});
+
 let mf: Miniflare;
 let db: D1Database;
 
@@ -171,5 +179,30 @@ describe("statement cost against real workerd", () => {
         expect(seen[0]?.kind).toBe("insert");
         expect(seen[0]?.table).toBe("metered");
         expect(seen[0]?.rowsWritten).toBeGreaterThan(0);
+    });
+});
+
+describe("unsafe-nonatomic transactions against real workerd", () => {
+    it("leaves earlier writes committed when a later one fails", async () => {
+        let binding = (await mf.getD1Database("DB")) as unknown as D1Binding;
+        let unsafe = createD1Database(binding, { transactions: "unsafe-nonatomic" });
+
+        await unsafe.executeScript(
+            "create table ledger (id integer primary key autoincrement, note text not null)",
+        );
+
+        await expect(
+            unsafe.transaction(async tx => {
+                await tx.create(Ledger, { note: "first" });
+                await tx.create(Ledger, { note: "second" });
+                throw new Error("third step failed");
+            }),
+        ).rejects.toThrow("third step failed");
+
+        // Real D1, real rows, still there. A driver that pretended to roll back
+        // would leave this assertion failing; the option is named for exactly
+        // this outcome.
+        let rows = await unsafe.query(Ledger).all();
+        expect(rows.map(row => row.note)).toEqual(["first", "second"]);
     });
 });

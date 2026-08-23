@@ -13,12 +13,20 @@ Initial release.
   and `node:sqlite` do — and D1 is an awaited RPC binding. No adapter bridges
   that, so a D1 app could not use the SQLite driver at all. The SQL is still
   SQLite's, so this pairs that compiler with an async driver.
-- Transactions and savepoints throw, naming `d1.batch()` in the message. D1
+- Transactions throw by default, naming `d1.batch()` and the opt-in below. D1
   rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer, and `batch()`
   wants every statement up front, which cannot express the interleaved
   begin/execute/commit a `Database` transaction drives. Capabilities report
   `savepoints: false` and `transactionalDdl: false` rather than failing
   mid-write.
+- `transactions: "unsafe-nonatomic"` opts out of that refusal, for callers
+  shared with a backend that does have transactions where running without
+  atomicity beats not running. `transaction()` then runs the callback with each
+  statement committing on its own, so a failure part-way leaves the earlier
+  writes persisted — asserted against real D1, not just described. Rollback
+  stays silent so the callback's own error surfaces instead of an
+  `AggregateError` about an impossible rollback, and nesting still fails in
+  both modes because `savepoints: false` stops it upstream of the driver.
 - `wipe()` drops the application's tables, leaving D1's `_cf_*` and SQLite's
   `sqlite_*` bookkeeping in place. The pragma that permits the drops travels in
   the same `batch()` as the drops, because it is per-session and D1 gives each

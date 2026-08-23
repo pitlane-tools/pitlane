@@ -86,7 +86,15 @@ export default {
 
 ## What D1 cannot do
 
-**Transactions and savepoints throw.** D1 rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer and offers `d1.batch()` instead, which takes every statement up front. That cannot express the interleaved begin/execute/commit a `Database` transaction drives, so the driver reports `savepoints: false` and `transactionalDdl: false` and throws a message pointing at `batch()`. Failing at the call beats failing halfway through a write that cannot be rolled back.
+**Transactions throw by default.** D1 rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer and offers `d1.batch()` instead, which takes every statement up front. That cannot express the interleaved begin/execute/commit a `Database` transaction drives, so the driver reports `savepoints: false` and `transactionalDdl: false` and throws a message pointing at `batch()`. Failing at the call beats failing halfway through a write that cannot be rolled back.
+
+When the caller is shared with a backend that does have transactions, and running without atomicity beats not running at all, opt in:
+
+```ts
+let db = createD1Database(env.DB, { transactions: "unsafe-nonatomic" });
+```
+
+`transaction()` then runs the callback and each statement commits on its own. **A failure part-way leaves the earlier writes persisted**, because there is nothing to roll back — that is the whole of what you are accepting, and the package has a test against real D1 asserting exactly that outcome. Rollback stays silent rather than throwing, so the callback's own error is what surfaces instead of an `AggregateError` about an impossible rollback. Nested transactions still fail in both modes, since `savepoints: false` makes `Database` reject them before the driver is reached.
 
 **`wipe()` drops tables rather than deleting a file.** There is no file. D1's own `_cf_*` bookkeeping and SQLite's `sqlite_*` tables are left alone; dropping either breaks the binding.
 
@@ -94,7 +102,7 @@ Everything else — `returning`, upserts, bulk inserts, migrations, schema inspe
 
 ## Prior art
 
-[`@pkg/data-table-d1`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-d1) by Sergio Xalambrí solves the same problem, and `onStatement` is its idea. It differs on transactions: it runs them non-atomically and warns loudly, so shared code that calls `transaction()` still runs on D1. This package throws instead, on the grounds that a silent loss of atomicity is worse than a loud failure. Both readings are defensible; that one is the difference to know about if you are choosing between them.
+[`@pkg/data-table-d1`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-d1) by Sergio Xalambrí solves the same problem, and `onStatement` is its idea. It also takes the other side of the transaction question, running them non-atomically so shared code keeps working; this package makes that the opt-in above rather than the default, on the grounds that a silent loss of atomicity should be something you asked for. It reports `transactionalDdl: true`, where this one keeps it `false` in both modes, since a non-transaction cannot make DDL transactional.
 
 Its sibling [`@pkg/data-table-sqlstorage`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-sqlstorage) covers Durable Object SQLite, which is synchronous and does support real transactions.
 

@@ -3,6 +3,7 @@ import type { DatabaseOptions } from "remix/data-table";
 import { Database } from "remix/data-table";
 
 import type { D1Binding } from "./d1.ts";
+import type { D1TransactionMode } from "./driver.ts";
 import type { D1StatementObserver } from "./observer.ts";
 
 import { D1DatabaseDriver } from "./driver.ts";
@@ -13,6 +14,12 @@ export interface D1DatabaseOptions extends DatabaseOptions {
      * duration D1 reported for it. See {@link D1StatementObserver}.
      */
     onStatement?: D1StatementObserver;
+    /**
+     * What `transaction()` does. Defaults to `throw`, because D1 has no
+     * transactions; `unsafe-nonatomic` accepts the call and gives up
+     * atomicity. See {@link D1TransactionMode}.
+     */
+    transactions?: D1TransactionMode;
 }
 
 /**
@@ -24,8 +31,8 @@ export interface D1DatabaseOptions extends DatabaseOptions {
  */
 export class D1Database extends Database<"sqlite"> {
     constructor(binding: D1Binding, options?: D1DatabaseOptions) {
-        let { onStatement, ...databaseOptions } = options ?? {};
-        super(new D1DatabaseDriver(binding, onStatement), databaseOptions);
+        let { onStatement, transactions, ...databaseOptions } = options ?? {};
+        super(new D1DatabaseDriver(binding, { onStatement, transactions }), databaseOptions);
     }
 }
 
@@ -41,7 +48,7 @@ export class D1Database extends Database<"sqlite"> {
  * ```
  *
  * @param binding The D1 binding, e.g. `env.DB`.
- * @param options `Database` options, plus `onStatement`.
+ * @param options `Database` options, plus `onStatement` and `transactions`.
  */
 export function createD1Database(binding: D1Binding, options?: D1DatabaseOptions): D1Database {
     return new D1Database(binding, options);

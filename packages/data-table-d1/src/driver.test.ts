@@ -95,12 +95,74 @@ describe("counts", () => {
 });
 
 describe("transactions", () => {
-    it("refuses, and says what to use instead", async () => {
+    it("refuses by default, and says what to use instead", async () => {
         let db = createD1Database(new D1Double());
 
         // D1 rejects BEGIN/COMMIT at the SQL layer, so failing here beats
         // failing halfway through a write that cannot be rolled back.
         await expect(db.transaction(async () => {})).rejects.toThrow(/d1\.batch\(\)/);
+    });
+
+    it("points at the opt-in when it refuses", async () => {
+        let db = createD1Database(new D1Double());
+
+        await expect(db.transaction(async () => {})).rejects.toThrow(/unsafe-nonatomic/);
+    });
+
+    it("runs the callback when the caller opted in", async () => {
+        let d1 = new D1Double({ changes: 1 });
+        let db = createD1Database(d1, { transactions: "unsafe-nonatomic" });
+
+        let result = await db.transaction(async tx => {
+            await tx.create(Post, { title: "inside" });
+            return "done";
+        });
+
+        expect(result).toBe("done");
+        // No BEGIN or COMMIT went to D1, because D1 would reject them. The
+        // insert is the only statement.
+        expect(d1.statements.map(statement => statement.sql.split(" ")[0])).toEqual(["insert"]);
+    });
+
+    it("keeps writes made before a failure, which is the whole hazard", async () => {
+        let d1 = new D1Double({ changes: 1 });
+        let db = createD1Database(d1, { transactions: "unsafe-nonatomic" });
+
+        await expect(
+            db.transaction(async tx => {
+                await tx.create(Post, { title: "kept" });
+                throw new Error("callback failed");
+            }),
+        ).rejects.toThrow("callback failed");
+
+        // The write is still there. Rolling it back is not possible, and this
+        // test exists so that is a documented property rather than a surprise.
+        expect(d1.statements).toHaveLength(1);
+        expect(d1.statements[0]?.values).toContain("kept");
+    });
+
+    it("surfaces the callback's error rather than a rollback failure", async () => {
+        let db = createD1Database(new D1Double(), { transactions: "unsafe-nonatomic" });
+
+        // `Database` wraps both in an AggregateError if rollback throws, which
+        // would bury the real cause. Rollback stays silent for that reason.
+        await expect(
+            db.transaction(async () => {
+                throw new Error("the actual problem");
+            }),
+        ).rejects.toThrow("the actual problem");
+    });
+
+    it("still refuses to nest, in either mode", async () => {
+        let db = createD1Database(new D1Double(), { transactions: "unsafe-nonatomic" });
+
+        // `savepoints: false` makes Database itself reject this, so the
+        // driver's savepoint methods stay unreachable.
+        await expect(
+            db.transaction(async tx => {
+                await tx.transaction(async () => {});
+            }),
+        ).rejects.toThrow(/savepoint/i);
     });
 });
 
