@@ -104,6 +104,10 @@ let config = defineConfig({
                     {
                         text: "Packages",
                         items: [
+                            {
+                                text: "@pitlane/data-table-d1",
+                                link: "/package/data-table-d1/index",
+                            },
                             { text: "@pitlane/dev", link: "/package/dev/index" },
                             {
                                 text: "@pitlane/dev/runtime",
@@ -126,6 +130,7 @@ let config = defineConfig({
         ],
         sidebar: {
             "/package/": [
+                { text: "@pitlane/data-table-d1", link: "/package/data-table-d1/" },
                 { text: "@pitlane/dev", link: "/package/dev/" },
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
                 { text: "@pitlane/theme", link: "/package/theme/" },
