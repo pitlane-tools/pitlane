@@ -29,6 +29,12 @@ let guides: DefaultTheme.SidebarItem[] = [
             { text: "Vite Plugin", link: "/guides/vite-plugin" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+        ],
+    },
+    {
+        text: "Adapters",
+        items: [
+            //
             { text: "Cloudflare D1", link: "/guides/cloudflare-d1" },
         ],
     },
