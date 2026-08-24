@@ -1,11 +1,16 @@
 # Theme authoring proposals
 
-Status: draft, unscheduled. Nothing here is committed to a release.
+Status: draft, unscheduled, and partly superseded by
+[`authoring-and-interchange.md`](./authoring-and-interchange.md), which argues
+that the DTCG document should stop being the authoring surface. P1 survives as
+the mechanism that proposal depends on, P2 and P3 survive unchanged, P4 is
+mostly subsumed, and P5 is unaffected. The per-proposal reconciliation is in
+that document. Everything below is written against the 0.1.0 DTCG-document
+API and should be read with that in mind.
 
-`@pitlane/theme` 0.1.0 compiles one DTCG document into one accessor. That is the
-right primitive and it should not change. What is missing sits above it:
-composition, a starting palette, and two value helpers. This document proposes
-five changes, in the order they unblock each other.
+`@pitlane/theme` 0.1.0 compiles one DTCG document into one accessor. What is
+missing sits above it: composition, a starting palette, and two value helpers.
+This document proposes five changes, in the order they unblock each other.
 
 The reference for several of these is an ad-hoc theme runtime in
 `~/Developer/Projects/maitre-d/app/utils/create-theme.tsx`, which reaches similar
