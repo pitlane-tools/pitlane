@@ -1,7 +1,8 @@
 name: 📦 Publish package preview (pkg.pr.new)
 
-# Publishes an installable preview build of @pitlane/dev for every branch push
-# and PR, so the plugin can be tried in other projects before release:
+# Publishes an installable preview build of @pitlane/dev, and of the
+# @pitlane/crawler it depends on, for every branch push and PR, so the plugin
+# can be tried in other projects before release:
 #
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/dev@<commit>
 #
@@ -39,9 +40,20 @@ jobs:
             - name: Install
               run: vp install --frozen-lockfile
 
+            # @pitlane/dev imports @pitlane/crawler at runtime, so a preview of
+            # one is useless without the other. Passing both to a single publish
+            # is also what makes pkg-pr-new rewrite dev's `workspace:^` range to
+            # a resolvable pkg.pr.new URL — it only rewrites dependencies naming
+            # a package in the same invocation. Publishing dev alone ships that
+            # specifier verbatim and every install fails with
+            # EUNSUPPORTEDPROTOCOL, while the job still reports success.
+            - name: Build @pitlane/crawler
+              working-directory: packages/crawler
+              run: vp run build
+
             - name: Build @pitlane/dev
               working-directory: packages/dev
               run: vp run build
 
             - name: Publish preview to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/dev'
+              run: npx pkg-pr-new publish './packages/crawler' './packages/dev'
