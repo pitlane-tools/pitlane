@@ -5,9 +5,7 @@ description: "How @pitlane/data-table-d1 runs Remix 3's data-table on Cloudflare
 
 # Cloudflare D1
 
-[D1](https://developers.cloudflare.com/d1/) is SQLite, so a Remix 3 app running
-on Workers should be able to use `remix/data-table` the way a Node app uses it.
-[`@pitlane/data-table-d1`](/package/data-table-d1/) is what makes that true.
+[D1](https://developers.cloudflare.com/d1/) is SQLite, so a Remix 3 app running on Workers should be able to use `remix/data-table` the way a Node app uses it. [`@pitlane/data-table-d1`](/package/data-table-d1/) is what makes that true.
 
 ```ts
 // app/middleware/database.ts
@@ -17,8 +15,7 @@ import { env } from "cloudflare:workers";
 export let db = createD1Database(env.DB);
 ```
 
-That is an ordinary `Database`. Queries, writes, migrations, and schema
-inspection all come from `remix/data-table` unchanged:
+That is an ordinary `Database`. Queries, writes, migrations, and schema inspection all come from `remix/data-table` unchanged:
 
 ```ts
 let post = await db.create(Post, { title: "Hello" }, { returnRow: true });
@@ -27,8 +24,7 @@ let recent = await db.query(Post).orderBy({ createdAt: "desc" }).limit(10).all()
 
 ## Why a separate driver
 
-D1 speaks SQLite's SQL, so half the work is already done upstream. The other
-half does not transfer.
+D1 speaks SQLite's SQL, so half the work is already done upstream. The other half does not transfer.
 
 `@remix-run/data-table-sqlite` is built on a **synchronous** client:
 
@@ -42,13 +38,9 @@ interface SqliteStatement {
 }
 ```
 
-That is the shape `better-sqlite3` and `node:sqlite` have, and D1 does not have
-it. Every D1 call is an awaited RPC into the binding. No wrapper turns an async
-API into a synchronous one, so the SQLite driver is not adaptable to D1 at any
-price.
+That is the shape `better-sqlite3` and `node:sqlite` have, and D1 does not have it. Every D1 call is an awaited RPC into the binding. No wrapper turns an async API into a synchronous one, so the SQLite driver is not adaptable to D1 at any price.
 
-What is reusable is the SQL generation, which is pure. This package pairs that
-compiler with a driver written against D1's prepared-statement API.
+What is reusable is the SQL generation, which is pure. This package pairs that compiler with a driver written against D1's prepared-statement API.
 
 ## Setup
 
@@ -60,7 +52,7 @@ Declare the binding in `wrangler.jsonc`:
 }
 ```
 
-Install the driver alongside the [Vite plugin](/guides/vite-plugin):
+Install the driver alongside the Vite plugin:
 
 ::: code-group
 
@@ -78,15 +70,11 @@ vp add @pitlane/data-table-d1
 
 :::
 
-Nothing else is required. The D1 API is described structurally inside the
-package, so it pulls in no Cloudflare types and no ambient globals; if your own
-code already has `@cloudflare/workers-types`, `env.DB` satisfies the driver as
-it is.
+Nothing else is required. The D1 API is described structurally inside the package, so it pulls in no Cloudflare types and no ambient globals; if your own code already has `@cloudflare/workers-types`, `env.DB` satisfies the driver as it is.
 
 ## Migrations
 
-`data-table` migrations run against D1 the same way they run anywhere. Load the
-descriptors and hand them to the database:
+`data-table` migrations run against D1 the same way they run anywhere. Load the descriptors and hand them to the database:
 
 ```ts
 import { loadMigrations } from "remix/data-table/migrations/node";
@@ -97,15 +85,11 @@ let result = await db.migrate(migrations);
 console.log(result.applied.map(entry => entry.id));
 ```
 
-For a deployed database this runs through `wrangler d1 execute` or a one-off
-Worker, because the binding only exists inside the runtime.
+For a deployed database this runs through `wrangler d1 execute` or a one-off Worker, because the binding only exists inside the runtime.
 
 ## Knowing what a query cost
 
-D1 bills on rows read and rows written, and its analytics report per database.
-That tells you the app got expensive, not which query did it. Every D1 response
-already carries the numbers per statement, and the driver already reads that
-metadata, so `onStatement` hands them over instead of discarding them:
+D1 bills on rows read and rows written, and its analytics report per database. That tells you the app got expensive, not which query did it. Every D1 response already carries the numbers per statement, and the driver already reads that metadata, so `onStatement` hands them over instead of discarding them:
 
 ```ts
 let usage = { rowsRead: 0, rowsWritten: 0 };
@@ -118,19 +102,13 @@ let db = createD1Database(env.DB, {
 });
 ```
 
-The numbers come free, on responses the driver reads anyway. Attach the observer
-to a request-scoped object and a slow endpoint tells you which table it read a
-million rows from.
+The numbers come free, on responses the driver reads anyway. Attach the observer to a request-scoped object and a slow endpoint tells you which table it read a million rows from.
 
-It runs once per statement on the hot path, so keep it cheap. Anything it throws
-is swallowed, because measuring a write must not be able to fail it. A statement
-that throws is not reported, since D1 returns no metadata for one and a zeroed
-entry would read as free.
+It runs once per statement on the hot path, so keep it cheap. Anything it throws is swallowed, because measuring a write must not be able to fail it. A statement that throws is not reported, since D1 returns no metadata for one and a zeroed entry would read as free.
 
 ## Reuse the database
 
-The binding is stable for the isolate, so build the database once rather than
-per request:
+The binding is stable for the isolate, so build the database once rather than per request:
 
 ```ts
 let db: D1Database | null = null;
@@ -149,21 +127,15 @@ Two things the driver reports rather than emulates.
 
 ### Transactions throw
 
-D1 rejects `BEGIN`, `COMMIT`, `ROLLBACK`, and `SAVEPOINT` at the SQL layer. Its
-answer is `d1.batch()`, which is atomic but takes every statement up front, and
-that cannot express the interleaved begin/execute/commit a `Database`
-transaction drives.
+D1 rejects `BEGIN`, `COMMIT`, `ROLLBACK`, and `SAVEPOINT` at the SQL layer. Its answer is `d1.batch()`, which is atomic but takes every statement up front, and that cannot express the interleaved begin/execute/commit a `Database` transaction drives.
 
-So `db.transaction()` throws, with a message naming `batch()`. The capabilities
-say the same thing, which is what stops `data-table` from planning a
-transactional path in the first place:
+So `db.transaction()` throws, with a message naming `batch()`. The capabilities say the same thing, which is what stops `data-table` from planning a transactional path in the first place:
 
 ```ts
 { returning: true, savepoints: false, upsert: true, transactionalDdl: false }
 ```
 
-Failing at the call is the point. The alternative is failing halfway through a
-write that cannot be rolled back.
+Failing at the call is the point. The alternative is failing halfway through a write that cannot be rolled back.
 
 When you need several statements to land together, reach past the driver:
 
@@ -176,18 +148,13 @@ await env.DB.batch([
 
 #### Opting out of the refusal
 
-There is one case the refusal serves badly: code shared with a backend that
-does have transactions, where the choice is between running without atomicity
-and not running at all. A repository layer used by both a Worker and a Postgres
-service, say.
+There is one case the refusal serves badly: code shared with a backend that does have transactions, where the choice is between running without atomicity and not running at all. A repository layer used by both a Worker and a Postgres service, say.
 
 ```ts
 let db = createD1Database(env.DB, { transactions: "unsafe-nonatomic" });
 ```
 
-`transaction()` now runs the callback, and each statement commits on its own.
-The `unsafe` in the name means one specific thing: **a failure part-way through
-leaves the earlier writes in place**, because there is nothing to roll back.
+`transaction()` now runs the callback, and each statement commits on its own. The `unsafe` in the name means one specific thing: **a failure part-way through leaves the earlier writes in place**, because there is nothing to roll back.
 
 ```ts
 await db.transaction(async tx => {
@@ -197,25 +164,16 @@ await db.transaction(async tx => {
 });
 ```
 
-Rollback stays silent rather than throwing, so the error you catch is your own
-rather than an `AggregateError` about a rollback that was never possible.
-Nested transactions still fail either way, because `savepoints: false` makes
-`data-table` reject them before the driver sees them.
+Rollback stays silent rather than throwing, so the error you catch is your own rather than an `AggregateError` about a rollback that was never possible. Nested transactions still fail either way, because `savepoints: false` makes `data-table` reject them before the driver sees them.
 
-Reach for it when portability is worth more than atomicity, and prefer a single
-statement whenever one will do.
+Reach for it when portability is worth more than atomicity, and prefer a single statement whenever one will do.
 
 ### `wipe()` drops tables
 
-There is no database file to delete, so `wipe()` enumerates the application's
-tables and drops them. D1's own `_cf_*` bookkeeping and SQLite's `sqlite_*`
-tables are excluded, because dropping either breaks the binding.
+There is no database file to delete, so `wipe()` enumerates the application's tables and drops them. D1's own `_cf_*` bookkeeping and SQLite's `sqlite_*` tables are excluded, because dropping either breaks the binding.
 
-Everything else behaves: `returning`, upserts, bulk inserts, counts, and schema
-inspection are all exercised against real workerd in the package's test suite.
+Everything else behaves: `returning`, upserts, bulk inserts, counts, and schema inspection are all exercised against real workerd in the package's test suite.
 
 ## Deploying
 
-The [Cloudflare deploy guide](/deploy/cloudflare) covers the rest of the
-picture, including reading bindings through `cloudflare:workers` and why the
-preview server steps aside for Miniflare.
+The [Cloudflare deploy guide](/deploy/cloudflare) covers the rest of the picture, including reading bindings through `cloudflare:workers` and why the preview server steps aside for Miniflare.

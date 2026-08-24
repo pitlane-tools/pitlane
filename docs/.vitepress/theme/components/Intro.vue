@@ -13,9 +13,6 @@
                 <h3 class="max-w-xl text-balance">
                     A build plugin that fits Remix instead of fighting it.
                 </h3>
-                <a href="/guides/vite-plugin" class="button w-fit mt-8 hidden lg:block">
-                    Learn the workflow
-                </a>
             </div>
             <div class="lg:max-w-lg">
                 <p class="text-pretty mb-5 opacity-85">
@@ -30,9 +27,6 @@
                     <code>@cloudflare/vite-plugin</code>, <code>@netlify/vite-plugin</code> or
                     <code>nitro/vite</code> compose alongside.
                 </p>
-                <a href="/guides/vite-plugin" class="button w-fit mt-8 block lg:hidden">
-                    Learn the workflow
-                </a>
             </div>
         </div>
     </div>

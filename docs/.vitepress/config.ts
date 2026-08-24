@@ -26,9 +26,8 @@ let guides: DefaultTheme.SidebarItem[] = [
         text: "Guides",
         items: [
             { text: "Styling", link: "/guides/styling" },
-            { text: "Vite Plugin", link: "/guides/vite-plugin" },
-            { text: "Hot Module Replacement", link: "/guides/hmr" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+            { text: "Hot Module Replacement", link: "/guides/hmr" },
         ],
     },
     {
@@ -39,7 +38,7 @@ let guides: DefaultTheme.SidebarItem[] = [
         ],
     },
     {
-        text: "Deploy",
+        text: "Deployment",
         items: [
             { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
             { text: "Netlify", link: "/deploy/netlify" },
