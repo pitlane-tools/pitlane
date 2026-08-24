@@ -5,7 +5,7 @@ description: "How @pitlane/data-table-d1 runs Remix 3's data-table on Cloudflare
 
 # Cloudflare D1
 
-[D1](https://developers.cloudflare.com/d1/) is SQLite, so a Remix 3 app running on Workers should be able to use `remix/data-table` the way a Node app uses it. [`@pitlane/data-table-d1`](/package/data-table-d1/) is what makes that true.
+[`@pitlane/data-table-d1`](/package/data-table-d1/) enables you to use the Cloudflare Workers [D1](https://developers.cloudflare.com/d1/) SQLite database with Remix in the same way you'd use `remix/data-table` in a Node app.
 
 ```ts
 // app/middleware/database.ts
@@ -22,33 +22,19 @@ let post = await db.create(Post, { title: "Hello" }, { returnRow: true });
 let recent = await db.query(Post).orderBy({ createdAt: "desc" }).limit(10).all();
 ```
 
-## Why a separate driver
-
-D1 speaks SQLite's SQL, so half the work is already done upstream. The other half does not transfer.
-
-`@remix-run/data-table-sqlite` is built on a **synchronous** client:
-
-```ts
-interface SqliteDatabaseClient {
-    prepare(sql: string): SqliteStatement;
-}
-
-interface SqliteStatement {
-    all(...values: unknown[]): unknown[]; // rows, not a promise
-}
-```
-
-That is the shape `better-sqlite3` and `node:sqlite` have, and D1 does not have it. Every D1 call is an awaited RPC into the binding. No wrapper turns an async API into a synchronous one, so the SQLite driver is not adaptable to D1 at any price.
-
-What is reusable is the SQL generation, which is pure. This package pairs that compiler with a driver written against D1's prepared-statement API.
-
 ## Setup
 
 Declare the binding in `wrangler.jsonc`:
 
 ```jsonc
 {
-    "d1_databases": [{ "binding": "DB", "database_name": "my-app", "database_id": "…" }],
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "my-app",
+            "database_id": "…",
+        },
+    ],
 }
 ```
 
@@ -57,22 +43,44 @@ Install the driver alongside the Vite plugin:
 ::: code-group
 
 ```sh [npm]
-npm install @pitlane/data-table-d1
+npm add -D @pitlane/data-table-d1
+```
+
+```sh [yarn]
+yarn add -D @pitlane/data-table-d1
 ```
 
 ```sh [pnpm]
-pnpm add @pitlane/data-table-d1
+pnpm add -D @pitlane/data-table-d1
+```
+
+```sh [bun]
+bun add -D @pitlane/data-table-d1
+```
+
+```sh [deno]
+deno add -D npm:@pitlane/data-table-d1
 ```
 
 ```sh [vp]
-vp add @pitlane/data-table-d1
+vp add -D @pitlane/data-table-d1
+```
+
+```sh [vlt]
+vlt add -D @pitlane/data-table-d1
+```
+
+```sh [nub]
+nub add -D @pitlane/data-table-d1
 ```
 
 :::
 
-Nothing else is required. The D1 API is described structurally inside the package, so it pulls in no Cloudflare types and no ambient globals; if your own code already has `@cloudflare/workers-types`, `env.DB` satisfies the driver as it is.
+Nothing else is required. Now you can start using the D1 database in your Cloudflare Workers Remix app!
 
 ## Migrations
+
+<!-- TODO: Add `pitlane` CLI to enable guided migrations like the `remix` CLI or drizzle-kit do -->
 
 `data-table` migrations run against D1 the same way they run anywhere. Load the descriptors and hand them to the database:
 
@@ -85,7 +93,7 @@ let result = await db.migrate(migrations);
 console.log(result.applied.map(entry => entry.id));
 ```
 
-For a deployed database this runs through `wrangler d1 execute` or a one-off Worker, because the binding only exists inside the runtime.
+For a deployed database this runs through `wrangler d1 execute`, because the binding only exists inside the runtime.
 
 ## Knowing what a query cost
 
@@ -102,28 +110,9 @@ let db = createD1Database(env.DB, {
 });
 ```
 
-The numbers come free, on responses the driver reads anyway. Attach the observer to a request-scoped object and a slow endpoint tells you which table it read a million rows from.
+## Limitations
 
-It runs once per statement on the hot path, so keep it cheap. Anything it throws is swallowed, because measuring a write must not be able to fail it. A statement that throws is not reported, since D1 returns no metadata for one and a zeroed entry would read as free.
-
-## Reuse the database
-
-The binding is stable for the isolate, so build the database once rather than per request:
-
-```ts
-let db: D1Database | null = null;
-
-export default {
-    fetch(request, env) {
-        db ??= createD1Database(env.DB);
-        // …
-    },
-};
-```
-
-## What D1 will not do
-
-Two things the driver reports rather than emulates.
+There are two limitations to the D1 `data-table` driver due to limitations in D1's SQLite dialect itself:
 
 ### Transactions throw
 
@@ -132,12 +121,19 @@ D1 rejects `BEGIN`, `COMMIT`, `ROLLBACK`, and `SAVEPOINT` at the SQL layer. Its 
 So `db.transaction()` throws, with a message naming `batch()`. The capabilities say the same thing, which is what stops `data-table` from planning a transactional path in the first place:
 
 ```ts
-{ returning: true, savepoints: false, upsert: true, transactionalDdl: false }
+{
+    returning: true,
+    savepoints: false,
+    upsert: true,
+    transactionalDdl: false
+}
 ```
 
 Failing at the call is the point. The alternative is failing halfway through a write that cannot be rolled back.
 
 When you need several statements to land together, reach past the driver:
+
+<!-- TODO: we need a better escape hatch in `data-table-d1` itself for this rather than dropping down to the raw DB binding -->
 
 ```ts
 await env.DB.batch([
@@ -148,13 +144,15 @@ await env.DB.batch([
 
 #### Opting out of the refusal
 
-There is one case the refusal serves badly: code shared with a backend that does have transactions, where the choice is between running without atomicity and not running at all. A repository layer used by both a Worker and a Postgres service, say.
+`data-table-d1` allows the user to opt into unsafe non-atomic transactions if you need to support shared code across multiple types of SQL databases; a repository layer used by both a Worker and a Postgres service, say.
 
 ```ts
-let db = createD1Database(env.DB, { transactions: "unsafe-nonatomic" });
+let db = createD1Database(env.DB, {
+    transactions: "unsafe-nonatomic",
+});
 ```
 
-`transaction()` now runs the callback, and each statement commits on its own. The `unsafe` in the name means one specific thing: **a failure part-way through leaves the earlier writes in place**, because there is nothing to roll back.
+In this mode, `transaction()` will run the callback and each statement commits on its own. The `unsafe` in the name means one specific thing: **a failure part-way through leaves the earlier writes in place**, because there is nothing to roll back.
 
 ```ts
 await db.transaction(async tx => {
