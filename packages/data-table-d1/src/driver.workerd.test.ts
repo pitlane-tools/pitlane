@@ -1,5 +1,5 @@
 import { Miniflare } from "miniflare";
-import { column as c, table } from "remix/data-table";
+import { column as c, sql, table } from "remix/data-table";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { D1Binding } from "./d1.ts";
@@ -204,5 +204,55 @@ describe("unsafe-nonatomic transactions against real workerd", () => {
         // this outcome.
         let rows = await unsafe.query(Ledger).all();
         expect(rows.map(row => row.note)).toEqual(["first", "second"]);
+    });
+});
+
+// `transaction()` refuses because D1 cannot honour it. `batch()` is the thing
+// it can honour, and the escape hatch the guide points at.
+describe("batch against real workerd", () => {
+    it("commits every statement together", async () => {
+        await db.executeScript("create table batched (id integer primary key, note text not null)");
+
+        let results = await db.batch([
+            sql`insert into batched (note) values (${"one"})`,
+            sql`insert into batched (note) values (${"two"})`,
+        ]);
+
+        expect(results).toHaveLength(2);
+        expect(results[0]?.affectedRows).toBe(1);
+        expect(results[1]?.insertId).toBeGreaterThan(0);
+
+        let rows = await db.exec("select note from batched order by id");
+        expect(rows.rows?.map(row => row.note)).toEqual(["one", "two"]);
+    });
+
+    it("rolls the whole batch back when one statement fails", async () => {
+        await db.executeScript(
+            "create table guarded (id integer primary key, note text not null unique)",
+        );
+        await db.batch([sql`insert into guarded (note) values (${"first"})`]);
+
+        await expect(
+            db.batch([
+                sql`insert into guarded (note) values (${"second"})`,
+                // Violates the unique constraint, so the batch must fail.
+                sql`insert into guarded (note) values (${"first"})`,
+            ]),
+        ).rejects.toThrow();
+
+        // This is the property `transaction()` cannot offer on D1: "second"
+        // must not survive a batch that failed after it.
+        let rows = await db.exec("select note from guarded");
+        expect(rows.rows?.map(row => row.note)).toEqual(["first"]);
+    });
+
+    it("reads back through the same batch", async () => {
+        let results = await db.batch([sql`select 1 as answer`]);
+
+        expect(results[0]?.rows).toEqual([{ answer: 1 }]);
+    });
+
+    it("does nothing for an empty batch", async () => {
+        expect(await db.batch([])).toEqual([]);
     });
 });

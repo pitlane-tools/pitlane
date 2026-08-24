@@ -2,6 +2,7 @@ import type {
     DataManipulationRequest,
     DataManipulationResult,
     DatabaseDriver,
+    SqlStatement,
     TableRef,
     TransactionOptions,
     TransactionToken,
@@ -16,6 +17,14 @@ import { report } from "./observer.ts";
 import { compileSqliteOperation } from "./sql-compiler.ts";
 
 type Operation = DataManipulationRequest["operation"];
+
+/** What one statement in a {@link D1DatabaseDriver.batch} produced. */
+export interface D1BatchResult {
+    /** Rows the statement returned. Empty for a write with no `returning`. */
+    rows: Record<string, unknown>[];
+    affectedRows: number;
+    insertId: number;
+}
 
 /**
  * How the driver answers a `transaction()` call.
@@ -149,6 +158,48 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
             .all();
 
         return result.results.some(row => row.name === column);
+    }
+
+    /**
+     * Runs statements together, atomically, through D1's `batch()`.
+     *
+     * This is the answer to "several writes must land together" on a database
+     * with no transactions. `batch()` is D1's only atomic primitive: it takes
+     * every statement up front and commits them as a unit, which is why it
+     * cannot back `transaction()` but can back this.
+     *
+     * Statements are `SqlStatement`s, so `sql` from `remix/data-table`
+     * parameterises them and there is no reaching for the raw binding:
+     *
+     * ```ts
+     * await db.batch([
+     *     sql`insert into post (title) values (${title})`,
+     *     sql`update counter set posts = posts + 1`,
+     * ]);
+     * ```
+     *
+     * @param statements The statements to run, in order.
+     * @returns One result per statement, in the same order.
+     */
+    async batch(statements: SqlStatement[]): Promise<D1BatchResult[]> {
+        if (statements.length === 0) return [];
+
+        let results = await this.#d1.batch(
+            statements.map(statement =>
+                this.#d1
+                    .prepare(statement.text)
+                    .bind(...statement.values.map(value => (value === undefined ? null : value))),
+            ),
+        );
+
+        return results.map(result => {
+            report(this.#onStatement, "batch", undefined, result.meta);
+            return {
+                rows: result.results.map(row => ({ ...row })),
+                affectedRows: Number(result.meta.changes),
+                insertId: result.meta.last_row_id,
+            };
+        });
     }
 
     /**

@@ -1,9 +1,9 @@
-import type { DatabaseOptions } from "remix/data-table";
+import type { DatabaseOptions, SqlStatement } from "remix/data-table";
 
 import { Database } from "remix/data-table";
 
 import type { D1Binding } from "./d1.ts";
-import type { D1TransactionMode } from "./driver.ts";
+import type { D1BatchResult, D1TransactionMode } from "./driver.ts";
 import type { D1StatementObserver } from "./observer.ts";
 
 import { D1DatabaseDriver } from "./driver.ts";
@@ -30,9 +30,36 @@ export interface D1DatabaseOptions extends DatabaseOptions {
  * migration method comes from `remix/data-table` unchanged.
  */
 export class D1Database extends Database<"sqlite"> {
+    #driver: D1DatabaseDriver;
+
     constructor(binding: D1Binding, options?: D1DatabaseOptions) {
         let { onStatement, transactions, ...databaseOptions } = options ?? {};
-        super(new D1DatabaseDriver(binding, { onStatement, transactions }), databaseOptions);
+        let driver = new D1DatabaseDriver(binding, { onStatement, transactions });
+        super(driver, databaseOptions);
+        this.#driver = driver;
+    }
+
+    /**
+     * Runs statements together, atomically.
+     *
+     * D1 has no transactions, so `transaction()` refuses. `batch()` is what it
+     * offers instead, and this is it without reaching for the raw binding:
+     *
+     * ```ts
+     * import { sql } from "remix/data-table";
+     *
+     * await db.batch([
+     *     sql`insert into post (title) values (${title})`,
+     *     sql`update counter set posts = posts + 1`,
+     * ]);
+     * ```
+     *
+     * The statements are `SqlStatement`s rather than query-builder calls,
+     * because `data-table` exposes no way to build an operation without
+     * running it. `sql` still parameterises the values.
+     */
+    batch(statements: SqlStatement[]): Promise<D1BatchResult[]> {
+        return this.#driver.batch(statements);
     }
 }
 

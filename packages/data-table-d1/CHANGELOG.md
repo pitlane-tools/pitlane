@@ -27,6 +27,14 @@ Initial release.
   stays silent so the callback's own error surfaces instead of an
   `AggregateError` about an impossible rollback, and nesting still fails in
   both modes because `savepoints: false` stops it upstream of the driver.
+- `db.batch(statements)` runs statements atomically through D1's `batch()`,
+  which is its one atomic primitive and the reason it cannot back
+  `transaction()`. A failing statement rolls the whole batch back, asserted
+  against real D1. Inputs are `SqlStatement`s from `remix/data-table`'s `sql`
+  tag rather than query-builder calls, because `data-table` exposes no way to
+  build an operation without running it — `create` and `updateMany` execute on
+  call and `Query` has no `toSql()`. The point is that reaching for atomicity
+  no longer means reaching for the raw binding.
 - `wipe()` drops the application's tables, leaving D1's `_cf_*` and SQLite's
   `sqlite_*` bookkeeping in place. The pragma that permits the drops travels in
   the same `batch()` as the drops, because it is per-session and D1 gives each

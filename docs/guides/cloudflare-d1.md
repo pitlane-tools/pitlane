@@ -80,8 +80,6 @@ Nothing else is required. Now you can start using the D1 database in your Cloudf
 
 ## Migrations
 
-<!-- TODO: Add `pitlane` CLI to enable guided migrations like the `remix` CLI or drizzle-kit do -->
-
 `data-table` migrations run against D1 the same way they run anywhere. Load the descriptors and hand them to the database:
 
 ```ts
@@ -131,16 +129,30 @@ So `db.transaction()` throws, with a message naming `batch()`. The capabilities 
 
 Failing at the call is the point. The alternative is failing halfway through a write that cannot be rolled back.
 
-When you need several statements to land together, reach past the driver:
+#### When several writes must commit together
 
-<!-- TODO: we need a better escape hatch in `data-table-d1` itself for this rather than dropping down to the raw DB binding -->
+Use `db.batch()`. `batch()` is D1's one atomic primitive: it takes every
+statement up front and commits them as a unit, which is exactly why it cannot
+back `transaction()` and exactly why it can back this.
 
 ```ts
-await env.DB.batch([
-    env.DB.prepare("insert into post (title) values (?)").bind("one"),
-    env.DB.prepare("insert into post (title) values (?)").bind("two"),
+import { sql } from "remix/data-table";
+
+await db.batch([
+    sql`insert into post (title) values (${title})`,
+    sql`update counter set posts = posts + 1`,
 ]);
 ```
+
+If any statement fails the whole batch rolls back, which is the guarantee
+`transaction()` cannot give you here. Each result comes back in order, carrying
+`rows`, `affectedRows`, and `insertId`.
+
+These are `SqlStatement`s rather than query-builder calls, because
+`data-table` exposes no way to build an operation without running it: `create`
+and `updateMany` execute on call, and a `Query` has no `toSql()`. `sql` still
+parameterises the values, so nothing is interpolated by hand and the raw
+binding stays out of your application code.
 
 #### Opting out of the refusal
 

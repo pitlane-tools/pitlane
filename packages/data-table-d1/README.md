@@ -86,6 +86,19 @@ export default {
 
 ## What D1 cannot do
 
+**Several writes that must commit together** use `db.batch()`, which is D1's one atomic primitive and the reason it cannot back `transaction()`:
+
+```ts
+import { sql } from "remix/data-table";
+
+await db.batch([
+    sql`insert into post (title) values (${title})`,
+    sql`update counter set posts = posts + 1`,
+]);
+```
+
+If any statement fails the whole batch rolls back. They are `SqlStatement`s rather than query-builder calls because `data-table` exposes no way to build an operation without running it; `sql` still parameterises the values, so the raw binding stays out of your application code.
+
 **Transactions throw by default.** D1 rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer and offers `d1.batch()` instead, which takes every statement up front. That cannot express the interleaved begin/execute/commit a `Database` transaction drives, so the driver reports `savepoints: false` and `transactionalDdl: false` and throws a message pointing at `batch()`. Failing at the call beats failing halfway through a write that cannot be rolled back.
 
 When the caller is shared with a backend that does have transactions, and running without atomicity beats not running at all, opt in:
