@@ -80,18 +80,59 @@ Nothing else is required. Now you can start using the D1 database in your Cloudf
 
 ## Migrations
 
-`data-table` migrations run against D1 the same way they run anywhere. Load the descriptors and hand them to the database:
+Author migrations in TypeScript with `remix/data-table/migrations`, compile them
+to `.sql`, and let Wrangler apply them. The same generated files go to the local
+and the deployed database, so production runs what you tested.
 
-```ts
-import { loadMigrations } from "remix/data-table/migrations/node";
-
-let migrations = await loadMigrations("db/migrations");
-let result = await db.migrate(migrations);
-
-console.log(result.applied.map(entry => entry.id));
+```sh
+node db/generate-migrations.ts                 # TypeScript -> db/migrations/*.sql
+wrangler d1 migrations apply DB --local        # dev
+wrangler d1 migrations apply DB --remote       # production
 ```
 
-For a deployed database this runs through `wrangler d1 execute`, because the binding only exists inside the runtime.
+Point Wrangler at the generated directory:
+
+```jsonc
+{
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "my-app",
+            "database_id": "…",
+            "migrations_dir": "db/migrations",
+        },
+    ],
+}
+```
+
+Wrangler records what it has applied in a `d1_migrations` table, so re-running
+is a no-op and `--remote` picks up only what production has not seen.
+
+### Why not `db.migrate()` in production
+
+`Database` does have a `migrate()` method, and against a throwaway database it
+is the shortest path:
+
+```ts
+await db.migrate([{ id: "0001", name: "create_post", up: "create table post (…)" }]);
+```
+
+Two things stop it being the production answer.
+
+**It keeps its own journal.** `db.migrate()` tracks applied migrations in a
+`data_table_migrations` table. Wrangler tracks them in `d1_migrations`. Neither
+can see the other, so using `db.migrate()` locally and Wrangler in CI leaves the
+two databases disagreeing about what has run, with nothing to warn you. Pick one
+mechanism per database.
+
+**Its loader cannot run in a Worker.** `loadMigrations` from
+`remix/data-table/migrations/node` reads the filesystem through `node:fs`, so it
+belongs to build-time tooling, never to the deployed app. Reaching a deployed
+database at all means going through Wrangler or a script using
+`getPlatformProxy()`, because the binding exists only inside the runtime.
+
+`db.migrate()` is the right tool for tests and ephemeral databases, where it is
+the only mechanism in play. That is how this package's own suite sets up its tables.
 
 ## Knowing what a query cost
 
