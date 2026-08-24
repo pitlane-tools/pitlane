@@ -12,8 +12,9 @@ docs workflows use Mise, the package workflows use Vite+.
 
 A release is a git tag plus a GitHub release on `main`. That is the only thing
 `.github/workflows/publish.yml` listens for (`on: release: types: [published]`),
-and it is the only route to npm. Never run `npm publish` by hand, and never cut
-a tag or a release from a feature branch.
+and it is the only route to npm for a package that already exists there. Never
+cut a tag or a release from a feature branch, and never reach for `npm publish`
+to ship a version the workflow could have shipped.
 
 A feature PR **may** carry the version bump and the changelog entry for the
 release it is heading toward: `@pitlane/dev@0.3.0` was tagged directly on the
@@ -33,6 +34,52 @@ Checking what is actually published beats reasoning about it:
 ```sh
 npm view @pitlane/dev versions     # what npm has
 git ls-remote --tags origin        # what has been tagged
+```
+
+### A package's first publish is manual, once
+
+`publish.yml` authenticates through npm Trusted Publishing (OIDC). A trusted
+publisher cannot be configured for a package that does not exist yet, so the
+workflow cannot perform a package's **first** publish: it fails with
+`ENEEDAUTH`, which is not a misconfiguration and not worth debugging. That is
+the one case where publishing from a laptop is correct.
+
+Cut the tag and the GitHub release first, exactly as always. Then, from the
+released commit with a clean tree:
+
+```sh
+git checkout main && git pull --ff-only
+git rev-parse --short HEAD '@pitlane/<name>@<version>^{commit}'   # must match
+
+cd packages/<name>
+vp test && vp run build          # the gates publish.yml would have run
+npm pack --dry-run               # read the file list before it is permanent
+
+npm login --auth-type=web
+npm publish --access public --tag latest
+```
+
+Two flags earn their place. `--access public` is required because a scoped
+package defaults to restricted, and the default would publish something nobody
+can install. `--provenance` is **omitted**: it needs a CI OIDC token, so it
+fails from a laptop. That first version is the only one without a provenance
+attestation.
+
+With 2FA set to `auth-and-writes`, `npm publish` opens a second browser
+approval after `npm login`. Both are interactive, so run them where a person
+can answer.
+
+Afterwards, configure the trusted publisher on npmjs.com (package settings →
+Trusted Publisher → GitHub Actions, naming this repo and `publish.yml`). Every
+later version then goes through the release workflow, with provenance.
+
+Expect `npm view` to 404 for several minutes after a first publish while the
+packument cache invalidates. The publish still succeeded; check the parts that
+update first:
+
+```sh
+curl -sI https://registry.npmjs.org/@pitlane/<name>/-/<name>-<version>.tgz
+npm access list packages @pitlane
 ```
 
 ### Preview builds are not releases
