@@ -67,18 +67,27 @@ so; nothing enforces it.
 
 In the order each unblocks the next.
 
-1. **`pitlane db generate`** — compile TypeScript migrations to the platform's
-   artifact format. This is the byte-identical file. It is dialect-aware, not
-   D1-specific: the same step serves Postgres and SQLite targets.
-2. **`pitlane db apply --local|--remote`** — dispatch to the platform runner,
-   parsing whatever config names the database. That is the 47-line applier plus
-   the `db/lib` config parsing two apps already extracted.
-3. **`pitlane db status`** — which migrations a given deployment has applied.
-   None of the four apps has this. It is also the natural place to detect the
-   two-journal split and refuse rather than diverge.
-4. **`pitlane db seed`** — three of the four have a seed script, all with
-   different idempotency rules. Lowest value; listed for completeness rather
-   than as a recommendation.
+1. **Generate** — compile migrations to the platform's artifact format. This is
+   the byte-identical file. **Shipped for D1** in 0.1.0 as
+   `generateD1Migrations()`, a library call rather than a command, because a
+   two-line script needs no binary and naming one would prejudge the questions
+   below. A CLI would wrap it, not replace it. Still open: the same step for
+   Postgres and SQLite targets.
+2. **`apply --local|--remote`** — dispatch to the platform runner, parsing
+   whatever config names the database. That is the 47-line applier plus the
+   `db/lib` config parsing two apps already extracted. For D1 this is
+   `wrangler d1 migrations apply`, so the CLI's value here is config discovery
+   and a task name that does not differ per project.
+3. **`status`** — which migrations a given deployment has applied. None of the
+   four apps has this. It is also the natural place to detect the two-journal
+   split and refuse rather than diverge.
+4. **`seed`** — three of the four have a seed script, all with different
+   idempotency rules. Lowest value; listed for completeness rather than as a
+   recommendation.
+
+With step 1 shipped, the remaining case for a binary rests on 2 and 3. That is
+a weaker case than this document originally made, which is the correct outcome:
+the duplicated code is gone, and what is left is a naming and discovery problem.
 
 ## Scope questions this does not settle
 

@@ -33,6 +33,10 @@
         ".": {
             "types": "./dist/index.d.mts",
             "import": "./dist/index.mjs"
+        },
+        "./migrations": {
+            "types": "./dist/migrations.d.mts",
+            "import": "./dist/migrations.mjs"
         }
     },
     "scripts": {

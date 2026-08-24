@@ -39,6 +39,16 @@ Initial release.
   `sqlite_*` bookkeeping in place. The pragma that permits the drops travels in
   the same `batch()` as the drops, because it is per-session and D1 gives each
   statement its own session.
+- `generateD1Migrations()`, from the `@pitlane/data-table-d1/migrations` entry
+  point, compiles `data-table` migrations into the flat `.sql` files Wrangler's
+  D1 migration runner reads. Production migrations then go through Wrangler's
+  own workflow, which is what four apps in the wild had each hand-rolled: two
+  byte-identical copies of one generator, and two more that drifted to 74 and
+  101 lines from a common ancestor. SQL is copied verbatim rather than split
+  into statements, so a semicolon inside a trigger body survives; the output
+  directory is pruned to match the source; and files that are not generated
+  artifacts are left alone. Node-only, and a separate entry point so it stays
+  out of Worker bundles.
 - Raw statements always come back with a rows array. The SQLite driver asks a
   prepared statement whether it returns columns; D1 exposes no equivalent, and
   its `all()` carries both `results` and `meta` regardless.

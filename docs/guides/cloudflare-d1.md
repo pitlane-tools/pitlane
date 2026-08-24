@@ -80,17 +80,22 @@ Nothing else is required. Now you can start using the D1 database in your Cloudf
 
 ## Migrations
 
-Author migrations in TypeScript with `remix/data-table/migrations`, compile them
-to `.sql`, and let Wrangler apply them. The same generated files go to the local
-and the deployed database, so production runs what you tested.
+Author migrations as `data-table` migrations, compile them to `.sql`, and let Wrangler apply them. The same generated files go to the local and the deployed database, so production runs what you tested.
 
-```sh
-node db/generate-migrations.ts                 # TypeScript -> db/migrations/*.sql
-wrangler d1 migrations apply DB --local        # dev
-wrangler d1 migrations apply DB --remote       # production
+`generateD1Migrations` does the compiling:
+
+```ts
+// db/generate-migrations.ts
+import { generateD1Migrations } from "@pitlane/data-table-d1/migrations";
+
+let migrations = await generateD1Migrations({
+    to: "db/d1-migrations",
+});
+
+console.log(`Generated ${migrations.length} migration(s).`);
 ```
 
-Point Wrangler at the generated directory:
+It reads `db/migrations` by default and writes one `<id>_<name>.sql` per migration into `to`, which is the directory Wrangler reads:
 
 ```jsonc
 {
@@ -99,40 +104,25 @@ Point Wrangler at the generated directory:
             "binding": "DB",
             "database_name": "my-app",
             "database_id": "…",
-            "migrations_dir": "db/migrations",
+            "migrations_dir": "db/d1-migrations",
         },
     ],
 }
 ```
 
-Wrangler records what it has applied in a `d1_migrations` table, so re-running
-is a no-op and `--remote` picks up only what production has not seen.
+Then the loop is three commands:
 
-### Why not `db.migrate()` in production
-
-`Database` does have a `migrate()` method, and against a throwaway database it
-is the shortest path:
-
-```ts
-await db.migrate([{ id: "0001", name: "create_post", up: "create table post (…)" }]);
+```sh
+node db/generate-migrations.ts             # TypeScript migrations -> .sql
+wrangler d1 migrations apply DB --local    # dev
+wrangler d1 migrations apply DB --remote   # production
 ```
 
-Two things stop it being the production answer.
+Wrangler records what it has applied in a `d1_migrations` table, so re-running is a no-op and `--remote` picks up only what production has not seen.
 
-**It keeps its own journal.** `db.migrate()` tracks applied migrations in a
-`data_table_migrations` table. Wrangler tracks them in `d1_migrations`. Neither
-can see the other, so using `db.migrate()` locally and Wrangler in CI leaves the
-two databases disagreeing about what has run, with nothing to warn you. Pick one
-mechanism per database.
+Two details worth knowing about the generated directory. Files are written verbatim, so a semicolon inside a trigger body or a string literal survives. Splitting the SQL into statements is Wrangler's job, not the generator's. And the directory is a pure function of the source: a generated `.sql` file whose migration you deleted is removed on the next run, while anything that is not a generated file, such as a `README.md`, is left alone.
 
-**Its loader cannot run in a Worker.** `loadMigrations` from
-`remix/data-table/migrations/node` reads the filesystem through `node:fs`, so it
-belongs to build-time tooling, never to the deployed app. Reaching a deployed
-database at all means going through Wrangler or a script using
-`getPlatformProxy()`, because the binding exists only inside the runtime.
-
-`db.migrate()` is the right tool for tests and ephemeral databases, where it is
-the only mechanism in play. That is how this package's own suite sets up its tables.
+`generateD1Migrations` reads the filesystem, so it is build tooling and imports from a separate entry point. It never enters your Worker bundle.
 
 ## Knowing what a query cost
 
@@ -160,21 +150,19 @@ D1 rejects `BEGIN`, `COMMIT`, `ROLLBACK`, and `SAVEPOINT` at the SQL layer. Its 
 So `db.transaction()` throws, with a message naming `batch()`. The capabilities say the same thing, which is what stops `data-table` from planning a transactional path in the first place:
 
 ```ts
-{
+({
     returning: true,
     savepoints: false,
     upsert: true,
-    transactionalDdl: false
-}
+    transactionalDdl: false,
+});
 ```
 
 Failing at the call is the point. The alternative is failing halfway through a write that cannot be rolled back.
 
 #### When several writes must commit together
 
-Use `db.batch()`. `batch()` is D1's one atomic primitive: it takes every
-statement up front and commits them as a unit, which is exactly why it cannot
-back `transaction()` and exactly why it can back this.
+Use `db.batch()`. `batch()` is D1's one atomic primitive: it takes every statement up front and commits them as a unit, which is exactly why it cannot back `transaction()` and exactly why it can back this.
 
 ```ts
 import { sql } from "remix/data-table";
@@ -185,15 +173,9 @@ await db.batch([
 ]);
 ```
 
-If any statement fails the whole batch rolls back, which is the guarantee
-`transaction()` cannot give you here. Each result comes back in order, carrying
-`rows`, `affectedRows`, and `insertId`.
+If any statement fails the whole batch rolls back, which is the guarantee `transaction()` cannot give you here. Each result comes back in order, carrying `rows`, `affectedRows`, and `insertId`.
 
-These are `SqlStatement`s rather than query-builder calls, because
-`data-table` exposes no way to build an operation without running it: `create`
-and `updateMany` execute on call, and a `Query` has no `toSql()`. `sql` still
-parameterises the values, so nothing is interpolated by hand and the raw
-binding stays out of your application code.
+These are `SqlStatement`s rather than query-builder calls, because `data-table` exposes no way to build an operation without running it: `create` and `updateMany` execute on call, and a `Query` has no `toSql()`. `sql` still parameterises the values, so nothing is interpolated by hand and the raw binding stays out of your application code.
 
 #### Opting out of the refusal
 

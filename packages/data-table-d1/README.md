@@ -50,6 +50,20 @@ The bare `DatabaseDriver<"sqlite">`, for handing to `Database` directly or wrapp
 
 The slice of D1 this package uses: `prepare`, `batch`, `exec`. A real binding satisfies it, and so does a test double.
 
+### `generateD1Migrations(options)`
+
+Compiles `data-table` migrations into the flat `.sql` files Wrangler's D1 migration runner reads, so production migrations go through Wrangler's own workflow instead of a hand-rolled script:
+
+```ts
+import { generateD1Migrations } from "@pitlane/data-table-d1/migrations";
+
+await generateD1Migrations({ to: "db/d1-migrations" });
+```
+
+Reads `db/migrations` unless told otherwise, writes one `<id>_<name>.sql` per migration, and deletes generated files whose migration is gone. SQL is copied verbatim, so semicolons inside trigger bodies survive.
+
+Node-only build tooling, which is why it is a separate entry point. It never enters a Worker bundle.
+
 ### `onStatement`
 
 Called after each executed statement with what it cost:
