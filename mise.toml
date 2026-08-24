@@ -32,7 +32,7 @@ depends = "docs:build"
 run = ["oxfmt --check", "oxlint", "tsc"]
 
 [tasks."docs:api"]
-run = ["typedoc --options typedoc.dev.json", "typedoc --options typedoc.theme.json"]
+run = ["typedoc --options typedoc.dev.json", "typedoc --options typedoc.theme.json", "typedoc --options typedoc.data-table-d1.json"]
 
 # The sidebar links /package/dev/* and /package/theme/*, which only exist once
 # typedoc has emitted them; VitePress fails the build on those dead links

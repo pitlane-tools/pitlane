@@ -12,3 +12,4 @@ dist
 .wrangler
 docs/package/dev
 docs/package/theme
+docs/package/data-table-d1

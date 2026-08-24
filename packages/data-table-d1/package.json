@@ -1,0 +1,58 @@
+{
+    "name": "@pitlane/data-table-d1",
+    "version": "0.1.0",
+    "description": "A Cloudflare D1 driver for Remix 3's data-table: SQLite SQL over D1's async prepared-statement binding.",
+    "keywords": [
+        "cloudflare",
+        "d1",
+        "data-table",
+        "pitlane",
+        "remix",
+        "sqlite",
+        "workers"
+    ],
+    "homepage": "https://pitlane.tools/package/data-table-d1/",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/data-table-d1"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "LICENSE.remix"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        },
+        "./migrations": {
+            "types": "./dist/migrations.d.mts",
+            "import": "./dist/migrations.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "miniflare": "^4.20260710.0",
+        "remix": "3.0.0-beta.10",
+        "typescript": "^7.0.2",
+        "vite-plus": "^0.2.6"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0-beta.10"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
+}

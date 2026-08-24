@@ -2,7 +2,7 @@
     <div class="wrapper wrapper--ticks grid md:grid-cols-2 w-full divide-x">
         <div class="flex flex-col p-10 justify-center items-center md:items-start">
             <div
-                class="flex flex-col gap-5 max-w-[31rem] text-center md:text-left items-center md:items-start"
+                class="flex flex-col gap-5 max-w-124 text-center md:text-left items-center md:items-start"
             >
                 <h1 class="text-pretty">Platform Integration for Remix Apps</h1>
                 <p class="text-lg max-w-md text-pretty opacity-80">
@@ -10,7 +10,7 @@
                     Cloudflare, Netlify, Vercel, Node, Bun, or Deno.
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
-                    <a href="/guides/vite-plugin" class="button button--primary inline-block w-fit">
+                    <a href="/guides/hmr" class="button button--primary inline-block w-fit">
                         <span>Get Started</span>
                     </a>
                     <a
@@ -24,7 +24,7 @@
                 </div>
             </div>
         </div>
-        <div class="flex flex-col min-h-[22rem] sm:min-h-[30rem]">
+        <div class="flex flex-col min-h-88 sm:min-h-120">
             <div
                 class="relative px-6 sm:px-16 h-full flex flex-col justify-center overflow-clip py-8 sm:py-16 hero-background"
             >

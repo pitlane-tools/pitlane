@@ -26,13 +26,19 @@ let guides: DefaultTheme.SidebarItem[] = [
         text: "Guides",
         items: [
             { text: "Styling", link: "/guides/styling" },
-            { text: "Vite Plugin", link: "/guides/vite-plugin" },
-            { text: "Hot Module Replacement", link: "/guides/hmr" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+            { text: "Hot Module Replacement", link: "/guides/hmr" },
         ],
     },
     {
-        text: "Deploy",
+        text: "Adapters",
+        items: [
+            //
+            { text: "Cloudflare D1", link: "/guides/cloudflare-d1" },
+        ],
+    },
+    {
+        text: "Deployment",
         items: [
             { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
             { text: "Netlify", link: "/deploy/netlify" },
@@ -103,6 +109,14 @@ let config = defineConfig({
                     {
                         text: "Packages",
                         items: [
+                            {
+                                text: "@pitlane/data-table-d1",
+                                link: "/package/data-table-d1/index",
+                            },
+                            {
+                                text: "@pitlane/data-table-d1/migrations",
+                                link: "/package/data-table-d1/migrations",
+                            },
                             { text: "@pitlane/dev", link: "/package/dev/index" },
                             {
                                 text: "@pitlane/dev/runtime",
@@ -125,6 +139,11 @@ let config = defineConfig({
         ],
         sidebar: {
             "/package/": [
+                { text: "@pitlane/data-table-d1", link: "/package/data-table-d1/" },
+                {
+                    text: "@pitlane/data-table-d1/migrations",
+                    link: "/package/data-table-d1/migrations",
+                },
                 { text: "@pitlane/dev", link: "/package/dev/" },
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
                 { text: "@pitlane/theme", link: "/package/theme/" },

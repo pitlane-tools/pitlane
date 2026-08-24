@@ -1,9 +1,13 @@
 name: 📦 Publish package preview (pkg.pr.new)
 
-# Publishes an installable preview build of @pitlane/dev for every branch push
-# and PR, so the plugin can be tried in other projects before release:
+# Publishes an installable preview build of every publishable package for each
+# branch push and PR, so they can be tried in a real project before release:
 #
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/dev@<commit>
+#     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/data-table-d1@<commit>
+#
+# A package that ships only built output has to be built here first, or
+# pkg.pr.new packs an empty `dist`.
 #
 # One-time setup: install the pkg.pr.new GitHub App on the repository
 # (https://github.com/apps/pkg-pr-new). Until then this job fails at the publish
@@ -39,9 +43,17 @@ jobs:
             - name: Install
               run: vp install --frozen-lockfile
 
+            # Each build runs from inside its package, which is the form that
+            # resolves the toolchain the global `vp` provides. A root-level
+            # `vp run build --filter …` reports "Task not found" and exits 0,
+            # which would publish an empty dist with the job still green.
             - name: Build @pitlane/dev
               working-directory: packages/dev
               run: vp run build
 
-            - name: Publish preview to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/dev'
+            - name: Build @pitlane/data-table-d1
+              working-directory: packages/data-table-d1
+              run: vp run build
+
+            - name: Publish previews to pkg.pr.new
+              run: npx pkg-pr-new publish './packages/dev' './packages/data-table-d1'
