@@ -107,6 +107,10 @@ Importing `cloudflare:workers` makes the SSR bundle resolvable only inside worke
 
 :::
 
+A D1 binding gets you a `remix/data-table` database through
+[`@pitlane/data-table-d1`](/guides/cloudflare-d1), which supplies the async
+driver D1 needs in place of the synchronous SQLite one.
+
 ## Local development and preview
 
 ```sh

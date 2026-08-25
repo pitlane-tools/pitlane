@@ -1,0 +1,70 @@
+# @pitlane/data-table-d1
+
+## 0.1.0
+
+Initial release.
+
+- `createD1Database(binding, options?)` wraps a Cloudflare D1 binding in a
+  `Database` from `remix/data-table`. `D1Database` is the subclass it returns
+  and `D1DatabaseDriver` the bare `DatabaseDriver<"sqlite">`, matching the shape
+  of `SqliteDatabase` and `PostgresDatabase`.
+- Exists because `@remix-run/data-table-sqlite` drives a synchronous client —
+  `prepare(sql).all()` returns rows rather than a promise, as `better-sqlite3`
+  and `node:sqlite` do — and D1 is an awaited RPC binding. No adapter bridges
+  that, so a D1 app could not use the SQLite driver at all. The SQL is still
+  SQLite's, so this pairs that compiler with an async driver.
+- Transactions throw by default, naming `d1.batch()` and the opt-in below. D1
+  rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer, and `batch()`
+  wants every statement up front, which cannot express the interleaved
+  begin/execute/commit a `Database` transaction drives. Capabilities report
+  `savepoints: false` and `transactionalDdl: false` rather than failing
+  mid-write.
+- `transactions: "unsafe-nonatomic"` opts out of that refusal, for callers
+  shared with a backend that does have transactions where running without
+  atomicity beats not running. `transaction()` then runs the callback with each
+  statement committing on its own, so a failure part-way leaves the earlier
+  writes persisted — asserted against real D1, not just described. Rollback
+  stays silent so the callback's own error surfaces instead of an
+  `AggregateError` about an impossible rollback, and nesting still fails in
+  both modes because `savepoints: false` stops it upstream of the driver.
+- `db.batch(statements)` runs statements atomically through D1's `batch()`,
+  which is its one atomic primitive and the reason it cannot back
+  `transaction()`. A failing statement rolls the whole batch back, asserted
+  against real D1. Inputs are `SqlStatement`s from `remix/data-table`'s `sql`
+  tag rather than query-builder calls, because `data-table` exposes no way to
+  build an operation without running it — `create` and `updateMany` execute on
+  call and `Query` has no `toSql()`. The point is that reaching for atomicity
+  no longer means reaching for the raw binding.
+- `wipe()` drops the application's tables, leaving D1's `_cf_*` and SQLite's
+  `sqlite_*` bookkeeping in place. The pragma that permits the drops travels in
+  the same `batch()` as the drops, because it is per-session and D1 gives each
+  statement its own session.
+- `generateD1Migrations()`, from the `@pitlane/data-table-d1/migrations` entry
+  point, compiles `data-table` migrations into the flat `.sql` files Wrangler's
+  D1 migration runner reads. Production migrations then go through Wrangler's
+  own workflow, which is what four apps in the wild had each hand-rolled: two
+  byte-identical copies of one generator, and two more that drifted to 74 and
+  101 lines from a common ancestor. SQL is copied verbatim rather than split
+  into statements, so a semicolon inside a trigger body survives; the output
+  directory is pruned to match the source; and files that are not generated
+  artifacts are left alone. Node-only, and a separate entry point so it stays
+  out of Worker bundles.
+- Raw statements always come back with a rows array. The SQLite driver asks a
+  prepared statement whether it returns columns; D1 exposes no equivalent, and
+  its `all()` carries both `results` and `meta` regardless.
+- `onStatement` reports what each statement cost —
+  `{ kind, table, rowsRead, rowsWritten, durationMs }` — off the `meta` D1
+  already returns. D1 bills on rows read and written and reports analytics per
+  database, so this is the only per-query attribution available, and it costs
+  no extra statement. Observer throws are swallowed, statements that throw are
+  not reported, and figures D1 omits come through as `0` rather than estimated.
+  The idea is [`@pkg/data-table-d1`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-d1)'s.
+- The D1 API is declared structurally, so the package pulls in no Cloudflare
+  types and no ambient globals.
+- `src/sql-compiler.ts` is vendored verbatim from
+  `@remix-run/data-table-sqlite@0.6.0` (MIT, Copyright (c) 2025 Shopify Inc.),
+  with only its import specifiers repointed at the public `remix/*` subpaths.
+  Upstream keeps `compileSqliteOperation` internal and publishes no D1 dialect;
+  the file goes away if either changes.
+- Tested against `remix@3.0.0-beta.10`, with the query, write, count, schema and
+  wipe paths exercised inside real workerd through Miniflare.

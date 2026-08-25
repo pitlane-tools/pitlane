@@ -7,18 +7,18 @@ description: How @pitlane/dev hot-updates a Remix 3 app during vite dev, coverin
 
 `vite dev` updates a running app in place. Editing a component swaps its new code in without remounting, so hydrated islands keep their open menus, input values, and counters. Editing a server-only module refetches the current page through your fetch handler and reconciles the new HTML into the DOM, which keeps that same island state while the server output changes underneath it.
 
-Component HMR needs no configuration. Server-data revalidation needs one line in your document, described under [Setup](#setup). Neither exists in a production build, because the transforms are `apply: "serve"` only. For the rest of the plugin's behavior, see [Using the Vite plugin](/guides/vite-plugin).
+Component HMR needs no configuration. Server-data revalidation needs one line in your document, described under [Setup](#setup). Neither exists in a production build, because the transforms are `apply: "serve"` only.
 
 ## What each kind of edit does
 
-| You edit                                           | What happens                                      | What keeps its state                 |
-| -------------------------------------------------- | ------------------------------------------------- | ------------------------------------ |
-| The render function of an HMR-compatible component | Its new code is swapped in place                  | Every island, including this one     |
-| The setup scope of an HMR-compatible component     | That component remounts                           | Every other island                   |
-| A component export the transform skips             | The page refetches and reconciles                 | Every other island                   |
-| A server-only module                               | The page refetches and reconciles                 | Every island                         |
-| A non-component module the browser imports         | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
-| CSS                                                | Vite's own CSS handling                           | Every island                         |
+| You edit | What happens | What keeps its state |
+| --- | --- | --- |
+| The render function of an HMR-compatible component | Its new code is swapped in place | Every island, including this one |
+| The setup scope of an HMR-compatible component | That component remounts | Every other island |
+| A component export the transform skips | The page refetches and reconciles | Every other island |
+| A server-only module | The page refetches and reconciles | Every island |
+| A non-component module the browser imports | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
+| CSS | Vite's own CSS handling | Every island |
 
 No row in that table is a full page reload.
 
@@ -141,11 +141,11 @@ Overlapping revalidations coalesce in the browser too. A revalidation that arriv
 
 ## Requirements
 
-| Requirement                                    | Why                                                           | When unmet                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
-| `<HMR />` rendered in the document             | It is the browser half, and hydration gives it a frame handle | Server edits reach the server and the page does not change |
-| A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island                           | `<HMR />` renders nothing and revalidation never runs      |
-| `serverEnvironments` matches your config       | It selects which environment classifies files as server-only  | Neither half can tell client from server                   |
+| Requirement | Why | When unmet |
+| --- | --- | --- |
+| `<HMR />` rendered in the document | It is the browser half, and hydration gives it a frame handle | Server edits reach the server and the page does not change |
+| A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island | `<HMR />` renders nothing and revalidation never runs |
+| `serverEnvironments` matches your config | It selects which environment classifies files as server-only | Neither half can tell client from server |
 
 If a platform plugin renames the server environment, pass the same names to `remix({ serverEnvironments })`. `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
 
@@ -167,15 +167,9 @@ Production drops the tag and serves zero JavaScript, since the hydration markers
 
 ### Client-rendered apps
 
-`remix({ server: false })` is the mirror image: everything renders in the browser,
-so component HMR is the whole story and there is no server data to revalidate.
-`<HMR />` resolves to the inert component, and the requirements table above
-does not apply. The client entry is whatever `index.html` loads, and there are
-no server environments to name.
+`remix({ server: false })` is the mirror image: everything renders in the browser, so component HMR is the whole story and there is no server data to revalidate. `<HMR />` resolves to the inert component, and the requirements table above does not apply. The client entry is whatever `index.html` loads, and there are no server environments to name.
 
-This is also the only mode that currently works under Vite's experimental
-bundled dev mode, component hot-swap included. See
-[Single-page apps](/guides/spa) for the whole mode.
+This is also the only mode that currently works under Vite's experimental bundled dev mode, component hot-swap included. See [Single-page apps](/guides/spa) for the whole mode.
 
 ## Limits
 

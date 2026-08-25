@@ -34,6 +34,7 @@ run = ["oxfmt --check", "oxlint", "tsc"]
 [tasks."docs:api"]
 run = [
     "typedoc --options typedoc.crawler.json",
+    "typedoc --options typedoc.data-table-d1.json",
     "typedoc --options typedoc.dev.json",
     "typedoc --options typedoc.theme.json",
 ]
