@@ -211,15 +211,9 @@ Off-palette literals fail to compile. Keywords such as `transparent` and literal
 
 ## Dark mode
 
-Use `lightDark(light, dark)` for a color whose value follows the active CSS color scheme. Set the root's `color-scheme` to allow light and dark before the browser resolves those functions:
+Use `lightDark(light, dark)` for a color whose value follows the active CSS color scheme. The `color.page` token in the theme above becomes `light-dark(#fff, #171717)`, and responds to the operating-system preference without a theme mode. `lightDark()` accepts accessor references too, so its colors can still be overridden in a later layer.
 
-```css
-:root {
-    color-scheme: light dark;
-}
-```
-
-The `color.page` token in the theme above becomes `light-dark(#fff, #171717)`. It responds to the operating-system preference without a theme mode. `lightDark()` accepts accessor references too, so its colors can still be overridden in a later layer.
+`light-dark()` resolves against the `color-scheme` property, and an undeclared `color-scheme` behaves as light, so the function would otherwise keep its light value on a dark system. `<Theme />` declares `color-scheme: light dark` on `:root` whenever a token uses the function. Declare a narrower value yourself to override it.
 
 Use `modes` for values that CSS `light-dark()` cannot carry, including shadows, dimensions, durations, and font stacks. A mode may set `media`, `selector`, or both. `selector` adds a selector block alongside the mode's media block. `light` and `dark` default to their matching `prefers-color-scheme` query. Supply `media` for an explicit condition or for another mode name.
 
