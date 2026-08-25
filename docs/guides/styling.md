@@ -186,6 +186,17 @@ function App() {
 }
 ```
 
+Because a composite is authored as CSS text, one token points at another by putting the reference inside the shorthand. A reference works anywhere in a value, not only as the whole value:
+
+```ts
+tokens: {
+    color: { line: "rgb(0 0 0 / 0.12)" },
+    shadow: { card: "0 1px 2px {color.line}" },
+},
+```
+
+That emits `--shadow-card: 0 1px 2px var(--color-line);`, so a mode override of `color.line` reaches the shadow. A reference naming a token that does not exist raises `ThemeError` instead of reaching the stylesheet.
+
 ## Use tokens in styles
 
 `css` from `@pitlane/theme` is remix/ui's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:

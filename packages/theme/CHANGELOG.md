@@ -31,7 +31,10 @@ What changes in a hand-written theme:
 | `modes: { dark: { … { $value } } }`                | `modes: { dark: { tokens: { … } } }`     |
 
 `{color.white}` references, the accessor shape, `raw`, `<Theme />`, `css`,
-`tva`, `combine`, and `cx` are all unchanged.
+`tva`, `combine`, and `cx` are all unchanged. A DTCG sub-value alias, such as a
+shadow whose `color` field was `{color.line}`, becomes a reference inside the
+shorthand text: `"0 1px 2px {color.line}"`. That resolves to a `var()` like any
+other reference, so a mode override of the target still reaches it.
 
 - `createTheme({ schema, tokens, modes })` replaces
   `createTheme(document, options)`. A leaf is a string, a number, or an array;
@@ -66,6 +69,10 @@ What changes in a hand-written theme:
   `(prefers-color-scheme: <name>)`; `selector` emits a second block for a
   user-selectable toggle, which outranks the media block on specificity so an
   explicit choice beats the OS preference.
+- A `{path.to.token}` reference works anywhere in a value, not only as the whole
+  value, which is what carries a DTCG sub-value alias across. One that names
+  nothing raises `ThemeError` rather than reaching the stylesheet as literal
+  braces.
 - Bad token values raise `ValidationError` from `remix/data-schema`, one issue
   per bad token with its own path, all reported in one pass. Read `issues`
   rather than `message`. `ThemeError` covers the structural failures: an

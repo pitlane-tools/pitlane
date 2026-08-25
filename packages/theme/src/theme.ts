@@ -19,7 +19,13 @@ import type {
 
 import { isTokenSchema } from "./schema.ts";
 import { serializeValue } from "./serialize.ts";
-import { collectTokens, kebabSegment, referenceTarget, ThemeError } from "./tokens.ts";
+import {
+    collectTokens,
+    kebabSegment,
+    referenceTarget,
+    resolveEmbeddedReferences,
+    ThemeError,
+} from "./tokens.ts";
 import { composeSchema } from "./validate.ts";
 
 /**
@@ -171,7 +177,7 @@ function compile<T>(init: ResolvedInit): ThemeResult<T> {
     let byVarName = new Map(entries.map(entry => [entry.varName, entry]));
     let ctx = referenceContext(byKey);
 
-    let declarations = entries.map(entry => [entry.varName, declare(entry, ctx)] as const);
+    let declarations = entries.map(entry => [entry.varName, declare(entry, ctx, byKey)] as const);
     let cssText = buildCssText(declarations, modeBlocks(init.modes, byKey, ctx));
 
     return {
@@ -224,11 +230,18 @@ function referenceContext(byKey: Map<string, Entry>): SerializeContext {
     };
 }
 
-function declare(entry: Entry, ctx: SerializeContext): string {
-    if (entry.kind === "untyped") return entry.value;
-    if (entry.kind === "scale") return serializeValue("dimension", entry.value, ctx, entry.key);
+function declare(entry: Entry, ctx: SerializeContext, byKey: Map<string, Entry>): string {
+    if (entry.kind === "untyped") return embed(entry.value, entry.key, byKey);
+    if (entry.kind === "scale") {
+        return embed(serializeValue("dimension", entry.value, ctx, entry.key), entry.key, byKey);
+    }
     if (entry.aliasOf !== undefined) return ctx.varRefFor(entry.aliasOf, entry.key, entry.type);
-    return serializeValue(entry.type, entry.value, ctx, entry.key);
+    return embed(serializeValue(entry.type, entry.value, ctx, entry.key), entry.key, byKey);
+}
+
+function embed(value: string, key: string, byKey: Map<string, Entry>): string {
+    if (!value.includes("{")) return value;
+    return resolveEmbeddedReferences(value, key, target => byKey.get(target)?.varName);
 }
 
 function modeBlocks(
@@ -293,7 +306,7 @@ function walkMode(
         out.push([
             entry.varName,
             target === null
-                ? serializeValue(type, value, ctx, childKey)
+                ? embed(serializeValue(type, value, ctx, childKey), childKey, byKey)
                 : ctx.varRefFor(target, childKey, type),
         ]);
     }

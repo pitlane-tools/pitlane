@@ -605,3 +605,56 @@ describe("color-scheme", () => {
         expect(theme.cssText).toContain("color-scheme: light dark;");
     });
 });
+
+describe("a reference inside composite CSS text", () => {
+    it("resolves to a var() so the cascade still reaches it", () => {
+        let theme = createTheme({
+            schema: {
+                color: s.color(),
+                shadow: s.shadow(),
+                motion: s.group(s.duration(), { press: s.transition() }),
+            },
+            tokens: {
+                color: { highlight: "rgb(255 255 255 / 0.7)" },
+                shadow: { inset: "inset 0 1px 0 0 {color.highlight}" },
+                motion: { fast: "150ms", press: "{motion.fast} ease 0s" },
+            },
+        });
+        expect(theme.cssText).toContain("--shadow-inset: inset 0 1px 0 0 var(--color-highlight);");
+        expect(theme.cssText).toContain("--motion-press: var(--motion-fast) ease 0s;");
+    });
+
+    it("still cascades a mode override of the referenced token", () => {
+        let theme = createTheme({
+            schema: { color: s.color(), shadow: s.shadow() },
+            tokens: {
+                color: { highlight: "rgb(255 255 255 / 0.7)" },
+                shadow: { inset: "inset 0 1px 0 0 {color.highlight}" },
+            },
+            modes: { dark: { tokens: { color: { highlight: "rgb(0 0 0 / 0.4)" } } } },
+        });
+        expect(theme.cssText).toContain("--shadow-inset: inset 0 1px 0 0 var(--color-highlight);");
+        expect(theme.cssText).toContain("--color-highlight: rgb(0 0 0 / 0.4);");
+    });
+
+    it("refuses one that names nothing rather than emitting invalid CSS", () => {
+        expect(() =>
+            createTheme({
+                schema: { shadow: s.shadow() },
+                tokens: { shadow: { inset: "inset 0 1px 0 0 {color.nope}" } },
+            }),
+        ).toThrow(/"shadow.inset" references unknown token "color.nope"/);
+    });
+
+    it("resolves one inside a mode override too", () => {
+        let theme = createTheme({
+            schema: { color: s.color(), shadow: s.shadow() },
+            tokens: {
+                color: { a: "#fff", b: "#000" },
+                shadow: { card: "0 1px 0 {color.a}" },
+            },
+            modes: { dark: { tokens: { shadow: { card: "0 1px 0 {color.b}" } } } },
+        });
+        expect(theme.cssText).toContain("--shadow-card: 0 1px 0 var(--color-b);");
+    });
+});

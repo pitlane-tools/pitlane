@@ -85,6 +85,7 @@ export type Entry = ScaleEntry | TypedEntry | UntypedEntry;
 
 const REFERENCE_RE = /^\{([^{}]+)\}$/;
 const VAR_RE = /^var\((--[a-z0-9-]+)\)$/;
+const EMBEDDED_REFERENCE_RE = /\{([^{}]+)\}/g;
 
 /**
  * Extracts the target key from a `"{path.to.token}"` reference, or
@@ -96,6 +97,29 @@ export function referenceTarget(value: unknown): string | null {
     if (typeof value !== "string") return null;
     let match = REFERENCE_RE.exec(value);
     return match ? match[1]! : null;
+}
+
+/**
+ * Rewrites every `{path.to.token}` inside a larger value to its `var()`
+ * reference. A composite is authored as CSS text, so this is what lets a
+ * shadow or a transition point at another token the way DTCG's sub-value
+ * aliases did. Braces are not valid anywhere in a CSS value, so a `{…}` that
+ * names nothing is a mistake rather than something to pass through.
+ *
+ * @internal
+ */
+export function resolveEmbeddedReferences(
+    value: string,
+    key: string,
+    varNameFor: (target: string) => string | undefined,
+): string {
+    return value.replace(EMBEDDED_REFERENCE_RE, (_, target: string) => {
+        let varName = varNameFor(target);
+        if (varName === undefined) {
+            throw new ThemeError(`"${key}" references unknown token "${target}"`);
+        }
+        return `var(${varName})`;
+    });
 }
 
 /**
