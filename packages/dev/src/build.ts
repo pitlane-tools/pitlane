@@ -276,8 +276,15 @@ export function build({ clientEntry, serverEntry, prerender: paths }: BuildPlugi
             // Last: the server entry only resolves real client asset URLs once
             // both builds and the manifest are on disk.
             if (paths !== undefined) {
-                for (let written of await prerender(builder, paths, serverEntry)) {
-                    this.info(`prerendered ${written}`);
+                let { written, redirected } = await prerender(builder, paths, serverEntry);
+                for (let file of written) this.info(`prerendered ${file}`);
+
+                // Silence here would read as a path that prerendered fine, and
+                // the file it should have produced is the one nobody finds
+                // missing until the host 404s on it.
+                for (let { pathname, location } of redirected) {
+                    let target = location ?? "an unnamed location";
+                    this.info(`skipped ${pathname} (redirects to ${target})`);
                 }
             }
         },

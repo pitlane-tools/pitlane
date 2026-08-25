@@ -103,14 +103,15 @@ ${urls
 </urlset>`;
 ```
 
-The `Content-Type` check keeps redirects and JSON endpoints out of the file.
-Sorting keeps the output stable, so a rebuild produces no diff when nothing
-changed.
+The `Content-Type` check keeps JSON endpoints out of the file; redirects never
+arrive in the first place. Sorting keeps the output stable, so a rebuild
+produces no diff when nothing changed.
 
 ## Checking for broken links in CI
 
-A crawl aborts on the first non-2xx response, with the failing path in the
-message. That makes a link check a test with no assertions in it:
+A crawl aborts on the first response that is neither a document nor a
+redirect, with the failing path in the message. That makes a link check a test
+with no assertions in it:
 
 ```ts
 import { crawl } from "@pitlane/crawler";

@@ -49,6 +49,11 @@ router.map(routes.post, ({ render, params }) => {
     );
 });
 
+router.map(
+    routes.legacy,
+    () => new Response(null, { status: 302, headers: { Location: routes.blog.href() } }),
+);
+
 // Prerendering reads this to answer `getStaticPaths()`.
 export { routes };
 

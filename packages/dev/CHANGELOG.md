@@ -20,6 +20,14 @@ Build-time prerendering.
   A Remix 3 router exposes no route table, but the route map it is built from
   is an ordinary object, so exporting it is all the app has to do. A build that
   asks for static paths without that export fails with a message saying so.
+- A path that answers with a redirect is logged and skipped rather than failing
+  the build. `prerender: true` asks for every static path in the route map, and
+  a `/` that points at the real landing path is an ordinary thing to find in
+  there; there is no document to write for one, and the app still answers it at
+  runtime. Under `spider` the redirect is followed instead, because that is
+  what following links means. Any other failing response still stops the build,
+  since a listed path that 404s is a stale list and a spidered one is a dead
+  internal link.
 - Bundles built for another runtime prerender too, with no extra
   configuration. Node cannot import a Workers bundle, so when the import
   fails the build starts the project's own preview server and renders through

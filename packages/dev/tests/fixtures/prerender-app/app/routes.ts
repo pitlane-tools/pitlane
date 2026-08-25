@@ -8,4 +8,7 @@ export let routes = route(import.meta.env.BASE_URL, {
     // Dynamic: staticPaths() cannot know the slugs, so a prerender config has
     // to supply them.
     post: get("blog/:slug"),
+    // Static, but answers with a redirect rather than a document, which is the
+    // ordinary shape of a path that moved.
+    legacy: get("legacy"),
 });

@@ -83,6 +83,27 @@ describe("prerender", () => {
         expect(existsSync(join(OUT, "blog/hello-world/index.html"))).toBe(false);
     });
 
+    it("skips a redirecting path instead of failing the build", async () => {
+        // /legacy is a static path in the route map, so `true` asks for it, and
+        // a redirect there used to abort the whole build.
+        await buildFixture(true);
+
+        expect(existsSync(join(OUT, "legacy/index.html"))).toBe(false);
+        expect(existsSync(join(OUT, "index.html"))).toBe(true);
+        expect(existsSync(join(OUT, "blog/index.html"))).toBe(true);
+    });
+
+    it("follows a redirect when spidering", async () => {
+        await buildFixture({ paths: ["/legacy"], spider: true });
+
+        expect(existsSync(join(OUT, "legacy/index.html"))).toBe(false);
+        expect(existsSync(join(OUT, "blog/index.html"))).toBe(true);
+    });
+
+    it("still fails the build on an error response", async () => {
+        await expect(buildFixture(["/blog/no-such-post"])).rejects.toThrow(/Crawl failed: 404/);
+    });
+
     it("prerenders exactly the paths an array lists", async () => {
         await buildFixture(["/blog"]);
 

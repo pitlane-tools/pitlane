@@ -145,6 +145,35 @@ If the app is served from a sub-path, declare the routes under it (the
 `base` to match. The rendered files still go to the top of the client output,
 because the host mounts that whole directory at the base.
 
+## Paths that redirect
+
+A redirect is not a page, so nothing is written for one. `prerender: true` asks
+for every static path in the route map, and a route answering `302` is an
+ordinary thing to find in there: a `/` pointing at the real landing path, or a
+URL that moved. The build logs what it skipped and carries on:
+
+```
+prerendered nyc/index.html
+skipped / (redirects to /nyc)
+```
+
+The app still answers that path at runtime, which is the behavior the redirect
+was for. Nothing about it changes.
+
+Under `spider: true` a redirect is followed rather than skipped, because
+following links is what spidering is. A crawl seeded at a `/` that points
+elsewhere still reaches the site instead of stopping at the door.
+
+Any other failing response is a real failure and stops the build:
+
+```
+error during build:
+Error: Crawl failed: 404 Not Found (/blog/renamed-post)
+```
+
+A listed path that 404s is a stale prerender list, and a spidered one is a dead
+internal link. Both are worth knowing about before a deploy rather than after.
+
 ## Serving the output
 
 With `server: true`, which is the default, prerendering is an optimization rather

@@ -68,6 +68,14 @@ function isPrerenderConfig(option: PrerenderOption): option is PrerenderConfig {
     return typeof option === "object" && !Array.isArray(option);
 }
 
+/** What one prerender pass did, for the build to report. */
+export interface PrerenderReport {
+    /** Files written, relative to the client output directory. */
+    written: string[];
+    /** Paths that redirected, so no file was written for them. */
+    redirected: { pathname: string; location: string | null }[];
+}
+
 /**
  * Renders paths to static HTML at build time by dispatching requests through
  * the app's own fetch handler, then writing each response into the client
@@ -81,16 +89,17 @@ function isPrerenderConfig(option: PrerenderOption): option is PrerenderConfig {
  * @param builder The Vite builder mid-`buildApp`.
  * @param option The plugin's `prerender` option.
  * @param serverEntry The plugin's `serverEntry` option.
- * @returns The paths written, in completion order.
+ * @returns The files written and the paths that redirected instead.
  */
 export async function prerender(
     builder: ViteBuilder,
     option: PrerenderOption,
     serverEntry: string,
-): Promise<string[]> {
+): Promise<PrerenderReport> {
     let config = isPrerenderConfig(option) ? option : { paths: option };
     let { paths = true, concurrency = 1, spider = false } = config;
-    if (paths === false) return [];
+    let redirected: PrerenderReport["redirected"] = [];
+    if (paths === false) return { written: [], redirected };
 
     let ssrConfig = builder.environments.ssr?.config;
     let clientConfig = builder.environments.client?.config ?? ssrConfig;
@@ -110,7 +119,7 @@ export async function prerender(
             (Array.isArray(paths) ? undefined : await loadRouteMap(ssrConfig, serverEntry));
 
         let resolved = await resolvePaths(paths, routes, ssrConfig);
-        if (resolved.length === 0) return [];
+        if (resolved.length === 0) return { written, redirected };
 
         for await (let result of crawl(target, {
             paths: resolved,
@@ -121,6 +130,7 @@ export async function prerender(
             // files.
             assets: false,
             concurrency,
+            onRedirect: (pathname, location) => redirected.push({ pathname, location }),
         })) {
             written.push(await writeResult(result, outDir, clientConfig.base));
         }
@@ -137,7 +147,7 @@ export async function prerender(
         await target.close();
     }
 
-    return written;
+    return { written, redirected };
 }
 
 async function resolvePaths(

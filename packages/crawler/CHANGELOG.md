@@ -8,9 +8,12 @@ Initial release.
   router's `fetch`, yielding `{ pathname, filepath, response }` per path.
   Follows `<a href>` and `<link rel="alternate">`, queues the assets a page
   references, honours `rel="nofollow"` and `<meta name="robots">`, skips
-  cross-origin and non-navigable hrefs, visits each path once, and aborts on a
-  non-2xx response. `paths`, `spider`, `assets`, `concurrency`, and
-  `ignorePageNofollow` configure it.
+  cross-origin and non-navigable hrefs, and visits each path once. A redirect
+  yields nothing and reports through `onRedirect`, since there is no document
+  to write and the app still answers the path at runtime; under `spider` the
+  same-origin target is queued instead. Any other non-2xx response aborts the
+  crawl. `paths`, `spider`, `assets`, `concurrency`, `ignorePageNofollow`, and
+  `onRedirect` configure it.
 - `staticPaths(routes)` — the paths a Remix 3 route map can serve with no
   params, deduplicated and sorted. `GET` and method-agnostic routes whose
   patterns declare no variables or wildcards.

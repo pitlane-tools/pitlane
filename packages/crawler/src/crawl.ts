@@ -55,6 +55,15 @@ export interface CrawlOptions {
      * them. Receives the page's path.
      */
     ignorePageNofollow?: (pathname: string) => boolean;
+    /**
+     * Called for a path that answered with a redirect rather than a document.
+     * Nothing is yielded for it: there is no page to write, and the app still
+     * answers the path at runtime.
+     *
+     * Receives the requested path and the `Location` it pointed at, which is
+     * `null` for a redirect that named none.
+     */
+    onRedirect?: (pathname: string, location: string | null) => void;
 }
 
 /**
@@ -71,8 +80,9 @@ export interface CrawlTarget {
  * response as it arrives. No socket, no server, no browser: the router's
  * `fetch` is the whole transport, so this runs anywhere the app itself runs.
  *
- * Yields in completion order. Every path is fetched at most once, and a
- * non-2xx response aborts the crawl.
+ * Yields in completion order. Every path is fetched at most once. A redirect
+ * yields nothing and reports through {@link CrawlOptions.onRedirect}; any
+ * other non-2xx response aborts the crawl.
  *
  * @param router The router to crawl.
  * @param options Crawl options.
@@ -88,6 +98,7 @@ export async function* crawl(
         assets = true,
         concurrency = 1,
         ignorePageNofollow,
+        onRedirect,
     } = options;
 
     let queue: string[] = [];
@@ -136,10 +147,27 @@ export async function* crawl(
         try {
             let response = await router.fetch(new Request(`${BASE_URL}${pathname}`));
 
+            // A redirect is not a page. Failing here would make any app whose
+            // "/" points at a real landing path impossible to crawl, and there
+            // is nothing to write either way — the app still answers the path
+            // at runtime.
+            if (response.status >= 300 && response.status < 400) {
+                let location = response.headers.get("Location");
+                onRedirect?.(pathname, location);
+
+                // Nobody receives this response, so its body is ours to drop.
+                await response.body?.cancel();
+
+                // Following it is the same act as following a link, so it is
+                // the spider's business and not the fixed list's. Cross-origin
+                // and non-navigable targets drop out in resolveAll.
+                if (spider && location != null) enqueue(resolveAll([location], pathname));
+                return;
+            }
+
             if (!response.ok) {
-                throw new Error(
-                    `Crawl failed: ${response.status} ${response.statusText} (${pathname})`,
-                );
+                let status = [response.status, response.statusText].filter(Boolean).join(" ");
+                throw new Error(`Crawl failed: ${status} (${pathname})`);
             }
 
             if (!response.headers.get("Content-Type")?.includes("text/html")) {

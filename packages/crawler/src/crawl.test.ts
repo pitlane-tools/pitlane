@@ -207,7 +207,7 @@ describe("crawl(router)", () => {
         expect(visited).toEqual(["/blog/", "/blog/post-1"]);
     });
 
-    it("throws on non-2xx responses", async () => {
+    it("throws on an error response", async () => {
         let router = createRouter();
         router.get("/", () => new Response("Not Found", { status: 404, statusText: "Not Found" }));
 
@@ -218,6 +218,99 @@ describe("crawl(router)", () => {
         };
 
         await expect(crawlAll()).rejects.toThrow("Crawl failed: 404 Not Found (/)");
+    });
+
+    it("includes only the status when there is no status text", async () => {
+        let router = createRouter();
+        router.get("/", () => new Response("nope", { status: 500, statusText: "" }));
+
+        let crawlAll = async () => {
+            for await (let _ of crawl(router)) void _;
+        };
+
+        await expect(crawlAll()).rejects.toThrow("Crawl failed: 500 (/)");
+    });
+
+    it("yields nothing for a redirect and reports it", async () => {
+        let router = createRouter();
+        router.get("/", () => new Response(null, { status: 302, headers: { Location: "/home" } }));
+        router.get("/home", () => html("Home"));
+
+        let redirects: [string, string | null][] = [];
+        let visited: string[] = [];
+        for await (let { pathname } of crawl(router, {
+            paths: ["/", "/home"],
+            spider: false,
+            onRedirect: (pathname, location) => redirects.push([pathname, location]),
+        })) {
+            visited.push(pathname);
+        }
+
+        expect(visited).toEqual(["/home"]);
+        expect(redirects).toEqual([["/", "/home"]]);
+    });
+
+    it("follows a redirect when spidering", async () => {
+        let router = createRouter();
+        router.get("/", () => new Response(null, { status: 302, headers: { Location: "/home" } }));
+        router.get("/home", () => html("Home"));
+
+        let visited: string[] = [];
+        for await (let { pathname } of crawl(router, { paths: ["/"], spider: true })) {
+            visited.push(pathname);
+        }
+
+        expect(visited).toEqual(["/home"]);
+    });
+
+    it("does not follow a redirect when spidering is off", async () => {
+        let router = createRouter();
+        router.get("/", () => new Response(null, { status: 302, headers: { Location: "/home" } }));
+        router.get("/home", () => html("Home"));
+
+        let visited: string[] = [];
+        for await (let { pathname } of crawl(router, { paths: ["/"], spider: false })) {
+            visited.push(pathname);
+        }
+
+        expect(visited).toEqual([]);
+    });
+
+    it("does not follow a redirect to another origin", async () => {
+        let router = createRouter();
+        router.get(
+            "/",
+            () =>
+                new Response(null, { status: 302, headers: { Location: "https://example.com/" } }),
+        );
+
+        let redirects: [string, string | null][] = [];
+        let visited: string[] = [];
+        for await (let { pathname } of crawl(router, {
+            paths: ["/"],
+            spider: true,
+            onRedirect: (pathname, location) => redirects.push([pathname, location]),
+        })) {
+            visited.push(pathname);
+        }
+
+        expect(visited).toEqual([]);
+        expect(redirects).toEqual([["/", "https://example.com/"]]);
+    });
+
+    it("reports a redirect that names no location", async () => {
+        let router = createRouter();
+        router.get("/", () => new Response(null, { status: 304 }));
+
+        let redirects: [string, string | null][] = [];
+        for await (let _ of crawl(router, {
+            paths: ["/"],
+            spider: true,
+            onRedirect: (pathname, location) => redirects.push([pathname, location]),
+        }))
+            void _;
+
+        expect(redirects).toEqual([["/", null]]);
     });
 
     it("fetches pages concurrently when concurrency > 1", async () => {

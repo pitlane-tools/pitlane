@@ -43,7 +43,9 @@ Returns an async iterator of `{ pathname, filepath, response }`, one per fetched
 - `filepath` — where the response belongs on disk. HTML gets `<pathname>/index.html` so a static host serves it back for the original path; everything else keeps its own path.
 - `response` — the router's response, body unread.
 
-Results arrive in completion order. Every path is fetched at most once, and a non-2xx response aborts the crawl with `Crawl failed: <status> <statusText> (<pathname>)`.
+Results arrive in completion order, and every path is fetched at most once.
+
+A redirect yields nothing: there is no document to write, and the app still answers the path at runtime. It reports through `onRedirect` instead, and when `spider` is on the same-origin target is queued, so a crawl seeded at a `/` that points elsewhere still finds the site. Any other non-2xx response aborts the crawl with `Crawl failed: <status> <statusText> (<pathname>)`.
 
 | Option               | Type                            | Default | Purpose                                                                                                                                |
 | -------------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -52,6 +54,7 @@ Results arrive in completion order. Every path is fetched at most once, and a no
 | `assets`             | `boolean`                       | `true`  | Queue the `<link href>`, `<script src>`, and `<img src>` each page references. Turn it off when a bundler already emitted those files. |
 | `concurrency`        | `number`                        | `1`     | How many paths to fetch at once.                                                                                                       |
 | `ignorePageNofollow` | `(pathname: string) => boolean` | —       | Crawl a page's links even though the page asked robots not to follow them.                                                             |
+| `onRedirect`         | `(pathname, location) => void`  | —       | Called for a path that redirected instead of returning a document. `location` is `null` when the redirect named none.                  |
 
 The first argument is anything with a `fetch(request: Request)` method: a `createRouter()` router, a built server bundle's default export, a worker-style `{ fetch }` object.
 
