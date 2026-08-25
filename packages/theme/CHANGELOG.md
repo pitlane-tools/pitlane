@@ -4,9 +4,34 @@
 
 Authoring moves off W3C DTCG. `createTheme` now takes a schema tree and the
 token tree it describes, and token values are the CSS they become. DTCG stays
-as an interchange format behind `@pitlane/theme/dtcg`. This replaces the whole
-authoring surface; the package has not been published, so there is no
-deprecation path.
+as an interchange format behind `@pitlane/theme/dtcg`.
+
+**Breaking.** Every theme written against 0.1.0 or 0.2.0 has to be rewritten.
+There is no compatibility shim, and `createTheme` does not accept a DTCG
+document any more. `fromDTCG` reads one, so an existing document can be moved
+across without being retyped by hand:
+
+```ts
+import { createTheme } from "@pitlane/theme";
+import { fromDTCG } from "@pitlane/theme/dtcg";
+
+export let { token: t, raw, Theme } = createTheme(fromDTCG(existingDocument));
+```
+
+What changes in a hand-written theme:
+
+| 0.2.0                                              | 0.3.0                                    |
+| -------------------------------------------------- | ---------------------------------------- |
+| `createTheme(document, { modes })`                 | `createTheme({ schema, tokens, modes })` |
+| `{ $type: "color" }` on a group                    | `color: s.color()` in the schema tree    |
+| `{ $value: "#fff" }`                               | `"#fff"`                                 |
+| `$value: { value: 2.5, unit: "rem" }`              | `"2.5rem"`                               |
+| `$value: { colorSpace: "oklch", components: […] }` | the `oklch(…)` text                      |
+| A shadow, border, transition, or gradient object   | the CSS shorthand text                   |
+| `modes: { dark: { … { $value } } }`                | `modes: { dark: { tokens: { … } } }`     |
+
+`{color.white}` references, the accessor shape, `raw`, `<Theme />`, `css`,
+`tva`, `combine`, and `cx` are all unchanged.
 
 - `createTheme({ schema, tokens, modes })` replaces
   `createTheme(document, options)`. A leaf is a string, a number, or an array;

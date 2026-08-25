@@ -11,10 +11,17 @@ becomes a plain nested record of CSS values plus a schema tree built on
 `remix/data-schema`. DTCG becomes an interchange format read at one edge and
 written at the other.
 
-The package has never been published (`npm view @pitlane/theme` 404s, and
-`CHANGELOG.md` records 0.1.0 and a peer-dep-only 0.2.0 as unreleased), and its
-only consumer is `demos/theme`. There is no migration to write. That window
-closes on first publish.
+Correction, found while implementing this: the package **is** published. npm has
+0.1.0 from 13 August 2026 and 0.2.0 from 18 August, 305 downloads in the last
+month, and three applications in this account install it. An earlier draft of
+this document claimed otherwise and used it to argue there was no migration to
+write. There is one, and 0.3.0 is a breaking release.
+
+That does not change the design, because the format was wrong on the merits and
+the consumer count is three, all of them ours. It changes the delivery:
+`fromDTCG` becomes the migration path rather than only an interchange edge, the
+changelog carries a rewrite table, and each consuming application needs its own
+change.
 
 ## The shape to copy already exists
 
