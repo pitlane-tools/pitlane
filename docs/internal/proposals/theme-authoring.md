@@ -1,15 +1,15 @@
 # Theme authoring
 
-Status: proposal, unscheduled. Replaces the two earlier drafts on this branch
-(`theme-authoring.md`'s five-part DTCG-document plan and
-`authoring-and-interchange.md`'s twelve per-type factories). What survives from
-each is recorded at the end.
+Status: proposal, unscheduled. Replaces the two earlier drafts on this branch,
+`theme-authoring.md`'s five-part DTCG-document plan and
+`authoring-and-interchange.md`'s twelve dual-purpose per-type factories. What
+survives from each is recorded at the end.
 
 `@pitlane/theme` 0.2.0 uses one format for two jobs: a W3C DTCG document is both
 what you author and what the compiler consumes. This splits them. Authoring
-becomes a plain nested record of CSS values plus a map naming each namespace's
-token type. DTCG becomes an interchange format read at one edge and written at
-the other.
+becomes a plain nested record of CSS values plus a schema tree built on
+`remix/data-schema`. DTCG becomes an interchange format read at one edge and
+written at the other.
 
 The package has never been published (`npm view @pitlane/theme` 404s, and
 `CHANGELOG.md` records 0.1.0 and a peer-dep-only 0.2.0 as unreleased), and its
@@ -92,38 +92,53 @@ path it taxes every line a developer writes and leaves the import path broken
 anyway.
 
 Measured on the demo: the DTCG document plus its `modes` option is 124 lines and
-4,576 bytes. The same theme in the format below is **76 lines and 2,526 bytes**,
-and compiles to byte-identical CSS.
+4,576 bytes. The same theme in the format below, schema block included, is
+**77 lines and 2,628 bytes**, and compiles to byte-identical CSS.
 
 ## The authoring format
 
 ```ts
-import { createTheme } from "@pitlane/theme";
+import { createTheme, lightDark } from "@pitlane/theme";
+import * as s from "@pitlane/theme/schema";
 
-export let Theme = createTheme({
-    types: {
-        color: "color",
-        space: "dimension",
-        radius: "dimension",
-        font: "fontFamily",
-        weight: "fontWeight",
-        shadow: "shadow",
+export let {
+    token: t,
+    raw,
+    Theme,
+} = createTheme({
+    schema: {
+        color: s.color(),
+        space: s.dimension(),
+        radius: s.dimension(),
+        font: s.font.family(),
+        weight: s.font.weight(),
+        shadow: s.shadow(),
+        control: {
+            default: s.dimension(),
+            color: s.color(),
+            opacity: s.number(),
+        },
     },
     tokens: {
         color: {
             white: "#fff",
             gray: { 50: "oklch(98.5% 0.002 247.839)", 900: "oklch(21% 0.034 264.665)" },
             surface: "{color.white}",
+            page: lightDark("#ffffff", "#1a1a1a"),
         },
         space: { sm: "0.5rem", md: "1rem", gutter: "clamp(1rem, 4vw, 2.5rem)" },
         radius: { md: "8px", full: "999px" },
         font: { sans: ["Inter var", "ui-sans-serif", "system-ui"] },
         weight: { regular: 400, medium: "medium" },
         shadow: { card: "0 1px 2px rgb(0 0 0 / 0.07)" },
+        control: {
+            height: { sm: "28px", md: "32px" }, // DimensionToken
+            radius: "6px", // DimensionToken
+            color: { border: "#d4d4d8" }, // ColorToken
+            opacity: { disabled: 0.5 }, // NumberToken
+        },
     },
 });
-
-export let { token: t, raw } = Theme;
 ```
 
 ### Values are the CSS they become
@@ -145,59 +160,101 @@ DTCG import path.
 `'1.45'` become `400` and `1.45` on transcription. That is the entire mechanical
 diff between `componentStyleValues` and a valid `tokens` tree.
 
-### Types are declared by namespace
+### The schema is a tree of `remix/data-schema` schemas
 
-`types` maps a dotted path prefix to one of the twelve token types. The nearest
-enclosing declaration wins, which is DTCG's `$type` inheritance with the
-declaration lifted out of the tree:
+`@pitlane/theme/schema` exports one factory per token type plus an escape hatch,
+designed for `import * as s`, which is how `remix/data-schema` ships its own
+`string()`, `number()`, and `object()`:
+
+| Export            | Token type    | Accepts                                                   |
+| ----------------- | ------------- | --------------------------------------------------------- |
+| `s.color()`       | `color`       | any CSS color, including `light-dark()` and `color-mix()` |
+| `s.dimension()`   | `dimension`   | any CSS length, including `clamp()` and `%`               |
+| `s.duration()`    | `duration`    | `ms`, `s`, `calc()`                                       |
+| `s.number()`      | `number`      | a finite number                                           |
+| `s.easing()`      | `cubicBezier` | a 4-tuple or `cubic-bezier(…)`                            |
+| `s.shadow()`      | `shadow`      | CSS shadow text, `inset` included                         |
+| `s.border()`      | `border`      | CSS border shorthand text                                 |
+| `s.transition()`  | `transition`  | CSS transition shorthand text                             |
+| `s.gradient()`    | `gradient`    | CSS gradient function text                                |
+| `s.stroke()`      | `strokeStyle` | a line-style keyword                                      |
+| `s.font.family()` | `fontFamily`  | a string or an array of names                             |
+| `s.font.weight()` | `fontWeight`  | 1-1000 or a DTCG keyword                                  |
+| `s.any()`         | none          | anything, emitted verbatim, branded as a plain `string`   |
+
+Each factory returns a `remix/data-schema` `Schema<unknown, string>` carrying one
+extra symbol property naming its token type. The type is what the accessor brand
+reads; the `Schema` is what validates and serializes. `s.color()` is
+`createSchema(validator)` around the existing `serializeColor`, so the twelve
+serializers in `serialize.ts` keep their behavior and gain a wrapper.
+
+Building on `remix/data-schema` costs nothing and buys four things. `remix` is
+already a peer dependency and `data-schema` is one of its subpaths, so the only
+new transitive dependency is the type-only `@standard-schema/spec`. The token
+tree composes into a single `object()` schema, so one `parse()` with
+`abortEarly: false` validates every token and returns a `ValidationError` whose
+`issues` name every bad value with its own path, where the current compiler
+throws a `ThemeError` on the first one. `s.color().refine(…)` works, so an app
+can narrow a namespace to hex-only or to a brand palette without the package
+growing an option for it. And the schemas are Standard Schema v1, so anything in
+that ecosystem can read a theme's shape.
+
+Measured on a 242-token theme, the composed parse costs 0.16 ms.
+
+`s.any()` exists because Tailwind v4 has namespaces with no DTCG type at all:
+`--animate-*` holds `spin 1s linear infinite` and `--aspect-*` holds `16 / 9`.
+An `s.any()` leaf brands as `string`, which the open-grammar CSS properties
+(`animation`, `aspectRatio`, `background`, `gridTemplateColumns`) already accept
+and which the token-mapped longhands still reject, so it does not become a hole
+in the palette enforcement. Verified both directions.
+
+### `default` types a node and its unlabelled children
+
+A schema group node may carry `default`, which types that node and every
+descendant without its own entry. Siblings override it:
 
 ```ts
-types: {
-    control: "dimension",
-    "control.color": "color",
-    "control.opacity": "number",
+schema: {
+    control: { default: s.dimension(), color: s.color(), opacity: s.number() },
+    text: { default: s.dimension(), leading: s.number() },
 },
 tokens: {
-    control: {
-        height: { sm: "28px", md: "32px" },   // DimensionToken
-        radius: "6px",                        // DimensionToken
-        color: { border: "#d4d4d8" },         // ColorToken
-        opacity: { disabled: 0.5 },           // NumberToken
-    },
+    control: { height: { sm: "28px" }, radius: "6px", color: { border: "#d4d4d8" } },
+    text: { sm: "0.875rem", lg: "1.125rem", leading: { sm: 1.5, lg: 1.35 } },
 },
 ```
 
-Lifting it out is the point. The token tree keeps zero reserved keys, so it is
-plain JSON, diffable by a designer, and droppable in from
-`componentStyleValues` verbatim. A real theme's map runs about one line per
-namespace, roughly what `$type` cost when it was sprinkled through the tree, and
-it reads as the theme's schema.
+This is DTCG's `$type` inheritance with the declaration lifted into a parallel
+tree, and it is also the answer to the type-scale problem the earlier draft
+deferred to a `$modifiers` design: `t.text.sm` and `t.text.leading.sm` are a
+dimension and a number, from one schema group, with no new machinery.
 
-Four alternatives were considered and rejected.
+Lifting the declaration out is the point. The token tree keeps zero reserved
+keys, so it is plain JSON, diffable by a designer, and droppable in from
+`componentStyleValues` verbatim. The schema tree is where every reserved word
+lives, and there is exactly one of them.
 
-Twelve per-type factories, `color({ … })` and `dimension({ … })`, as the earlier
-draft proposed. Twelve exports whose names (`color`, `number`, `border`,
-`shadow`, `transition`, `gradient`) collide with ordinary local variables, a
-function call at every group, and a token tree that stops being data. Remix does
-ship this style elsewhere, in `data-table`'s `column` namespace and across
-`data-schema`, so dropping it here is a deliberate divergence. The tiebreaker is
-that Remix's own token module has no constructors in it.
+The known wart: `default` is also a plausible token name, and Remix UI's own
+`colors.border.default` is one. It only bites when a token named `default` needs
+its own type override, because a token that merely inherits needs no schema entry
+at all. There is no escape hatch today; the fallback would be an explicit
+`s.group(self, children)` wrapper.
+
+Three alternatives were rejected on the way here.
+
+Twelve dual-purpose factories, `color({ … })` used as both leaf constructor and
+group tag, as the interchange draft proposed. Twelve exports whose names
+(`color`, `number`, `border`, `shadow`, `transition`, `gradient`) collide with
+ordinary local variables, a function call wrapped around every group, and a token
+tree that stops being data. The schema tree keeps the factories and moves them
+out of the values.
 
 Inline `$type`, which is what 0.2.0 does. Keeps the sigil that signals "this is
 DTCG" when it no longer is, and reserves a key inside the value tree.
 
-Inline `type: "color"` without the sigil. Reserves the token name `type` with no
-escape hatch.
-
-Inference from the value's shape. `400` is a `number` and a `fontWeight`;
-`calc()` is a `dimension`, a `duration`, and a `number`; a typo in a color
-matches nothing and brands as `never`. Type-level CSS parsing would buy terse
-authoring at the cost of the worst error messages in the package.
-
-The cost of the map is two edit sites when a layer introduces a namespace, and a
-forgotten entry. A leaf with no resolvable type brands as `unknown`, not `never`,
-so it is unusable rather than universally assignable, and `parseTokens` already
-throws a `ThemeError` naming the path at module load. Both behaviors were spiked.
+A flat map of dotted path prefixes, `{ "control.color": "color" }`. Stringly
+typed, so a renamed group leaves a dangling key that nothing checks, and no
+place to hang a `refine()` or a description.
 
 ### References
 
@@ -210,11 +267,9 @@ accessor, which autocompletes, jumps to definition, and fails to compile when
 the target is renamed:
 
 ```ts
-export let Theme = createTheme({ types, tokens }).extend(base => ({
-    types: { surface: "color" },
-    tokens: {
-        surface: { page: base.color.white, sunken: base.color.gray[50] },
-    },
+createTheme({ schema, tokens }).extend(base => ({
+    schema: { surface: s.color() },
+    tokens: { surface: { page: base.color.white, sunken: base.color.gray[50] } },
 }));
 ```
 
@@ -227,26 +282,29 @@ with a sub-value alias, which CSS text has no room for:
 
 ```ts
 .extend(base => ({
-    types: { "motion.press": "transition" },
+    schema: { motion: { press: s.transition() } },
     tokens: { motion: { press: `${base.motion.fast} cubic-bezier(0.25, 0.1, 0.25, 1) 0s` } },
 }))
 ```
 
-Template interpolation is strictly more general than a sub-value alias. It
-works at any position in any value, and the `var()` indirection survives, so a
-mode override of `motion.fast` still reaches the transition. It gives up the
-brand (a template string is a `string`), which is why the `types` entry is
-required, and it is the same pattern `docs/guides/styling.md` already documents
-for `` border: `1px solid ${t.color.line}` ``.
+Template interpolation is strictly more general than a sub-value alias. It works
+at any position in any value, and the `var()` indirection survives, so a mode
+override of `motion.fast` still reaches the transition. It gives up the brand (a
+template string is a `string`), which is what the schema entry is for.
+
+`lightDark(light, dark)` is the same idea with a name, because a two-argument
+call reads better than the punctuation and because it composes with accessor
+refs: `lightDark(base.color.white, base.color.gray[900])` produces
+`light-dark(var(--color-white), var(--color-gray-900))`, and a mode override of
+either primitive still lands.
 
 ### Modes
 
-For colors, `light-dark()` is the answer, and it needs no package feature at
-all:
+For colors, `light-dark()` is the answer, and it needs no package feature at all:
 
 ```ts
 tokens: {
-    surface: { page: "light-dark(#ffffff, #1a1a1a)" },
+    surface: { page: lightDark("#ffffff", "#1a1a1a") },
 },
 ```
 
@@ -274,64 +332,61 @@ emits both blocks, so first paint is correct for a user who never touches the
 toggle and an attribute write overrides it afterwards. A mode may override a
 token's value and nothing else, as now.
 
-## The Theme value
+## The theme value
 
 ```ts
-export interface Theme<T> {
-    (handle: Handle<ThemeProps>): () => RemixElement;
+export interface ThemeResult<T> {
     readonly token: TokenTree<T>;
     raw(ref: AnyToken): string;
+    readonly Theme: ThemeComponent<T>;
     extend<const E extends ThemePatch>(
-        patch: E | ((token: TokenTree<T>) => E),
-    ): Theme<Extended<T, E>>;
-    pick<const P extends readonly string[]>(...paths: P): Theme<Picked<T, P[number]>>;
+        patch: E | ((base: TokenTree<T>) => E),
+    ): ThemeResult<Merged<T, E>>;
+    pick<const P extends ThemeInit>(project: (base: TokenTree<T>) => P): ThemeResult<P>;
 }
 
-export function createTheme<const T extends ThemeOptions>(options: T): Theme<T>;
+export interface ThemeComponent<T> {
+    (handle: Handle<ThemeProps>): () => RemixElement;
+    readonly $theme: T;
+}
+
+export function createTheme<const T extends ThemeInit>(init: T): ThemeResult<T>;
+export function createTheme<T>(theme: ThemeComponent<T>): ThemeResult<T>;
 ```
 
-An app that starts from a shipped palette writes one expression:
+`createTheme` stays the entry point and keeps returning `{ token, raw, Theme }`,
+so `export let { token: t, raw, Theme } = createTheme(…)` and `<Theme />` are
+both unchanged. `extend` and `pick` live on the returned object, which is where a
+chain belongs, and neither one is a component.
 
-```ts
-import { createTheme } from "@pitlane/theme";
-import { DefaultTheme } from "@pitlane/theme/default";
+### `Theme` carries the init it was built from
 
-export let Theme = createTheme(DefaultTheme)
-    .pick("color.gray", "color.blue", "space", "radius", "font")
-    .extend(base => ({
-        types: { surface: "color", ink: "color" },
-        tokens: {
-            surface: { page: base.color.gray[50], panel: "light-dark(#fff, #171717)" },
-            ink: { body: base.color.gray[900], link: base.color.blue[600] },
-        },
-    }));
+`Theme` is an ordinary component with one extra property, `$theme`, holding the
+`{ schema, tokens, modes }` it was compiled from. That makes a published theme a
+single import: `@pitlane/theme/default` can export a `Theme` component, and
+`createTheme(DefaultTheme)` reads `$theme` back out and starts a fresh chain from
+it. Verified round-tripping to byte-identical CSS.
 
-export let { token: t, raw } = Theme;
-```
-
-`Theme` is callable, so `<Theme />` survives unchanged and `Theme.extend()` is
-the derivation surface. The precedent is `remix/ui/input`, whose `InputFunction`
-is both `(options?) => InputMixin` and a namespace carrying `.root()` and
-`.field()`. `createTheme` stays the entry point, matching how Remix pairs
-`createCookie` with `Cookie` and `createRouter` with `Router`.
-
-The single objection to a callable theme is that definition-time derivation and
-render-time rendering live on one value. The alternative is a plain `theme`
-object whose component is `theme.Style`, which costs the `<Theme />` name in the
-guide, the README, `VISION.md`, and `demos/theme/app/Document.tsx`. Recorded as
-an open question below.
+The spelling follows Remix. `remix/ui`'s `clientEntry` tags a component with
+`$entry` and `$entryId` and ships an `isEntry()` guard; `RemixElement` carries
+`$rmx: true`; `data-table` hangs `columnMetadataKey` and `tableMetadataKey` off
+its builders as non-enumerable symbols. A `$`-prefixed metadata property on a
+component is an existing Remix idiom, so `$theme` plus an `isTheme()` guard is
+the on-brand version of the hidden property.
 
 ### extend
 
-`extend` deep-merges a patch and returns a new `Theme`. A leaf replaces
-wholesale; every other node recurses. `types` shallow-merges, and is optional
-because a patch that adds tokens to an existing namespace needs no new entry.
+`extend` deep-merges a patch into the base and returns a new `ThemeResult`. A
+leaf replaces wholesale, every other node recurses, and the schema tree merges
+the same way, so adding `motion.press` to a schema group keeps `motion.fast`
+beside it. `schema` is optional on a patch, because a patch that only adds tokens
+to an existing namespace needs no new entry.
 
 Remix has no `.extend()` anywhere (an exhaustive grep across every package's
-`dist/**/*.d.ts` returns nothing), so the shape comes from the two nearest
-things it does have. `Query.with(relations)` is immutable, merges onto existing
-state, clones via a private `#clone`, and widens a type parameter so the return
-type reflects what was added (`query.js:101-108`). `Schema.pipe`, `.refine`, and
+`dist/**/*.d.ts` returns nothing), so the shape comes from the two nearest things
+it does have. `Query.with(relations)` is immutable, merges onto existing state,
+clones via a private `#clone`, and widens a type parameter so the return type
+reflects what was added (`query.js:101-108`). `Schema.pipe`, `.refine`, and
 `.transform` are each documented as returning a new schema. `extend` takes all
 three properties: immutable, chainable, type-widening.
 
@@ -343,55 +398,123 @@ system already has.
 
 ### pick
 
-`pick` narrows a theme to the listed paths, in both the runtime object and the
-accessor type. Its reason to exist is a shipped default theme: a 260-token
-primitive palette (22 hues by 11 steps, plus spacing and radius) compiles to
-10,622 bytes of custom properties, and `pick("color.hue0", "color.hue1",
-"space", "radius")` cuts that to 1,280 bytes. Nothing else prunes;
-`<Theme />` emits every token it is given.
+`pick` takes a callback and **replaces** the base with what the callback returns,
+where `extend` merges into it. That one bit of difference is the whole
+distinction; both take the same `{ schema, tokens }` shape and both run the same
+brand walk over the result.
 
-A selection has to keep what it depends on. `pick("color.surface")` where
-`color.surface` is `{color.white}` throws today, because the target is gone.
-The rule: **picked paths are what appears in the accessor; the emitted CSS also
-carries the transitive closure of their references.** So `--color-white` is
-declared but `t.color.white` does not exist, which is exactly the honest
-reading of "I asked for the semantic token, not the primitive."
+```ts
+createTheme(DefaultTheme).pick(base => ({
+    schema: {
+        color: s.color(),
+        space: s.dimension(),
+        radius: s.dimension(),
+        font: s.font.family(),
+    },
+    tokens: {
+        color: { blue: base.color.blue, gray: base.color.gray },
+        space: base.space,
+        radius: base.radius,
+        font: base.font,
+    },
+}));
+```
 
-The closure is computable at runtime and has no expression in the accessor type,
+The values in a projection are accessor references, whole subtrees included, so
+`pick` re-roots them: every `var(--color-blue-500)` resolves back through the
+`varName` map to the value that token holds, and the new path decides the new
+custom property name. The narrowed theme emits `--color-blue-500: oklch(…)`, not
+a self-reference. Verified: picking two primitive groups produces CSS with no
+`var(` in it at all.
+
+Because the path decides the name, `pick` also reshapes and renames.
+`tokens: { brand: { light: base.color.gray[50] } }` emits `--brand-light`, so
+this is a projection rather than a filter, which is why it takes a callback.
+
+That is also the answer to whether `pick` needs a `schema`. It does not strictly:
+the brands are recoverable from the accessor, and a `TypeOfBrand` conditional
+that maps `ColorToken` back to `"color"` was spiked and resolves exactly, so a
+projection made entirely of references could infer its own schema. Requiring it
+anyway buys three things a derived schema cannot. A projection may re-type a
+token it reshapes. A projection may mix fresh values in beside references, and a
+fresh value has no brand to recover. And `createTheme`, `extend`, and `pick` then
+take one shape instead of three, with `schema` optional only on an `extend` patch
+that adds nothing new. The cost is duplication in the common case where nothing
+is renamed, plus a contradiction to detect: declaring `brand: s.dimension()` over
+a projection of colors has to throw rather than silently mis-brand.
+
+Its reason to exist is a shipped default theme. A 258-token primitive palette
+(22 hues by 11 steps, plus spacing and radius) compiles to 10,572 bytes of custom
+properties, and picking two hues plus spacing and radius cuts that to 1,280
+bytes. Nothing else prunes at runtime; `<Theme />` emits every token it is given.
+
+A projection has to keep what it depends on. Picking `base.color.surface`, which
+is `{color.white}`, throws today because the target is gone. The rule: picked
+paths are what appears in the accessor, and the emitted CSS also carries the
+transitive closure of their references, under their original names. So
+`--color-white` is declared while `t.color.white` does not exist, which is the
+honest reading of "I asked for the semantic token, not the primitive." The
+closure is computable at runtime and has no expression in the accessor type,
 which is why the split falls where it does.
 
 Remix has no subsetting operator to imitate. Its one "choose a subset" verb is
 SQL's, in `Query.select(...)`, whose `ReturningInput` is
-`'*' | (keyof row & string)[]`. `pick` is new vocabulary, chosen because it is
-the vocabulary TypeScript itself uses for the same operation.
+`'*' | (keyof row & string)[]`. `pick` is chosen because it is the vocabulary
+TypeScript itself uses, at the cost of understating that it can also reshape.
+
+## `@pitlane/theme/default`
+
+A `Theme` component built from Tailwind v4's default theme, primitives only, no
+semantic layer. Tailwind's
+[theme variable namespaces](https://tailwindcss.com/docs/theme) are the scope,
+and they map onto the schema like this:
+
+| Tailwind namespace                                                                                                        | Schema            |
+| ------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `--color-*`                                                                                                               | `s.color()`       |
+| `--font-*`                                                                                                                | `s.font.family()` |
+| `--text-*`, `--tracking-*`, `--spacing-*`, `--radius-*`, `--blur-*`, `--perspective-*`, `--breakpoint-*`, `--container-*` | `s.dimension()`   |
+| `--font-weight-*`                                                                                                         | `s.font.weight()` |
+| `--leading-*`, `--tab-size-*`, `--zoom-*`                                                                                 | `s.number()`      |
+| `--shadow-*`, `--inset-shadow-*`, `--drop-shadow-*`                                                                       | `s.shadow()`      |
+| `--ease-*`                                                                                                                | `s.easing()`      |
+| `--aspect-*`, `--animate-*`                                                                                               | `s.any()`         |
+
+The last row is why `s.any()` is in the export list. `16 / 9` and
+`spin 1s linear infinite` are valid CSS values with no DTCG type, and refusing
+them would mean shipping a default theme that is not the one Tailwind ships.
+
+No semantic layer, deliberately. `color.text`, `surface.lvl1`, and
+`control.height` are decisions about a product, and an app builds them with
+`extend` on top of the primitives. A separate package will carry styled
+components together with the semantic layer they need, which is the same split
+Remix UI already has internally: `componentStyleValues` mixes primitives and
+semantics because it serves one component set, and a general-purpose default
+theme cannot make those choices for every app.
+
+`pick` is what makes the size affordable, which is why the two land together.
 
 ## DTCG at the edges
 
-`@pitlane/theme/dtcg`, runtime-only and dependency-free:
+`@pitlane/theme/dtcg`, runtime-only:
 
 - `fromDTCG(document)` accepts a conformant 2025.10 document and produces the
-  same internal tree the authoring format produces. This is where the
-  conformance work belongs, and it is real work (see below). A runtime-loaded
-  JSON document cannot produce a branded accessor, so it returns a theme with an
-  untyped one and points at the codegen for the typed path.
-- `toDTCG(theme)` returns the base document plus one document per mode. DTCG has
-  no mode concept; the
+  same internal tree the authoring format produces, deriving the schema from each
+  token's resolved `$type`. This is where the conformance work belongs, and it is
+  real work (see below). A runtime-loaded JSON document cannot produce a branded
+  accessor, so it returns a theme with an untyped one and points at the codegen
+  for the typed path.
+- `toDTCG(theme)` returns the base document plus one document per mode, with each
+  token's `$type` read off its schema. DTCG has no mode concept; the
   [Resolver module](https://www.designtokens.org/tr/drafts/resolver/) models this
   as sets plus modifiers in a `.resolver.json` manifest, so that is the target
   for a multi-mode theme.
 
-Export is lossy and the docs must say so. `clamp()`, `em`, `%`,
-`light-dark()`, inset shadows, and every composite written as CSS text have no
-conformant representation. Recommendation: emit them under
+Export is lossy and the docs must say so. `clamp()`, `em`, `%`, `light-dark()`,
+inset shadows, every composite written as CSS text, and every `s.any()` token
+have no conformant representation. Recommendation: emit them under
 `$extensions["tools.pitlane"]` and report the count, so a Style Dictionary
 consumer gets a valid document and the author learns what did not travel.
-
-Two thin wrappers sit on top. `@pitlane/theme/vite` watches an imported DTCG
-document and regenerates a typed module, which fixes a problem the package
-already documents but cannot solve: `theme.ts:110-113` warns that a JSON import
-widens its literals and the brands degrade. Codegen writes the literals back out
-as `as const`. A `pitlane-theme` bin owns the export direction and CI, because
-producing an interchange artifact is a one-shot job and not a web-build job.
 
 Placement is a subpath rather than a package because the codegen and the IR
 change together in both directions, which is the exception `VISION.md`
@@ -416,101 +539,231 @@ in the demo: `{ colorSpace: "oklch", components: [0, 0, 0] }` emits
 `oklch(0 0 0)` while every hand-written color in the same file carries a percent
 on lightness. Worth fixing on its own.
 
+## Build-time optimization
+
+Everything here is optional by construction. `VISION.md` principle 3 is explicit
+that a bundler plugin may optimize the runtime API and never become a
+prerequisite for it, so each item below has a runtime behavior it improves rather
+than enables. Nothing in this section is implemented or measured; it is the shape
+of the work, in rough order of payoff per unit of risk.
+
+`@pitlane/dev` already depends on `oxc-parser` and `magic-string` for the
+`clientEntry` transform, so the analysis and rewriting machinery is in place.
+
+### Dead-token elimination
+
+Walk every module for member expressions rooted at a theme accessor, collect the
+token paths actually referenced, and drop the rest from the emitted CSS. The
+transitive reference closure has to be retained, exactly as `pick` retains it at
+runtime.
+
+The precedent is Tailwind v4, which does this by default: "By default only used
+CSS variables will be generated in the final CSS output," with `@theme static` as
+the opt-out. A theme that ships 258 primitives and uses forty is the normal case,
+and 10,572 bytes on every response is what it costs today.
+
+Soundness is the whole problem, and the bail-out has to be conservative. `t` used
+as a value, spread, passed to a function, or indexed dynamically
+(`t.color[hue]`) means the referenced set is unknown, so the containing namespace
+survives whole. This is where the plugin earns its keep or loses trust, and it
+wants a `static: true`-style escape hatch of its own before anyone relies on it.
+
+`pick` and this transform overlap on purpose. `pick` is explicit, runtime, and
+typed, and it also narrows the accessor so an unpicked token stops
+autocompleting. The transform is automatic, needs no source change, and cannot
+narrow a type. An app that wants both gets both.
+
+### Compile at build time
+
+`createTheme` runs `parseTokens`, the schema parse, and serialization on every
+cold start: 1.0 ms for a 242-token theme, 2.2 ms across three `extend` layers.
+A transform that evaluates a statically analyzable `createTheme` chain at build
+time can replace it with the frozen accessor object and the finished CSS string,
+taking the runtime cost to zero and moving every `ValidationError` from module
+load to build. Values that are not statically analyzable bail out to the runtime
+path.
+
+### The Vite CSS pipeline
+
+Today `<Theme />` renders a `<style data-pitlane-theme>` element with the
+compiled text inline, which costs 1,909 bytes in every SSR response for the demo
+theme and is invisible to the app's own `.css` files. Emitting the same text as a
+virtual module that Vite's CSS pipeline owns changes four things:
+
+- Vite's configured CSS minifier normalizes and shrinks the declarations.
+- A plain `.css` file in the app can `@import` the theme and use `var(--color-…)`
+  without `<Theme />` having rendered.
+- The output becomes a content-hashed asset, cacheable across navigations
+  instead of re-sent per response. `remix/ui`'s `link` mixin attaches it.
+- Cascade-layer placement becomes declarable. `remix/ui` inserts component styles
+  into an `rmx` layer and its reset into `rmx-reset`
+  (`REMIX_UI_STYLE_LAYER`, `REMIX_UI_RESET_LAYER`), and Tailwind orders
+  `@layer theme, base, components, utilities`. The theme's custom properties want
+  a layer below `rmx` so app CSS can override them; today they are unlayered on
+  `:root`, which outranks every layered rule.
+
+The trade-off is real and points the other way for small themes. An inline
+`<style>` in `<head>` costs no extra round trip and cannot cause a flash of
+unstyled content, which for a 2 KB block of `:root` custom properties is probably
+the right default. Extraction should be an option with a size threshold, not a
+replacement.
+
+### `@property` registration
+
+The schema knows each token's CSS type, which is exactly what
+[`@property`](https://developer.mozilla.org/en-US/docs/Web/CSS/@property) wants:
+
+```css
+@property --color-accent {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(54.6% 0.245 262.881);
+}
+```
+
+Registered custom properties are type-checked by the browser, animatable, and
+fail per-declaration instead of at computed-value time. This is the one item on
+the list that a runtime could also do, and it is the clearest payoff of having a
+schema at all: nothing else in the package knows that `--color-accent` is a
+`<color>`. Worth prototyping before the harder transforms, and worth measuring,
+since it adds bytes rather than removing them.
+
+### Typed module codegen
+
+Already needed for the DTCG import path. `theme.ts:110-113` warns that a JSON
+import widens its literals and the brands degrade, and codegen is the fix: watch
+an imported DTCG document, emit `export const tokens = { … } as const` plus the
+schema derived from each token's `$type`, and the accessor is fully branded
+again. This is the only item that enables something rather than optimizing it,
+which is why it belongs in `@pitlane/theme/vite` rather than here.
+
+### Deliberately out of scope
+
+Static extraction of `css()` and `tva()` output. That is `remix/ui`'s style
+engine, not this package's, and a theme-side transform that tried to own it would
+be reimplementing `processStyleClass` and the `rmx` layer.
+
 ## What this costs
 
 | Surface                                                                           | Change                                                                                                                                                        |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/theme/src/authoring.ts` (new)                                           | `lower()`, the `types` resolution, the `extend`/`pick` merges                                                                                                 |
-| `packages/theme/src/types.ts`                                                     | `Tokens`, `TokenTypes`, `ToDTCG<T>`, `DeepMerge`, `PickTree`; the brand walk retargets from `$value` leaves to CSS-value leaves                               |
-| `packages/theme/src/theme.ts`                                                     | `createTheme` takes `ThemeOptions`; `Theme` becomes callable and gains `extend`/`pick`; modes gain `media`/`selector`                                         |
+| `packages/theme/src/schema.ts` (new)                                              | The thirteen factories over `remix/data-schema`, the token-type tag, `composeSchema`                                                                          |
+| `packages/theme/src/authoring.ts` (new)                                           | `lower()`, schema resolution with `default`, the `extend` merge, the `pick` re-rooting                                                                        |
+| `packages/theme/src/types.ts`                                                     | `Tokens`, `SchemaNode`, `NodeType`, `Merged`, and the brand walk retargeting from `$value` leaves to CSS-value leaves                                         |
+| `packages/theme/src/theme.ts`                                                     | `createTheme` takes `ThemeInit` or a `ThemeComponent`; the result gains `extend`/`pick`; `Theme` gains `$theme`; modes gain `media`/`selector`                |
 | `packages/theme/src/serialize.ts`                                                 | String passthrough in five serializers                                                                                                                        |
 | `packages/theme/src/tokens.ts`                                                    | Unchanged. It keeps consuming a DTCG document, now produced by `lower()`                                                                                      |
 | `packages/theme/src/dtcg.ts` (new)                                                | `fromDTCG`, `toDTCG`                                                                                                                                          |
+| `packages/theme/src/default.ts` (new)                                             | Tailwind v4's primitives as a `Theme`                                                                                                                         |
 | `packages/theme/src/css.ts`, `props.ts`, `tva.ts`                                 | Unchanged. They read only the twelve brands, never the document shape                                                                                         |
+| `packages/theme/package.json`                                                     | Four new `exports` subpaths (`./schema`, `./default`, `./dtcg`, `./vite`)                                                                                     |
 | `theme.test.ts`, `types.test-d.ts`, `tokens.test.ts`                              | Fixtures rewritten. The invariants they defend (type inheritance precedence, cycle and collision detection, kebab-case var names, nominal brands) all survive |
 | `serialize.test.ts`                                                               | Gains the string-passthrough cases; the rest becomes the import path's coverage                                                                               |
 | `tva.test.ts`, `tva.test-d.ts`, `css.test.ts`, `css.test-d.ts`, `props.test-d.ts` | Unchanged apart from fixture construction                                                                                                                     |
-| `demos/theme/app/theme.ts`                                                        | Rewritten, 124 lines to 76                                                                                                                                    |
+| `demos/theme/app/theme.ts`                                                        | Rewritten, 124 lines to 77                                                                                                                                    |
 | `docs/guides/styling.md`                                                          | "Define a theme", "Dark mode", and "A complete component"; the other seven sections stand                                                                     |
 | `packages/theme/README.md`                                                        | Quick start                                                                                                                                                   |
 | `docs/internal/VISION.md`                                                         | The `createTheme` example at L773-830 and the paragraph at L767                                                                                               |
 
 ## What was verified
 
-Spikes run against the real `packages/theme/src` under `tsc` 7.0.2 with
-`--strict`, then deleted.
+Spikes run against the real `packages/theme/src` and the real
+`remix/data-schema`, then deleted. Types under `tsc` 7.0.2 with `--strict`,
+runtime under `vp test`.
 
-Type inference, 50 assertions: 38 that a leaf carries the brand its namespace
-declares, and 12 that a wrong one is rejected. Group-declared brands on string,
-numeric, and array leaves; nested `types` prefixes overriding an ancestor;
-`{alias}` resolution through the tree; nominal brands refusing cross-type
-assignment; `DeepMerge` through both the callback and literal forms of `extend`;
-`PickTree` removing unselected siblings; `pick` then `extend`; the real `css()`
-accepting every branded leaf and rejecting an off-palette literal. Four
-assertions were deliberately mis-stated and all four failed, with the error
-naming the two brands involved.
+Types, 53 assertions: 40 that a leaf carries the brand its schema declares, and
+13 that a wrong one is rejected. Covered: every factory in the table; `default`
+typing a node and its unlabelled descendants with siblings overriding
+(`control.height.sm` a dimension beside `control.color.border` a color and
+`control.opacity.disabled` a number); `{alias}` resolution through the tree;
+`lightDark()` both over literals and over accessor refs; `s.any()` accepted by
+`animation` and `aspectRatio` and rejected by `color`; nominal brands refusing
+cross-type assignment; the `extend` merge through both the callback and literal
+forms, including a schema group gaining a sibling; `pick` narrowing, reshaping,
+and renaming; `pick` then `extend`; `createTheme(Theme.$theme)` reproducing the
+accessor; `TypeOfBrand` recovering `"color"` from a `ColorToken` and `never` from
+a plain string; and the real `css()` accepting every branded leaf while rejecting
+an off-palette literal. Twelve assertions were deliberately mis-stated and all
+twelve failed, each error naming the two brands involved.
 
-Two failure modes were found this way rather than assumed. A leaf with no
+One failure mode came from the spike rather than reasoning. A leaf with no
 resolvable type brands as `never` under the obvious `BrandOf`, and `never` is
-assignable to every brand, so a forgotten `types` entry would have passed every
-`css()` check silently. `BrandOf` returns `unknown` instead. And a dangling
-reference brands as `unknown` too, because the alias branch is checked before
-the inherited group type, so a typo'd path is a type error as well as the
-runtime `ThemeError` it already was.
+assignable to every brand, so a forgotten schema entry would have passed every
+`css()` check silently. `BrandOf` returns `unknown` instead, which is unusable,
+and `parseTokens` already throws at module load naming the path.
 
-Lowering, at runtime. The demo theme transcribed into this format lowers to a
-document deep-equal to the hand-written one and `compileThemeCss` returns
-byte-identical text for both, 1,909 bytes. `componentStyleValues` transcribed
-verbatim compiles to 49 tokens and 2,481 bytes, with `--surface-lvl0` carrying
-its `light-dark()` intact, `--shadow-sm` its CSS string, and
-`--colors-action-primary-background-hover` its kebab-cased path.
+Runtime, 19 assertions across six groups.
 
-`extend`, four cases. Merging into an existing group, accessor references from
-the previous layer, overriding a leaf without disturbing its siblings, and
-chaining two layers.
+Schemas on `data-schema`: each factory validates and serializes through the
+existing per-type serializer (`{ value: 2.5, unit: "rem" }` to `2.5rem`,
+`"medium"` to `500`, a 4-tuple to `cubic-bezier(0.25, 0.1, 0.25, 1)`); a
+composed `object()` over the whole token tree reports three bad leaves in one
+`parse` with paths `color.bad`, `weight.bad`, and `undeclared.x`; a valid tree
+serializes in the same pass; and `s.color().refine(…)` composes. Note that
+`ValidationError.message` is always `"Validation failed"` and the detail lives on
+`issues`, so the package has to read `issues` rather than the message.
 
-`pick`, three cases. Unselected tokens absent from the emitted CSS, a selection
-whose reference target is missing throwing, and the transitive closure of two
-semantic aliases resolving to exactly `color.gray.900` and `color.white`.
+Lowering: the demo theme in this format lowers to a document that compiles to CSS
+byte-identical to the hand-written DTCG version, 1,909 bytes; `default`
+resolution emits `--control-height-sm`, `--control-radius`,
+`--control-color-border`, `--control-opacity-disabled`, `--text-sm`, and
+`--text-leading-sm` correctly; `lightDark()` survives as one color value; a bad
+value fails the whole `createTheme`.
+
+`extend`: merging tokens and schema while keeping siblings of both, and chaining.
+
+`pick`: re-rooting references back to their own values with no `var(` left in the
+output; reshaping and renaming to `--brand-light`; a picked reference whose target
+was dropped throwing and naming `color.white`; and the closure computation
+returning exactly `color.gray.900` and `color.white` for two semantic aliases.
 Closure retention itself is designed, not implemented.
 
-Cost. A single compile of a 260-token theme takes 0.42 ms; three `extend` layers
-plus the compile take 1.74 ms. Layer count multiplies the work because each
-layer recompiles, and at these numbers that is not worth deferring. Compilation
-stays eager so a malformed value still throws at module load.
+`Theme.$theme`: `createTheme(base.Theme.$theme)` reproduces the CSS byte for
+byte, and the component still renders a `<style>` element and honors `nonce`.
 
-Not verified: `fromDTCG`, `toDTCG`, the resolver manifest, the `selector` half
-of modes, and the metadata argument.
+Cost: `createTheme` 1.0 ms for 242 tokens, three `extend` layers 2.2 ms, the
+composed schema parse 0.16 ms of that. Layer count multiplies the work because
+each layer recompiles, and at these numbers deferring it is not worth the
+complexity. Compilation stays eager so a malformed value throws at module load.
+
+Not verified: `fromDTCG`, `toDTCG`, the resolver manifest, the `selector` half of
+modes, and everything under "Build-time optimization".
 
 ## What the earlier drafts contributed
 
 | Earlier                                              | Now                                                                                                                                                                                                    |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `theme-authoring.md` P1, composition via `.extend()` | Kept, and load-bearing. Layering is the only form that types.                                                                                                                                          |
-| P2, `DefaultTheme` plus `pick`                       | Kept. `pick` now has a measured reason (10,622 bytes to 1,280) and a stated rule for reference targets.                                                                                                |
+| P2, `DefaultTheme` plus `pick`                       | Kept. `pick` became a projection with a callback, and has a measured reason (10,572 bytes to 1,280).                                                                                                   |
 | P3, `scale()` multipliers                            | Dropped as an export. Dimension values are CSS strings, so `` `calc(${base.space.base} * 4)` `` is an ordinary template interpolation, and an app that wants `space(4)` writes three lines of its own. |
-| P4, `lightDark()`                                    | Dropped as an export. Write `light-dark(a, b)`, which is what Remix UI does. The mode-selector half of P4 is kept and is now how every mode declares its condition.                                    |
-| P5, modifier leaves                                  | Dropped. Free-form nesting plus a nested `types` prefix already gives `t.text.size.sm` beside `t.text.leading.sm` with no `$modifiers` and no accessor-shape question.                                 |
+| P4, `lightDark()`                                    | Kept as an export, because it composes with accessor refs and reads better than the punctuation. The mode-selector half of P4 is also kept, and is now how every mode declares its condition.          |
+| P5, modifier leaves                                  | Dropped. A schema group with `default` gives `t.text.sm` beside `t.text.leading.sm` with no `$modifiers` and no accessor-shape question.                                                               |
 | `authoring-and-interchange.md`, TypeScript authoring | Kept, and is the whole proposal.                                                                                                                                                                       |
-| Twelve dual-purpose factories                        | Dropped, for the `types` map.                                                                                                                                                                          |
+| Twelve dual-purpose factories                        | Kept as factories, moved out of the token tree into the schema tree, and built on `remix/data-schema` rather than hand-rolled.                                                                         |
 | Modes attached to the token via `modes()`            | Dropped. `light-dark()` covers colors with no mechanism; the rest stays in `modes`, which now declares conditions.                                                                                     |
-| `fromDTCG` / `toDTCG` behind a build step            | Kept unchanged, including the conformance-debt table.                                                                                                                                                  |
+| `fromDTCG` / `toDTCG` behind a build step            | Kept, including the conformance-debt table, and now derives the schema from `$type` in both directions.                                                                                                |
 
 ## Open questions
 
-1. Callable `Theme`, or a plain object whose component is `theme.Style`? The
-   callable form keeps `<Theme />` and reads as `Theme.extend()`, and has a
-   Remix precedent in `remix/ui/input`. It also puts definition-time derivation
-   and render-time rendering on one value. The alternative renames the component
-   in four places.
-2. Is `types` required on `createTheme`? Required makes the schema unskippable
-   and makes `extend`'s optional `types` an asymmetry. Optional makes one shape
-   to learn and leans on the `unknown` brand plus the load-time `ThemeError` to
-   teach.
-3. What does `DefaultTheme` contain? Primitives only, following Tailwind v4's
-   `@theme` defaults, or primitives plus a semantic layer. Remix UI's own module
-   is 49 leaves of both, which argues that the semantic half is what an app
-   actually wants to start from and edit.
-4. Does `types` support a wildcard prefix? `"text.*.leading": "number"` would
-   let a type scale pair a size and a line height at the leaf. It also adds a
-   second matching rule to a lookup that is currently one exact-key test.
+1. `s.easing()` or `s.cubicBezier()`, and `s.stroke()` or `s.strokeStyle()`? The
+   short names read better and match `props.ts`'s own `Easing` union, at the cost
+   of not spelling the DTCG `$type` they map to, which matters for anyone moving
+   between the two formats.
+2. Does `s.any()` need a companion escape hatch for `default`? A schema group
+   cannot currently give a token literally named `default` its own type. An
+   explicit `s.group(self, children)` would fix it and adds a fourteenth export
+   for a case that has not come up yet.
+3. Should `pick` be named for what it does? It projects, reshapes, and renames,
+   which `pick` understates and `select` (Remix's own verb, in `Query.select`)
+   understates differently. `project` is accurate and has no precedent anywhere
+   in the stack.
+4. Does `@pitlane/theme/default` export a `Theme` component or the plain
+   `{ schema, tokens }` object? The component makes `createTheme(DefaultTheme)`
+   one import and keeps `$theme` as the single way in. The plain object is JSON
+   adjacent, inspectable without running anything, and does not pay for a
+   compile whose CSS is thrown away by the first `pick`.
+5. How does a semantic-layer package consume this? A styled-components package
+   needs tokens that exist by contract, which means either a documented set of
+   paths its themes must provide or a `Theme` it ships and the app extends.
+   That decision shapes whether `@pitlane/theme/default` is a starting point or
+   an interface.
