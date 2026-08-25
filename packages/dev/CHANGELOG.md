@@ -1,5 +1,20 @@
 # @pitlane/dev
 
+## 0.5.1
+
+Fixes an unusable 0.5.0 on npm.
+
+- 0.5.0 was published with `"@pitlane/crawler": "workspace:^"` in its
+  dependencies, so every install failed with `EUNSUPPORTEDPROTOCOL` on npm and
+  `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` on pnpm. The release workflow packed with
+  `npm publish`, which has no idea what pnpm's `workspace:` protocol means and
+  ships it verbatim. It now packs with pnpm, which rewrites the range to the
+  version it resolved to, and fails the job if any `workspace:` specifier
+  survives into the tarball. Nothing about the code changed; 0.5.0 is
+  deprecated and this is the same release with a manifest that installs.
+- Latent until now: `@pitlane/crawler` is the first workspace dependency any
+  published Pitlane package has had.
+
 ## 0.5.0
 
 Build-time prerendering.
