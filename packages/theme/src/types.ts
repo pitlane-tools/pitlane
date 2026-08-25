@@ -1,145 +1,222 @@
-import type { BrandByType, TokenType } from "./brands.ts";
+import type {
+    BrandByType,
+    DimensionToken,
+    DurationToken,
+    NumberToken,
+    TokenType,
+    UntypedToken,
+} from "./brands.ts";
+import type { SchemaNode, SchemaTag, SELF, TAG } from "./schema.ts";
 
 /**
- * A DTCG token node: a `$value` plus optional metadata.
+ * A token value: the CSS it becomes. A string, a number, or an array
+ * of either. Anything else is a group.
  *
- * @internal
+ * @see {@link Tokens}
  */
-export interface TokenNode {
-    $value: unknown;
-    $type?: TokenType;
-    $description?: string;
-    $extensions?: Record<string, unknown>;
-    $deprecated?: boolean | string;
+export type TokenValue = number | readonly (number | string)[] | string;
+
+/**
+ * The token tree {@link createTheme} accepts: nested records whose
+ * leaves are {@link TokenValue}s. No reserved keys, so it is plain
+ * JSON and a designer can diff it.
+ */
+export interface Tokens {
+    [key: string]: Tokens | TokenValue;
 }
 
 /**
- * A DTCG group node: an optional `$type` shared by descendants, plus
- * nested groups and tokens.
+ * The accessor leaf for a token declared with `s.scale()`: callable
+ * for steps, with the base itself as `.token`.
  *
- * @internal
+ * `.token` is what a projection re-roots and what `raw` resolves, so
+ * it is load-bearing rather than decorative.
+ *
+ * @see {@link TokenTree}
  */
-export interface TokenGroup {
-    $type?: TokenType;
-    $description?: string;
-    $extensions?: Record<string, unknown>;
-    [key: string]: unknown;
+export interface ScaleFn {
+    (steps: number): DimensionToken;
+    readonly token: DimensionToken;
+}
+
+/** A theme's mode: a condition plus the values it overrides. */
+export interface ThemeMode<T> {
+    /**
+     * The media query this mode applies under. Defaults to
+     * `(prefers-color-scheme: <name>)` for the names `light` and
+     * `dark`, and is required for any other name.
+     */
+    media?: string;
+    /**
+     * A selector this mode also applies under, for a user-selectable
+     * toggle. An attribute selector outranks the media block on
+     * specificity, so an explicit choice beats the OS preference.
+     */
+    selector?: string;
+    /** The values this mode overrides. Structure only, never types. */
+    tokens: DeepPartialTokens<T>;
 }
 
 /**
- * The input document {@link createTheme} accepts, shaped by the
- * [W3C DTCG format](https://www.designtokens.org/tr/drafts/format/). A
- * node with a `$value` is a token; every other key is a group, and
- * groups nest to any depth. A token's type comes from its own
- * `$type`, from the token it aliases, or from the nearest ancestor
- * group's `$type`, in that order.
+ * The argument {@link createTheme} accepts: a schema tree, the token
+ * tree it describes, and any modes.
  *
- * Each `$type` fixes the accepted `$value` forms and how the value
- * serializes into CSS:
- *
- * | `$type` | Accepted `$value` | Serializes to |
- * | --- | --- | --- |
- * | `color` | CSS color string, or `{ colorSpace, components, alpha?, hex? }` | the string as written, `hex` when present, or the color-space function (`oklch(…)`, `color(display-p3 …)`) |
- * | `dimension` | `"16px"`, or `{ value, unit }` with `px` or `rem` | the string verbatim, or concatenation |
- * | `duration` | `"200ms"`, or `{ value, unit }` with `ms` or `s` | the string verbatim, or concatenation |
- * | `fontFamily` | string or non-empty array of strings | quoted where needed, comma-joined |
- * | `fontWeight` | number 1–1000, or a DTCG keyword like `"semi-bold"` | the number (keywords map to numbers) |
- * | `number` | number | the number |
- * | `cubicBezier` | `[x1, y1, x2, y2]` | `cubic-bezier(…)` |
- * | `shadow` | `{ color, offsetX, offsetY, blur?, spread?, inset? }`, or an array of them | a CSS shadow list, `inset` first when `inset` is `true` |
- * | `border` | `{ color, width, style }` | `width style color` |
- * | `transition` | `{ duration, timingFunction, delay? }` | `duration timing-function delay` |
- * | `gradient` | array of `{ color, position }` stops | a color-stop list for use inside `linear-gradient(…)` |
- * | `strokeStyle` | keyword or object | the keyword, or `dashed` for the object form |
- *
- * Gradient stop positions must be literal numbers, though stop colors
- * may be aliases. `typography` tokens throw — they need one variable
- * per subproperty, which is not built.
- *
- * Only the object form of a `dimension` or `duration` is unit-checked.
- * The string form is emitted verbatim, which is the way in for units
- * the DTCG format does not cover (`em`, `ch`, `%`) and for computed
- * values such as `clamp(…)`.
- *
- * A `$value` of `"{path.to.token}"` is an alias: it resolves to
- * `var()` indirection in the emitted CSS, not a copied value, which is
- * what makes mode overrides cascade. Aliases work as full token values
- * and inside composite sub-values (e.g. a shadow's `color`), and they
- * are type-checked — a token with an explicit `$type` only aliases a
- * token of that same type. Unknown targets and reference cycles throw.
- *
- * @see {@link createTheme}
- * @see {@link TokenTree} for the resulting accessor shape.
- * @see {@link DeepPartialTokens} for the mode-override shape.
+ * The members are typed as bare objects on purpose. A `const` type
+ * parameter constrained to an index-signature type widens the literal
+ * it was inferred from, which would erase every brand; the shapes are
+ * enforced by the schema factories being typed values, by an
+ * undeclared leaf resolving to `unknown`, and by validation at module
+ * load.
  */
-export type DTCGDocument = TokenGroup;
+export interface ThemeInit {
+    schema: object;
+    tokens: object;
+    modes?: object;
+}
 
-type GroupType<N, Inherited> = N extends { $type: infer Ty extends TokenType } ? Ty : Inherited;
+/** The internal, fully-typed form of a {@link ThemeInit}. @internal */
+export interface ResolvedInit {
+    schema: Record<string, SchemaNode>;
+    tokens: Tokens;
+    modes?: Record<string, ThemeMode<Tokens>>;
+}
 
-type BrandOf<Ty> = Ty extends TokenType ? BrandByType[Ty] : never;
+/**
+ * The argument `extend` accepts. `schema` is optional, because a patch
+ * that only adds tokens to an existing namespace needs no new entry.
+ */
+export interface ThemePatch {
+    schema?: object;
+    tokens: object;
+    modes?: object;
+}
 
-type TokenTypeOf<N, Root, Inherited> = N extends { $type: infer Ty extends TokenType }
-    ? Ty
-    : N extends { $value: `{${infer P}}` }
-      ? TypeAtPath<Root, P, Root, GroupType<Root, undefined>>
-      : Inherited extends TokenType
-        ? Inherited
-        : never;
+/**
+ * The mode-override shape for a token tree: every group optional, every
+ * leaf a value. A mode overrides values, never structure or types.
+ */
+export type DeepPartialTokens<T> = 0 extends 1 & T
+    ? unknown
+    : {
+          [K in keyof T]?: T[K] extends Leaf ? TokenValue : DeepPartialTokens<T[K]>;
+      };
+
+type Leaf = number | readonly (number | string)[] | string;
+
+// `never` is assignable to every brand, so an undeclared leaf resolves to
+// `unknown` instead: unusable rather than universally accepted.
+type BrandOf<tag> = [tag] extends [never]
+    ? unknown
+    : [tag] extends ["any"]
+      ? UntypedToken
+      : [tag] extends ["scale"]
+        ? ScaleFn
+        : tag extends TokenType
+          ? BrandByType[tag]
+          : unknown;
+
+/** The tag a schema node declares for itself and its unlabelled children. */
+type NodeTag<S, Inherited> = S extends { readonly [TAG]: infer tag extends SchemaTag }
+    ? tag
+    : S extends { readonly [SELF]: { readonly [TAG]: infer tag extends SchemaTag } }
+      ? tag
+      : Inherited;
+
+type Child<S, K> = K extends keyof S ? S[K] : undefined;
 
 type MatchKey<N, S extends string> = keyof N extends infer K
-    ? K extends string | number
+    ? K extends number | string
         ? `${K}` extends S
             ? K
             : never
         : never
     : never;
 
-type TypeAtPath<N, P extends string, Root, Inherited> = P extends `${infer Head}.${infer Rest}`
-    ? MatchKey<N, Head> extends infer K
+/** Follows a `{a.b.c}` reference, tracking the schema beside the tree. */
+type TagAtPath<Tok, P extends string, Sch, Inherited> = P extends `${infer Head}.${infer Rest}`
+    ? MatchKey<Tok, Head> extends infer K
         ? [K] extends [never]
             ? never
-            : TypeAtPath<N[K & keyof N], Rest, Root, GroupType<N[K & keyof N], Inherited>>
+            : TagAtPath<Tok[K & keyof Tok], Rest, Child<Sch, K>, NodeTag<Child<Sch, K>, Inherited>>
         : never
-    : MatchKey<N, P> extends infer K
+    : MatchKey<Tok, P> extends infer K
       ? [K] extends [never]
           ? never
-          : TokenTypeOf<N[K & keyof N], Root, Inherited>
+          : LeafTag<Tok[K & keyof Tok], Child<Sch, K>, Inherited, Tok, Sch>
       : never;
 
-type TreeOf<N, Root, Inherited> = {
-    [K in Exclude<keyof N, `$${string}`>]: N[K] extends { $value: unknown }
-        ? BrandOf<TokenTypeOf<N[K], Root, Inherited>>
-        : TreeOf<N[K], Root, GroupType<N[K], Inherited>>;
+// The schema is authoritative, so an inherited tag settles a leaf before its
+// value is looked at. Following the reference is only needed for a leaf that
+// inherits nothing, and skipping it keeps a reference cycle from making the
+// type infinite.
+type LeafTag<V, S, Inherited, Root, RootSchema> = S extends {
+    readonly [TAG]: infer tag extends SchemaTag;
+}
+    ? tag
+    : [Inherited] extends [never]
+      ? V extends `{${infer P}}`
+          ? TagAtPath<Root, P, RootSchema, never>
+          : Inherited
+      : Inherited;
+
+type TreeOf<Tok, Sch, Inherited, Root, RootSchema> = {
+    [K in keyof Tok]: Tok[K] extends Leaf
+        ? BrandOf<LeafTag<Tok[K], Child<Sch, K>, Inherited, Root, RootSchema>>
+        : TreeOf<Tok[K], Child<Sch, K>, NodeTag<Child<Sch, K>, Inherited>, Root, RootSchema>;
 };
 
 /**
- * The accessor shape for a document `T`: the same nesting as the
- * document, with every token leaf replaced by its branded `var(--…)`
- * reference string. Numeric keys index with brackets
+ * The accessor shape for an init `T`: the same nesting as its token
+ * tree, with every leaf replaced by the branded `var(--…)` reference
+ * its schema declares. Numeric keys index with brackets
  * (`t.color.gray[900]`).
  *
- * An `any` document (e.g. from `JSON.parse`) short-circuits to
- * `unknown` — mapping over `any` would otherwise recurse without
- * bound.
+ * A leaf whose schema entry is missing resolves to `unknown`, which is
+ * unusable in `css()`. The compiler also throws for it at module load.
  *
  * @see {@link ThemeResult}
  */
-export type TokenTree<T> = 0 extends 1 & T ? unknown : TreeOf<T, T, GroupType<T, undefined>>;
+export type TokenTree<T> = 0 extends 1 & T
+    ? unknown
+    : T extends { schema: infer Sch; tokens: infer Tok }
+      ? TreeOf<Tok, Sch, never, Tok, Sch>
+      : unknown;
 
 /**
- * The mode-override shape for a document `T`: every group is optional
- * and each token node is reduced to `{ $value }`. A mode overrides a
- * token's value only, never its `$type` or structure.
+ * Deep-merges an `extend` patch onto the tree it extends. A leaf
+ * replaces wholesale; every other node recurses.
  *
- * An `any` document short-circuits to `unknown`, as in
- * {@link TokenTree}.
- *
- * @see {@link ThemeOptions}
+ * @internal
  */
-export type DeepPartialTokens<T> = 0 extends 1 & T
-    ? unknown
-    : {
-          [K in Exclude<keyof T, `$${string}`>]?: T[K] extends { $value: unknown }
-              ? { $value: unknown }
-              : DeepPartialTokens<T[K]>;
-      };
+export type DeepMerge<A, B> = {
+    [K in keyof A | keyof B]: K extends keyof B
+        ? K extends keyof A
+            ? B[K] extends Leaf
+                ? B[K]
+                : A[K] extends Leaf
+                  ? B[K]
+                  : DeepMerge<A[K], B[K]>
+            : B[K]
+        : K extends keyof A
+          ? A[K]
+          : never;
+};
+
+/**
+ * The init an `extend` produces: both trees merged.
+ *
+ * @internal
+ */
+export interface Merged<T, E> {
+    schema: DeepMerge<
+        T extends { schema: infer S } ? S : {},
+        E extends { schema: infer S } ? S : {}
+    >;
+    tokens: DeepMerge<
+        T extends { tokens: infer S } ? S : {},
+        E extends { tokens: infer S } ? S : {}
+    >;
+}
+
+/** The bases {@link scale} accepts. @internal */
+export type ScalableToken = DimensionToken | DurationToken | NumberToken;

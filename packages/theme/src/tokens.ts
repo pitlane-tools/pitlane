@@ -1,40 +1,42 @@
 import type { TokenType } from "./brands.ts";
-import type { DTCGDocument } from "./types.ts";
+import type { SchemaNode, TokenSchema } from "./schema.ts";
+import type { Tokens } from "./types.ts";
 
-import { TOKEN_TYPES } from "./brands.ts";
+import { childSchema, selfSchema, TAG } from "./schema.ts";
 
 /**
- * The error {@link createTheme} throws for every validation and
- * serialization failure. Validation is eager, so a bad document never
- * emits CSS. Every message names the offending token path.
+ * The error {@link createTheme} throws for every structural failure:
+ * one problem, one sentence.
  *
- * | Condition | Message shape |
+ * | Failure | Message shape |
  * | --- | --- |
- * | Unknown `$type` | `"color.brand" has unknown $type "sparkles"` |
- * | Unresolvable `$type` | `"color.brand" has no resolvable $type` |
- * | Typography token | `"heading": typography tokens are not supported in v1` |
- * | Reserved character in a name | `Token or group name "a.b" contains characters reserved by DTCG references (".", "{", "}")` |
- * | Empty CSS identifier | `Token path segment "!" produces an empty CSS identifier` |
- * | Malformed node | `"color.bg" is neither a group nor a token` |
- * | Variable-name collision | `Tokens "a" and "b" both produce the CSS variable --x` |
- * | Alias to a missing token | `"color.bg" references unknown token "color.white"` |
- * | Alias to a wrong-typed token | `"x" references "space.sm" of type "dimension" where "color" is required` |
- * | Alias cycle | `Alias cycle: a → b → a` |
- * | Invalid value for a declared type | `"x" has an invalid color value: …` — also `unknown colorSpace`, `unknown fontWeight keyword`, and `unknown strokeStyle keyword`; an empty `fontFamily` array counts |
- * | Bad mode override | `Mode override "x" does not exist in the base document`, `Mode override "x" may only set $value`, or (via a cross-type alias) the wrong-typed-alias message |
- * | Unminted `raw()` ref | `raw(): "var(--x)" names a var this theme never minted` |
+ * | No schema entry | `"space.md" has no schema entry` |
+ * | Unknown reference | `"color.bg" references unknown token "color.nope"` |
+ * | Reference type mismatch | `"color.bg" references "space.md" of type "dimension" where "color" is required` |
+ * | Reference to an untyped token | `"color.bg" references untyped token "animate.spin"` |
+ * | Reference cycle | `Reference cycle: color.a → color.b → color.a` |
+ * | Variable collision | `Tokens "a.b" and "a-b" both produce the CSS variable --a-b` |
+ * | Reserved characters | `Token or group name "a.b" contains characters reserved by references (".", "{", "}")` |
+ * | Empty identifier | `Token path segment "!!" produces an empty CSS identifier` |
+ * | Unknown mode token | `Mode "dark" overrides unknown token "color.nope"` |
+ *
+ * Bad token *values* raise `ValidationError` from `remix/data-schema`
+ * instead, because there may be several and each carries its own path.
+ *
+ * @see {@link createTheme}
  */
 export class ThemeError extends Error {
     override name = "ThemeError";
 }
 
 /**
- * A parsed token: its dotted key, path segments, CSS variable name,
- * resolved type, raw value, and alias target if any.
+ * A token whose schema named one of the twelve DTCG types. Only these
+ * entries reach the per-type serializers.
  *
  * @internal
  */
-export interface ParsedToken {
+export interface TypedEntry {
+    kind: "typed";
     key: string;
     path: readonly string[];
     varName: string;
@@ -43,18 +45,57 @@ export interface ParsedToken {
     aliasOf?: string;
 }
 
-const ALIAS_RE = /^\{([^{}]+)\}$/;
-
 /**
- * Extracts the target key from a `"{path.to.token}"` alias string, or
- * `null` when the value is not an alias reference.
+ * A dimension token whose accessor leaf multiplies. Declared with
+ * `s.scale()`.
  *
  * @internal
  */
-export function aliasTarget(value: unknown): string | null {
+export interface ScaleEntry {
+    kind: "scale";
+    key: string;
+    path: readonly string[];
+    varName: string;
+    value: unknown;
+}
+
+/**
+ * A token with no type, declared with `s.any()`. Its value is already
+ * a string by the time validation is done with it.
+ *
+ * @internal
+ */
+export interface UntypedEntry {
+    kind: "untyped";
+    key: string;
+    path: readonly string[];
+    varName: string;
+    value: string;
+}
+
+/**
+ * One token in the intermediate representation, tagged by kind. The
+ * tag is what keeps the twelve-type serializer switch exhaustive: an
+ * optional `type` would force an `undefined` branch through every
+ * consumer of it.
+ *
+ * @internal
+ */
+export type Entry = ScaleEntry | TypedEntry | UntypedEntry;
+
+const REFERENCE_RE = /^\{([^{}]+)\}$/;
+const VAR_RE = /^var\((--[a-z0-9-]+)\)$/;
+
+/**
+ * Extracts the target key from a `"{path.to.token}"` reference, or
+ * `null` when the value is not a reference.
+ *
+ * @internal
+ */
+export function referenceTarget(value: unknown): string | null {
     if (typeof value !== "string") return null;
-    let match = ALIAS_RE.exec(value);
-    return match ? match[1] : null;
+    let match = REFERENCE_RE.exec(value);
+    return match ? match[1]! : null;
 }
 
 /**
@@ -75,111 +116,94 @@ export function kebabSegment(segment: string): string {
     return kebab;
 }
 
-interface RawEntry {
-    key: string;
-    path: readonly string[];
-    ownType: TokenType | undefined;
-    inheritedType: TokenType | undefined;
-    value: unknown;
-}
-
 /**
- * Walks a document, resolves every token's type and CSS variable
- * name, and returns the parsed tokens keyed by dotted path.
+ * Walks the token tree and the schema tree together, in document
+ * order, into one list of tagged entries. Rejects a token with no
+ * schema entry, a reserved character in a name, and two tokens whose
+ * paths collide after kebab-casing.
  *
  * @internal
  */
-export function parseTokens(document: DTCGDocument): Map<string, ParsedToken> {
-    let entries = new Map<string, RawEntry>();
-    walk(document, [], validateType(document.$type, "$root"), entries);
-
-    let tokens = new Map<string, ParsedToken>();
+export function collectTokens(tokens: Tokens, schema: SchemaNode): Entry[] {
+    let entries: Entry[] = [];
     let varNames = new Map<string, string>();
+    walk(tokens, schema, undefined, [], entries, varNames);
+    linkVarReferences(entries);
+    return entries;
+}
 
-    for (let entry of entries.values()) {
-        let type = resolveType(entry.key, entries, []);
-        let varName = `--${entry.path.map(kebabSegment).join("-")}`;
-        let existing = varNames.get(varName);
-        if (existing !== undefined) {
-            throw new ThemeError(
-                `Tokens "${existing}" and "${entry.key}" both produce the CSS variable ${varName}`,
-            );
-        }
-        varNames.set(varName, entry.key);
-        let alias = aliasTarget(entry.value);
-        tokens.set(entry.key, {
-            key: entry.key,
-            path: entry.path,
-            varName,
-            type,
-            value: entry.value,
-            ...(alias === null ? {} : { aliasOf: alias }),
-        });
+/**
+ * A reference written as an accessor property access arrives as the string
+ * `var(--color-white)` rather than `{color.white}`, because that is what the
+ * accessor leaf is. The two spellings are meant to be interchangeable, so a
+ * second pass turns an in-theme `var()` value into a reference like any other.
+ * That makes it type-checked, resolvable by `raw`, and visible to `select`.
+ *
+ * A `var()` naming something this theme does not declare is left alone: it may
+ * be a custom property the application defines elsewhere.
+ */
+function linkVarReferences(entries: Entry[]): void {
+    let byVarName = new Map(entries.map(entry => [entry.varName, entry]));
+    for (let entry of entries) {
+        if (entry.kind !== "typed" || entry.aliasOf !== undefined) continue;
+        if (typeof entry.value !== "string") continue;
+        let match = VAR_RE.exec(entry.value);
+        if (match === null) continue;
+        let target = byVarName.get(match[1]!);
+        if (target !== undefined) entry.aliasOf = target.key;
     }
-
-    return tokens;
 }
 
 function walk(
-    node: Record<string, unknown>,
+    node: Tokens,
+    schema: unknown,
+    inherited: TokenSchema | undefined,
     path: readonly string[],
-    inherited: TokenType | undefined,
-    out: Map<string, RawEntry>,
+    out: Entry[],
+    varNames: Map<string, string>,
 ): void {
-    for (let [key, child] of Object.entries(node)) {
-        if (key.startsWith("$")) continue;
+    for (let [key, value] of Object.entries(node)) {
         let childPath = [...path, key];
         let childKey = childPath.join(".");
         if (/[.{}]/.test(key)) {
             throw new ThemeError(
-                `Token or group name "${childKey}" contains characters reserved by DTCG references (".", "{", "}")`,
+                `Token or group name "${childKey}" contains characters reserved by references (".", "{", "}")`,
             );
         }
-        if (typeof child !== "object" || child === null || Array.isArray(child)) {
-            throw new ThemeError(`"${childKey}" is neither a group nor a token`);
+        let child = childSchema(schema, key);
+        let own = selfSchema(child) ?? inherited;
+
+        if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            walk(value as Tokens, child, own, childPath, out, varNames);
+            continue;
         }
-        let record = child as Record<string, unknown>;
-        let ownType = validateType(record.$type, childKey);
-        if ("$value" in record) {
-            out.set(childKey, {
-                key: childKey,
-                path: childPath,
-                ownType,
-                inheritedType: inherited,
-                value: record.$value,
-            });
+
+        if (own === undefined) throw new ThemeError(`"${childKey}" has no schema entry`);
+
+        let varName = `--${childPath.map(kebabSegment).join("-")}`;
+        let existing = varNames.get(varName);
+        if (existing !== undefined) {
+            throw new ThemeError(
+                `Tokens "${existing}" and "${childKey}" both produce the CSS variable ${varName}`,
+            );
+        }
+        varNames.set(varName, childKey);
+
+        let common = { key: childKey, path: childPath, varName };
+        let tag = own[TAG];
+        if (tag === "any") {
+            out.push({ kind: "untyped", ...common, value: String(value) });
+        } else if (tag === "scale") {
+            out.push({ kind: "scale", ...common, value });
         } else {
-            walk(record, childPath, ownType ?? inherited, out);
+            let target = referenceTarget(value);
+            out.push({
+                kind: "typed",
+                ...common,
+                type: tag,
+                value,
+                ...(target === null ? {} : { aliasOf: target }),
+            });
         }
     }
-}
-
-function validateType(value: unknown, key: string): TokenType | undefined {
-    if (value === undefined) return undefined;
-    if (value === "typography") {
-        throw new ThemeError(`"${key}": typography tokens are not supported in v1`);
-    }
-    if (!(TOKEN_TYPES as readonly string[]).includes(value as string)) {
-        throw new ThemeError(`"${key}" has unknown $type "${String(value as string)}"`);
-    }
-    return value as TokenType;
-}
-
-function resolveType(key: string, entries: Map<string, RawEntry>, chain: string[]): TokenType {
-    if (chain.includes(key)) {
-        throw new ThemeError(`Alias cycle: ${[...chain, key].join(" → ")}`);
-    }
-    let entry = entries.get(key);
-    if (!entry) {
-        throw new ThemeError(
-            `"${chain[chain.length - 1] ?? key}" references unknown token "${key}"`,
-        );
-    }
-    if (entry.ownType) return entry.ownType;
-    let alias = aliasTarget(entry.value);
-    // DTCG order: a reference token takes the referenced token's resolved
-    // type BEFORE any group-inherited $type.
-    if (alias !== null) return resolveType(alias, entries, [...chain, key]);
-    if (entry.inheritedType) return entry.inheritedType;
-    throw new ThemeError(`"${key}" has no resolvable $type`);
 }

@@ -3,11 +3,12 @@ import { renderToString } from "remix/ui/server";
 import { describe, expect, it } from "vitest";
 
 import { css } from "./css.ts";
+import * as s from "./schema.ts";
 import { createTheme } from "./theme.ts";
 
-const { token: t } = createTheme({
-    color: { $type: "color", white: { $value: "#fff" } },
-    space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
+let { token: t } = createTheme({
+    schema: { color: s.color(), space: s.dimension() },
+    tokens: { color: { white: "#fff" }, space: { sm: "8px", md: "16px" } },
 });
 
 describe("css", () => {

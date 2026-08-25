@@ -15,7 +15,7 @@ function Card() {
 }
 ```
 
-That works, but every value is a loose string. Nothing stops `#111` here and `#121212` two files over. `@pitlane/theme` layers design tokens and type safety on top, and this guide walks the whole surface. If you prefer reading code, the [demo app](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) covers the same ground as a running Remix app.
+That works, but every value is a loose string. Nothing stops `#111` here and `#121212` two files over. `@pitlane/theme` layers design tokens and type safety on top. The [demo app](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) contains an application-level example.
 
 First, install the package. `remix` 3.0.0-beta.10 or later is a peer dependency:
 
@@ -25,42 +25,147 @@ vp add @pitlane/theme
 
 ## Define a theme
 
-Design tokens live in a [W3C DTCG](https://www.designtokens.org/tr/drafts/format/) document passed to `createTheme`. Define the theme once, in something like `app/theme.ts`, and export the pieces:
+A theme has a schema tree, a token tree, and optional modes. Define it once, such as in `app/theme.ts`, then export the typed accessor, raw-value resolver, and component:
 
 ```ts
-import { createTheme } from "@pitlane/theme";
+import { createTheme, lightDark } from "@pitlane/theme";
+import * as s from "@pitlane/theme/schema";
 
 export let {
     token: t,
     raw,
     Theme,
-} = createTheme(
-    {
+} = createTheme({
+    schema: {
+        color: s.color(),
+        spacing: s.scale(),
+        radius: s.dimension(),
+        text: s.group(s.dimension(), { leading: s.number() }),
+        shadow: s.shadow(),
+        animate: s.any(),
+        control: s.group(s.dimension(), { color: s.color() }),
+    },
+    tokens: {
         color: {
-            $type: "color",
-            white: { $value: "#fff" },
-            gray: { 50: { $value: "#fafafa" }, 900: { $value: "#171717" } },
-            bg: { $value: "{color.white}" },
+            white: "#fff",
+            gray: { 50: "#fafafa", 900: "#171717" },
+            bg: "{color.white}",
+            page: lightDark("#fff", "#171717"),
         },
-        space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
-    },
-    {
-        modes: {
-            dark: { color: { bg: { $value: "{color.gray.900}" } } },
+        spacing: "0.25rem",
+        radius: { full: "999px", responsive: "clamp(0.25rem, 2vw, 1rem)" },
+        text: { sm: "0.875rem", lg: "1.125rem", leading: { sm: 1.5, lg: 1.35 } },
+        shadow: { card: "0 1px 2px rgb(0 0 0 / 0.07)" },
+        animate: { spin: "spin 1s linear infinite" },
+        control: {
+            height: { sm: "28px", md: "32px" },
+            color: { default: "#d4d4d8" },
         },
     },
-);
+});
 ```
 
-Three things happened here. The `color` group sets `$type` once and its tokens inherit it. `color.bg` is an _alias_ of `color.white`, written with the DTCG reference syntax. And the `modes.dark` override redefines only `color.bg` for dark mode.
+Token values are the CSS they become. Each schema decides its leaf shape. It can be a string or number, and some schemas use arrays. Plain objects form groups. CSS strings pass through, so `clamp()`, `em`, `%`, `light-dark()`, and CSS color functions remain valid values. Composite schemas use CSS text, as `shadow.card` does above, rather than sub-value objects.
 
-What you get back:
+`token`, conventionally destructured as `t`, mirrors the token tree with branded `var()` strings. `t.color.white` is `"var(--color-white)"`. `raw(t.color.bg)` follows the reference and returns `"#fff"`. `<Theme />` installs every custom property. The brands exist at compile time and let `css()` reject a color where a dimension is required.
 
-- `token`, destructured as `t` by convention. A typed mirror of the document whose leaves are `var()` reference strings. `t.color.white` is `"var(--color-white)"`.
-- `raw`, a lookup from ref to concrete base value. `raw(t.color.bg)` follows the alias and returns `"#fff"`.
-- `Theme`, a component that installs the CSS variables.
+### Choose schemas
 
-Each leaf also carries a compile-time _brand_ naming its token type. `t.color.white` is a `ColorToken` and `t.space.md` is a `DimensionToken`. Brands power the type errors you'll see below, and they vanish at runtime.
+The schema names the type for each token or group. Import the factories as `s` to keep those declarations separate from the token values.
+
+| Factory                   | Token type            | Accepted authored value                                                                                                                                                                                                                            |
+| ------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `s.color()`               | `color`               | CSS color text, including `light-dark()`, `color-mix()`, and `currentColor`                                                                                                                                                                        |
+| `s.dimension()`           | `dimension`           | CSS length text, including `clamp()`, `calc()`, `em`, and `%`                                                                                                                                                                                      |
+| `s.duration()`            | `duration`            | CSS time text, including `ms`, `s`, and `calc()`                                                                                                                                                                                                   |
+| `s.number()`              | `number`              | A finite number                                                                                                                                                                                                                                    |
+| `s.easing()`              | `cubicBezier`         | `cubic-bezier(...)` text or a four-number tuple                                                                                                                                                                                                    |
+| `s.shadow()`              | `shadow`              | CSS shadow text, including `inset`                                                                                                                                                                                                                 |
+| `s.border()`              | `border`              | CSS border shorthand text                                                                                                                                                                                                                          |
+| `s.transition()`          | `transition`          | CSS transition shorthand text                                                                                                                                                                                                                      |
+| `s.gradient()`            | `gradient`            | CSS gradient function text                                                                                                                                                                                                                         |
+| `s.stroke()`              | `strokeStyle`         | `solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`, `outset`, or `inset`                                                                                                                                                                     |
+| `s.font.family()`         | `fontFamily`          | A font name or an array of font names                                                                                                                                                                                                              |
+| `s.font.weight()`         | `fontWeight`          | A number from 1 through 1000, or `thin`, `hairline`, `extra-light`, `ultra-light`, `light`, `normal`, `regular`, `book`, `medium`, `semi-bold`, `demi-bold`, `bold`, `extra-bold`, `ultra-bold`, `black`, `heavy`, `extra-black`, or `ultra-black` |
+| `s.scale()`               | `dimension`           | One base length whose accessor multiplies it                                                                                                                                                                                                       |
+| `s.any()`                 | None                  | A string or number emitted verbatim                                                                                                                                                                                                                |
+| `s.group(self, children)` | Inherited from `self` | A typed node with schema overrides for children                                                                                                                                                                                                    |
+
+`s.group(self, children)` gives a group a type and lets specific children use another type. In the example, `control.height.sm` inherits `s.dimension()`, while `control.color.default` uses `s.color()`. `default` is an ordinary token name. The schema stores its own type separately, so no token name is reserved.
+
+Use `s.scale()` for a single base value that callers multiply. The accessor is callable, and its `.token` property holds the unmultiplied base:
+
+```ts
+t.spacing(4); // calc(var(--spacing) * 4)
+t.spacing(0.5); // calc(var(--spacing) * 0.5)
+t.spacing.token; // var(--spacing)
+```
+
+The module-level `scale()` applies the same operation to an ordinary dimension, duration, or number token:
+
+```ts
+import { scale } from "@pitlane/theme";
+
+scale(t.text.sm)(2); // calc(var(--text-sm) * 2)
+```
+
+Declare `s.any()` for CSS values without a token type, such as `animation` values and aspect ratios. Its accessor has its own brand. Open-grammar properties, including `animation` and `aspectRatio`, accept it. Token-mapped properties, including `color`, reject it.
+
+### Reference and derive tokens
+
+Within one layer, a value that is exactly `"{color.white}"` becomes a reference to `color.white`. The emitted declaration keeps the `var()` indirection, so later overrides cascade through the reference.
+
+`extend` deep-merges a patch with its base. In its callback form, use accessor property access to reference a token from the preceding layer:
+
+```ts
+let baseTheme = createTheme({
+    schema: { color: s.color() },
+    tokens: { color: { white: "#fff" } },
+});
+
+let applicationTheme = baseTheme.extend(base => ({
+    schema: { surface: s.color() },
+    tokens: { surface: { page: base.color.white } },
+}));
+```
+
+`select` replaces a theme with a projection. It retains selected tokens, and its output paths decide the resulting custom-property names, so a projection can reshape and rename a tree:
+
+```ts
+let publicTheme = baseTheme.select(base => ({
+    schema: { brand: { primary: s.color() } },
+    tokens: { brand: { primary: base.color.white } },
+}));
+
+publicTheme.token.brand.primary; // var(--brand-primary)
+```
+
+`@pitlane/theme/default` exports `DefaultTheme`, a `<Theme />` component built from Tailwind v4 primitives. It has colors, spacing, radii, fonts, and other primitives. Semantic names belong in the theme that extends it. Select the primitives an application uses before rendering the theme:
+
+```ts
+import { createTheme } from "@pitlane/theme";
+import { DefaultTheme } from "@pitlane/theme/default";
+import * as s from "@pitlane/theme/schema";
+
+export let {
+    token: t,
+    raw,
+    Theme,
+} = createTheme(DefaultTheme).select(base => ({
+    schema: {
+        color: s.color(),
+        spacing: s.scale(),
+        radius: s.dimension(),
+    },
+    tokens: {
+        color: { blue: base.color.blue, gray: base.color.gray },
+        spacing: base.spacing.token,
+        radius: base.radius,
+    },
+}));
+```
+
+Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise `ThemeError`, including unknown references, reference cycles, CSS variable collisions, an undeclared token, and a mode that overrides an unknown token.
 
 ## Install the tokens
 
@@ -89,38 +194,70 @@ function App() {
 import { css } from "@pitlane/theme";
 import { t } from "./theme.ts";
 
-// css() binds to the element type of the `mix` position it appears in,
+// css() binds to the element type of the mix position it appears in,
 // so write it inline at each element, like remix/ui's own css.
 <article
     mix={css({
         color: t.color.bg,
-        padding: [t.space.sm, t.space.md], // tuples join with spaces
+        padding: [t.spacing(2), t.spacing(4)], // tuples join with spaces
         margin: 0,
-        // color: "#ff0000", // ✗ type error, not in the palette
+        // color: "#ff0000", // type error: outside the palette
         "&:hover": { color: t.color.gray[900] },
     })}
 />;
 ```
 
-Off-palette literals fail to compile. Keywords like `"transparent"` and literal `0` stay legal. Properties outside the token-mapped set carry [csstype](https://github.com/frenic/csstype)'s value union, so `resize: "vertical"` autocompletes and `resize: "diagonal"` is a type error, while open-grammar properties such as `background` and `gridTemplateColumns` still take any string. Template interpolation covers the shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
+Off-palette literals fail to compile. Keywords such as `transparent` and literal `0` stay legal. Properties outside the token-mapped set carry [csstype](https://github.com/frenic/csstype)'s value union, so `resize: "vertical"` autocompletes and `resize: "diagonal"` is a type error, while open-grammar properties such as `background` and `gridTemplateColumns` take any string. Template interpolation covers shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
 
 ## Dark mode
 
-The `modes.dark` override from earlier emits a media query, and nothing else:
+Use `lightDark(light, dark)` for a color whose value follows the active CSS color scheme. Set the root's `color-scheme` to allow light and dark before the browser resolves those functions:
 
 ```css
 :root {
-    --color-bg: var(--color-white);
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --color-bg: var(--color-gray-900);
-    }
+    color-scheme: light dark;
 }
 ```
 
-Aliases keep their `var()` indirection in the emitted CSS, so overriding one referenced token flips every alias that points at it. The cascade does all the work, and the theme is correct on first paint. Switch your OS appearance with the demo app open and watch every surface follow.
+The `color.page` token in the theme above becomes `light-dark(#fff, #171717)`. It responds to the operating-system preference without a theme mode. `lightDark()` accepts accessor references too, so its colors can still be overridden in a later layer.
+
+Use `modes` for values that CSS `light-dark()` cannot carry, including shadows, dimensions, durations, and font stacks. A mode may set `media`, `selector`, or both. `selector` adds a selector block alongside the mode's media block. `light` and `dark` default to their matching `prefers-color-scheme` query. Supply `media` for an explicit condition or for another mode name.
+
+```ts
+modes: {
+    light: {
+        media: "(prefers-color-scheme: light)",
+        selector: ':root[data-color-scheme="light"]',
+        tokens: { shadow: { card: "0 1px 2px rgb(0 0 0 / 0.07)" } },
+    },
+    dark: {
+        media: "(prefers-color-scheme: dark)",
+        selector: ':root[data-color-scheme="dark"]',
+        tokens: { shadow: { card: "0 1px 2px rgb(0 0 0 / 0.4)" } },
+    },
+},
+```
+
+`:root[data-color-scheme="dark"]` and `:root[data-color-scheme="light"]` have greater specificity than `:root` in a media block. An explicit choice wins over the operating-system preference. Set both the attribute and `color-scheme` when a toggle controls values from `modes` and `lightDark()`:
+
+```ts
+type ColorScheme = "light" | "dark";
+
+function setColorScheme(scheme: ColorScheme | undefined) {
+    let root = document.documentElement;
+
+    if (scheme === undefined) {
+        root.removeAttribute("data-color-scheme");
+        root.style.removeProperty("color-scheme");
+        return;
+    }
+
+    root.setAttribute("data-color-scheme", scheme);
+    root.style.colorScheme = scheme;
+}
+```
+
+Call `setColorScheme(undefined)` to return control to the operating-system preference.
 
 ## Variants with tva
 
@@ -131,7 +268,7 @@ import { tva } from "@pitlane/theme";
 import { t } from "./theme.ts";
 
 export let button = tva({
-    base: { padding: [t.space.sm, t.space.md] },
+    base: { padding: [t.spacing(2), t.spacing(4)] },
     variants: {
         intent: {
             primary: { backgroundColor: t.color.gray[900], color: t.color.white },
@@ -248,8 +385,7 @@ function SaveButton(handle: Handle<{ intent?: ButtonProps["intent"] }>) {
 }
 ```
 
-Every variant prop is optional. To require one, wrap the component and
-re-declare that prop as required:
+Every variant prop is optional. To require one, wrap the component and re-declare that prop as required:
 
 ```ts
 import type { TVAProps } from "@pitlane/theme";
@@ -266,33 +402,35 @@ The [reference](/package/theme/) documents every export, the property-by-propert
 
 ## A complete component
 
-Everything above, in three files:
+These three files define a theme, a typed button variant, and a component that installs the theme near the document root:
 
 ```ts
 // app/theme.ts
-import { createTheme } from "@pitlane/theme";
+import { createTheme, lightDark } from "@pitlane/theme";
+import * as s from "@pitlane/theme/schema";
 
 export let {
     token: t,
     raw,
     Theme,
-} = createTheme(
-    {
+} = createTheme({
+    schema: {
+        color: s.color(),
+        spacing: s.scale(),
+        radius: s.dimension(),
+        text: s.group(s.dimension(), { leading: s.number() }),
+    },
+    tokens: {
         color: {
-            $type: "color",
-            white: { $value: "#fff" },
-            gray: { 50: { $value: "#fafafa" }, 900: { $value: "#171717" } },
-            bg: { $value: "{color.white}" },
+            white: "#fff",
+            gray: { 50: "#fafafa", 900: "#171717" },
+            page: lightDark("#fff", "#171717"),
         },
-        space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
-        radius: { $type: "dimension", full: { $value: "999px" } },
+        spacing: "0.25rem",
+        radius: { full: "999px" },
+        text: { sm: "0.875rem", lg: "1.125rem", leading: { sm: 1.5 } },
     },
-    {
-        modes: {
-            dark: { color: { bg: { $value: "{color.gray.900}" } } },
-        },
-    },
-);
+});
 ```
 
 ```ts
@@ -303,7 +441,7 @@ import type { TVAProps } from "@pitlane/theme";
 import { t } from "../theme.ts";
 
 export let button = tva({
-    base: { padding: [t.space.sm, t.space.md], borderRadius: t.radius.full },
+    base: { padding: [t.spacing(2), t.spacing(4)], borderRadius: t.radius.full },
     variants: {
         intent: {
             primary: { backgroundColor: t.color.gray[900], color: t.color.white },
@@ -348,7 +486,7 @@ function App() {
 
 ## Explore the demo
 
-The [theme demo](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) in this repository is a runnable version of this guide. It covers the full token document with semantic aliases and dark mode, plus a composed tva button, `raw()` swatch labels, and `cx()` interop. Clone the repo, build the package, and run it:
+The [theme demo](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) is a Remix application for inspecting rendered token styles and component variants. Build the package, then start the demo from its directory:
 
 ```sh
 vp install

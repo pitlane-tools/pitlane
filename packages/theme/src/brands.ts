@@ -81,6 +81,16 @@ export interface BrandByType {
     strokeStyle: StrokeStyleToken;
 }
 
+declare const UNTYPED: unique symbol;
+
+/**
+ * Compile-time brand for a token declared with `s.any()`. It carries
+ * no CSS type, so the open-grammar properties (`animation`,
+ * `aspectRatio`, `background`) accept it and the token-mapped
+ * longhands reject it.
+ */
+export type UntypedToken = string & { readonly [UNTYPED]: true };
+
 /**
  * The union of all twelve token brands. Brands are compile-time tags
  * naming each token's type; they let {@link css} reject a dimension

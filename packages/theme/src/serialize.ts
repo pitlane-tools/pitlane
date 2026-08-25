@@ -1,6 +1,6 @@
 import type { TokenType } from "./brands.ts";
 
-import { aliasTarget, ThemeError } from "./tokens.ts";
+import { referenceTarget, ThemeError } from "./tokens.ts";
 
 export interface SerializeContext {
     varRefFor(key: string, from: string, expected: TokenType): string;
@@ -93,8 +93,8 @@ export function serializeValue(
 }
 
 function field(type: TokenType, value: unknown, ctx: SerializeContext, key: string): string {
-    let alias = aliasTarget(value);
-    if (alias !== null) return ctx.varRefFor(alias, key, type);
+    let target = referenceTarget(value);
+    if (target !== null) return ctx.varRefFor(target, key, type);
     return serializeValue(type, value, ctx, key);
 }
 
@@ -116,9 +116,9 @@ function serializeColor(value: unknown, key: string): string {
         throw invalid(key, "color", value);
     }
     let parts = components.map(component =>
-        component === "none" ? "none" : serializeNumber(component, key),
+        component === "none" ? "none" : serializeComponent(component, key),
     );
-    let alphaPart = alpha === undefined ? "" : ` / ${serializeNumber(alpha, key)}`;
+    let alphaPart = alpha === undefined ? "" : ` / ${serializeComponent(alpha, key)}`;
     let fn = COLOR_FUNCTIONS[colorSpace];
     if (fn) {
         let printed = parts.map((part, index) =>
@@ -130,6 +130,13 @@ function serializeColor(value: unknown, key: string): string {
         return `color(${colorSpace} ${parts.join(" ")}${alphaPart})`;
     }
     throw new ThemeError(`"${key}" has unknown colorSpace "${colorSpace}"`);
+}
+
+function serializeComponent(value: unknown, key: string): string {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        throw invalid(key, "color component", value);
+    }
+    return String(value);
 }
 
 function serializeMeasure(value: unknown, units: readonly string[], key: string): string {
@@ -144,6 +151,9 @@ function serializeMeasure(value: unknown, units: readonly string[], key: string)
 }
 
 function serializeFontFamily(value: unknown, key: string): string {
+    // A string is already a font stack, quoting included. The array form is the
+    // structured one: it joins with commas and quotes each name that needs it.
+    if (typeof value === "string") return value;
     let names = Array.isArray(value) ? value : [value];
     if (names.length === 0) throw invalid(key, "fontFamily", value);
     return names
@@ -168,6 +178,9 @@ function serializeFontWeight(value: unknown, key: string): string {
 }
 
 function serializeNumber(value: unknown, key: string): string {
+    // A unitless CSS value may be computed: Tailwind writes line heights as
+    // `calc(1.25 / 0.875)` to keep the ratio exact.
+    if (typeof value === "string") return value;
     if (typeof value !== "number" || !Number.isFinite(value)) {
         throw invalid(key, "number", value);
     }
@@ -175,11 +188,14 @@ function serializeNumber(value: unknown, key: string): string {
 }
 
 function serializeCubicBezier(value: unknown, key: string): string {
+    // CSS text passes through; the object forms below are the DTCG import path.
+    if (typeof value === "string") return value;
     if (!Array.isArray(value) || value.length !== 4) throw invalid(key, "cubicBezier", value);
-    return `cubic-bezier(${value.map(part => serializeNumber(part, key)).join(", ")})`;
+    return `cubic-bezier(${value.map(part => serializeComponent(part, key)).join(", ")})`;
 }
 
 function serializeShadow(value: unknown, ctx: SerializeContext, key: string): string {
+    if (typeof value === "string") return value;
     let shadows = Array.isArray(value) ? value : [value];
     return shadows
         .map(shadow => {
@@ -201,12 +217,14 @@ function serializeShadow(value: unknown, ctx: SerializeContext, key: string): st
 }
 
 function serializeBorder(value: unknown, ctx: SerializeContext, key: string): string {
+    if (typeof value === "string") return value;
     if (typeof value !== "object" || value === null) throw invalid(key, "border", value);
     let { color, width, style } = value as Record<string, unknown>;
     return `${field("dimension", width, ctx, key)} ${field("strokeStyle", style, ctx, key)} ${field("color", color, ctx, key)}`;
 }
 
 function serializeTransition(value: unknown, ctx: SerializeContext, key: string): string {
+    if (typeof value === "string") return value;
     if (typeof value !== "object" || value === null) throw invalid(key, "transition", value);
     let { duration, timingFunction, delay } = value as Record<string, unknown>;
     let delayPart = delay === undefined ? "0s" : field("duration", delay, ctx, key);
@@ -214,13 +232,15 @@ function serializeTransition(value: unknown, ctx: SerializeContext, key: string)
 }
 
 function serializeGradient(value: unknown, ctx: SerializeContext, key: string): string {
+    if (typeof value === "string") return value;
     if (!Array.isArray(value)) throw invalid(key, "gradient", value);
     return value
         .map(stop => {
             if (typeof stop !== "object" || stop === null) throw invalid(key, "gradient", value);
             let { color, position } = stop as Record<string, unknown>;
-            if (typeof position !== "number")
+            if (typeof position !== "number") {
                 throw invalid(key, "gradient stop position", position);
+            }
             // Trim float noise from the 0–1 → % conversion (0.07 → "7%").
             return `${field("color", color, ctx, key)} ${Number((position * 100).toFixed(4))}%`;
         })
