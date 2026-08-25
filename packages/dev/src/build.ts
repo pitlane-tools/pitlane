@@ -4,9 +4,14 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as url from "node:url";
 
+import type { PrerenderOption } from "./prerender.ts";
+
+import { prerender } from "./prerender.ts";
+
 export interface BuildPluginOptions {
     clientEntry: string | false;
     serverEntry: string;
+    prerender: PrerenderOption | undefined;
 }
 
 /**
@@ -238,7 +243,7 @@ function ensureAssetsManifest(): void {
  * client: the client build resolves `?assets=ssr` against the SSR manifest,
  * so the order is load-bearing.
  */
-export function build({ clientEntry, serverEntry }: BuildPluginOptions): Plugin {
+export function build({ clientEntry, serverEntry, prerender: paths }: BuildPluginOptions): Plugin {
     let hasClientEntry = clientEntry !== false;
 
     return {
@@ -267,6 +272,21 @@ export function build({ clientEntry, serverEntry }: BuildPluginOptions): Plugin 
             // And when the upstream write never lands at all, synthesize the
             // manifest from our own bundle captures.
             ensureAssetsManifest();
+
+            // Last: the server entry only resolves real client asset URLs once
+            // both builds and the manifest are on disk.
+            if (paths !== undefined) {
+                let { written, redirected } = await prerender(builder, paths, serverEntry);
+                for (let file of written) this.info(`prerendered ${file}`);
+
+                // Silence here would read as a path that prerendered fine, and
+                // the file it should have produced is the one nobody finds
+                // missing until the host 404s on it.
+                for (let { pathname, location } of redirected) {
+                    let target = location ?? "an unnamed location";
+                    this.info(`skipped ${pathname} (redirects to ${target})`);
+                }
+            }
         },
         config(userConfig) {
             // Never clobber inputs the user configured themselves (plugin

@@ -1,0 +1,51 @@
+{
+    "name": "@pitlane/crawler",
+    "version": "0.1.0",
+    "description": "crawl() — spider a Remix 3 fetch router in memory to prerender it, plus static-path discovery from a route map.",
+    "keywords": [
+        "crawl",
+        "fetch-router",
+        "pitlane",
+        "prerender",
+        "remix",
+        "ssg"
+    ],
+    "homepage": "https://pitlane.tools/package/crawler/",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/crawler"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "remix": "3.0.0-beta.10",
+        "typescript": "^7.0.2",
+        "vite-plus": "^0.2.6"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0-beta.10"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
+}

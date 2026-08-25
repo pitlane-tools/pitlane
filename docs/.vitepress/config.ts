@@ -27,6 +27,8 @@ let guides: DefaultTheme.SidebarItem[] = [
         items: [
             { text: "Styling", link: "/guides/styling" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+            { text: "Prerendering", link: "/guides/prerendering" },
+            { text: "Crawling", link: "/guides/crawler" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
         ],
     },
@@ -109,6 +111,7 @@ let config = defineConfig({
                     {
                         text: "Packages",
                         items: [
+                            { text: "@pitlane/crawler", link: "/package/crawler/index" },
                             {
                                 text: "@pitlane/data-table-d1",
                                 link: "/package/data-table-d1/index",
@@ -139,6 +142,7 @@ let config = defineConfig({
         ],
         sidebar: {
             "/package/": [
+                { text: "@pitlane/crawler", link: "/package/crawler/" },
                 { text: "@pitlane/data-table-d1", link: "/package/data-table-d1/" },
                 {
                     text: "@pitlane/data-table-d1/migrations",
