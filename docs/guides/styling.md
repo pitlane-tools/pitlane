@@ -113,9 +113,9 @@ Declare `s.any()` for CSS values without a token type, such as `animation` value
 
 ### Reference and derive tokens
 
-Within one layer, a value that is exactly `"{color.white}"` becomes a reference to `color.white`. The emitted declaration keeps the `var()` indirection, so later overrides cascade through the reference.
+A reference to another token is a property access on the layer below. There is no string syntax for one, so every reference is checked by the compiler and renaming a token breaks its references at build time rather than in the stylesheet.
 
-`extend` deep-merges a patch with its base. In its callback form, use accessor property access to reference a token from the preceding layer:
+`extend` deep-merges a patch with its base. Its callback receives the accessor of the preceding layer:
 
 ```ts
 let baseTheme = createTheme({
@@ -128,6 +128,21 @@ let applicationTheme = baseTheme.extend(base => ({
     tokens: { surface: { page: base.color.white } },
 }));
 ```
+
+`applicationTheme` emits `--surface-page: var(--color-white)`, so the declaration keeps its indirection and a later override of `color.white` reaches it.
+
+References work across layers, so a semantic tier is a separate `extend` from the primitives it names. That is the shape a design system already has.
+
+A composite is authored as CSS text, so a reference goes inside the shorthand by interpolating the accessor leaf:
+
+```ts
+let shadows = baseTheme.extend(base => ({
+    schema: { shadow: s.shadow() },
+    tokens: { shadow: { card: `0 1px 2px ${base.color.white}` } },
+}));
+```
+
+That emits `--shadow-card: 0 1px 2px var(--color-white);`, so a mode override of `color.white` reaches the shadow.
 
 `select` replaces a theme with a projection. It retains selected tokens, and its output paths decide the resulting custom-property names, so a projection can reshape and rename a tree:
 
@@ -165,7 +180,7 @@ export let {
 }));
 ```
 
-Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise `ThemeError`, including unknown references, reference cycles, CSS variable collisions, an undeclared token, and a mode that overrides an unknown token.
+Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise `ThemeError`, including a reference whose type does not match its position, a reference to an untyped token, a projection that drops a token something it kept refers to, a CSS variable collision, an undeclared token, and a mode that overrides an unknown token.
 
 ## Install the tokens
 
@@ -185,17 +200,6 @@ function App() {
     );
 }
 ```
-
-Because a composite is authored as CSS text, one token points at another by putting the reference inside the shorthand. A reference works anywhere in a value, not only as the whole value:
-
-```ts
-tokens: {
-    color: { line: "rgb(0 0 0 / 0.12)" },
-    shadow: { card: "0 1px 2px {color.line}" },
-},
-```
-
-That emits `--shadow-card: 0 1px 2px var(--color-line);`, so a mode override of `color.line` reaches the shadow. A reference naming a token that does not exist raises `ThemeError` instead of reaching the stylesheet.
 
 ## Use tokens in styles
 

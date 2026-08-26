@@ -83,43 +83,33 @@ export interface UntypedEntry {
  */
 export type Entry = ScaleEntry | TypedEntry | UntypedEntry;
 
-const REFERENCE_RE = /^\{([^{}]+)\}$/;
 const VAR_RE = /^var\((--[a-z0-9-]+)\)$/;
-const EMBEDDED_REFERENCE_RE = /\{([^{}]+)\}/g;
+const EMBEDDED_VAR_RE = /var\((--[a-z0-9-]+)\)/g;
 
 /**
- * Extracts the target key from a `"{path.to.token}"` reference, or
- * `null` when the value is not a reference.
+ * The token a whole-value `var()` reference names, or `null` when the value is
+ * not one. A reference is written as a property access on the layer below, and
+ * an accessor leaf is a `var()` string, so this is what a reference looks like
+ * by the time the compiler sees it.
  *
  * @internal
  */
 export function referenceTarget(value: unknown): string | null {
     if (typeof value !== "string") return null;
-    let match = REFERENCE_RE.exec(value);
+    let match = VAR_RE.exec(value);
     return match ? match[1]! : null;
 }
 
 /**
- * Rewrites every `{path.to.token}` inside a larger value to its `var()`
- * reference. A composite is authored as CSS text, so this is what lets a
- * shadow or a transition point at another token the way DTCG's sub-value
- * aliases did. Braces are not valid anywhere in a CSS value, so a `{…}` that
- * names nothing is a mistake rather than something to pass through.
+ * Every `var()` a value mentions, including inside a larger string. A composite
+ * is authored as CSS text, so a reference interpolated into a shadow or a
+ * transition shows up here rather than as the whole value.
  *
  * @internal
  */
-export function resolveEmbeddedReferences(
-    value: string,
-    key: string,
-    varNameFor: (target: string) => string | undefined,
-): string {
-    return value.replace(EMBEDDED_REFERENCE_RE, (_, target: string) => {
-        let varName = varNameFor(target);
-        if (varName === undefined) {
-            throw new ThemeError(`"${key}" references unknown token "${target}"`);
-        }
-        return `var(${varName})`;
-    });
+export function mentionedVarNames(value: unknown): string[] {
+    if (typeof value !== "string" || !value.includes("var(")) return [];
+    return [...value.matchAll(EMBEDDED_VAR_RE)].map(match => match[1]!);
 }
 
 /**
@@ -157,11 +147,9 @@ export function collectTokens(tokens: Tokens, schema: SchemaNode): Entry[] {
 }
 
 /**
- * A reference written as an accessor property access arrives as the string
- * `var(--color-white)` rather than `{color.white}`, because that is what the
- * accessor leaf is. The two spellings are meant to be interchangeable, so a
- * second pass turns an in-theme `var()` value into a reference like any other.
- * That makes it type-checked, resolvable by `raw`, and visible to `select`.
+ * Links a whole-value `var()` to the token it names, so it is type-checked,
+ * resolvable by `raw`, and visible to `select`. The link is a second pass
+ * because a layer may reference a token declared after it.
  *
  * A `var()` naming something this theme does not declare is left alone: it may
  * be a custom property the application defines elsewhere.
@@ -171,9 +159,9 @@ function linkVarReferences(entries: Entry[]): void {
     for (let entry of entries) {
         if (entry.kind !== "typed" || entry.aliasOf !== undefined) continue;
         if (typeof entry.value !== "string") continue;
-        let match = VAR_RE.exec(entry.value);
-        if (match === null) continue;
-        let target = byVarName.get(match[1]!);
+        let varName = referenceTarget(entry.value);
+        if (varName === null) continue;
+        let target = byVarName.get(varName);
         if (target !== undefined) entry.aliasOf = target.key;
     }
 }
@@ -220,14 +208,9 @@ function walk(
         } else if (tag === "scale") {
             out.push({ kind: "scale", ...common, value });
         } else {
-            let target = referenceTarget(value);
-            out.push({
-                kind: "typed",
-                ...common,
-                type: tag,
-                value,
-                ...(target === null ? {} : { aliasOf: target }),
-            });
+            // `aliasOf` is filled in by linkVarReferences, which runs once the
+            // whole tree is known.
+            out.push({ kind: "typed", ...common, type: tag, value });
         }
     }
 }

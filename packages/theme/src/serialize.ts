@@ -1,6 +1,6 @@
 import type { TokenType } from "./brands.ts";
 
-import { referenceTarget, ThemeError } from "./tokens.ts";
+import { ThemeError } from "./tokens.ts";
 
 export interface SerializeContext {
     varRefFor(key: string, from: string, expected: TokenType): string;
@@ -93,8 +93,6 @@ export function serializeValue(
 }
 
 function field(type: TokenType, value: unknown, ctx: SerializeContext, key: string): string {
-    let target = referenceTarget(value);
-    if (target !== null) return ctx.varRefFor(target, key, type);
     return serializeValue(type, value, ctx, key);
 }
 

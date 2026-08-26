@@ -102,12 +102,12 @@ export let {
             selector: ':root[data-color-scheme="dark"]',
             tokens: {
                 color: {
-                    surface: "{color.gray.950}",
-                    panel: "{color.gray.900}",
-                    text: "{color.gray.50}",
-                    border: "{color.gray.700}",
-                    accent: "{color.blue.500}",
-                    accentHover: "{color.blue.400}",
+                    surface: base.color.gray[950],
+                    panel: base.color.gray[900],
+                    text: base.color.gray[50],
+                    border: base.color.gray[700],
+                    accent: base.color.blue[500],
+                    accentHover: base.color.blue[400],
                 },
             },
         },

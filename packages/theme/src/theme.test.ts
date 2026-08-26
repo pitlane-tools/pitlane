@@ -8,33 +8,38 @@ import * as s from "./schema.ts";
 import { createTheme } from "./theme.ts";
 import { ThemeError } from "./tokens.ts";
 
-let base = {
+let primitives = {
     schema: {
         color: s.color(),
         space: s.dimension(),
-        motion: { fast: s.duration(), ease: s.easing(), press: s.transition() },
+        motion: { fast: s.duration(), ease: s.easing() },
         shadow: s.shadow(),
     },
     tokens: {
-        color: {
-            white: "#fff",
-            gray: { 50: "#fafafa", 900: "#171717" },
-            surface: "{color.white}",
-            text: "{color.gray.900}",
-        },
+        color: { white: "#fff", gray: { 50: "#fafafa", 900: "#171717" } },
         space: { sm: "8px", md: "16px" },
-        motion: {
-            fast: "150ms",
-            ease: [0.25, 0.1, 0.25, 1],
-            press: "var(--motion-fast) cubic-bezier(0.25, 0.1, 0.25, 1) 0s",
-        },
+        motion: { fast: "150ms", ease: [0.25, 0.1, 0.25, 1] },
         shadow: { card: "0 1px 2px rgb(0 0 0 / 0.07)" },
     },
 } as const;
 
+/**
+ * A reference is a property access on the layer below, which is the only
+ * reference form: there is no string syntax for one.
+ */
+function themed() {
+    return createTheme(primitives).extend(base => ({
+        schema: { color: s.color(), motion: { press: s.transition() } },
+        tokens: {
+            color: { surface: base.color.white, text: base.color.gray[900] },
+            motion: { press: `${base.motion.fast} cubic-bezier(0.25, 0.1, 0.25, 1) 0s` },
+        },
+    }));
+}
+
 describe("token accessor", () => {
     it("mirrors the token tree with var() references", () => {
-        let { token } = createTheme(base);
+        let { token } = themed();
         expect(token.color.white).toBe("var(--color-white)");
         expect(token.color.gray[900]).toBe("var(--color-gray-900)");
         expect(token.space.md).toBe("var(--space-md)");
@@ -51,7 +56,7 @@ describe("token accessor", () => {
     });
 
     it("builds a null-prototype accessor, so no token name is inherited", () => {
-        let { token } = createTheme(base);
+        let { token } = themed();
         expect(Object.getPrototypeOf(token)).toBe(null);
         expect(Object.getPrototypeOf(token.color)).toBe(null);
         expect((token as Record<string, unknown>).toString).toBeUndefined();
@@ -76,7 +81,7 @@ describe("token accessor", () => {
 
 describe("emitted CSS", () => {
     it("declares every token in document order", () => {
-        expect(createTheme(base).cssText).toBe(
+        expect(themed().cssText).toBe(
             ":root {\n" +
                 "    --color-white: #fff;\n" +
                 "    --color-gray-50: #fafafa;\n" +
@@ -94,7 +99,7 @@ describe("emitted CSS", () => {
     });
 
     it("keeps a reference as a var() indirection so overrides cascade", () => {
-        expect(createTheme(base).cssText).toContain("--color-surface: var(--color-white);");
+        expect(themed().cssText).toContain("--color-surface: var(--color-white);");
     });
 
     it("passes a light-dark() color through as one value", () => {
@@ -217,17 +222,21 @@ describe("s.any", () => {
     });
 
     it("cannot be the target of a typed reference", () => {
+        let untyped = createTheme({
+            schema: { animate: s.any() },
+            tokens: { animate: { spin: "spin 1s" } },
+        });
         expect(() =>
-            createTheme({
-                schema: { animate: s.any(), color: s.color() },
-                tokens: { animate: { spin: "spin 1s" }, color: { x: "{animate.spin}" } },
-            }),
+            untyped.extend(base => ({
+                schema: { color: s.color() },
+                tokens: { color: { x: base.animate.spin as never } },
+            })),
         ).toThrow(/references untyped token "animate.spin"/);
     });
 });
 
 describe("raw", () => {
-    let theme = createTheme(base);
+    let theme = themed();
 
     it("returns a concrete value", () => {
         expect(theme.raw(theme.token.color.white)).toBe("#fff");
@@ -258,7 +267,7 @@ describe("raw", () => {
 });
 
 describe("extend", () => {
-    let theme = createTheme(base);
+    let theme = themed();
 
     it("adds tokens to an existing namespace without a new schema entry", () => {
         let next = theme.extend({ tokens: { color: { black: "#000" } } });
@@ -299,7 +308,7 @@ describe("extend", () => {
 });
 
 describe("select", () => {
-    let theme = createTheme(base);
+    let theme = themed();
 
     it("replaces the base and re-roots references to their own values", () => {
         let narrowed = theme.select(t => ({
@@ -336,7 +345,7 @@ describe("select", () => {
                 schema: { color: s.color() },
                 tokens: { color: { surface: t.color.surface } },
             })),
-        ).toThrow(/references unknown token "color.white"/);
+        ).toThrow(/references "color.white", which the projection dropped/);
     });
 
     it("composes with extend", () => {
@@ -355,11 +364,13 @@ describe("select", () => {
 });
 
 describe("modes", () => {
+    // A mode override that references another token goes in an extend layer,
+    // because a reference is a property access on the layer below.
     it("emits a media block per mode", () => {
-        let theme = createTheme({
-            ...base,
-            modes: { dark: { tokens: { color: { surface: "{color.gray.900}" } } } },
-        });
+        let theme = themed().extend(base => ({
+            tokens: {},
+            modes: { dark: { tokens: { color: { surface: base.color.gray[900] } } } },
+        }));
         expect(theme.cssText).toContain(
             "@media (prefers-color-scheme: dark) {\n" +
                 "    :root {\n" +
@@ -370,15 +381,15 @@ describe("modes", () => {
     });
 
     it("emits both blocks when a mode declares a selector too", () => {
-        let theme = createTheme({
-            ...base,
+        let theme = themed().extend(base => ({
+            tokens: {},
             modes: {
                 dark: {
                     selector: ':root[data-color-scheme="dark"]',
-                    tokens: { color: { surface: "{color.gray.900}" } },
+                    tokens: { color: { surface: base.color.gray[900] } },
                 },
             },
-        });
+        }));
         expect(theme.cssText).toContain(
             ':root[data-color-scheme="dark"] {\n    --color-surface: var(--color-gray-900);\n}',
         );
@@ -386,29 +397,34 @@ describe("modes", () => {
     });
 
     it("takes a custom media query for a mode with a name of its own", () => {
-        let theme = createTheme({
-            ...base,
+        let theme = themed().extend(base => ({
+            tokens: {},
             modes: {
-                print: { media: "print", tokens: { color: { surface: "{color.white}" } } },
+                print: { media: "print", tokens: { color: { surface: base.color.white } } },
             },
-        });
+        }));
         expect(theme.cssText).toContain("@media print {");
     });
 
+    it("takes a plain value, with no reference involved", () => {
+        let theme = themed().extend({
+            tokens: {},
+            modes: { dark: { tokens: { shadow: { card: "0 1px 2px rgb(0 0 0 / 0.4)" } } } },
+        });
+        expect(theme.cssText).toContain("--shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);");
+    });
+
     it("throws for an override of a token that does not exist", () => {
-        // The type system rejects this too; the runtime check is what catches
-        // a mode tree that arrived as JSON.
         expect(() =>
-            createTheme({
-                ...base,
-                // @ts-expect-error color.nope is not a token
+            themed().extend({
+                tokens: {},
                 modes: { dark: { tokens: { color: { nope: "#000" } } } },
-            }),
+            } as never),
         ).toThrow(/Mode "dark" overrides unknown token "color.nope"/);
     });
 
     it("emits no block for a mode that overrides nothing", () => {
-        let theme = createTheme({ ...base, modes: { dark: { tokens: {} } } });
+        let theme = themed().extend({ tokens: {}, modes: { dark: { tokens: {} } } });
         expect(theme.cssText).not.toContain("@media");
     });
 });
@@ -446,27 +462,27 @@ describe("validation", () => {
         expect((error as ValidationError).issues[0]!.message).toContain("has no schema entry");
     });
 
-    it("throws for an unknown reference", () => {
-        expect(() =>
-            createTheme({ schema: { color: s.color() }, tokens: { color: { x: "{color.nope}" } } }),
-        ).toThrow(/references unknown token "color.nope"/);
+    it("leaves a var() this theme does not declare as an ordinary value", () => {
+        // Not every var() is a reference: an application may define its own
+        // custom properties elsewhere.
+        let theme = createTheme({
+            schema: { color: s.color() },
+            tokens: { color: { host: "var(--host-brand)" } },
+        });
+        expect(theme.cssText).toContain("--color-host: var(--host-brand);");
     });
 
     it("throws when a reference has the wrong type", () => {
-        expect(() =>
-            createTheme({
-                schema: { color: s.color(), space: s.dimension() },
-                tokens: { color: { x: "{space.md}" }, space: { md: "1rem" } },
-            }),
-        ).toThrow(/of type "dimension" where "color" is required/);
-    });
-
-    it("throws for a reference cycle when resolving raw", () => {
-        let theme = createTheme({
-            schema: { color: s.color() },
-            tokens: { color: { a: "{color.b}", b: "{color.a}" } },
+        let dimensions = createTheme({
+            schema: { space: s.dimension() },
+            tokens: { space: { md: "1rem" } },
         });
-        expect(() => theme.raw(theme.token.color.a)).toThrow(/Reference cycle/);
+        expect(() =>
+            dimensions.extend(base => ({
+                schema: { color: s.color() },
+                tokens: { color: { x: base.space.md as never } },
+            })),
+        ).toThrow(/of type "dimension" where "color" is required/);
     });
 
     it("throws when two paths produce the same variable", () => {
@@ -487,14 +503,14 @@ describe("validation", () => {
 
 describe("the Theme component", () => {
     it("renders a style element with the compiled properties", async () => {
-        let { Theme } = createTheme(base);
+        let { Theme } = themed();
         let html = await renderToString(createElement(Theme, {}));
         expect(html).toContain("data-pitlane-theme");
         expect(html).toContain("--color-white: #fff;");
     });
 
     it("passes a nonce through", async () => {
-        let { Theme } = createTheme(base);
+        let { Theme } = themed();
         expect(await renderToString(createElement(Theme, { nonce: "abc123" }))).toContain(
             'nonce="abc123"',
         );
@@ -510,12 +526,12 @@ describe("the Theme component", () => {
     });
 
     it("carries the init it was compiled from, so a theme is re-derivable", () => {
-        let theme = createTheme(base);
+        let theme = themed();
         expect(createTheme(theme.Theme).cssText).toBe(theme.cssText);
     });
 
     it("re-derives a chain from a published theme", () => {
-        let theme = createTheme(base);
+        let theme = themed();
         let next = createTheme(theme.Theme).extend({
             schema: { ink: s.color() },
             tokens: { ink: { body: "#111" } },
@@ -594,7 +610,7 @@ describe("color-scheme", () => {
     });
 
     it("stays out of the way when no token uses it", () => {
-        expect(createTheme(base).cssText).not.toContain("color-scheme");
+        expect(themed().cssText).not.toContain("color-scheme");
     });
 
     it("sees light-dark() written by hand too", () => {
@@ -607,54 +623,45 @@ describe("color-scheme", () => {
 });
 
 describe("a reference inside composite CSS text", () => {
-    it("resolves to a var() so the cascade still reaches it", () => {
-        let theme = createTheme({
-            schema: {
-                color: s.color(),
-                shadow: s.shadow(),
-                motion: s.group(s.duration(), { press: s.transition() }),
-            },
+    let primitive = createTheme({
+        schema: { color: s.color(), motion: s.duration() },
+        tokens: { color: { highlight: "rgb(255 255 255 / 0.7)" }, motion: { fast: "150ms" } },
+    });
+
+    it("keeps the var() indirection so the cascade still reaches it", () => {
+        // A composite is CSS text, so a reference goes in by interpolating the
+        // accessor leaf, which is already a var() string.
+        let theme = primitive.extend(base => ({
+            schema: { shadow: s.shadow(), press: s.transition() },
             tokens: {
-                color: { highlight: "rgb(255 255 255 / 0.7)" },
-                shadow: { inset: "inset 0 1px 0 0 {color.highlight}" },
-                motion: { fast: "150ms", press: "{motion.fast} ease 0s" },
+                shadow: { inset: `inset 0 1px 0 0 ${base.color.highlight}` },
+                press: `${base.motion.fast} ease 0s`,
             },
-        });
+        }));
         expect(theme.cssText).toContain("--shadow-inset: inset 0 1px 0 0 var(--color-highlight);");
-        expect(theme.cssText).toContain("--motion-press: var(--motion-fast) ease 0s;");
+        expect(theme.cssText).toContain("--press: var(--motion-fast) ease 0s;");
     });
 
     it("still cascades a mode override of the referenced token", () => {
-        let theme = createTheme({
-            schema: { color: s.color(), shadow: s.shadow() },
-            tokens: {
-                color: { highlight: "rgb(255 255 255 / 0.7)" },
-                shadow: { inset: "inset 0 1px 0 0 {color.highlight}" },
-            },
+        let theme = primitive.extend(base => ({
+            schema: { shadow: s.shadow() },
+            tokens: { shadow: { inset: `inset 0 1px 0 0 ${base.color.highlight}` } },
             modes: { dark: { tokens: { color: { highlight: "rgb(0 0 0 / 0.4)" } } } },
-        });
+        }));
         expect(theme.cssText).toContain("--shadow-inset: inset 0 1px 0 0 var(--color-highlight);");
         expect(theme.cssText).toContain("--color-highlight: rgb(0 0 0 / 0.4);");
     });
 
-    it("refuses one that names nothing rather than emitting invalid CSS", () => {
+    it("is seen by select, so dropping the target fails loudly", () => {
+        let theme = primitive.extend(base => ({
+            schema: { shadow: s.shadow() },
+            tokens: { shadow: { inset: `inset 0 1px 0 0 ${base.color.highlight}` } },
+        }));
         expect(() =>
-            createTheme({
+            theme.select(base => ({
                 schema: { shadow: s.shadow() },
-                tokens: { shadow: { inset: "inset 0 1px 0 0 {color.nope}" } },
-            }),
-        ).toThrow(/"shadow.inset" references unknown token "color.nope"/);
-    });
-
-    it("resolves one inside a mode override too", () => {
-        let theme = createTheme({
-            schema: { color: s.color(), shadow: s.shadow() },
-            tokens: {
-                color: { a: "#fff", b: "#000" },
-                shadow: { card: "0 1px 0 {color.a}" },
-            },
-            modes: { dark: { tokens: { shadow: { card: "0 1px 0 {color.b}" } } } },
-        });
-        expect(theme.cssText).toContain("--shadow-card: 0 1px 0 var(--color-b);");
+                tokens: { shadow: { inset: base.shadow.inset } },
+            })),
+        ).toThrow(/references "color.highlight", which the projection dropped/);
     });
 });

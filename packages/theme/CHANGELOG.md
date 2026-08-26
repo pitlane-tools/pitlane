@@ -31,12 +31,37 @@ What changes in a hand-written theme:
 | `$value: [0.25, 0.1, 0.25, 1]` on `cubicBezier`    | the same tuple, under `s.easing()`       |
 | A shadow's `color: "{color.line}"` sub-value       | the reference inside the shorthand text  |
 | `modes: { dark: { … { $value } } }`                | `modes: { dark: { tokens: { … } } }`     |
+| `"{color.white}"`                                  | `base.color.white` in an `extend` layer  |
 
-`{color.white}` references, the accessor shape, `raw`, `<Theme />`, `css`,
-`tva`, `combine`, and `cx` are all unchanged. A DTCG sub-value alias, such as a
-shadow whose `color` field was `{color.line}`, becomes a reference inside the
-shorthand text: `"0 1px 2px {color.line}"`. That resolves to a `var()` like any
-other reference, so a mode override of the target still reaches it.
+The accessor shape, `raw`, `<Theme />`, `css`, `tva`, `combine`, and `cx` are
+all unchanged.
+
+References need the most attention. The `"{color.white}"` string syntax is gone,
+and a reference is a property access on the layer below:
+
+```ts
+createTheme({ schema: { color: s.color() }, tokens: { color: { white: "#fff" } } }).extend(
+    base => ({
+        schema: { surface: s.color() },
+        tokens: { surface: { page: base.color.white } },
+    }),
+);
+```
+
+The emitted CSS is the same, `--surface-page: var(--color-white)`, so overrides
+still cascade. What changes is that the reference is now checked: its type has
+to match its position, and renaming the target breaks the reference at build
+time instead of emitting a variable nothing declares.
+
+Three consequences worth planning for. A semantic tier becomes a separate
+`extend` from the primitives it names. A mode override that references another
+token goes in an `extend` layer too, since that is where an accessor is in
+scope. And a DTCG sub-value alias, such as a shadow whose `color` field was
+`{color.line}`, becomes an interpolation:
+``tokens: { shadow: { card: `0 1px 2px ${base.color.line}` } }``.
+
+`fromDTCG` converts a document's aliases for you, including the ones inside a
+composite's sub-values, so an existing document needs no hand-editing.
 
 - `createTheme({ schema, tokens, modes })` replaces
   `createTheme(document, options)`. A leaf is a string, a number, or an array;
@@ -71,10 +96,10 @@ other reference, so a mode override of the target still reaches it.
   `(prefers-color-scheme: <name>)`; `selector` emits a second block for a
   user-selectable toggle, which outranks the media block on specificity so an
   explicit choice beats the OS preference.
-- A `{path.to.token}` reference works anywhere in a value, not only as the whole
-  value, which is what carries a DTCG sub-value alias across. One that names
-  nothing raises `ThemeError` rather than reaching the stylesheet as literal
-  braces.
+- A reference is a property access, so it is type-checked wherever it appears,
+  including interpolated into a composite's CSS text. `select` refuses a
+  projection that drops a token something it kept refers to, and a reference
+  whose type does not match its position raises `ThemeError`.
 - Bad token values raise `ValidationError` from `remix/data-schema`, one issue
   per bad token with its own path, all reported in one pass. Read `issues`
   rather than `message`. `ThemeError` covers the structural failures: an

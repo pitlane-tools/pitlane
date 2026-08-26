@@ -209,3 +209,24 @@ describe("modes", () => {
         expectTypeOf(theme.token.color.page).toEqualTypeOf<ColorToken>();
     });
 });
+
+describe("references are property accesses only", () => {
+    it("carries the schema's brand at the path it is written to", () => {
+        let layered = theme.extend(base => ({
+            schema: { ink: s.color(), gap: s.dimension() },
+            tokens: { ink: { body: base.color.gray[900] }, gap: { lg: base.spacing(8) } },
+        }));
+        expectTypeOf(layered.token.ink.body).toEqualTypeOf<ColorToken>();
+        expectTypeOf(layered.token.gap.lg).toEqualTypeOf<DimensionToken>();
+    });
+
+    it("checks a mode override against the merged tree, not the patch's", () => {
+        let layered = theme.extend(base => ({
+            schema: { ink: s.color() },
+            tokens: { ink: { body: base.color.gray[900] } },
+            // `color.white` belongs to the base, not to this patch.
+            modes: { dark: { tokens: { color: { white: "#eee" } } } },
+        }));
+        expectTypeOf(layered.token.ink.body).toEqualTypeOf<ColorToken>();
+    });
+});

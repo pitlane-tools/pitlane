@@ -124,45 +124,17 @@ type NodeTag<S, Inherited> = S extends { readonly [TAG]: infer tag extends Schem
 
 type Child<S, K> = K extends keyof S ? S[K] : undefined;
 
-type MatchKey<N, S extends string> = keyof N extends infer K
-    ? K extends number | string
-        ? `${K}` extends S
-            ? K
-            : never
-        : never
-    : never;
-
-/** Follows a `{a.b.c}` reference, tracking the schema beside the tree. */
-type TagAtPath<Tok, P extends string, Sch, Inherited> = P extends `${infer Head}.${infer Rest}`
-    ? MatchKey<Tok, Head> extends infer K
-        ? [K] extends [never]
-            ? never
-            : TagAtPath<Tok[K & keyof Tok], Rest, Child<Sch, K>, NodeTag<Child<Sch, K>, Inherited>>
-        : never
-    : MatchKey<Tok, P> extends infer K
-      ? [K] extends [never]
-          ? never
-          : LeafTag<Tok[K & keyof Tok], Child<Sch, K>, Inherited, Tok, Sch>
-      : never;
-
-// The schema is authoritative, so an inherited tag settles a leaf before its
-// value is looked at. Following the reference is only needed for a leaf that
-// inherits nothing, and skipping it keeps a reference cycle from making the
-// type infinite.
-type LeafTag<V, S, Inherited, Root, RootSchema> = S extends {
-    readonly [TAG]: infer tag extends SchemaTag;
-}
+// A reference is a property access on the layer below, so its type comes from
+// the schema entry at the path it is written to, exactly like any other value.
+// Nothing has to follow a dotted path at the type level.
+type LeafTag<S, Inherited> = S extends { readonly [TAG]: infer tag extends SchemaTag }
     ? tag
-    : [Inherited] extends [never]
-      ? V extends `{${infer P}}`
-          ? TagAtPath<Root, P, RootSchema, never>
-          : Inherited
-      : Inherited;
+    : Inherited;
 
-type TreeOf<Tok, Sch, Inherited, Root, RootSchema> = {
+type TreeOf<Tok, Sch, Inherited> = {
     [K in keyof Tok]: Tok[K] extends Leaf
-        ? BrandOf<LeafTag<Tok[K], Child<Sch, K>, Inherited, Root, RootSchema>>
-        : TreeOf<Tok[K], Child<Sch, K>, NodeTag<Child<Sch, K>, Inherited>, Root, RootSchema>;
+        ? BrandOf<LeafTag<Child<Sch, K>, Inherited>>
+        : TreeOf<Tok[K], Child<Sch, K>, NodeTag<Child<Sch, K>, Inherited>>;
 };
 
 /**
@@ -179,7 +151,7 @@ type TreeOf<Tok, Sch, Inherited, Root, RootSchema> = {
 export type TokenTree<T> = 0 extends 1 & T
     ? unknown
     : T extends { schema: infer Sch; tokens: infer Tok }
-      ? TreeOf<Tok, Sch, never, Tok, Sch>
+      ? TreeOf<Tok, Sch, never>
       : unknown;
 
 /**

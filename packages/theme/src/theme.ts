@@ -8,6 +8,7 @@ import type { SchemaNode } from "./schema.ts";
 import type { SerializeContext } from "./serialize.ts";
 import type { Entry } from "./tokens.ts";
 import type {
+    DeepMerge,
     Merged,
     ResolvedInit,
     ScaleFn,
@@ -19,13 +20,7 @@ import type {
 
 import { isTokenSchema } from "./schema.ts";
 import { serializeValue } from "./serialize.ts";
-import {
-    collectTokens,
-    kebabSegment,
-    referenceTarget,
-    resolveEmbeddedReferences,
-    ThemeError,
-} from "./tokens.ts";
+import { collectTokens, kebabSegment, mentionedVarNames, ThemeError } from "./tokens.ts";
 import { composeSchema } from "./validate.ts";
 
 /**
@@ -91,12 +86,8 @@ export interface ThemeResult<T> {
      */
     extend<const schema extends object, const tokens extends object>(
         patch:
-            | { schema?: schema; tokens: tokens; modes?: Record<string, ThemeMode<tokens>> }
-            | ((base: TokenTree<T>) => {
-                  schema?: schema;
-                  tokens: tokens;
-                  modes?: Record<string, ThemeMode<tokens>>;
-              }),
+            | ExtendPatch<T, schema, tokens>
+            | ((base: TokenTree<T>) => ExtendPatch<T, schema, tokens>),
     ): ThemeResult<Merged<T, { schema: schema; tokens: tokens }>>;
     /**
      * Replaces this theme with a projection of it. The callback
@@ -111,6 +102,20 @@ export interface ThemeResult<T> {
 }
 
 const REF_RE = /^var\((--[a-z0-9-]+)\)$/;
+
+/**
+ * An `extend` patch. Its modes are checked against the merged token tree rather
+ * than the patch's own, because a layer whose only job is to override a base
+ * token in a mode declares no tokens of its own.
+ */
+type ExtendPatch<T, schema, tokens> = {
+    schema?: schema;
+    tokens: tokens;
+    modes?: Record<
+        string,
+        ThemeMode<T extends { tokens: infer base } ? DeepMerge<base, tokens> : tokens>
+    >;
+};
 
 /**
  * Compiles a theme from a schema tree and the token tree it describes.
@@ -177,7 +182,7 @@ function compile<T>(init: ResolvedInit): ThemeResult<T> {
     let byVarName = new Map(entries.map(entry => [entry.varName, entry]));
     let ctx = referenceContext(byKey);
 
-    let declarations = entries.map(entry => [entry.varName, declare(entry, ctx, byKey)] as const);
+    let declarations = entries.map(entry => [entry.varName, declare(entry, ctx)] as const);
     let cssText = buildCssText(declarations, modeBlocks(init.modes, byKey, ctx));
 
     return {
@@ -230,18 +235,11 @@ function referenceContext(byKey: Map<string, Entry>): SerializeContext {
     };
 }
 
-function declare(entry: Entry, ctx: SerializeContext, byKey: Map<string, Entry>): string {
-    if (entry.kind === "untyped") return embed(entry.value, entry.key, byKey);
-    if (entry.kind === "scale") {
-        return embed(serializeValue("dimension", entry.value, ctx, entry.key), entry.key, byKey);
-    }
+function declare(entry: Entry, ctx: SerializeContext): string {
+    if (entry.kind === "untyped") return entry.value;
+    if (entry.kind === "scale") return serializeValue("dimension", entry.value, ctx, entry.key);
     if (entry.aliasOf !== undefined) return ctx.varRefFor(entry.aliasOf, entry.key, entry.type);
-    return embed(serializeValue(entry.type, entry.value, ctx, entry.key), entry.key, byKey);
-}
-
-function embed(value: string, key: string, byKey: Map<string, Entry>): string {
-    if (!value.includes("{")) return value;
-    return resolveEmbeddedReferences(value, key, target => byKey.get(target)?.varName);
+    return serializeValue(entry.type, entry.value, ctx, entry.key);
 }
 
 function modeBlocks(
@@ -302,13 +300,7 @@ function walkMode(
             continue;
         }
         let type = entry.kind === "scale" ? ("dimension" as TokenType) : entry.type;
-        let target = referenceTarget(value);
-        out.push([
-            entry.varName,
-            target === null
-                ? embed(serializeValue(type, value, ctx, childKey), childKey, byKey)
-                : ctx.varRefFor(target, childKey, type),
-        ]);
+        out.push([entry.varName, serializeValue(type, value, ctx, childKey)]);
     }
 }
 
@@ -364,14 +356,15 @@ function assertNoDroppedReferences(tokens: Tokens, sourceByVarName: Map<string, 
             for (let [key, value] of Object.entries(node)) walkValues(value, [...path, key]);
             return;
         }
-        if (typeof node !== "string") return;
-        let match = REF_RE.exec(node);
-        if (match === null) return;
-        let source = sourceByVarName.get(match[1]!);
-        if (source !== undefined && !kept.has(source.varName)) {
-            throw new ThemeError(
-                `"${path.join(".")}" references "${source.key}", which the projection dropped`,
-            );
+        // Every var() the value mentions, so an interpolated composite is
+        // checked as well as a whole-value reference.
+        for (let varName of mentionedVarNames(node)) {
+            let source = sourceByVarName.get(varName);
+            if (source !== undefined && !kept.has(source.varName)) {
+                throw new ThemeError(
+                    `"${path.join(".")}" references "${source.key}", which the projection dropped`,
+                );
+            }
         }
     };
 

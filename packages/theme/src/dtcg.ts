@@ -9,6 +9,44 @@ import * as s from "./schema.ts";
 import { serializeValue } from "./serialize.ts";
 import { collectTokens, kebabSegment, referenceTarget, ThemeError } from "./tokens.ts";
 
+const DTCG_ALIAS_RE = /^\{([^{}]+)\}$/;
+
+/** The token a DTCG `{a.b.c}` alias names, or `null`. */
+function dtcgAlias(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    let match = DTCG_ALIAS_RE.exec(value);
+    return match ? match[1]! : null;
+}
+
+/**
+ * Rewrites every DTCG alias in a value to its `var()` reference, including the
+ * ones inside a composite's sub-values. The authoring format has one reference
+ * form, so braces must not survive past this module.
+ */
+function convertAliases(
+    value: unknown,
+    key: string,
+    varNameFor: (target: string) => string | undefined,
+): unknown {
+    let alias = dtcgAlias(value);
+    if (alias !== null) {
+        let varName = varNameFor(alias);
+        if (varName === undefined) {
+            throw new ThemeError(`"${key}" references unknown token "${alias}"`);
+        }
+        return `var(${varName})`;
+    }
+    if (Array.isArray(value)) return value.map(item => convertAliases(item, key, varNameFor));
+    if (typeof value === "object" && value !== null) {
+        let out: Record<string, unknown> = {};
+        for (let [field, item] of Object.entries(value)) {
+            out[field] = convertAliases(item, key, varNameFor);
+        }
+        return out;
+    }
+    return value;
+}
+
 /**
  * A JSON-compatible W3C Design Tokens Community Group document.
  *
@@ -142,7 +180,7 @@ export function fromDTCG(document: DTCGDocument): DTCGThemeInit {
 
     return {
         schema: schemaTree(root, tags),
-        tokens: tokenTree(root, tags, context),
+        tokens: tokenTree(root, tags, context, key => varNames.get(key)),
     };
 }
 
@@ -262,7 +300,7 @@ function resolveTag(
     }
     if (entry.ownTag !== undefined) return entry.ownTag;
 
-    let alias = referenceTarget(entry.value);
+    let alias = dtcgAlias(entry.value);
     if (alias !== null) return resolveTag(alias, entries, [...chain, key]);
     if (entry.inheritedType !== undefined) return entry.inheritedType;
     throw new ThemeError(`"${key}" has no resolvable $type`);
@@ -366,14 +404,15 @@ function tokenTree(
     group: ImportGroup,
     tags: Map<string, ImportTag>,
     context: ImportReferenceContext,
+    varNameFor: (key: string) => string | undefined,
 ): Tokens {
     let tokens: Tokens = {};
 
     for (let [key, child] of Object.entries(group.children)) {
         if (isRawToken(child)) {
-            tokens[key] = authorValue(child, tags.get(child.key)!, context);
+            tokens[key] = authorValue(child, tags.get(child.key)!, context, varNameFor);
         } else {
-            tokens[key] = tokenTree(child, tags, context);
+            tokens[key] = tokenTree(child, tags, context, varNameFor);
         }
     }
 
@@ -384,11 +423,14 @@ function authorValue(
     entry: RawToken,
     tag: ImportTag,
     context: ImportReferenceContext,
+    varNameFor: (key: string) => string | undefined,
 ): Tokens[string] {
-    if (referenceTarget(entry.value) !== null) return entry.value as string;
-    if (isTokenValue(entry.value)) return entry.value;
+    // An imported document ends up with exactly one reference form, like any
+    // hand-written theme.
+    let value = convertAliases(entry.value, entry.key, varNameFor);
+    if (isTokenValue(value)) return value;
 
-    return serializeValue(tag, entry.value, context, entry.key);
+    return serializeValue(tag, value, context, entry.key);
 }
 
 function schemaFor(tag: ImportTag): TokenSchema {
@@ -470,7 +512,7 @@ function encodeToken(entry: Entry, byVarName: Map<string, Entry>): EncodedToken 
 }
 
 function encodeValue(type: TokenType, value: unknown): unknown {
-    if (referenceTarget(value) !== null) return value;
+    if (referenceTarget(value) !== null || dtcgAlias(value) !== null) return value;
 
     switch (type) {
         case "color":

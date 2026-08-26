@@ -341,13 +341,9 @@ theme and reaching for `scale()` when you do not.
 
 ### References
 
-A leaf that is exactly `"{a.b.c}"` is a reference, unchanged from today: it
-resolves to `var(--a-b-c)` in the emitted CSS, so overriding the target flips
-every reference through the cascade.
-
-Across layers, a reference is a property access on the previous layer's
-accessor, which autocompletes, jumps to definition, and fails to compile when
-the target is renamed:
+A reference is a property access on the previous layer's accessor. There is no
+string form, so every reference autocompletes, jumps to definition, and fails to
+compile when its target is renamed:
 
 ```ts
 createTheme({ schema, tokens }).extend(base => ({
@@ -357,11 +353,17 @@ createTheme({ schema, tokens }).extend(base => ({
 ```
 
 `base.color.white` is the string `var(--color-white)`, so it reaches the custom
-property as an ordinary value. Reversing it back to `{color.white}` for DTCG
-export needs the `varName` map the collector already builds.
+property as an ordinary value, and the collector links it back to the token it
+names. Reversing it to `{color.white}` for DTCG export needs the same map.
 
-Interpolation is also how a reference gets inside a composite. DTCG spells that
-with a sub-value alias, which CSS text has no room for:
+An earlier draft kept `"{a.b.c}"` as a second, intra-layer spelling. It is gone.
+Two forms for one idea is a smell on its own, and the string form was the unsafe
+one: nothing checked it, so a typo or a rename reached the stylesheet as a
+variable nothing declared. The cost is that a semantic tier is now always a
+separate `extend`, which is the shape this document already argued for.
+
+Interpolation is how a reference gets inside a composite. DTCG spells that with
+a sub-value alias, which CSS text has no room for:
 
 ```ts
 .extend(base => ({

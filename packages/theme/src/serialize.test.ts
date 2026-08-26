@@ -123,11 +123,11 @@ describe("shadow", () => {
         );
     });
 
-    it("serializes inset, arrays, and sub-value aliases", () => {
+    it("serializes inset, arrays, and converted sub-value references", () => {
         expect(
             run("shadow", [
                 {
-                    color: "{color.white}",
+                    color: "var(--color-white)",
                     offsetX: "0px",
                     offsetY: "1px",
                     blur: "3px",
@@ -142,7 +142,7 @@ describe("shadow", () => {
 
 describe("border, transition, gradient, strokeStyle", () => {
     it("serializes border", () => {
-        expect(run("border", { color: "{color.white}", width: "1px", style: "solid" })).toBe(
+        expect(run("border", { color: "var(--color-white)", width: "1px", style: "solid" })).toBe(
             "1px solid var(--color-white)",
         );
     });
@@ -160,7 +160,7 @@ describe("border, transition, gradient, strokeStyle", () => {
         expect(
             run("gradient", [
                 { color: "#fff", position: 0 },
-                { color: "{color.white}", position: 1 },
+                { color: "var(--color-white)", position: 1 },
             ]),
         ).toBe("#fff 0%, var(--color-white) 100%");
     });
@@ -186,6 +186,7 @@ describe("CSS text passthrough", () => {
         expect(run("shadow", "inset 0 1px 2px rgb(0 0 0 / 0.2)")).toBe(
             "inset 0 1px 2px rgb(0 0 0 / 0.2)",
         );
+        expect(run("shadow", "0 1px 2px var(--color-line)")).toBe("0 1px 2px var(--color-line)");
         expect(run("border", "1px solid #ddd")).toBe("1px solid #ddd");
         expect(run("transition", "150ms ease-in-out 0s")).toBe("150ms ease-in-out 0s");
         expect(run("gradient", "linear-gradient(to right, #fff, #000)")).toBe(
