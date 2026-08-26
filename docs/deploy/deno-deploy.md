@@ -145,7 +145,7 @@ Set them per context — **Production** for production domains, **Development** 
 
 ## Client-only apps
 
-A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Deno Deploy hosts static sites first-class, including a **Single Page App mode** that serves `index.html` for unmatched paths — no wrapper entrypoint, no fallback hacks.
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no wrapper entrypoint to write. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), which is why it earns its place in a static build. Deno Deploy hosts static sites first-class, including a **Single Page App mode** that serves `index.html` for unmatched paths.
 
 ```html
 <!-- index.html -->
@@ -190,6 +190,16 @@ createRoot(document.getElementById("app")!).render(<App />);
 ```jsonc
 // tsconfig.json
 { "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+```
+
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
 ```
 
 Configure the app as **Static** with directory `dist` and Single Page App mode on — in the dashboard, or in one non-interactive command:

@@ -107,7 +107,7 @@ CMD deno serve -A --port=$PORT dist/ssr/index.js
 
 One-time setup: create an empty project at [railway.com/new](https://railway.com/new), add a service with **Docker Image** as the source (e.g. `ghcr.io/<user>/my-remix-app:latest` — [private images](https://docs.railway.com/builds/private-registries) need registry credentials), and generate a domain (**Settings → Networking** — services are private by default).
 
-Install the [Railway CLI](https://docs.railway.com/reference/cli) as a dev dependency:
+Install the [Railway CLI](https://docs.railway.com/cli) as a dev dependency:
 
 ::: code-group
 
@@ -209,7 +209,7 @@ Set them per service in the dashboard (**Variables**) or `railway variable set K
 
 ## Client-only apps
 
-A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no `server.ts` and no runtime process — the plugin's remaining job is [component HMR](/guides/hmr#component-hmr). `vite build` emits a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
 
 ```html
 <!-- index.html -->
@@ -256,6 +256,16 @@ createRoot(document.getElementById("app")!).render(<App />);
 { "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
 ```
 
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
+```
+
 The Caddyfile binds Railway's injected port and rewrites deep links to `index.html`:
 
 ```
@@ -285,6 +295,6 @@ Deploys are unchanged: the same image flow — `docker build` + push + `railway 
 
 ::: tip Platform features
 
-However the image ships, the service gets automatic SSL, [custom domains](https://docs.railway.com/networking/public-networking#custom-domains), per-PR [preview environments](https://docs.railway.com/environments#enable-pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn).
+However the image ships, the service gets automatic SSL, [custom domains](https://docs.railway.com/networking/domains), per-PR [preview environments](https://docs.railway.com/environments#pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn).
 
 :::

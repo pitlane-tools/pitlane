@@ -1,11 +1,11 @@
 ---
 title: Deploy to GitHub Pages
-description: "Deploy a client-only Remix 3 app to GitHub Pages with remix({ server: false }), covering the base path and the 404.html fallback a project site needs."
+description: "Deploy a Remix 3 app to GitHub Pages — SPA mode with remix({ server: false }) or a fully prerendered build — covering the base path and the 404.html fallback a project site needs."
 ---
 
 # GitHub Pages
 
-[GitHub Pages](https://pages.github.com) serves static files only — there is no server runtime, so this guide is exclusively for **client-only Remix 3 apps**. (Need SSR? Pick a target with a server: [Cloudflare](/deploy/cloudflare), [Netlify](/deploy/netlify), [Vercel](/deploy/vercel), or [Railway](/deploy/railway).)
+[GitHub Pages](https://pages.github.com) serves static files only — there is no server runtime. Two kinds of Remix 3 app produce output it can serve: a client-only app in [SPA mode](/guides/spa), and a server-rendered app whose pages are all [prerendered](/guides/prerendering) at build time. (Need a server at runtime? Pick a target with one: [Cloudflare](/deploy/cloudflare), [Netlify](/deploy/netlify), [Vercel](/deploy/vercel), or [Railway](/deploy/railway).)
 
 ::: tip Start from the template
 `npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
@@ -88,6 +88,33 @@ User/organization sites (`<user>.github.io`) and custom domains serve from `/` a
 
 ```sh
 vite build && cp dist/index.html dist/404.html
+```
+
+## Prerendered sites
+
+SPA mode is one way to fill a static host. The other is a server-rendered app whose pages are all static: [`remix({ prerender })`](/guides/prerendering) renders them to HTML during `vite build`, and Pages serves a real document per path instead of one shell.
+
+```ts
+// vite.config.ts
+export default defineConfig({
+    plugins: [remix({ prerender: true })],
+});
+```
+
+`true` covers every static path in the route map, read from the server entry's `routes` export; an explicit list, a function, or `spider: true` covers the rest — Pages has no server, so every URL the site answers must be in the output. See [where the paths come from](/guides/prerendering#where-the-paths-come-from).
+
+Each path lands as `<path>/index.html` under `dist/client`, next to the hashed assets, so the workflow below uploads `dist/client` instead of `dist` — and skips the `404.html` copy: deep links hit real files, and a URL outside the prerendered set is a real 404.
+
+The base path quirk holds, spelled differently: declare the routes under the base and set Vite's `base` to match. Output is written relative to the base — a route on `/<repo>/blog` still writes `blog/index.html`, because Pages mounts the uploaded directory at `/<repo>/`:
+
+```ts
+// app/routes.ts
+import { get, route } from "remix/routes";
+
+export let routes = route({
+    home: "/<repo>",
+    blog: get("/<repo>/blog"),
+});
 ```
 
 ## Deploy with GitHub Actions

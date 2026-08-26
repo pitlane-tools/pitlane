@@ -174,7 +174,7 @@ jobs:
 
 ## Client-only apps
 
-A client-only Remix 3 app skips `@pitlane/dev` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site that Workers serves as assets.
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `@cloudflare/vite-plugin`: `server: false` builds no server environment, so there is no worker to run. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), which is why it earns its place in a static build.
 
 ```html
 <!-- index.html -->
@@ -224,6 +224,16 @@ createRoot(document.getElementById("app")!).render(<App />);
         "jsxImportSource": "remix/ui",
     },
 }
+```
+
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
 ```
 
 `vite build` emits the site into `dist/`. The Worker config becomes assets-only — no `main`, and `single-page-application` fallback serves `index.html` on deep links:

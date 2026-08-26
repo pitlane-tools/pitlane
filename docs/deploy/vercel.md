@@ -141,7 +141,7 @@ Define them per environment in the Vercel dashboard (**Settings → Environment 
 
 ## Client-only apps
 
-A client-only Remix 3 app skips `@pitlane/dev` **and** `nitro/vite` entirely — with no SSR and no `clientEntry()` boundaries there is nothing to transform or package, so no Remix- or Pitlane-specific Vite settings are needed. Plain Vite builds a static site Vercel serves from its CDN.
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `nitro/vite`: `server: false` builds no server environment, so there is nothing for Nitro to package. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), which is why it earns its place in a static build.
 
 ```html
 <!-- index.html -->
@@ -191,6 +191,16 @@ createRoot(document.getElementById("app")!).render(<App />);
         "jsxImportSource": "remix/ui",
     },
 }
+```
+
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
 ```
 
 `vite build` emits the site into `dist/`, which Vercel's Vite preset picks up. Add the SPA fallback so deep links serve `index.html`:
