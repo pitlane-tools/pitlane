@@ -109,9 +109,9 @@ produces no diff when nothing changed.
 
 ## Checking for broken links in CI
 
-A crawl aborts on the first response that is neither a document nor a
-redirect, with the failing path in the message. That makes a link check a test
-with no assertions in it:
+A crawl aborts on the first failing response, meaning any status outside the
+2xx range that is not a redirect, with the failing path in the message. That
+makes a link check a test with no assertions in it:
 
 ```ts
 import { crawl } from "@pitlane/crawler";

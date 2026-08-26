@@ -58,7 +58,7 @@ Component edits run through the [`remix/ui-hmr`](https://github.com/remix-run/re
 
 ### Which exports are boundaries
 
-An exported symbol is injected with the HMR runtime with when all of these hold (e.g. when it is "HMR-compatible"):
+An exported symbol is injected with the HMR runtime when all of these hold (i.e. when it is "HMR-compatible"):
 
 - **The file ends in `.tsx` or `.jsx`** and does not live under `node_modules`. A component in a `.ts` file is never injected with the HMR runtime.
 - **The export is named and top level.** Default exports are skipped, because the hydration protocol needs an export name.

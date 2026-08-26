@@ -19,7 +19,7 @@ export default defineConfig({
 
 If you want browser-only UI in front of server routes that still run per request, that is [the default mode](#client-rendering-with-a-server), not this one.
 
-Pitlane does not prerender your app by default, meaning you don't need to worry about server-safe rendering when you've declared `server: false`. Your `index.html` is served as written and no part of your app runs outside a browser.
+Nothing in this mode renders outside a browser, so there is no server-safe rendering to worry about. `index.html` is served as written. [Prerendering](/guides/prerendering) needs a server to render through, and `remix({ server: false, prerender })` throws.
 
 ## What the switch changes
 
@@ -65,7 +65,7 @@ export function Counter(handle: Handle) {
 
 Editing the returned markup swaps it in and the count keeps counting. Editing the setup scope above the `return` remounts the component, which is the same rule as everywhere else; see [state survives a render edit](/guides/hmr#state-survives-a-render-edit-and-resets-on-a-setup-edit).
 
-Because server-data revalidation has no server to revalidate against, `<HMR />` from `pitlane:dev` resolves to the inert component here. An app that renders it unconditionally costs nothing, as it's entirely removed by the bundler in both development and production builds.
+Because server-data revalidation has no server to revalidate against, `<HMR />` from `pitlane:dev` resolves to the inert component here: it renders nothing and carries no client code, so an app that renders it unconditionally costs nothing.
 
 ## The app shell
 
@@ -193,7 +193,7 @@ export default defineConfig({
 });
 ```
 
-**Bundled dev mode does not yet support SSR apps in its experimental form**. Bundled dev mode serves bundle entrypoints only, so the client module URLs an server-side renderer writes into its HTML resolve to nothing. Upstream tracks server environments as [Phase 4 of the bundled-dev roadmap](https://github.com/vitejs/vite/discussions/22746), and it is still a prototype.
+**Bundled dev mode does not yet support SSR apps in its experimental form**. Bundled dev mode serves bundle entrypoints only, so the client module URLs a server-side renderer writes into its HTML resolve to nothing. Upstream tracks server environments as [Phase 4 of the bundled-dev roadmap](https://github.com/vitejs/vite/discussions/22746), and it is still a prototype.
 
 ## Client rendering with a server
 
@@ -249,7 +249,6 @@ async function shell(): Promise<Response> {
 
 router.map(routes.home, () => shell());
 router.map(routes.post, () => shell());
-1;
 
 export default router;
 ```

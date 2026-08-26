@@ -291,7 +291,7 @@ dist/
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
 | `remix`     | 3.0.0-beta.10  |
-| Node        | 24 LTS, 25     |
+| Node        | 24 LTS, 26     |
 
 Remix 3 is in beta, and each `@pitlane/dev` release records the exact beta it was verified against. Rolldown is optional. The transform runs identically on generic Vite and Vite+.
 

@@ -155,6 +155,7 @@ So `db.transaction()` throws, with a message naming `batch()`. The capabilities 
     savepoints: false,
     upsert: true,
     transactionalDdl: false,
+    migrationLock: false,
 });
 ```
 

@@ -25,6 +25,7 @@ let guides: DefaultTheme.SidebarItem[] = [
     {
         text: "Guides",
         items: [
+            { text: "Vite Plugin", link: "/guides/vite-plugin" },
             { text: "Styling", link: "/guides/styling" },
             { text: "Single-Page Apps", link: "/guides/spa" },
             { text: "Prerendering", link: "/guides/prerendering" },
@@ -137,7 +138,7 @@ let config = defineConfig({
         socialLinks: [{ icon: "github", link: "https://github.com/pitlane-tools" }],
         outline: { level: "deep" },
         nav: [
-            { text: "Guides", link: "/guides/styling", activeMatch: "^/(guides|deploy)/" },
+            { text: "Guides", link: "/guides/vite-plugin", activeMatch: "^/(guides|deploy)/" },
             { text: "Packages", link: "/package/dev/", activeMatch: "/package/" },
         ],
         sidebar: {
