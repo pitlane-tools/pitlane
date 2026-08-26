@@ -10,7 +10,7 @@
                     Cloudflare, Netlify, Vercel, Node, Bun, or Deno.
                 </p>
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-8">
-                    <a href="/guides/hmr" class="button button--primary inline-block w-fit">
+                    <a href="/guides/vite-plugin" class="button button--primary inline-block w-fit">
                         <span>Get Started</span>
                     </a>
                     <a

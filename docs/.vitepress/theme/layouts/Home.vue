@@ -31,6 +31,6 @@ import TerminalTranscript from "../components/TerminalTranscript.vue";
         heading="It's lights out and away we go!"
         subheading="Add the Pitlane Remix plugin to your Vite config, keep the workflow you have, and deploy your app anywhere."
         button-text="Get started"
-        button-link="/guides/hmr"
+        button-link="/guides/vite-plugin"
     />
 </template>

@@ -1,6 +1,8 @@
 // @ts-nocheck
 // every option has a sensible default; most projects pass none
 remix({
+    server: true, // false = SPA mode
+    prerender: undefined, // true, a path array, a function, or a config object
     clientEntry: "app/entry.browser", // false = no client build
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],

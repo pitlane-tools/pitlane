@@ -23,8 +23,9 @@
                 A pit-crew that can help you deploy in no time flat.
             </h3>
             <p class="opacity-85 max-w-md">
-                Build in CI, upload artifacts. Every deploy guide pairs a CLI walkthrough with a
-                GitHub Actions workflow, so the Vite build always runs where you control it.
+                Build in CI, upload artifacts. Every deploy guide ships a GitHub Actions workflow,
+                plus a CLI walkthrough where the platform has one, so the Vite build always runs
+                where you control it.
             </p>
             <a href="/deploy/cloudflare" class="button w-fit mt-4">Deployment guides</a>
         </div>

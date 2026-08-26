@@ -17,7 +17,7 @@
                 </div>
                 <div class="stat-label">
                     <code>plugins: [remix()]</code> is the whole build config: SSR + client builds,
-                    dev, preview, and hydration.
+                    dev, preview, hydration, and prerendering.
                 </div>
             </div>
             <div class="stat">
