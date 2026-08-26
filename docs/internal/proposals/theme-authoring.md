@@ -1,9 +1,13 @@
 # Theme authoring
 
-Status: proposal, unscheduled. Replaces the two earlier drafts on this branch,
-`theme-authoring.md`'s five-part DTCG-document plan and
-`authoring-and-interchange.md`'s twelve dual-purpose per-type factories. What
-survives from each is recorded at the end.
+Status: **shipped in `@pitlane/theme@0.3.0`** (pitlane-tools/pitlane#9, merged).
+Kept as the design record: what was decided, which alternatives were rejected,
+and how each claim was verified. Where it and the package disagree, the package
+is right.
+
+It replaced two earlier drafts, `theme-authoring.md`'s five-part DTCG-document
+plan and `authoring-and-interchange.md`'s twelve dual-purpose per-type
+factories. What survives from each is recorded at the end.
 
 `@pitlane/theme` 0.2.0 uses one format for two jobs: a W3C DTCG document is both
 what you author and what the compiler consumes. This splits them. Authoring
