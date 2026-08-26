@@ -133,7 +133,6 @@ export let {
         color: {
             white: "#fff",
             gray: { 50: "oklch(98.5% 0.002 247.839)", 900: "oklch(21% 0.034 264.665)" },
-            surface: "{color.white}",
             page: lightDark("#ffffff", "#1a1a1a"),
         },
         spacing: "0.25rem",
