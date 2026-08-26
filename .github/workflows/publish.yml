@@ -37,6 +37,11 @@ jobs:
             - name: Install
               run: vp install --frozen-lockfile
 
+            # Dev fixtures resolve @pitlane/crawler through package exports, which point at build output.
+            - name: Build crawler for dev fixtures
+              working-directory: packages/crawler
+              run: vp run build
+
             - name: Run tests
               run: vp test
 
@@ -62,8 +67,84 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # `npm publish` has no idea what pnpm's `workspace:` protocol means
+            # and ships it verbatim, which is how @pitlane/dev@0.5.0 reached npm
+            # declaring `"@pitlane/crawler": "workspace:^"` and failing every
+            # install with EUNSUPPORTEDPROTOCOL. Packing with pnpm rewrites
+            # those ranges to the versions they resolved to. npm still performs
+            # the publish, so OIDC and provenance are unchanged.
+            #
+            # The version is pinned to the root `packageManager` so the packed
+            # output matches what a local `pnpm pack` produces.
+            - name: Pack with pnpm
+              run: |
+                  npx --yes pnpm@11.17.0 pack --pack-destination .
+                  if tar -xzOf ./*.tgz package/package.json | grep -q '"workspace:'; then
+                      echo "Packed tarball still declares a workspace: dependency" >&2
+                      exit 1
+                  fi
+
             - name: Publish to npm with provenance
-              run: npm publish --provenance --access public --tag latest
+              run: npm publish ./*.tgz --provenance --access public --tag latest
+
+    publish-crawler:
+        if: startsWith(github.event.release.tag_name, '@pitlane/crawler@')
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/crawler
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Verify release tag matches package version
+              run: |
+                  version=$(node -p "require('./package.json').version")
+                  tag="${{ github.event.release.tag_name }}"
+                  if [ "$tag" != "@pitlane/crawler@$version" ]; then
+                      echo "Release tag $tag does not match package version @pitlane/crawler@$version" >&2
+                      exit 1
+                  fi
+
+            - name: Install
+              run: vp install --frozen-lockfile
+
+            - name: Run tests
+              run: vp test
+
+            - name: Build package
+              run: vp run build
+
+            - name: Authenticate with npm
+              # First publishes need a token: create a granular automation
+              # token on npmjs.com (packages & scopes → @pitlane, read/write)
+              # and store it as the NPM_TOKEN repository secret. Once the
+              # package exists, configure npm Trusted Publishing for this
+              # workflow, delete the secret, and this step falls through to
+              # OIDC — `id-token: write` plus --provenance take over.
+              # (The secrets context is not available in step `if`s, so the
+              # branch lives in the shell.)
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -n "$NPM_TOKEN" ]; then
+                      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+                      echo "Authenticated with the NPM_TOKEN secret."
+                  else
+                      echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
+                  fi
+
+            - name: Pack with pnpm
+              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+
+            - name: Publish to npm with provenance
+              run: npm publish ./*.tgz --provenance --access public --tag latest
 
     publish-data-table-d1:
         if: startsWith(github.event.release.tag_name, '@pitlane/data-table-d1@')
@@ -118,8 +199,11 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            - name: Pack with pnpm
+              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+
             - name: Publish to npm with provenance
-              run: npm publish --provenance --access public --tag latest
+              run: npm publish ./*.tgz --provenance --access public --tag latest
     publish-theme:
         if: startsWith(github.event.release.tag_name, '@pitlane/theme@')
         runs-on: ubuntu-latest
@@ -167,5 +251,8 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            - name: Pack with pnpm
+              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+
             - name: Publish to npm with provenance
-              run: npm publish --provenance --access public --tag latest
+              run: npm publish ./*.tgz --provenance --access public --tag latest

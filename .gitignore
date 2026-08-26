@@ -10,6 +10,7 @@ demos/*/dist
 .vale/
 dist
 .wrangler
+docs/package/crawler
 docs/package/dev
 docs/package/theme
 docs/package/data-table-d1

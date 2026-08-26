@@ -48,6 +48,18 @@ jobs:
             # resolves the toolchain the global `vp` provides. A root-level
             # `vp run build --filter …` reports "Task not found" and exits 0,
             # which would publish an empty dist with the job still green.
+            #
+            # Crawler builds first because @pitlane/dev imports it at runtime, so
+            # a preview of one is useless without the other. Naming both in a
+            # single publish is also what makes pkg-pr-new rewrite dev's
+            # `workspace:^` range to a resolvable pkg.pr.new URL: it only
+            # rewrites a dependency whose package is part of the same
+            # invocation. Publishing dev alone ships that specifier verbatim and
+            # every install fails with EUNSUPPORTEDPROTOCOL, job still green.
+            - name: Build @pitlane/crawler
+              working-directory: packages/crawler
+              run: vp run build
+
             - name: Build @pitlane/dev
               working-directory: packages/dev
               run: vp run build
@@ -61,4 +73,4 @@ jobs:
               run: vp run build
 
             - name: Publish previews to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/dev' './packages/theme' './packages/data-table-d1'
+              run: npx pkg-pr-new publish './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1'

@@ -1,5 +1,65 @@
 # @pitlane/dev
 
+## 0.5.1
+
+Fixes an unusable 0.5.0 on npm.
+
+- 0.5.0 was published with `"@pitlane/crawler": "workspace:^"` in its
+  dependencies, so every install failed with `EUNSUPPORTEDPROTOCOL` on npm and
+  `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` on pnpm. The release workflow packed with
+  `npm publish`, which has no idea what pnpm's `workspace:` protocol means and
+  ships it verbatim. It now packs with pnpm, which rewrites the range to the
+  version it resolved to, and fails the job if any `workspace:` specifier
+  survives into the tarball. Nothing about the code changed; 0.5.0 is
+  deprecated and this is the same release with a manifest that installs.
+- Latent until now: `@pitlane/crawler` is the first workspace dependency any
+  published Pitlane package has had.
+
+## 0.5.0
+
+Build-time prerendering.
+
+- `remix({ prerender })` renders paths to static HTML during `vite build` and
+  writes them into the client output, so a host answers those URLs and the
+  server never sees them. The API mirrors React Router's: `true` for every
+  static path in the route map, an array for an explicit list, a function
+  receiving `getStaticPaths()` for a list that mixes static and dynamic paths,
+  or an object adding `concurrency`. `spider` is one option beyond that set —
+  it follows the links each rendered page contains, which suits a site whose
+  pages all reach each other.
+- There is no second rendering path. The build sends a `Request` through the
+  same fetch handler production runs, after both environments are built and the
+  assets manifest is written, so the HTML on disk names real hashed chunks
+  rather than dev URLs.
+- `getStaticPaths()` reads the `routes` named export of the built server entry.
+  A Remix 3 router exposes no route table, but the route map it is built from
+  is an ordinary object, so exporting it is all the app has to do. A build that
+  asks for static paths without that export fails with a message saying so.
+- A path that answers with a redirect is logged and skipped rather than failing
+  the build. `prerender: true` asks for every static path in the route map, and
+  a `/` that points at the real landing path is an ordinary thing to find in
+  there; there is no document to write for one, and the app still answers it at
+  runtime. Under `spider` the redirect is followed instead, because that is
+  what following links means. Any other failing response still stops the build,
+  since a listed path that 404s is a stale list and a spidered one is a dead
+  internal link.
+- Bundles built for another runtime prerender too, with no extra
+  configuration. Node cannot import a Workers bundle, so when the import
+  fails the build starts the project's own preview server and renders through
+  that: `@cloudflare/vite-plugin` boots workerd with the app's real bindings,
+  and any platform plugin contributing a preview server works the same way. On
+  that path the route map is read from the module the server entry gets it
+  from, since the bundle holding the export is the thing that will not load.
+- Prerendered output is written relative to Vite's `base`: an app whose routes
+  live under `/repo/` still writes `blog/index.html`, because the host mounts
+  the client directory at the base.
+- `remix({ server: false, prerender })` throws. Prerendering renders through the
+  server entry, and SPA mode builds no server.
+- The crawler is a new package,
+  [`@pitlane/crawler`](https://pitlane.tools/package/crawler/), installable on
+  its own. It brings back the `crawl()` API from
+  [remix-run/remix#11150](https://github.com/remix-run/remix/pull/11150).
+
 ## 0.4.0
 
 SPA mode.

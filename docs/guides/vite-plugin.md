@@ -74,6 +74,7 @@ Every option has a sensible default. Most projects pass none.
 ```ts
 remix({
     server: true, // false selects SPA mode
+    prerender: undefined, // true, a path array, a function, or a config object
     clientEntry: "app/entry.browser", // false disables the client build
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
@@ -81,13 +82,14 @@ remix({
 });
 ```
 
-| Option               | Type              | Default               | Purpose                                                                                                                                  |
-| -------------------- | ----------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`             | `boolean`         | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                  |
-| `clientEntry`        | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                      |
-| `serverEntry`        | `string`          | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                       |
-| `serverEnvironments` | `string[]`        | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                      |
-| `serverHandler`      | `boolean`         | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+| Option               | Type                               | Default               | Purpose                                                                                                                                  |
+| -------------------- | ---------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`             | `boolean`                          | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                  |
+| `prerender`          | `boolean \| string[] \| fn \| obj` | none                  | Render paths to static HTML at build time. See [Prerendering](/guides/prerendering).                                                     |
+| `clientEntry`        | `string \| false`                  | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                      |
+| `serverEntry`        | `string`                           | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                       |
+| `serverEnvironments` | `string[]`                         | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                      |
+| `serverHandler`      | `boolean`                          | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
 
 ## SPA mode
 

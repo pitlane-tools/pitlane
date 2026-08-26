@@ -24,6 +24,7 @@ router.map(routes.home, ({ render }) =>
     render(<Document hasEnv={env !== undefined} userAgent={navigator.userAgent} />),
 );
 
+export { routes };
 export default router;
 
 if (import.meta.hot) {
