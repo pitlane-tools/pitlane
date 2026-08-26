@@ -63,6 +63,13 @@ scope. And a DTCG sub-value alias, such as a shadow whose `color` field was
 `fromDTCG` converts a document's aliases for you, including the ones inside a
 composite's sub-values, so an existing document needs no hand-editing.
 
+One side effect worth knowing: a layer's declarations follow the ones it
+references, so moving a semantic tier into an `extend` moves its declarations
+later in the `:root` block. Custom properties in one rule resolve independently
+of order, so nothing about the cascade changes. Declaring the namespace as an
+empty group in the base tree reserves its position if the order matters for
+diffing.
+
 - `createTheme({ schema, tokens, modes })` replaces
   `createTheme(document, options)`. A leaf is a string, a number, or an array;
   a plain object is a group. No `$value` wrappers, and no reserved token names.

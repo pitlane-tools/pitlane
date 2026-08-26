@@ -133,6 +133,18 @@ let applicationTheme = baseTheme.extend(base => ({
 
 References work across layers, so a semantic tier is a separate `extend` from the primitives it names. That is the shape a design system already has.
 
+A layer's declarations follow the ones it references, which changes where they appear in the `:root` block. Custom properties in one rule resolve independently of order, so nothing about the cascade changes. To keep a namespace in its original place, declare it as an empty group in the base tree: it emits nothing and reserves the position.
+
+```ts
+createTheme({
+    schema: { palette: s.color() },
+    tokens: { palette: { ink: "#1c1a16" }, color: {} },
+}).extend(base => ({
+    schema: { color: s.color() },
+    tokens: { color: { text: base.palette.ink } },
+}));
+```
+
 A composite is authored as CSS text, so a reference goes inside the shorthand by interpolating the accessor leaf:
 
 ```ts
