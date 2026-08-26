@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/theme",
     "version": "0.3.1",
-    "description": "Type-safe styling with W3C design tokens for Remix 3.",
+    "description": "Type-safe styling with design tokens for Remix 3: a schema tree plus the CSS values it describes compile to a typed token accessor and a <Theme /> component.",
     "keywords": [
         "css-variables",
         "design-tokens",

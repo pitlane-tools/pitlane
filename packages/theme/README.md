@@ -120,6 +120,7 @@ A layer's declarations follow the ones they reference, which moves them later in
 - `lightDark(light, dark)` returns CSS `light-dark()` text. `scale(token)` returns a multiplier for an ordinary dimension, duration, or number token.
 - `ThemeError` reports structural failures: a reference whose type does not match its position, a reference to an untyped token, a variable collision, an undeclared token, a mode overriding an unknown token, and a `"{a.b.c}"` string left over from the pre-0.3.0 format. Invalid values raise `ValidationError` from `remix/data-schema`, whose `issues` array contains the detail.
 - `@pitlane/theme/schema` exports `s.color()`, `s.dimension()`, `s.duration()`, `s.number()`, `s.easing()`, `s.shadow()`, `s.border()`, `s.transition()`, `s.gradient()`, `s.stroke()`, `s.font.family()`, `s.font.weight()`, `s.scale()`, `s.any()`, and `s.group()`.
+- `@pitlane/theme/dtcg` is the DTCG interchange: `fromDTCG(document)` reads a W3C DTCG document into a `createTheme` init, and `toDTCG(theme)` exports a theme as a document plus per-mode overrides.
 - Types include `ThemeInit`, `ThemeMode`, `ThemeResult`, `ThemeComponent`, `ThemeProps`, `TokenTree`, `ScaleFn`, `Tokens`, `TokenValue`, `ThemedCSSProps`, `ThemedCSSMixin`, TVA types, and per-type token brands.
 
 ## Links
