@@ -704,3 +704,46 @@ describe("a reference left over from the string syntax", () => {
         ).toThrow(/contains the reference "\{color.nope\}"/);
     });
 });
+
+describe("a token tree passed without its tokens wrapper", () => {
+    let theme = themed();
+
+    it("names the missing key for a projection", () => {
+        // A `select` whose callback returns the tree itself, which reached the
+        // compiler as `Object.entries(undefined)` before the guard.
+        let bare = () => theme.select(t => ({ color: { white: t.color.white } }) as never);
+        expect(bare).toThrow(ThemeError);
+        expect(bare).toThrow(/select\(\) is missing its "tokens" group/);
+        expect(bare).toThrow(/\.select\(base => \(\{ schema: \{ … \}, tokens: \{ … \} \}\)\)/);
+    });
+
+    it("names the missing key for an extend patch", () => {
+        let bare = () => theme.extend(t => ({ ink: { body: t.color.gray[900] } }) as never);
+        expect(bare).toThrow(ThemeError);
+        expect(bare).toThrow(/extend\(\) is missing its "tokens" group/);
+    });
+
+    it("names the missing key for an init", () => {
+        let bare = () => createTheme({ color: { white: "#fff" } } as never);
+        expect(bare).toThrow(ThemeError);
+        expect(bare).toThrow(/createTheme\(\) is missing its "tokens" group/);
+    });
+
+    it("names the mode whose overrides are unwrapped", () => {
+        let bare = () =>
+            createTheme({
+                schema: { color: s.color() },
+                tokens: { color: { page: "#fff" } },
+                modes: { dark: { color: { page: "#000" } } } as never,
+            });
+        expect(bare).toThrow(ThemeError);
+        expect(bare).toThrow(/Mode "dark" is missing its "tokens" group/);
+    });
+
+    it("refuses a tokens that is not a group", () => {
+        let notAGroup = () =>
+            createTheme({ schema: { color: s.color() }, tokens: "#fff" } as never);
+        expect(notAGroup).toThrow(ThemeError);
+        expect(notAGroup).toThrow(/createTheme\(\) has a "tokens" that is not a group/);
+    });
+});

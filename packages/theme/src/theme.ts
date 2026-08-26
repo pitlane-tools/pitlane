@@ -89,6 +89,7 @@ export interface ThemeResult<T> {
      *
      * @param patch - The tokens and schema to merge, or a callback returning them
      * @returns A new theme
+     * @throws ThemeError when the patch holds no `tokens` group
      */
     extend<const schema extends object, const tokens extends object>(
         patch:
@@ -103,6 +104,7 @@ export interface ThemeResult<T> {
      *
      * @param projection - A callback returning the schema and tokens to keep
      * @returns A new theme
+     * @throws ThemeError when the projection holds no `tokens` group
      */
     select<const P extends ThemeInit>(projection: (base: TokenTree<T>) => P): ThemeResult<P>;
 }
@@ -178,6 +180,7 @@ export function createTheme(
     input: ThemeComponent<unknown> | ThemeInit,
 ): ThemeResult<{ schema: object; tokens: object }> {
     let init = (typeof input === "function" ? input.$theme : input) as ResolvedInit;
+    assertTokensGroup(init, "createTheme()", "createTheme({ schema: { … }, tokens: { … } })");
     return compile(init);
 }
 
@@ -203,6 +206,11 @@ function compile<T>(init: ResolvedInit): ThemeResult<T> {
         extend(patch) {
             let accessor = buildAccessor(entries) as never;
             let next = (typeof patch === "function" ? patch(accessor) : patch) as ResolvedInit;
+            assertTokensGroup(
+                next,
+                "extend()",
+                ".extend(base => ({ schema: { … }, tokens: { … } }))",
+            );
             return compile({
                 schema: mergeDeep(init.schema, next.schema ?? {}) as ResolvedInit["schema"],
                 tokens: mergeDeep(init.tokens, next.tokens) as Tokens,
@@ -211,6 +219,11 @@ function compile<T>(init: ResolvedInit): ThemeResult<T> {
         },
         select(projection) {
             let next = projection(buildAccessor(entries) as never) as ResolvedInit;
+            assertTokensGroup(
+                next,
+                "select()",
+                ".select(base => ({ schema: { … }, tokens: { … } }))",
+            );
             let projected = reroot(next.tokens, byVarName) as Tokens;
             assertNoDroppedReferences(projected, byVarName);
             return compile({
@@ -250,6 +263,22 @@ function declare(entry: Entry, ctx: SerializeContext): string {
     return serializeValue(entry.type, entry.value, ctx, entry.key);
 }
 
+/**
+ * A schema tree, a patch, a projection, and a mode all carry their token tree
+ * under a `tokens` key, and leaving the wrapper off is a plausible mistake:
+ * 0.2.0 took a bare document, and the wrapper is what the 0.3.0 migration
+ * teaches for modes. Without this the bare tree reaches the compiler, where it
+ * fails as `Object.entries(undefined)` from inside a bundled chunk.
+ */
+function assertTokensGroup(node: unknown, label: string, example: string): void {
+    if (!isPlainRecord(node) || !("tokens" in node)) {
+        throw new ThemeError(`${label} is missing its "tokens" group: ${example}`);
+    }
+    if (!isPlainRecord(node.tokens)) {
+        throw new ThemeError(`${label} has a "tokens" that is not a group`);
+    }
+}
+
 function modeBlocks(
     modes: Record<string, ThemeMode<Tokens>> | undefined,
     byKey: Map<string, Entry>,
@@ -260,6 +289,7 @@ function modeBlocks(
     let mediaBlocks: string[] = [];
 
     for (let [name, mode] of Object.entries(modes)) {
+        assertTokensGroup(mode, `Mode "${name}"`, `modes: { ${name}: { tokens: { … } } }`);
         let overrides: Array<readonly [string, string]> = [];
         walkMode(mode.tokens, [], name, byKey, ctx, overrides);
         if (overrides.length === 0) continue;

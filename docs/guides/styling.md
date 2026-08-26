@@ -191,7 +191,7 @@ export let {
 }));
 ```
 
-Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise `ThemeError`, including a reference whose type does not match its position, a reference to an untyped token, a projection that drops a token something it kept refers to, a CSS variable collision, an undeclared token, and a mode that overrides an unknown token.
+Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise `ThemeError`, including a reference whose type does not match its position, a reference to an untyped token, a projection that drops a token something it kept refers to, a CSS variable collision, an undeclared token, a mode that overrides an unknown token, and a token tree passed without the `tokens` key that wraps it.
 
 ## Install the tokens
 

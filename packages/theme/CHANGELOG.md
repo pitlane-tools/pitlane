@@ -1,5 +1,13 @@
 # @pitlane/theme
 
+## 0.3.1
+
+- `createTheme`, `extend`, `select`, and a mode all take their token tree under
+  a `tokens` key, and leaving that wrapper off now raises `ThemeError` naming
+  the key. A bare tree used to reach the compiler and fail as
+  `Object.entries(undefined)`, and a mode missing the key reported
+  `override at ""`, which named neither the key nor the mistake.
+
 ## 0.3.0
 
 Authoring moves off W3C DTCG. `createTheme` now takes a schema tree and the
