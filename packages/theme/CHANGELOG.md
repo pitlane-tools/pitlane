@@ -28,6 +28,8 @@ What changes in a hand-written theme:
 | `$value: { value: 2.5, unit: "rem" }`              | `"2.5rem"`                               |
 | `$value: { colorSpace: "oklch", components: […] }` | the `oklch(…)` text                      |
 | A shadow, border, transition, or gradient object   | the CSS shorthand text                   |
+| `$value: [0.25, 0.1, 0.25, 1]` on `cubicBezier`    | the same tuple, under `s.easing()`       |
+| A shadow's `color: "{color.line}"` sub-value       | the reference inside the shorthand text  |
 | `modes: { dark: { … { $value } } }`                | `modes: { dark: { tokens: { … } } }`     |
 
 `{color.white}` references, the accessor shape, `raw`, `<Theme />`, `css`,
