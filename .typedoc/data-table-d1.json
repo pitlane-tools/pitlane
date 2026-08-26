@@ -1,0 +1,11 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "./base.json",
+    "entryPoints": [
+        "../packages/data-table-d1/src/index.ts",
+        "../packages/data-table-d1/src/migrations.ts"
+    ],
+    "tsconfig": "../packages/data-table-d1/tsconfig.json",
+    "out": "../docs/package/data-table-d1",
+    "entryModule": "@pitlane/data-table-d1"
+}

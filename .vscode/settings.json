@@ -51,6 +51,8 @@
         ".wrangler": true,
         ".superpowers": true,
         ".vale": true,
+        ".mise": true,
+        ".typedoc": true,
         "dist": true,
         "worker-configuration.d.ts": true
     },

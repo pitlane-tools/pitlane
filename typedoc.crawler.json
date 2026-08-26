@@ -1,8 +1,0 @@
-{
-    "$schema": "https://typedoc.org/schema.json",
-    "extends": "./typedoc.base.json",
-    "entryPoints": ["packages/crawler/src/index.ts"],
-    "tsconfig": "packages/crawler/tsconfig.json",
-    "out": "docs/package/crawler",
-    "entryModule": "@pitlane/crawler"
-}

@@ -102,9 +102,15 @@ companion templates branch. See
 ## Package reference docs are generated
 
 Every page under `docs/package/` is emitted by TypeDoc from the packages'
-TSDoc comments and is gitignored. One config per package (`typedoc.dev.json`,
-`typedoc.theme.json`, both extending `typedoc.base.json`), all run by
-`mise run docs:api`.
+TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`:
+one config per documented package (`dev.json`, `theme.json`, `crawler.json`,
+`data-table-d1.json`), each extending `base.json`, which registers the local
+theme and router in `plugin.mjs`. `mise run docs:api` runs them all.
+
+Paths inside those configs resolve relative to the config file, not the repo
+root, so a package's entry points read `../packages/<name>/src/...` and its
+output `../docs/package/<name>`. Adding a documented package means adding a
+config there plus a line in the `docs:api` task.
 
 Never edit a file under `docs/package/`; the next build overwrites it. Change
 the TSDoc comment in `packages/<name>/src/` instead. Narrative documentation

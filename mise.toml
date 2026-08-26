@@ -33,10 +33,10 @@ run = ["oxfmt --check", "oxlint", "tsc"]
 
 [tasks."docs:api"]
 run = [
-    "typedoc --options typedoc.crawler.json",
-    "typedoc --options typedoc.data-table-d1.json",
-    "typedoc --options typedoc.dev.json",
-    "typedoc --options typedoc.theme.json",
+    "typedoc --options .typedoc/crawler.json",
+    "typedoc --options .typedoc/data-table-d1.json",
+    "typedoc --options .typedoc/dev.json",
+    "typedoc --options .typedoc/theme.json",
 ]
 
 # The sidebar links /package/dev/* and /package/theme/*, which only exist once

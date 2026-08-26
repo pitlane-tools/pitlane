@@ -1,9 +1,9 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "extends": "./typedoc.base.json",
-    "entryPoints": ["packages/theme/src/index.ts"],
-    "tsconfig": "packages/theme/tsconfig.json",
-    "out": "docs/package/theme",
+    "extends": "./base.json",
+    "entryPoints": ["../packages/theme/src/index.ts"],
+    "tsconfig": "../packages/theme/tsconfig.json",
+    "out": "../docs/package/theme",
     "entryModule": "@pitlane/theme",
     // Internal aliases that appear in public signatures. They are inlined into
     // the emitted .d.ts rather than exported, and the accepted-values table on
