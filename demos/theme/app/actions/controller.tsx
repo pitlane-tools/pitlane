@@ -1,9 +1,10 @@
+import { css, cx } from "@pitlane/theme";
+import { createController } from "remix/router";
+
 import { button, pillButton } from "#/components/button.ts";
 import { Document } from "#/Document.tsx";
 import { routes } from "#/routes.ts";
 import { t, raw } from "#/theme.ts";
-import { css, cx } from "@pitlane/theme";
-import { createController } from "remix/router";
 
 // Semantic tokens rendered as swatches below. `raw()` chases aliases to the
 // concrete base-mode value — dark mode swaps the CSS variables, not the code.

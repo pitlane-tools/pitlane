@@ -11,14 +11,14 @@ Component HMR needs no configuration. Server-data revalidation needs one line in
 
 ## What each kind of edit does
 
-| You edit | What happens | What keeps its state |
-| --- | --- | --- |
-| The render function of an HMR-compatible component | Its new code is swapped in place | Every island, including this one |
-| The setup scope of an HMR-compatible component | That component remounts | Every other island |
-| A component export the transform skips | The page refetches and reconciles | Every other island |
-| A server-only module | The page refetches and reconciles | Every island |
-| A non-component module the browser imports | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
-| CSS | Vite's own CSS handling | Every island |
+| You edit                                           | What happens                                      | What keeps its state                 |
+| -------------------------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| The render function of an HMR-compatible component | Its new code is swapped in place                  | Every island, including this one     |
+| The setup scope of an HMR-compatible component     | That component remounts                           | Every other island                   |
+| A component export the transform skips             | The page refetches and reconciles                 | Every other island                   |
+| A server-only module                               | The page refetches and reconciles                 | Every island                         |
+| A non-component module the browser imports         | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
+| CSS                                                | Vite's own CSS handling                           | Every island                         |
 
 No row in that table is a full page reload.
 
@@ -141,11 +141,11 @@ Overlapping revalidations coalesce in the browser too. A revalidation that arriv
 
 ## Requirements
 
-| Requirement | Why | When unmet |
-| --- | --- | --- |
-| `<HMR />` rendered in the document | It is the browser half, and hydration gives it a frame handle | Server edits reach the server and the page does not change |
-| A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island | `<HMR />` renders nothing and revalidation never runs |
-| `serverEnvironments` matches your config | It selects which environment classifies files as server-only | Neither half can tell client from server |
+| Requirement                                    | Why                                                           | When unmet                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `<HMR />` rendered in the document             | It is the browser half, and hydration gives it a frame handle | Server edits reach the server and the page does not change |
+| A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island                           | `<HMR />` renders nothing and revalidation never runs      |
+| `serverEnvironments` matches your config       | It selects which environment classifies files as server-only  | Neither half can tell client from server                   |
 
 If a platform plugin renames the server environment, pass the same names to `remix({ serverEnvironments })`. `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
 

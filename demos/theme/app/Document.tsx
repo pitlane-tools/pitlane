@@ -1,7 +1,8 @@
-import { t, Theme } from "#/theme.ts";
 import { mergeAssets } from "@hiogawa/vite-plugin-fullstack/runtime";
 import { css } from "@pitlane/theme";
 import { type Handle, type RemixNode } from "remix/ui";
+
+import { t, Theme } from "#/theme.ts";
 
 import serverAssets from "./entry.server.tsx?assets=ssr";
 import styles from "./index.css?url";

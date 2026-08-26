@@ -1,7 +1,8 @@
 import type { TVAProps } from "@pitlane/theme";
 
-import { t } from "#/theme.ts";
 import { combine, tva } from "@pitlane/theme";
+
+import { t } from "#/theme.ts";
 
 /**
  * A cva-style variant component. Every style slot is brand-enforced —

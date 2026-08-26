@@ -2,8 +2,8 @@
     "name": "pitlane-dev-cloudflare-fixture",
     "main": "app/entry.server.tsx",
     "assets": {
-        "directory": "dist/client",
+        "directory": "dist/client"
     },
     "compatibility_date": "2026-04-02",
-    "compatibility_flags": ["nodejs_compat"],
+    "compatibility_flags": ["nodejs_compat"]
 }

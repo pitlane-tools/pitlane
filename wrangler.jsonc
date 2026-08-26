@@ -13,6 +13,6 @@
     "assets": {
         "directory": "./docs/.vitepress/dist",
         "binding": "ASSETS",
-        "not_found_handling": "none",
-    },
+        "not_found_handling": "none"
+    }
 }
