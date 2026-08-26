@@ -98,6 +98,7 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 | Sprite sheet generator   | Pitlane-native                                                                        |
 | Router RPC               | Pitlane-native                                                                        |
 | Prerendering             | Pitlane-native                                                                        |
+| Crawling                 | Pitlane-native                                                                        |
 
 **Name and distribution:**
 
@@ -112,11 +113,17 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 
 Pitlane is a monorepo of small, single-purpose packages. Each scoped package can be installed directly without the `pitlane` umbrella and has standalone documentation. Packages may depend on an explicit Remix or Pitlane capability contract, and provider adapters may depend on their provider SDK; those relationships are part of their documented API.
 
-`pitlane` is the optional meta-package that re-vends scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev`. The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
+`pitlane` is the optional meta-package that will re-vend scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev`; the name is reserved and the package is empty today ([Reserved names](#reserved-names)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
 
 ### Packaging strategy
 
 Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the optional `pitlane` package may vendor implementations under matching subpaths. Installing scoped packages directly gives a project only the concerns it selects and is the primary form used by package documentation. Installing `pitlane` provides the cohesive `pitlane/<name>` namespace without changing runtime behavior or deployment ownership.
+
+### Reserved names
+
+`pitlane` and `create-pitlane` are published at `0.0.0` to hold their names, and neither ships working code. The umbrella's entry throws and points at `@pitlane/dev`; `create-pitlane` prints the `giget` command from the distribution list above and exits non-zero. Both were published by hand: they have no build, no tests, and no job in `publish.yml`.
+
+The umbrella vends no subpaths yet, `pitlane/theme` included. An umbrella over four packages is a second specifier for something a reader can already install; the namespace earns its place once the set is large enough to be worth learning as a whole. Code samples in this document follow the same line — a package that exists is imported as `@pitlane/<name>`, and a planned one keeps the `pitlane/<name>` specifier it will have once the umbrella ships.
 
 ### Runtime and build-time packages
 
@@ -126,23 +133,22 @@ Runtime-first is evaluated per package, not imposed on capabilities whose purpos
 
 ### The adapter pattern
 
-Remix owns the capability interface (e.g. `Database` from `remix/data-table`, the `FileStorage` interface from `remix/file-storage`). A Pitlane adapter package supplies the concrete implementation for a provider. Application code constructs the Remix object with a Pitlane adapter and uses it directly — swapping the adapter import is the only change needed to move providers.
+Remix owns the capability interface (e.g. `Database` from `remix/data-table`, the `FileStorage` interface from `remix/file-storage`). A Pitlane adapter package supplies the concrete implementation for a provider: the driver, and the factory that binds it to a provider resource. Application code holds the Remix interface and nothing provider-specific past that construction — swapping the adapter import is the only change needed to move providers.
 
 Pitlane-native capabilities follow the same rule when Remix does not own the interface. For example, `@pitlane/job` owns the job contract while its storage and scheduler adapters supply runtime-specific implementations without leaking provider APIs into job definitions.
 
 ```ts
+import { createD1Database } from "@pitlane/data-table-d1";
 import { env } from "cloudflare:workers";
-import { D1DatabaseAdapter } from "pitlane/data-table-cloudflare-d1";
-import { Database } from "remix/data-table";
 
 // Swap the adapter import to change providers — every route that reads
 // `db` stays identical.
-let db = new Database(new D1DatabaseAdapter(env.DB));
+let db = createD1Database(env.DB);
 ```
 
 ### Released baseline
 
-Four packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
+Four packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
 
 ### Planned package sequence
 
@@ -164,9 +170,9 @@ Implementation follows this order. Within a capability family, the neutral packa
     1. `@pitlane/cache-cloudflare`
     2. `@pitlane/cache-netlify`
     3. `@pitlane/cache-vercel`
-8. `@pitlane/prerender`
+8. `@pitlane/crawler` — shipped at 0.1.0. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, which runs the crawler, so there is no separate `@pitlane/prerender` package.
 9. Remix capability adapters
-    1. `@pitlane/data-table-cloudflare-d1`
+    1. `@pitlane/data-table-d1` — shipped at 0.1.0.
     2. `@pitlane/data-table-netlify-database`
     3. `@pitlane/file-storage-cloudflare-r2`
     4. `@pitlane/file-storage-netlify-blobs`
@@ -195,7 +201,7 @@ Implementation follows this order. Within a capability family, the neutral packa
 
 ## `@pitlane/dev` — framework Vite plugin
 
-The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as hand-rolled application code in every Remix 3 project. It is provider-agnostic. Handles four concerns:
+The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as hand-rolled application code in every Remix 3 project. It is provider-agnostic. Handles five concerns:
 
 **1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Wraps `@hiogawa/vite-plugin-fullstack` internally.
 
@@ -207,6 +213,8 @@ The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as h
 
 **4. Abort error suppression** — Swallows `"aborted"` errors from client disconnects (search-as-you-type) so they don't trigger Vite's error overlay.
 
+**5. Build-time prerendering** — `remix({ prerender })` renders paths to static HTML during `vite build` and writes them into the client output, so a host answers those URLs and the server never sees them. There is no second rendering path: the build sends a `Request` through the built server entry, the same handler production runs. `@pitlane/crawler` does the walking.
+
 **API:**
 
 ```ts
@@ -216,6 +224,7 @@ export default defineConfig({
     plugins: [
         remix({
             // All optional, sensible defaults
+            prerender: undefined, // true, a path array, a function, or a config object
             clientEntry: "app/entry.browser", // false to disable
             serverEntry: "app/entry.server",
             serverEnvironments: ["ssr"],
@@ -262,12 +271,11 @@ Swapping providers means swapping the adapter import — controllers are unchang
 `Database` comes from `remix/data-table`; the adapter binds it to a provider. Construct it once and use it inside a controller action.
 
 ```ts
+import { createD1Database } from "@pitlane/data-table-d1";
 import { env } from "cloudflare:workers";
-import { D1DatabaseAdapter } from "pitlane/data-table-cloudflare-d1";
-import { Database } from "remix/data-table";
 import { createController } from "remix/router";
 
-let db = new Database(new D1DatabaseAdapter(env.DB));
+let db = createD1Database(env.DB);
 
 export default createController(routes.contacts, {
     actions: {
@@ -283,7 +291,7 @@ Available database adapters and their exports:
 
 | Adapter package                        | Export                   |
 | -------------------------------------- | ------------------------ |
-| `@pitlane/data-table-cloudflare-d1`    | `D1DatabaseAdapter`      |
+| `@pitlane/data-table-d1`               | `createD1Database`       |
 | `@pitlane/data-table-netlify-database` | `NetlifyDatabaseAdapter` |
 
 ### File storage
@@ -591,6 +599,26 @@ import { Image, Picture } from "pitlane/image";
     alt="A parrot on a nest."
 />;
 ```
+
+### Router crawling — `@pitlane/crawler`
+
+`crawl(router)` dispatches requests straight into a router's `fetch` and yields every response it gets back, following the links each page contains. No socket, no server, no browser: the router is the whole transport, so an app can be walked wherever the app itself runs.
+
+```ts
+import { crawl } from "@pitlane/crawler";
+
+import router from "./app/entry.server.ts";
+
+for await (let { pathname, filepath, response } of crawl(router)) {
+    // HTML gets `<pathname>/index.html`, so a static host serves it back
+    // for the path it was requested at.
+    console.log(`${pathname} -> ${filepath} (${response.status})`);
+}
+```
+
+`staticPaths(routes)` answers the question that comes before a crawl — which paths a route map can serve with no params — by reading the ordinary object an app builds its router from.
+
+Prerendering is the first thing that walk is for, and `remix({ prerender })` runs it during `vite build`, so an application using the plugin never installs this package. It stands on its own for the rest: static exports, sitemaps, link checks, and render smoke tests. The `crawl` API comes from [remix-run/remix#11150](https://github.com/remix-run/remix/pull/11150), which proposed it for `fetch-router` and was closed with the implementation kept beside the Remix docs site.
 
 ### Local-first application data exploration
 
@@ -914,7 +942,6 @@ The window-global local-store runtime owns the foreground connection. One window
 ### The rest
 
 - **`@pitlane/cache`** — route caching. Adapters: `@pitlane/cache-cloudflare` (Workers Cache), `@pitlane/cache-netlify` (Durable Cache), `@pitlane/cache-vercel` (CDN Cache).
-- **`@pitlane/prerender`** — static prerendering.
 - **`@pitlane/email`** — email delivery. Adapters: `@pitlane/email-cloudflare` (Email Service), `@pitlane/email-resend`.
 - **`@pitlane/fonts`** — font providers. Adapters: `@pitlane/fonts-fontsource`, `@pitlane/fonts-google`, `@pitlane/fonts-adobe`; a local provider ships in the core package.
 - **`@pitlane/i18n`** — localization.
@@ -934,9 +961,8 @@ import { createCookie } from "remix/cookie";
 import { formData } from "remix/form-data-middleware";
 import { methodOverride } from "remix/method-override-middleware";
 import { staticFiles } from "remix/static-middleware";
-import { Database } from "remix/data-table";
 
-import { D1DatabaseAdapter } from "pitlane/data-table-cloudflare-d1";
+import { createD1Database } from "@pitlane/data-table-d1";
 import { R2FileStorage } from "pitlane/file-storage-cloudflare-r2";
 import { createKVSessionStorage } from "pitlane/session-storage-cloudflare-kv";
 import { createJobs, Scheduler, createJobQueue, createScheduledJobs } from "pitlane/job";
@@ -959,7 +985,7 @@ let storage = createKVSessionStorage(env.SESSIONS, {
     ttl: 60 * 60 * 24,
 });
 
-let db = new Database(new D1DatabaseAdapter(env.DB));
+let db = createD1Database(env.DB);
 let files = new R2FileStorage(env.FILES);
 let scheduler = new Scheduler(jobs, {
     queue: new CloudflareQueueAdapter(env.TASKS),
@@ -1096,7 +1122,7 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 ## Release status
 
-`@pitlane/dev` is the complete initial Pitlane release: the provider-agnostic `remix()` Vite plugin. The other tracked packages ship independently in the [planned package sequence](#planned-package-sequence); no later package is required to make the current release complete.
+`@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, and `@pitlane/crawler` followed it on their own tags, and the rest ship independently in the [planned package sequence](#planned-package-sequence); no later package is required to make an earlier one complete.
 
 ### Explicit non-goals
 
@@ -1153,11 +1179,11 @@ A target template is a complete, ordinary Remix project rather than the output o
 
 Client-only templates omit `@pitlane/dev` when there is no server build or hydration transform to perform.
 
-Capability documentation provides additive recipes for existing projects. A future interactive scaffolder may automate those recipes, but its output must be the same reviewable package imports, application modules, and native provider config a developer would write by hand. It may not introduce a Pitlane target manifest or hidden generated state.
+Capability documentation provides additive recipes for existing projects. A future interactive scaffolder — `create-pitlane`, whose name is reserved — may automate those recipes, but its output must be the same reviewable package imports, application modules, and native provider config a developer would write by hand. It may not introduce a Pitlane target manifest or hidden generated state.
 
 For a Cloudflare application:
 
-- **Database** installs `@pitlane/data-table-cloudflare-d1`, adds the D1 declaration to `wrangler.jsonc`, constructs `new Database(new D1DatabaseAdapter(env.DB))`, and adds schema, migration, and seed modules.
+- **Database** installs `@pitlane/data-table-d1`, adds the D1 declaration to `wrangler.jsonc`, constructs `createD1Database(env.DB)`, and adds schema, migration, and seed modules.
 - **File storage** installs `@pitlane/file-storage-cloudflare-r2`, adds the R2 bucket declaration to `wrangler.jsonc`, and constructs `new R2FileStorage(env.FILES)`.
 - **Session storage** installs `@pitlane/session-storage-cloudflare-kv`, adds the KV declaration to `wrangler.jsonc`, and scaffolds `createKVSessionStorage` plus the `session()` controller middleware.
 - **Background and scheduled jobs** install `@pitlane/job` and `@pitlane/job-scheduler-cloudflare`, add queue and cron declarations to `wrangler.jsonc`, scaffold the job registry, and compose `queue` and `scheduled` handlers with the server entry.
@@ -1167,7 +1193,8 @@ Project-only recipes do not mutate deployment config unless the feature actually
 
 - **Local-first execution** is not currently scaffolded. The local-store and service-worker designs above remain unsequenced research rather than tracked package commitments.
 - **Theme** installs `@pitlane/theme`, adds a schema and token tree (or narrows `@pitlane/theme/default` with `select`), renders `<Theme />` at the document root, and demonstrates branded `css()` and `tva`.
-- **Authentication, content, localization, testing, and prerendering** install and wire only their focused package or Remix primitive.
+- **Authentication, content, localization, and testing** install and wire only their focused package or Remix primitive.
+- **Prerendering** adds paths rather than a package: `remix({ prerender })` is an option on the plugin the template already installs.
 - **CI/CD** adds the target's native workflow; it never adds a Pitlane deploy action.
 
 An illustrative Cloudflare project remains explicit at every target seam:
