@@ -142,13 +142,13 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 ### Released baseline
 
-The current Pitlane release consists of `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin. Every package below is independently sequenced work rather than part of a larger bundled release.
+Four packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
 
 ### Planned package sequence
 
-Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown.
+Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
 
-1. `@pitlane/theme`
+1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
 2. `@pitlane/content`
 3. `@pitlane/meta`
 4. `@pitlane/sprites`
@@ -764,57 +764,49 @@ The service-worker runtime may install a local auth scheme that projects the las
 
 ### Type-safe styling — `@pitlane/theme`
 
-`createTheme(config, { modes })` accepts a [W3C DTCG design-token document](https://www.designtokens.org/tr/drafts/format/) and returns `{ token, raw, Theme }`. `token` is a typed object whose leaves are CSS `var()` references; `raw(ref)` resolves a token's serialized base value; and `<Theme />` renders the compiled variables in a `<style data-pitlane-theme>` element. The module separately exports `css`, `tva`, `combine`, and `cx`.
+`createTheme({ schema, tokens, modes })` returns `{ token, raw, Theme }` plus the `extend` and `select` derivations. Token values are the CSS they become: a leaf is a string, a number, or an array, and a plain object is a group. The schema tree, built from the `s.*` factories in `@pitlane/theme/schema`, names each token's type. `token` is a typed mirror of the token tree whose leaves are CSS `var()` references; `raw(ref)` resolves a token's base value; and `<Theme />` renders the compiled variables in a `<style data-pitlane-theme>` element. The module separately exports `css`, `tva`, `combine`, `cx`, `scale`, and `lightDark`.
 
-Each token reference carries its DTCG type as a compile-time brand. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/ui`'s unthemed `css()` remains the explicit escape hatch.
+Each token reference carries its type as a compile-time brand, read from the schema. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/ui`'s unthemed `css()` remains the explicit escape hatch.
+
+The schema factories are `remix/data-schema` schemas carrying a type tag, so the token tree composes into one `object()` and a single `parse` reports every invalid value with its own path. `s.group(self, children)` types a node and lets its children override it. `s.scale()` declares a base whose accessor leaf multiplies, which is how `t.spacing(4)` works. `s.any()` covers CSS values with no token type. `extend` deep-merges a patch; `select` replaces a theme with a projection of it, which may also reshape and rename. `<Theme />` carries the init it was compiled from as `$theme`, so `createTheme(SomeTheme)` re-derives a published theme.
+
+Three subpaths sit beside the root. `@pitlane/theme/schema` holds the factories. `@pitlane/theme/default` ships Tailwind v4's primitives with no semantic layer, which `select` narrows to what an application uses. `@pitlane/theme/dtcg` reads and writes W3C DTCG documents: DTCG is an interchange format at the edges rather than the authoring surface.
 
 `tva` is a variant resolver modeled on `cva`, but it composes branded style objects and returns a `mix`-ready descriptor. `combine` merges multiple `tva` components, while `cx` joins ordinary class names for stylesheet interop. All are module-level exports rather than values returned by `createTheme`.
 
 ```tsx
 import { createTheme, css, tva } from "@pitlane/theme";
+import * as s from "@pitlane/theme/schema";
 
 export let {
     token: t,
     raw,
     Theme,
-} = createTheme(
-    {
-        color: {
-            $type: "color",
-            white: { $value: "#fff" },
-            gray: { 900: { $value: "#171717" } },
-            text: { $value: "{color.gray.900}" },
-        },
-        space: {
-            $type: "dimension",
-            sm: { $value: "8px" },
-            md: { $value: "16px" },
+} = createTheme({
+    schema: { color: s.color(), spacing: s.scale(), space: s.dimension() },
+    tokens: {
+        color: { white: "#fff", gray: { 900: "#171717" } },
+        spacing: "0.25rem",
+        space: { sm: "8px", md: "16px" },
+    },
+}).extend(base => ({
+    schema: { color: s.color() },
+    tokens: { color: { text: base.color.gray[900] } },
+    modes: {
+        dark: {
+            selector: ':root[data-color-scheme="dark"]',
+            tokens: { color: { text: base.color.white } },
         },
     },
-    {
-        modes: {
-            dark: {
-                color: {
-                    text: { $value: "{color.white}" },
-                },
-            },
-        },
-    },
-);
+}));
 
 t.color.white; // "var(--color-white)"
 raw(t.color.text); // "#171717"
+t.spacing(4); // "calc(var(--spacing) * 4)"
 
 let panel = tva({
-    base: {
-        color: t.color.text,
-        padding: t.space.md,
-    },
-    variants: {
-        compact: {
-            true: { padding: t.space.sm },
-        },
-    },
+    base: { color: t.color.text, padding: t.space.md },
+    variants: { compact: { true: { padding: t.space.sm } } },
 });
 
 function Component() {
@@ -829,7 +821,7 @@ function Component() {
 }
 ```
 
-Token types resolve from the token, an alias target, or the nearest ancestor group's `$type`, in DTCG order. Aliases remain CSS `var()` indirections so mode overrides cascade. Modes may override only `$value` and emit `prefers-color-scheme` blocks without client-side JavaScript. `<Theme />` accepts a CSP `nonce`. Unknown aliases, cycles, normalized-name collisions, invalid values, and invalid mode overrides throw `ThemeError` during `createTheme`; typography tokens remain intentionally unsupported in the first release.
+A token's type comes from its own schema entry, then from the nearest ancestor that declares one. A reference is a property access on the layer below, so it needs an `extend`; there is no string syntax for one, and a leftover `"{a.b.c}"` raises `ThemeError` rather than reaching the stylesheet. The accessor leaf is a `var()` string, so a reference keeps its indirection and mode overrides cascade through it. A mode overrides values only, and declares its own condition: `media` defaults to `prefers-color-scheme` and `selector` emits a second block for a user-selectable toggle, which outranks the media block on specificity. `<Theme />` accepts a CSP `nonce`, and emits `color-scheme: light dark` when a token uses `light-dark()`, without which the function would resolve light everywhere. Invalid values raise `ValidationError` from `remix/data-schema`, one issue per token with its path; unknown or wrongly-typed references, references to untyped tokens, cycles, name collisions, and invalid mode overrides raise `ThemeError`. Typography composites remain unsupported.
 
 `@pitlane/theme` is runtime-first and has no runtime dependencies beyond its Remix peer. A future build integration may optimize CSS output or extraction, but using it remains optional.
 
@@ -1174,7 +1166,7 @@ For a Cloudflare application:
 Project-only recipes do not mutate deployment config unless the feature actually requires a target resource:
 
 - **Local-first execution** is not currently scaffolded. The local-store and service-worker designs above remain unsequenced research rather than tracked package commitments.
-- **Theme** installs `@pitlane/theme`, adds a DTCG token document, renders `<Theme />` at the document root, and demonstrates branded `css()` and `tva`.
+- **Theme** installs `@pitlane/theme`, adds a schema and token tree (or narrows `@pitlane/theme/default` with `select`), renders `<Theme />` at the document root, and demonstrates branded `css()` and `tva`.
 - **Authentication, content, localization, testing, and prerendering** install and wire only their focused package or Remix primitive.
 - **CI/CD** adds the target's native workflow; it never adds a Pitlane deploy action.
 

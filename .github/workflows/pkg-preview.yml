@@ -4,6 +4,7 @@ name: 📦 Publish package preview (pkg.pr.new)
 # branch push and PR, so they can be tried in a real project before release:
 #
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/dev@<commit>
+#     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/theme@<commit>
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/data-table-d1@<commit>
 #
 # A package that ships only built output has to be built here first, or
@@ -63,9 +64,13 @@ jobs:
               working-directory: packages/dev
               run: vp run build
 
+            - name: Build @pitlane/theme
+              working-directory: packages/theme
+              run: vp run build
+
             - name: Build @pitlane/data-table-d1
               working-directory: packages/data-table-d1
               run: vp run build
 
             - name: Publish previews to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/crawler' './packages/dev' './packages/data-table-d1'
+              run: npx pkg-pr-new publish './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1'

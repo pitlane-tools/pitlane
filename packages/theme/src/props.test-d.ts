@@ -2,20 +2,25 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import type { ThemedCSSProps } from "./props.ts";
 
+import * as s from "./schema.ts";
 import { createTheme } from "./theme.ts";
 
-const { token: t } = createTheme({
-    color: { $type: "color", white: { $value: "#fff" } },
-    space: { $type: "dimension", md: { $value: "16px" } },
-    weight: { $type: "fontWeight", bold: { $value: 700 } },
-    shadow: {
-        card: {
-            $type: "shadow",
-            $value: { color: "#000", offsetX: "0px", offsetY: "1px" },
-        },
+let { token: t } = createTheme({
+    schema: {
+        color: s.color(),
+        space: s.dimension(),
+        weight: s.font.weight(),
+        shadow: s.shadow(),
+        motion: s.duration(),
     },
-    motion: { $type: "duration", fast: { $value: "150ms" } },
-} as const);
+    tokens: {
+        color: { white: "#fff" },
+        space: { md: "16px" },
+        weight: { bold: 700 },
+        shadow: { card: "0 1px 0 #000" },
+        motion: { fast: "150ms" },
+    },
+});
 
 describe("ThemedCSSProps enforcement", () => {
     it("accepts branded tokens, keywords, zero, and tuples", () => {

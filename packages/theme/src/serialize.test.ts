@@ -5,7 +5,7 @@ import type { SerializeContext } from "./serialize.ts";
 import { serializeValue } from "./serialize.ts";
 import { ThemeError } from "./tokens.ts";
 
-const ctx: SerializeContext = {
+let ctx: SerializeContext = {
     varRefFor(key, from) {
         if (key === "color.white") return "var(--color-white)";
         throw new ThemeError(`"${from}" references unknown token "${key}"`);
@@ -105,9 +105,14 @@ describe("number and cubicBezier", () => {
         expect(run("cubicBezier", [0.4, 0, 0.2, 1])).toBe("cubic-bezier(0.4, 0, 0.2, 1)");
     });
 
+    it("passes a computed unitless value through", () => {
+        expect(run("number", "calc(1.25 / 0.875)")).toBe("calc(1.25 / 0.875)");
+    });
+
     it("throws on malformed values", () => {
-        expect(() => run("number", "1")).toThrow(/test\.token/);
+        expect(() => run("number", true)).toThrow(/test\.token/);
         expect(() => run("cubicBezier", [1, 2, 3])).toThrow(/test\.token/);
+        expect(() => run("cubicBezier", ["a", "b", "c", "d"])).toThrow(/test\.token/);
     });
 });
 
@@ -118,11 +123,11 @@ describe("shadow", () => {
         );
     });
 
-    it("serializes inset, arrays, and sub-value aliases", () => {
+    it("serializes inset, arrays, and converted sub-value references", () => {
         expect(
             run("shadow", [
                 {
-                    color: "{color.white}",
+                    color: "var(--color-white)",
                     offsetX: "0px",
                     offsetY: "1px",
                     blur: "3px",
@@ -137,7 +142,7 @@ describe("shadow", () => {
 
 describe("border, transition, gradient, strokeStyle", () => {
     it("serializes border", () => {
-        expect(run("border", { color: "{color.white}", width: "1px", style: "solid" })).toBe(
+        expect(run("border", { color: "var(--color-white)", width: "1px", style: "solid" })).toBe(
             "1px solid var(--color-white)",
         );
     });
@@ -155,7 +160,7 @@ describe("border, transition, gradient, strokeStyle", () => {
         expect(
             run("gradient", [
                 { color: "#fff", position: 0 },
-                { color: "{color.white}", position: 1 },
+                { color: "var(--color-white)", position: 1 },
             ]),
         ).toBe("#fff 0%, var(--color-white) 100%");
     });
@@ -173,5 +178,27 @@ describe("border, transition, gradient, strokeStyle", () => {
         expect(run("strokeStyle", "dotted")).toBe("dotted");
         expect(run("strokeStyle", { dashArray: ["2px"], lineCap: "round" })).toBe("dashed");
         expect(() => run("strokeStyle", "wavy")).toThrow(/test\.token/);
+    });
+});
+
+describe("CSS text passthrough", () => {
+    it("takes a composite as the shorthand it compiles to", () => {
+        expect(run("shadow", "inset 0 1px 2px rgb(0 0 0 / 0.2)")).toBe(
+            "inset 0 1px 2px rgb(0 0 0 / 0.2)",
+        );
+        expect(run("shadow", "0 1px 2px var(--color-line)")).toBe("0 1px 2px var(--color-line)");
+        expect(run("border", "1px solid #ddd")).toBe("1px solid #ddd");
+        expect(run("transition", "150ms ease-in-out 0s")).toBe("150ms ease-in-out 0s");
+        expect(run("gradient", "linear-gradient(to right, #fff, #000)")).toBe(
+            "linear-gradient(to right, #fff, #000)",
+        );
+        expect(run("cubicBezier", "ease-in-out")).toBe("ease-in-out");
+    });
+
+    it("takes a font stack as one string, and quotes an array", () => {
+        expect(run("fontFamily", '"Inter", ui-sans-serif, system-ui')).toBe(
+            '"Inter", ui-sans-serif, system-ui',
+        );
+        expect(run("fontFamily", ["Inter var", "sans-serif"])).toBe('"Inter var", sans-serif');
     });
 });
