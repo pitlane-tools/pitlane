@@ -142,13 +142,13 @@ let db = new Database(new D1DatabaseAdapter(env.DB));
 
 ### Released baseline
 
-The current Pitlane release consists of `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin. Every package below is independently sequenced work rather than part of a larger bundled release.
+Four packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
 
 ### Planned package sequence
 
-Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown.
+Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
 
-1. `@pitlane/theme`
+1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
 2. `@pitlane/content`
 3. `@pitlane/meta`
 4. `@pitlane/sprites`
