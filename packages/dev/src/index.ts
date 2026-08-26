@@ -70,7 +70,9 @@ export interface RemixPluginOptions {
     /**
      * Serve dev-server requests through the server entry's fetch handler.
      * Set to `false` when another plugin owns dev-time request handling —
-     * e.g. `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite`.
+     * `@cloudflare/vite-plugin` (workerd) or `nitro/vite`. Keep the default
+     * with `@netlify/vite-plugin`, which emulates platform primitives around
+     * the dev server but leaves SSR to the app's fetch handler.
      *
      * Ignored when `server` is `false`, which has no fetch handler.
      *
