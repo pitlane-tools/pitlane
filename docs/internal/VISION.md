@@ -785,17 +785,20 @@ export let {
 } = createTheme({
     schema: { color: s.color(), spacing: s.scale(), space: s.dimension() },
     tokens: {
-        color: { white: "#fff", gray: { 900: "#171717" }, text: "{color.gray.900}" },
+        color: { white: "#fff", gray: { 900: "#171717" } },
         spacing: "0.25rem",
         space: { sm: "8px", md: "16px" },
     },
+}).extend(base => ({
+    schema: { color: s.color() },
+    tokens: { color: { text: base.color.gray[900] } },
     modes: {
         dark: {
             selector: ':root[data-color-scheme="dark"]',
-            tokens: { color: { text: "{color.white}" } },
+            tokens: { color: { text: base.color.white } },
         },
     },
-});
+}));
 
 t.color.white; // "var(--color-white)"
 raw(t.color.text); // "#171717"
@@ -818,7 +821,7 @@ function Component() {
 }
 ```
 
-A token's type comes from its own schema entry, then from the nearest ancestor that declares one. References stay CSS `var()` indirections so mode overrides cascade, and a reference written as an accessor property access is linked the same way. A mode overrides values only, and declares its own condition: `media` defaults to `prefers-color-scheme` and `selector` emits a second block for a user-selectable toggle, which outranks the media block on specificity. `<Theme />` accepts a CSP `nonce`, and emits `color-scheme: light dark` when a token uses `light-dark()`, without which the function would resolve light everywhere. Invalid values raise `ValidationError` from `remix/data-schema`, one issue per token with its path; unknown or wrongly-typed references, references to untyped tokens, cycles, name collisions, and invalid mode overrides raise `ThemeError`. Typography composites remain unsupported.
+A token's type comes from its own schema entry, then from the nearest ancestor that declares one. A reference is a property access on the layer below, so it needs an `extend`; there is no string syntax for one, and a leftover `"{a.b.c}"` raises `ThemeError` rather than reaching the stylesheet. The accessor leaf is a `var()` string, so a reference keeps its indirection and mode overrides cascade through it. A mode overrides values only, and declares its own condition: `media` defaults to `prefers-color-scheme` and `selector` emits a second block for a user-selectable toggle, which outranks the media block on specificity. `<Theme />` accepts a CSP `nonce`, and emits `color-scheme: light dark` when a token uses `light-dark()`, without which the function would resolve light everywhere. Invalid values raise `ValidationError` from `remix/data-schema`, one issue per token with its path; unknown or wrongly-typed references, references to untyped tokens, cycles, name collisions, and invalid mode overrides raise `ThemeError`. Typography composites remain unsupported.
 
 `@pitlane/theme` is runtime-first and has no runtime dependencies beyond its Remix peer. A future build integration may optimize CSS output or extraction, but using it remains optional.
 

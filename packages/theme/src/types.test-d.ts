@@ -38,7 +38,6 @@ let theme = createTheme({
         color: {
             white: "#fff",
             gray: { 50: "#fafafa", 900: "#171717" },
-            surface: "{color.white}",
             page: lightDark("#fff", "#171717"),
         },
         spacing: "0.25rem",
@@ -72,8 +71,7 @@ describe("the schema brands every leaf", () => {
         expectTypeOf(theme.token.motion.ease).toEqualTypeOf<CubicBezierToken>();
     });
 
-    it("resolves a reference and a lightDark() value through the group", () => {
-        expectTypeOf(theme.token.color.surface).toEqualTypeOf<ColorToken>();
+    it("brands a lightDark() value through the group", () => {
         expectTypeOf(theme.token.color.page).toEqualTypeOf<ColorToken>();
     });
 
@@ -194,7 +192,7 @@ describe("a leaf with no schema entry", () => {
 
 describe("modes", () => {
     it("accepts only paths the token tree has", () => {
-        type Overrides = DeepPartialTokens<{ color: { white: "#fff"; page: "{color.white}" } }>;
+        type Overrides = DeepPartialTokens<{ color: { white: "#fff"; page: "#eee" } }>;
         expectTypeOf<{ color: { page: string } }>().toMatchTypeOf<Overrides>();
         expectTypeOf<{ color: { nope: string } }>().not.toMatchTypeOf<Overrides>();
         expectTypeOf<{ nope: { page: string } }>().not.toMatchTypeOf<Overrides>();
@@ -203,7 +201,7 @@ describe("modes", () => {
     it("accepts an override of a token that does exist", () => {
         let theme = createTheme({
             schema: { color: s.color() },
-            tokens: { color: { white: "#fff", page: "{color.white}" } },
+            tokens: { color: { white: "#fff", page: "#eee" } },
             modes: { dark: { tokens: { color: { page: "#000" } } } },
         });
         expectTypeOf(theme.token.color.page).toEqualTypeOf<ColorToken>();

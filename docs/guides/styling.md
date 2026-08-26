@@ -49,7 +49,6 @@ export let {
         color: {
             white: "#fff",
             gray: { 50: "#fafafa", 900: "#171717" },
-            bg: "{color.white}",
             page: lightDark("#fff", "#171717"),
         },
         spacing: "0.25rem",
@@ -67,7 +66,7 @@ export let {
 
 Token values are the CSS they become. Each schema decides its leaf shape. It can be a string or number, and some schemas use arrays. Plain objects form groups. CSS strings pass through, so `clamp()`, `em`, `%`, `light-dark()`, and CSS color functions remain valid values. Composite schemas use CSS text, as `shadow.card` does above, rather than sub-value objects.
 
-`token`, conventionally destructured as `t`, mirrors the token tree with branded `var()` strings. `t.color.white` is `"var(--color-white)"`. `raw(t.color.bg)` follows the reference and returns `"#fff"`. `<Theme />` installs every custom property. The brands exist at compile time and let `css()` reject a color where a dimension is required.
+`token`, conventionally destructured as `t`, mirrors the token tree with branded `var()` strings. `t.color.white` is `"var(--color-white)"`. `raw` follows a reference to its concrete value. `<Theme />` installs every custom property. The brands exist at compile time and let `css()` reject a color where a dimension is required.
 
 ### Choose schemas
 
@@ -225,7 +224,7 @@ import { t } from "./theme.ts";
 // so write it inline at each element, like remix/ui's own css.
 <article
     mix={css({
-        color: t.color.bg,
+        color: t.color.page,
         padding: [t.spacing(2), t.spacing(4)], // tuples join with spaces
         margin: 0,
         // color: "#ff0000", // type error: outside the palette
@@ -376,8 +375,8 @@ export let pillButton = combine(button, rounded);
 ```tsx
 import { css, cx } from "@pitlane/theme";
 
-<span className={cx("mono", isAlias && "alias-tag")} mix={css({ fontSize: t.text.sm })}>
-    color.bg
+<span className={cx("mono", isReference && "reference-tag")} mix={css({ fontSize: t.text.sm })}>
+    color.page
 </span>;
 ```
 

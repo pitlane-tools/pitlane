@@ -20,7 +20,13 @@ import type {
 
 import { isTokenSchema } from "./schema.ts";
 import { serializeValue } from "./serialize.ts";
-import { collectTokens, kebabSegment, mentionedVarNames, ThemeError } from "./tokens.ts";
+import {
+    assertNoStringReference,
+    collectTokens,
+    kebabSegment,
+    mentionedVarNames,
+    ThemeError,
+} from "./tokens.ts";
 import { composeSchema } from "./validate.ts";
 
 /**
@@ -125,9 +131,11 @@ type ExtendPatch<T, schema, tokens> = {
  * The schema names each token's type, which is what the accessor's
  * compile-time brands are read from and what `css()` enforces.
  *
- * A token whose value is exactly `"{a.b.c}"` is a reference, and keeps
- * its `var()` indirection in the emitted CSS so a mode override
- * cascades through it.
+ * A reference to another token is a property access on the layer below,
+ * so it needs an {@link ThemeResult.extend} layer. The accessor leaf is
+ * already a `var()` string, which keeps its indirection in the emitted
+ * CSS so a mode override cascades through it. There is no string syntax
+ * for a reference; a leftover `"{a.b.c}"` raises {@link ThemeError}.
  *
  * All validation and serialization happen eagerly: a malformed theme
  * throws at module load rather than emitting broken CSS. Bad values
@@ -149,11 +157,11 @@ type ExtendPatch<T, schema, tokens> = {
  *
  * export let { token: t, raw, Theme } = createTheme({
  *     schema: { color: s.color(), spacing: s.scale() },
- *     tokens: {
- *         color: { white: "#fff", page: "{color.white}" },
- *         spacing: "0.25rem",
- *     },
- * });
+ *     tokens: { color: { white: "#fff" }, spacing: "0.25rem" },
+ * }).extend(base => ({
+ *     schema: { color: s.color() },
+ *     tokens: { color: { page: base.color.white } },
+ * }));
  *
  * t.color.page; // "var(--color-page)"
  * raw(t.color.page); // "#fff"
@@ -299,6 +307,7 @@ function walkMode(
             out.push([entry.varName, String(value)]);
             continue;
         }
+        assertNoStringReference(value, childKey);
         let type = entry.kind === "scale" ? ("dimension" as TokenType) : entry.type;
         out.push([entry.varName, serializeValue(type, value, ctx, childKey)]);
     }

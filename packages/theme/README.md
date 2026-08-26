@@ -64,13 +64,7 @@ function App() {
 }
 ```
 
-Set `color-scheme` on the root when `lightDark()` should follow the operating-system preference:
-
-```css
-:root {
-    color-scheme: light dark;
-}
-```
+`<Theme />` declares `color-scheme: light dark` on `:root` whenever a token uses `lightDark()`, because `light-dark()` resolves to its light value when `color-scheme` is undeclared. Declare a narrower value yourself to override it.
 
 Pass tokens to `css()` inline at each element through the `mix` prop. Token-mapped properties accept only the matching brand:
 
@@ -91,6 +85,32 @@ import { t } from "./theme.ts";
 
 `t.spacing(4)` produces `calc(var(--spacing) * 4)`, and `t.spacing.token` is the unmultiplied `var(--spacing)`. Use module-level `scale(token)` to multiply an ordinary dimension, duration, or number token.
 
+## Reference one token from another
+
+A reference is a property access on the layer below, so it goes in an `extend`. There is no string syntax for one, which is what lets the compiler check every reference and break the build when a target is renamed:
+
+```ts
+export let {
+    token: t,
+    raw,
+    Theme,
+} = createTheme({
+    schema: { palette: s.color() },
+    tokens: { palette: { ink: "#1c1a16", paper: "#f5f1e8" } },
+}).extend(base => ({
+    schema: { color: s.color(), shadow: s.shadow() },
+    tokens: {
+        color: { text: base.palette.ink, surface: base.palette.paper },
+        // A composite is CSS text, so a reference goes in by interpolation.
+        shadow: { card: `0 1px 2px ${base.palette.ink}` },
+    },
+}));
+```
+
+The emitted declarations keep their `var()` indirection, `--color-text: var(--palette-ink)`, so overriding a primitive reaches everything that references it. A mode override that references another token goes in an `extend` layer too, since that is where an accessor is in scope.
+
+A layer's declarations follow the ones they reference, which moves them later in the `:root` block. Custom properties in one rule resolve independently of order. Declare the namespace as an empty group in the base tree to reserve its position.
+
 ## Exports
 
 - `createTheme({ schema, tokens, modes? })` compiles a theme and returns `{ token, raw, Theme, extend, select }`. `token`, conventionally `t`, mirrors the tree with branded `var()` strings. `raw(ref)` resolves a base value. `<Theme />` installs the custom properties.
@@ -98,7 +118,7 @@ import { t } from "./theme.ts";
 - `css(props)` is `remix/ui`'s `css()` with token-brand enforcement. Call it inline at each `mix` callsite.
 - `tva(config)` creates a cva-style variant resolver. `combine(...fns)` composes tva components. `cx(...)` joins clsx-compatible class values.
 - `lightDark(light, dark)` returns CSS `light-dark()` text. `scale(token)` returns a multiplier for an ordinary dimension, duration, or number token.
-- `ThemeError` reports structural failures, such as unknown references or variable collisions. Invalid values raise `ValidationError` from `remix/data-schema`, whose `issues` array contains the detail.
+- `ThemeError` reports structural failures: a reference whose type does not match its position, a reference to an untyped token, a variable collision, an undeclared token, a mode overriding an unknown token, and a `"{a.b.c}"` string left over from the pre-0.3.0 format. Invalid values raise `ValidationError` from `remix/data-schema`, whose `issues` array contains the detail.
 - `@pitlane/theme/schema` exports `s.color()`, `s.dimension()`, `s.duration()`, `s.number()`, `s.easing()`, `s.shadow()`, `s.border()`, `s.transition()`, `s.gradient()`, `s.stroke()`, `s.font.family()`, `s.font.weight()`, `s.scale()`, `s.any()`, and `s.group()`.
 - Types include `ThemeInit`, `ThemeMode`, `ThemeResult`, `ThemeComponent`, `ThemeProps`, `TokenTree`, `ScaleFn`, `Tokens`, `TokenValue`, `ThemedCSSProps`, `ThemedCSSMixin`, TVA types, and per-type token brands.
 

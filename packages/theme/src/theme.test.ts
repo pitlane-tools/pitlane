@@ -665,3 +665,42 @@ describe("a reference inside composite CSS text", () => {
         ).toThrow(/references "color.highlight", which the projection dropped/);
     });
 });
+
+describe("a reference left over from the string syntax", () => {
+    it("is refused rather than emitted as literal braces", () => {
+        expect(() =>
+            createTheme({
+                schema: { color: s.color() },
+                tokens: { color: { white: "#fff", surface: "{color.white}" } },
+            }),
+        ).toThrow(/"color.surface" contains the reference "\{color.white\}"/);
+    });
+
+    it("points at the extend layer that replaces it", () => {
+        expect(() =>
+            createTheme({
+                schema: { color: s.color() },
+                tokens: { color: { surface: "{color.white}" } },
+            }),
+        ).toThrow(/base\.color\.white/);
+    });
+
+    it("is refused inside composite CSS text too", () => {
+        expect(() =>
+            createTheme({
+                schema: { shadow: s.shadow() },
+                tokens: { shadow: { card: "0 1px 2px {color.line}" } },
+            }),
+        ).toThrow(/contains the reference "\{color.line\}"/);
+    });
+
+    it("is refused in a mode override", () => {
+        expect(() =>
+            createTheme({
+                schema: { color: s.color() },
+                tokens: { color: { page: "#fff" } },
+                modes: { dark: { tokens: { color: { page: "{color.nope}" } } } },
+            }),
+        ).toThrow(/contains the reference "\{color.nope\}"/);
+    });
+});

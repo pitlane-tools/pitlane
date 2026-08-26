@@ -103,6 +103,10 @@ diffing.
   `(prefers-color-scheme: <name>)`; `selector` emits a second block for a
   user-selectable toggle, which outranks the media block on specificity so an
   explicit choice beats the OS preference.
+- A `"{a.b.c}"` string left over from the old format raises `ThemeError` naming
+  the `extend` that replaces it. Braces are never valid in a CSS value, so
+  passing one through would put `{color.white}` in the stylesheet where a color
+  belongs.
 - A reference is a property access, so it is type-checked wherever it appears,
   including interpolated into a composite's CSS text. `select` refuses a
   projection that drops a token something it kept refers to, and a reference

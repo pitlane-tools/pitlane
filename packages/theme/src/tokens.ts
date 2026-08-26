@@ -87,6 +87,25 @@ const VAR_RE = /^var\((--[a-z0-9-]+)\)$/;
 const EMBEDDED_VAR_RE = /var\((--[a-z0-9-]+)\)/g;
 
 /**
+ * Rejects a value carrying a `{path.to.token}` reference. Braces are never
+ * valid in a CSS value, so one can only be a reference left behind from the
+ * format this package used before 0.3.0, and passing it through would put
+ * `{color.white}` in the stylesheet where a color belongs.
+ *
+ * @internal
+ */
+export function assertNoStringReference(value: unknown, key: string): void {
+    if (typeof value !== "string" || !value.includes("{")) return;
+    let match = /\{([^{}]+)\}/.exec(value);
+    if (match === null) return;
+    throw new ThemeError(
+        `"${key}" contains the reference "{${match[1]!}}", which is no longer a value. ` +
+            `Reference a token by property access in an extend layer: ` +
+            `.extend(base => ({ tokens: { … base.${match[1]!} … } }))`,
+    );
+}
+
+/**
  * The token a whole-value `var()` reference names, or `null` when the value is
  * not one. A reference is written as a property access on the layer below, and
  * an accessor leaf is a `var()` string, so this is what a reference looks like
@@ -191,6 +210,7 @@ function walk(
         }
 
         if (own === undefined) throw new ThemeError(`"${childKey}" has no schema entry`);
+        assertNoStringReference(value, childKey);
 
         let varName = `--${childPath.map(kebabSegment).join("-")}`;
         let existing = varNames.get(varName);
