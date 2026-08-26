@@ -16,6 +16,10 @@ and it is the only route to npm for a package that already exists there. Never
 cut a tag or a release from a feature branch, and never reach for `npm publish`
 to ship a version the workflow could have shipped.
 
+This section is the mechanics. The order around them — what to update before
+the merge, and what is still in its pre-release state after the tag — is
+`.agents/skills/releasing-pitlane-packages/SKILL.md`.
+
 A feature PR **may** carry the version bump and the changelog entry for the
 release it is heading toward: `@pitlane/dev@0.3.0` was tagged directly on the
 squashed PR commit that bumped it. That stages a release. It does not perform
