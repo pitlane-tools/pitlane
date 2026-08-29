@@ -82,20 +82,18 @@ remix({
 });
 ```
 
-| Option               | Type                               | Default               | Purpose                                                                                                                                  |
-| -------------------- | ---------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`             | `boolean`                          | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                  |
-| `prerender`          | `boolean \| string[] \| fn \| obj` | none                  | Render paths to static HTML at build time. See [Prerendering](/guides/prerendering).                                                     |
-| `clientEntry`        | `string \| false`                  | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                      |
-| `serverEntry`        | `string`                           | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                       |
-| `serverEnvironments` | `string[]`                         | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                      |
-| `serverHandler`      | `boolean`                          | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+| Option | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `server` | `boolean` | `true` | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below. |
+| `prerender` | `boolean \| string[] \| fn \| obj` | none | Render paths to static HTML at build time. See [Prerendering](/guides/prerendering). |
+| `clientEntry` | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration. |
+| `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`. |
+| `serverEnvironments` | `string[]` | `["ssr"]` | Environment names the `clientEntry()` transform treats as "server". |
+| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
 
 ## SPA mode
 
-Some apps have no server: the router runs in the browser, the build is a
-folder of static files. `remix({ server: false })` targets those. React Router
-spells the same switch `ssr: false`.
+Some apps have no server: the router runs in the browser, the build is a folder of static files. `remix({ server: false })` targets those. React Router spells the same switch `ssr: false`.
 
 ```ts
 // vite.config.ts
@@ -104,16 +102,9 @@ export default defineConfig({
 });
 ```
 
-The three-file core collapses to one. There is no `app/entry.server.tsx`, no
-server environment, and no `dist/ssr`; `index.html` is the entry, and
-`vite build` emits a static site beside it. Every other option on this page
-goes unread, and the rest of this guide covers machinery a client-only app
-never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
+The three-file core collapses to one. There is no `app/entry.server.tsx`, no server environment, and no `dist/ssr`; `index.html` is the entry, and `vite build` emits a static site beside it. Every other option on this page goes unread, and the rest of this guide covers machinery a client-only app never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
 
-The switch removes the server, not the server rendering. An app that wants a
-browser-rendered UI in front of routes that still run per request keeps the
-default mode: see [client rendering with a
-server](/guides/spa#client-rendering-with-a-server).
+The switch removes the server, not the server rendering. An app that wants a browser-rendered UI in front of routes that still run per request keeps the default mode: see [client rendering with a server](/guides/spa#client-rendering-with-a-server).
 
 ## The asset runtime
 
@@ -154,12 +145,12 @@ Each result is `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` dedu
 
 ### Dev and production resolve differently, by design
 
-|                          | `vite dev`                                   | production build                                   |
-| ------------------------ | -------------------------------------------- | -------------------------------------------------- |
-| `entry`                  | source URL (`/app/entry.browser.ts`)         | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
-| `js`                     | **always empty** (no chunk graph exists yet) | reachable chunks, for `modulepreload`              |
-| `css` (`?assets=ssr`)    | dev links carrying `data-vite-dev-id`        | hashed files copied into `dist/client`             |
-| `css` (`?assets=client`) | empty (Vite injects dev styles itself)       | hashed files                                       |
+|  | `vite dev` | production build |
+| --- | --- | --- |
+| `entry` | source URL (`/app/entry.browser.ts`) | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
+| `js` | **always empty** (no chunk graph exists yet) | reachable chunks, for `modulepreload` |
+| `css` (`?assets=ssr`) | dev links carrying `data-vite-dev-id` | hashed files copied into `dist/client` |
+| `css` (`?assets=client`) | empty (Vite injects dev styles itself) | hashed files |
 
 Write the `Document` once against the full shape and both modes come out right: empty arrays render nothing in dev, real tags in production.
 
@@ -176,7 +167,7 @@ Write the `Document` once against the full shape and both modes come out right: 
 ```tsx
 import { clientEntry, on } from "remix/ui";
 
-export const Counter = clientEntry(import.meta.url, handle => {
+export let Counter = clientEntry(import.meta.url, handle => {
     let count = 0;
     return () => (
         <button
@@ -200,8 +191,10 @@ Multiple `clientEntry` exports in one file share a single assets import, so grou
 The transform matches **exactly** this shape, at the top level of a module:
 
 ```
-export const Name = clientEntry(import.meta.url, …at least one more argument)
+export let Name = clientEntry(import.meta.url, …at least one more argument)
 ```
+
+The declaration kind is the one part that is free. `let`, `const`, and `var` all match, because the `#Name` fragment comes from the name the export binds and nothing else. Examples here use `let`, matching the rest of the codebase.
 
 Anything else is silently left untouched. An untransformed call passes `import.meta.url` through as a plain string. Server rendering still succeeds, but the hydration data points at a URL that isn't a client chunk. The failed module request leaves the component inert in the browser. If an island won't hydrate, check these first:
 
@@ -214,32 +207,42 @@ export default clientEntry(import.meta.url, handle => {
 // ✗ aliased callee — the transform matches the literal name `clientEntry`
 import { clientEntry as ce } from "remix/ui";
 
-export const Counter = ce(import.meta.url, handle => {
+export let Counter = ce(import.meta.url, handle => {
     /* … */
 });
 
 // ✗ not exported — the browser could never import it by name
-const Counter = clientEntry(import.meta.url, handle => {
+let Counter = clientEntry(import.meta.url, handle => {
     /* … */
 });
 
 // ✗ wrapped in a helper — the call site the transform sees isn't clientEntry()
-export const Counter = myIslandHelper(import.meta.url, handle => {
+export let Counter = myIslandHelper(import.meta.url, handle => {
     /* … */
 });
 
 // ✗ computed first argument — must be literally `import.meta.url`
-export const Counter = clientEntry(String(import.meta.url), handle => {
+export let Counter = clientEntry(String(import.meta.url), handle => {
     /* … */
 });
 
-// ✓ the one true shape
+// ✓ the correct shape
+export let Counter = clientEntry(import.meta.url, handle => {
+    /* … */
+});
+
+// ✓ the correct shape
 export const Counter = clientEntry(import.meta.url, handle => {
+    /* … */
+});
+
+// ✓ the correct shape
+export var Counter = clientEntry(import.meta.url, handle => {
     /* … */
 });
 ```
 
-Only a top-level `export const Name = clientEntry(…)` call is rewritten. The `#Name` fragment names a real export, and the explicit pattern cannot false-positive on unrelated `import.meta.url` usage in the same file (which the transform leaves alone).
+Only a top-level export binding whose initializer is a literal `clientEntry(import.meta.url, …)` call is rewritten. The `#Name` fragment names a real export, and the explicit pattern cannot false-positive on unrelated `import.meta.url` usage in the same file (which the transform leaves alone).
 
 ### `serverEnvironments`
 

@@ -131,6 +131,14 @@ export const Counter = ce(import.meta.url, () => {});
         expect(result).toBeUndefined();
     });
 
+    it.each(["let", "const", "var"])("matches an export declared with %s", async kind => {
+        let result = await runTransform(
+            "ssr",
+            `export ${kind} Counter = clientEntry(import.meta.url, () => {});`,
+        );
+        expect(codeOf(result)).toContain(`___clientEntryAssets.entry + "#Counter"`);
+    });
+
     it("leaves unrelated import.meta.url usage untouched", async () => {
         let result = await runTransform(
             "ssr",

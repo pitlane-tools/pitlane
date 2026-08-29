@@ -31,8 +31,8 @@ const SERVER_UPDATE_SETTLE_MS = 50;
  * preserving live component state.
  *
  * `ui-hmr` only recognizes named-function component forms, so arrow-form
- * exports (`export const Name = clientEntry(url, (handle) => …)` and
- * `export const Name = (handle) => …`) are first normalized to named function
+ * exports (`export let Name = clientEntry(url, (handle) => …)` and
+ * `export let Name = (handle) => …`) are first normalized to named function
  * expressions — the idiomatic Remix authoring style then hot-swaps without any
  * source changes. The normalization is discarded when `ui-hmr` does not
  * instrument the module, so non-component arrows are never rewritten.
@@ -129,11 +129,11 @@ export function serverDataHmr(serverEnvironments: Set<string>): Plugin {
  *
  * Handles the two idiomatic Remix arrow forms:
  *
- * - `export const Name = clientEntry(url, (handle) => …)`
- * - `export const Name = (handle) => () => <jsx/>`
+ * - `export let Name = clientEntry(url, (handle) => …)`
+ * - `export let Name = (handle) => () => <jsx/>`
  *
- * Both become `export const Name = clientEntry(url, function Name(handle) { … })`
- * / `export const Name = function Name(handle) { … }`, which is behavior-
+ * Both become `export let Name = clientEntry(url, function Name(handle) { … })`
+ * / `export let Name = function Name(handle) { … }`, which is behavior-
  * identical for component setup functions (they never rely on a lexical `this`
  * or `arguments`).
  */

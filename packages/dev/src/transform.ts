@@ -7,7 +7,7 @@ import { parseSync } from "oxc-parser";
 const CLIENT_ENTRY_PATTERN = /\bclientEntry\b/;
 
 /**
- * Rewrites `export const Name = clientEntry(import.meta.url, …)` so the first
+ * Rewrites `export let Name = clientEntry(import.meta.url, …)` so the first
  * argument resolves to a production asset URL carrying an `#ExportName`
  * fragment.
  *
@@ -78,10 +78,11 @@ interface ClientEntryCall {
 }
 
 /**
- * Matches exactly `export const Name = clientEntry(import.meta.url, …)` at the
- * top level, with at least two arguments. Default exports, aliased callees,
- * and non-exported calls are intentionally ignored — the `#Name` fragment
- * requires a named export.
+ * Matches exactly `export let Name = clientEntry(import.meta.url, …)` at the
+ * top level, with at least two arguments. Any declaration kind (`let`, `const`,
+ * `var`) qualifies; the export name is what matters. Default exports, aliased
+ * callees, and non-exported calls are intentionally ignored — the `#Name`
+ * fragment requires a named export.
  */
 function findClientEntryCalls(program: Program): ClientEntryCall[] {
     let results: ClientEntryCall[] = [];
