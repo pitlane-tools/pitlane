@@ -170,9 +170,9 @@ Implementation follows this order. Within a capability family, the neutral packa
     1. `@pitlane/cache-cloudflare`
     2. `@pitlane/cache-netlify`
     3. `@pitlane/cache-vercel`
-8. `@pitlane/crawler` — shipped at 0.1.0. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, which runs the crawler, so there is no separate `@pitlane/prerender` package.
+8. `@pitlane/crawler` — shipped at 0.2.0. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, which runs the crawler, so there is no separate `@pitlane/prerender` package.
 9. Remix capability adapters
-    1. `@pitlane/data-table-d1` — shipped at 0.1.0.
+    1. `@pitlane/data-table-d1` — shipped at 0.2.0.
     2. `@pitlane/data-table-netlify-database`
     3. `@pitlane/file-storage-cloudflare-r2`
     4. `@pitlane/file-storage-netlify-blobs`
