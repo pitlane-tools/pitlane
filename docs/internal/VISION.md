@@ -778,7 +778,7 @@ The engine provides a native backup for disaster recovery, while applications de
 
 #### Runtime events and HTML
 
-The store is a typed `EventTarget`. A window-global runtime uses `addEventListeners()` with one lifetime signal to observe commits, synchronization status, storage failures, and query invalidations. It can re-resolve affected Remix Frames without hydrating the components that rendered them.
+The store is a typed `EventTarget`. A window-global runtime subscribes with `addEventListener(type, listener, { signal })` under one lifetime signal to observe commits, synchronization status, storage failures, and query invalidations. It can re-resolve affected Remix Frames without hydrating the components that rendered them.
 
 Native links and forms remain the primary interaction model. A server or service worker executes the same fetch-compatible controller and returns HTML or a redirect; client entries are reserved for interactions that genuinely need persistent client-side state.
 

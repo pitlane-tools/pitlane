@@ -52,12 +52,12 @@
         "csstype": "^3.2.3"
     },
     "devDependencies": {
-        "remix": "3.0.0-beta.10",
+        "remix": "3.0.0-rc.1",
         "typescript": "^7.0.2",
         "vite-plus": "^0.2.6"
     },
     "peerDependencies": {
-        "remix": "^3.0.0-beta.10"
+        "remix": "^3.0.0-rc.1"
     },
     "engines": {
         "node": "^20.19.0 || >=22.12.0"

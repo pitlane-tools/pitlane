@@ -45,7 +45,7 @@ nub add -D @pitlane/dev
 
 :::
 
-`@pitlane/dev` declares `remix@^3.0.0-beta.10` and `vite@>=7` as peer dependencies. The tested matrix is **Vite 8.1** (Rolldown) and **Vite+ 0.2** (`vp`) with `remix@3.0.0-beta.10`. The [templates](https://github.com/pitlane-tools/templates) exercise that matrix continuously in CI.
+`@pitlane/dev` declares `remix@^3.0.0-rc.1` and `vite@>=7` as peer dependencies. The tested matrix is **Vite 8.1** (Rolldown) and **Vite+ 0.2** (`vp`) with `remix@3.0.0-rc.1`. The [templates](https://github.com/pitlane-tools/templates) exercise that matrix continuously in CI.
 
 ## Templates
 
@@ -293,10 +293,10 @@ dist/
 | ----------- | -------------- |
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
-| `remix`     | 3.0.0-beta.10  |
+| `remix`     | 3.0.0-rc.1     |
 | Node        | 24 LTS, 26     |
 
-Remix 3 is in beta, and each `@pitlane/dev` release records the exact beta it was verified against. Rolldown is optional. The transform runs identically on generic Vite and Vite+.
+Remix 3 is in prerelease, and each `@pitlane/dev` release records the exact prerelease it was verified against. Rolldown is optional. The transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 

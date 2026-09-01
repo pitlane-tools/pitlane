@@ -33,6 +33,15 @@ minimumReleaseAgeExclude:
     - "@oh-my-pi/snapcompact@17.0.0"
     - miniflare@4.20260710.0
     - wrangler@4.111.0
+    - "@remix-run/assets@0.6.0"
+    - "@remix-run/auth@0.3.0"
+    - "@remix-run/cli@0.6.0"
+    - "@remix-run/data-table-mysql@0.5.1"
+    - "@remix-run/data-table-postgres@0.5.1"
+    - "@remix-run/data-table-sqlite@0.6.1"
+    - "@remix-run/data-table@0.5.0"
+    - "@remix-run/render-middleware@0.2.0"
+    - "@remix-run/spa@0.1.0"
     - "@remix-run/static-middleware@0.4.14"
-    - "@remix-run/ui@0.7.0"
-    - remix@3.0.0-beta.10
+    - "@remix-run/ui@0.8.0"
+    - remix@3.0.0-rc.1

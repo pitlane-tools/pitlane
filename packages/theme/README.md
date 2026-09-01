@@ -10,7 +10,7 @@ npm install @pitlane/theme
 vp add @pitlane/theme
 ```
 
-Requires `remix@^3.0.0-beta.10` as a peer.
+Requires `remix@^3.0.0-rc.1` as a peer.
 
 ## Quick start
 

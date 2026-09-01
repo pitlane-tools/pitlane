@@ -66,31 +66,17 @@ export const Counter = clientEntry(
 )
 ```
 
-On the server, provide `resolveClientEntry` to `renderToStream(...)` so source file URLs become browser-loadable asset URLs. Keep this resolution in the render helper so component modules do not hard-code deployment-specific asset paths:
+On the server, pass the asset server to the standard render middleware so source file URLs become browser-loadable asset URLs without hard-coding deployment paths in component modules:
 
 ```tsx
-let stream = renderToStream(<App />, {
-  async resolveClientEntry(entryId, component) {
-    let exportName = entryId.split('#')[1] || component.name
-    if (!exportName) {
-      throw new Error(`Unable to resolve client entry export for ${entryId}`)
-    }
+import { render } from 'remix/middleware/render'
 
-    let [href, preloads] = await Promise.all([
-      assetServer.getHref(entryId),
-      assetServer.getPreloads(entryId),
-    ])
-
-    return {
-      href,
-      exportName,
-      preloads,
-    }
-  },
+let router = createRouter({
+  middleware: [render({ assets: assetServer })],
 })
 ```
 
-If the module export name differs from the component function name, include `#ExportName` in the entry ID or return the exact export name from `resolveClientEntry`. A render helper that only supports source-owned entries can also fail fast when `entryId` is not a `file://` URL.
+If the module export name differs from the component function name, include `#ExportName` in the entry ID. Custom rendering pipelines may instead provide the exact export name through `renderToStream({ resolveClientEntry })`.
 
 On the server, `clientEntry` components render like any other component. The server wraps their output in comment markers and serializes props into a `<script type="application/json">` tag.
 
@@ -125,7 +111,7 @@ method and abort signal. GET form values are already encoded in `src`; non-GET s
 `FormData` for `multipart/form-data`. Provide `resolveFrame` when an app needs additional headers,
 another body encoding, or a different response policy.
 
-Add `rmx-document` to a link or form to leave its navigation to the browser.
+Add `data-rmx-document` to a link or form to leave its navigation to the browser.
 
 The default resolver rejects non-OK responses with an error containing their status and status text.
 A custom `resolveFrame` may return a `Response` with any status when it wants the runtime to render
@@ -208,14 +194,14 @@ When a frame reloads, matching DOM nodes are updated in place. Client entries re
 When `run()` is active, eligible same-origin forms progressively enhance into frame navigations. Native validation and the form's `submit` event still run first.
 
 - Forms target `handle.frames.top` by default.
-- `rmx-target` selects a named frame.
-- `rmx-src` selects a different frame request URL while preserving the form action as the navigation destination.
-- `rmx-history="push|replace"` overrides how the navigation updates history.
-- `rmx-reset-scroll="false"` preserves scroll position.
-- `rmx-document` opts back into a document submission.
+- `data-rmx-target` selects a named frame.
+- `data-rmx-src` selects a different frame request URL while preserving the form action as the navigation destination.
+- `data-rmx-history="push|replace"` overrides how the navigation updates history.
+- `data-rmx-reset-scroll="false"` preserves scroll position.
+- `data-rmx-document` opts back into a document submission.
 - Cross-origin forms, `method="dialog"`, and `target="_blank"` remain browser-owned.
 
-GET controls are already encoded in `src`, so GET forms reach the resolver like links. Non-GET forms provide their native `FormData`, effective method, and encoding. The resolver owns body encoding and method-override conventions. Non-GET submissions to the current URL replace its history entry; GET submissions and submissions to a different URL push one. The `rmx-history` attribute overrides those defaults.
+GET controls are already encoded in `src`, so GET forms reach the resolver like links. Non-GET forms provide their native `FormData`, effective method, and encoding. The resolver owns body encoding and method-override conventions. Non-GET submissions to the current URL replace its history entry; GET submissions and submissions to a different URL push one. The `data-rmx-history` attribute overrides those defaults.
 
 ### Nested frames
 
@@ -223,9 +209,22 @@ Frames can nest. Each frame owns its own DOM region and hydrates client entries 
 
 ## Server Rendering
 
+Normal applications install the conventional middleware and render at the action boundary:
+
+```tsx
+import { render } from 'remix/middleware/render'
+import { createRouter } from 'remix/router'
+
+let router = createRouter({ middleware: [render()] })
+
+router.get('/', (context) => context.render(<App />, { status: 200 }))
+```
+
+The middleware seeds frame URLs from the request, resolves nested and targeted frames through the current router, forwards session and authentication headers safely, follows frame redirects, preserves application error bodies, and cancels rendering with the request.
+
 ### `renderToStream`
 
-Renders a component tree to a `ReadableStream<Uint8Array>`. Sends initial HTML immediately and streams frame content as it resolves:
+Use this low-level API when replacing the standard response pipeline. It renders a component tree to a `ReadableStream<Uint8Array>`, sends initial HTML immediately, and streams frame content as it resolves:
 
 ```tsx
 import { renderToStream } from 'remix/ui/server'
@@ -280,7 +279,7 @@ navigate('/dashboard', { history: 'replace' })
 
 Options: `src`, `target`, `history` (`'push' | 'replace'`), `resetScroll`.
 
-Attributes understood by the runtime: `rmx-target`, `rmx-src`, `rmx-history`, `rmx-reset-scroll`, `rmx-document`.
+Attributes understood by the runtime: `data-rmx-target`, `data-rmx-src`, `data-rmx-history`, `data-rmx-reset-scroll`, `data-rmx-document`.
 
 ## Head Management
 
