@@ -1,5 +1,20 @@
 # @pitlane/crawler
 
+## 0.2.0
+
+Target Remix `3.0.0-rc.1`.
+
+- Raised the `remix` peer dependency to `^3.0.0-rc.1` (from
+  `^3.0.0-beta.10`). The crawler's own API is unchanged — `crawl()` still
+  dispatches into a router's `fetch` and yields the same
+  `{ pathname, filepath, response }` records.
+- rc.1 moved the framework's DOM attributes into the `data-rmx-*` namespace,
+  which is visible here because the crawler decides what to follow: the opt-out
+  an app writes on an anchor is now `data-rmx-document`, not `rmx-document`.
+  Following itself reads `href`, `rel`, and `<meta name="robots">`, so no
+  crawler code changed.
+- Tested against `remix@3.0.0-rc.1`.
+
 ## 0.1.0
 
 Initial release.
