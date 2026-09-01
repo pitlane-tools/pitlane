@@ -1,5 +1,22 @@
 # @pitlane/data-table-d1
 
+## 0.2.0
+
+Target Remix `3.0.0-rc.1`.
+
+- Raised the `remix` peer dependency to `^3.0.0-rc.1` (from
+  `^3.0.0-beta.10`). `createD1Database`, `D1Database`, and `D1DatabaseDriver`
+  are unchanged.
+- rc.1 ships `@remix-run/data-table@0.5.0`, which is what this driver is now
+  built and tested against. The `DatabaseDriver<"sqlite">` contract did not
+  move: `wipe()` and an idempotent `close()` are still the required members,
+  and `withMigrationLock` is still optional and still not implemented here.
+- `and()` and `or()` compose object shorthand filters in 0.5.0, so
+  `where: or({ status: "pending" }, { status: "processing" })` works through
+  this driver with no change on its side.
+- Tested against `remix@3.0.0-rc.1`, including the workerd suite that drives a
+  real Miniflare D1 binding.
+
 ## 0.1.0
 
 Initial release.

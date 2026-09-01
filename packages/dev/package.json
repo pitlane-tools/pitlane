@@ -1,6 +1,6 @@
 {
     "name": "@pitlane/dev",
-    "version": "0.5.1",
+    "version": "0.6.0",
     "description": "remix() — the Remix 3 Vite plugin: build orchestration, clientEntry() hydration transform, dev server with component and server-data HMR, SPA mode, build-time prerendering, and preview for any Vite or Vite+ project.",
     "keywords": [
         "pitlane",
@@ -51,14 +51,14 @@
         "@cloudflare/vite-plugin": "^1.31.0",
         "@types/node": "^25.5.0",
         "playwright": "1.61.1",
-        "remix": "3.0.0-beta.10",
+        "remix": "3.0.0-rc.1",
         "typescript": "^7.0.2",
         "vite": "^8.1.5",
         "vite-plus": "^0.2.6",
         "wrangler": "^4.114.0"
     },
     "peerDependencies": {
-        "remix": "^3.0.0-beta.10",
+        "remix": "^3.0.0-rc.1",
         "vite": ">=7.0.0"
     },
     "engines": {

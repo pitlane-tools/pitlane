@@ -1,6 +1,6 @@
 {
     "name": "@pitlane/data-table-d1",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "A Cloudflare D1 driver for Remix 3's data-table: SQLite SQL over D1's async prepared-statement binding.",
     "keywords": [
         "cloudflare",
@@ -45,12 +45,12 @@
     "devDependencies": {
         "@types/node": "^25.5.0",
         "miniflare": "^4.20260710.0",
-        "remix": "3.0.0-beta.10",
+        "remix": "3.0.0-rc.1",
         "typescript": "^7.0.2",
         "vite-plus": "^0.2.6"
     },
     "peerDependencies": {
-        "remix": "^3.0.0-beta.10"
+        "remix": "^3.0.0-rc.1"
     },
     "engines": {
         "node": "^20.19.0 || >=22.12.0"

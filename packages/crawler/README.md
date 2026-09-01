@@ -29,7 +29,7 @@ npm install @pitlane/crawler
 vp add @pitlane/crawler
 ```
 
-Requires `remix@^3.0.0-beta.10` as a peer.
+Requires `remix@^3.0.0-rc.1` as a peer.
 
 Using the [`remix()` Vite plugin](https://pitlane.tools/package/dev/)? You do not need this package directly — `remix({ prerender })` runs it for you. See the [prerendering guide](https://pitlane.tools/guides/prerendering).
 

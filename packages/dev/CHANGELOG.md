@@ -1,5 +1,31 @@
 # @pitlane/dev
 
+## 0.6.0
+
+Target Remix `3.0.0-rc.1`.
+
+- Raised the `remix` peer dependency to `^3.0.0-rc.1` (from
+  `^3.0.0-beta.10`). The plugin itself is unchanged: `remix()`, its
+  `prerender` option, and `@pitlane/dev/runtime` all behave as they did in
+  0.5.1.
+- Now depends on `@pitlane/crawler@^0.2.0`, its Remix rc.1 release. The
+  manifest carries `workspace:^` and the release workflow packs with pnpm,
+  which rewrites it to the version the monorepo resolved. 0.5.1 shipped
+  `^0.1.0`, which `0.2.0` does not satisfy, so the crawler release only reaches
+  `remix({ prerender })` users through this bump.
+- Two rc.1 breaking changes land in the app code this plugin's guides
+  document, not in the plugin. The documented `app/entry.browser.ts` reads the
+  frame-targeting attributes off a submit button, and rc.1 renamed all of them
+  into the `data-rmx-*` namespace, so `rmx-target`, `rmx-src`, and
+  `rmx-reset-scroll` become `data-rmx-target`, `data-rmx-src`, and
+  `data-rmx-reset-scroll`. Nothing raises an error when they are missed: rc.1's
+  runtime matches only the prefixed names, so a stale attribute is inert and
+  frame navigation silently falls back to a document load. `createAssetServer`
+  also replaced `fileMap` with directory-based `mounts`, which affects an app
+  that configures its own asset server rather than letting this plugin do it.
+- Tested against Vite 8.1 (Rolldown), Vite+ 0.2 (`vp`), and
+  `remix@3.0.0-rc.1`, across the node, cloudflare, hmr, and prerender fixtures.
+
 ## 0.5.1
 
 Fixes an unusable 0.5.0 on npm.

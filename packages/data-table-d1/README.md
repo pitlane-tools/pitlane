@@ -22,7 +22,7 @@ npm install @pitlane/data-table-d1
 vp add @pitlane/data-table-d1
 ```
 
-Requires `remix@^3.0.0-beta.10` as a peer. Nothing else: the D1 API is described structurally, so you do not need `@cloudflare/workers-types` unless your own code already does.
+Requires `remix@^3.0.0-rc.1` as a peer. Nothing else: the D1 API is described structurally, so you do not need `@cloudflare/workers-types` unless your own code already does.
 
 ## Why this package exists
 

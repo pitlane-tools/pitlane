@@ -101,7 +101,7 @@ export let LikeButton = clientEntry(
 
 **What goes in setup vs. render:**
 
-- **Setup:** Event listener registration (`addEventListeners`), one-time initialization, state variable declarations, anything that should survive re-renders
+- **Setup:** Event listener registration (`target.addEventListener(type, fn, { signal: handle.signal })`), one-time initialization, state variable declarations, anything that should survive re-renders
 - **Render:** JSX, derived values, conditional logic based on current props/state
 
 **Important:** All props passed to a `clientEntry` component must be serializable (strings, numbers, booleans, plain objects, arrays). The server serializes them as JSON for the client to hydrate. You cannot pass functions, class instances, or DOM nodes as props to hydrated components.
@@ -316,11 +316,13 @@ export let LikeButton = clientEntry(
 ```tsx
 export let SearchBar = clientEntry(import.meta.url, (handle: Handle<{ query?: string }>) => {
     // Re-render when navigation state changes (for loading indicator)
-    addEventListeners(navigating, handle.signal, {
-        destinationchange() {
+    navigating.addEventListener(
+        "destinationchange",
+        () => {
             handle.update();
         },
-    });
+        { signal: handle.signal },
+    );
 
     return () => {
         let props = handle.props;
@@ -769,11 +771,13 @@ It exposes:
 
 ```tsx
 export let MyComponent = clientEntry(import.meta.url, (handle: Handle) => {
-    addEventListeners(navigating, handle.signal, {
-        destinationchange() {
+    navigating.addEventListener(
+        "destinationchange",
+        () => {
             handle.update();
         },
-    });
+        { signal: handle.signal },
+    );
 
     return () => {
         let isLoading = navigating.to.state === "loading";
@@ -825,10 +829,10 @@ navigation.addEventListener("navigate", async event => {
     if (event.sourceElement.closest("a, area")) return;
 
     // sourceElement is <button type="submit"> inside form submissions.
-    // Read rmx-* attributes from the button for frame targeting.
-    let target = event.sourceElement.getAttribute("rmx-target") ?? undefined;
-    let src = event.sourceElement.getAttribute("rmx-src") ?? undefined;
-    let resetScroll = event.sourceElement.hasAttribute("rmx-reset-scroll") ?? undefined;
+    // Read data-rmx-* attributes from the button for frame targeting.
+    let target = event.sourceElement.getAttribute("data-rmx-target") ?? undefined;
+    let src = event.sourceElement.getAttribute("data-rmx-src") ?? undefined;
+    let resetScroll = event.sourceElement.hasAttribute("data-rmx-reset-scroll") ?? undefined;
 
     // Form POST submission — out-of-band so the URL only changes on success
     if (event.formData) {
@@ -921,13 +925,13 @@ navigation.addEventListener("navigate", event => {
 
 **Why three phases:**
 
-1. **Phase 1 (before `run`):** Handles form submissions. Must register before `run()` so that `event.preventDefault()` on GET forms works before the Remix listener sees the event. Reads `rmx-target`, `rmx-src`, and `rmx-reset-scroll` from the submit button's attributes.
+1. **Phase 1 (before `run`):** Handles form submissions. Must register before `run()` so that `event.preventDefault()` on GET forms works before the Remix listener sees the event. Reads `data-rmx-target`, `data-rmx-src`, and `data-rmx-reset-scroll` from the submit button's attributes.
 2. **Phase 2 (`run`):** Initializes the Remix runtime — module loading for hydrated components and frame resolution for fetching frame content. The returned `app` event target is the runtime's error bus.
 3. **Phase 3 (after `run`):** Sets `focusReset: "manual"` for all non-traverse navigations. Registered last so its `intercept()` call wins, preventing the browser from resetting focus to the top of the page during frame updates.
 
 **Why out-of-band POST fetch:** Driving POSTs through `event.intercept({ handler })` ties the navigation URL to the request lifecycle — the URL bar can flip to the action URL even when the server returns an error. Doing the fetch outside `intercept` lets the URL stay put on failure; only the `navigate(response.url, ...)` call (after a successful response) commits the new URL. Errors are dispatched to `app` and rendered as a dismissible banner.
 
-**Why `event.sourceElement`:** For form submissions triggered by a submit button, `event.sourceElement` is that `<button>`. This is how `rmx-*` attributes on form buttons work — the listener reads them directly from the submitting element and passes them to `navigate()`.
+**Why `event.sourceElement`:** For form submissions triggered by a submit button, `event.sourceElement` is that `<button>`. This is how `data-rmx-*` attributes on form buttons work — the listener reads them directly from the submitting element and passes them to `navigate()`.
 
 **Why traverse navigations are left alone:** Back/forward navigations are handled by the built-in Remix listener. Intercepting them again would conflict.
 
@@ -1040,11 +1044,13 @@ For server-only components, the setup phase is minimal -- there's no persistent 
 ```tsx
 export let SearchInput = clientEntry(import.meta.url, (handle: Handle<{ query?: string }>) => {
     // Setup: runs once on hydration
-    addEventListeners(navigating, handle.signal, {
-        destinationchange() {
+    navigating.addEventListener(
+        "destinationchange",
+        () => {
             handle.update();
         },
-    });
+        { signal: handle.signal },
+    );
 
     return () => {
         let props = handle.props;
@@ -1078,7 +1084,7 @@ This is the islands architecture pattern: the server renders the full page, but 
 
 **Decision:** How do I make a link or form button update a specific frame instead of the whole page?
 
-**Heuristic:** Use the `link()` mixin from `app/utils/link.tsx`. It's a thin wrapper around `createMixin` that accepts a `LinkProps` object and renders `rmx-*` attributes that the client entry (Recipe 11) and the built-in Remix anchor listener pick up. The reason it exists (instead of using the built-in `link()` from `remix/ui`) is to support both `<a>` and `<button type="submit">` elements — the latter is the form-submit pathway that drives frame-targeted POSTs.
+**Heuristic:** Use the `link()` mixin from `app/utils/link.tsx`. It's a thin wrapper around `createMixin` that accepts a `LinkProps` object and renders `data-rmx-*` attributes that the client entry (Recipe 11) and the built-in Remix anchor listener pick up. The reason it exists (instead of using the built-in `link()` from `remix/ui`) is to support both `<a>` and `<button type="submit">` elements — the latter is the form-submit pathway that drives frame-targeted POSTs.
 
 **On links:**
 
@@ -1103,7 +1109,7 @@ import { link } from "#/utils/link.tsx";
 </RestfulForm>
 ```
 
-For form submissions, the client entry's navigate listener reads the resulting `rmx-*` attributes from `event.sourceElement` — the submit button, not the `<form>`. This means a server-only form can target a specific frame without hydration.
+For form submissions, the client entry's navigate listener reads the resulting `data-rmx-*` attributes from `event.sourceElement` — the submit button, not the `<form>`. This means a server-only form can target a specific frame without hydration.
 
 **The `link` mixin definition:**
 
@@ -1117,15 +1123,15 @@ export type LinkProps = { target?: string; src?: URL; resetScroll?: boolean };
 export let link = createMixin<HTMLAnchorElement | HTMLButtonElement, [LinkProps]>(handle => {
     return props => (
         <handle.element
-            rmx-reset-scroll={props.resetScroll != null ? `${props.resetScroll}` : undefined}
-            rmx-src={props.src?.toString()}
-            rmx-target={props.target}
+            data-rmx-reset-scroll={props.resetScroll != null ? `${props.resetScroll}` : undefined}
+            data-rmx-src={props.src?.toString()}
+            data-rmx-target={props.target}
         />
     );
 });
 ```
 
-The mixin renders `rmx-*` attributes onto the host element.
+The mixin renders `data-rmx-*` attributes onto the host element.
 
 **Tightening the `target` type:** If you want compile-time validation of frame names, narrow `LinkProps["target"]` to a union literal (e.g. `"sidebar" | "detail"`). The server reads `ctx.headers.get("x-remix-target")` as a plain string (Recipe 5), so the typing is purely a client-side ergonomic choice.
 
@@ -1143,7 +1149,7 @@ These are the declarative equivalents of the options you can pass to `navigate()
 navigate(url, { target: "detail", src: someUrl, resetScroll: true });
 ```
 
-**Use the `link()` mixin for links and form buttons. Use `navigate()` with options for programmatic navigation.** They produce the same `rmx-*` attributes under the hood, but the mixin gives you type safety for frame names.
+**Use the `link()` mixin for links and form buttons. Use `navigate()` with options for programmatic navigation.** They produce the same `data-rmx-*` attributes under the hood, but the mixin gives you type safety for frame names.
 
 ---
 
@@ -2254,11 +2260,11 @@ on("pointerdown", event => {
 
 **The rule of thumb:**
 
-| Listener type                  | Pattern                                              | Example                                             |
-| ------------------------------ | ---------------------------------------------------- | --------------------------------------------------- |
-| Always needed while mounted    | `mix={[on(...)]}`                                    | Click handlers, submit handlers, keyboard shortcuts |
-| Only needed during interaction | Imperative `addEventListener` with `AbortController` | Drag tracking, resize handles, pointer capture      |
-| Global, for component lifetime | `addEventListeners(target, handle.signal, {...})`    | Window resize, navigation state changes             |
+| Listener type                  | Pattern                                                        | Example                                             |
+| ------------------------------ | -------------------------------------------------------------- | --------------------------------------------------- |
+| Always needed while mounted    | `mix={[on(...)]}`                                              | Click handlers, submit handlers, keyboard shortcuts |
+| Only needed during interaction | Imperative `addEventListener` with `AbortController`           | Drag tracking, resize handles, pointer capture      |
+| Global, for component lifetime | `target.addEventListener(type, fn, { signal: handle.signal })` | Window resize, navigation state changes             |
 
 ---
 

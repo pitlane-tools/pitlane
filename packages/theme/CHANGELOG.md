@@ -1,5 +1,22 @@
 # @pitlane/theme
 
+## 0.4.0
+
+Target Remix `3.0.0-rc.1`.
+
+- Raised the `remix` peer dependency to `^3.0.0-rc.1` (from
+  `^3.0.0-beta.10`). No API changes — `createTheme`, `extend`, `select`,
+  `<Theme />`, and the `css`/`tva`/`combine`/`cx` helpers are unchanged, and
+  the package still has no runtime dependency on Remix beyond
+  `createElement` from `remix/ui`.
+- One rc.1 change is worth knowing about when reading generated markup: the
+  marker on server-rendered style elements is now `data-rmx-style`, where
+  beta.10 emitted a bare `data-rmx`. A stylesheet or test that selected
+  `[data-rmx]` needs the new attribute. The class hashes this package emits
+  (`rmxc-…`) and the `@layer rmx` / `@layer rmx-reset` cascade layers are
+  unaffected.
+- Tested against `remix@3.0.0-rc.1`.
+
 ## 0.3.1
 
 - `createTheme`, `extend`, `select`, and a mode all take their token tree under
