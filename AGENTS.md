@@ -104,8 +104,8 @@ companion templates branch. See
 Every page under `docs/package/` is emitted by TypeDoc from the packages'
 TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`:
 one config per documented package (`dev.json`, `theme.json`, `crawler.json`,
-`data-table-d1.json`), each extending `base.json`, which registers the local
-theme and router in `plugin.mjs`. `mise run docs:api` runs them all.
+`data-table-d1.json`, `tui.json`), each extending `base.json`, which registers
+the local theme and router in `plugin.mjs`. `mise run docs:api` runs them all.
 
 Paths inside those configs resolve relative to the config file, not the repo
 root, so a package's entry points read `../packages/<name>/src/...` and its

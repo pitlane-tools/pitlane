@@ -12,6 +12,11 @@ allowBuilds:
     esbuild: false
     sharp: false
     vue-demi: false
+    # pnpm treats any Git-hosted dependency as a build candidate. The fork
+    # branch @pitlane/tui installs from ships a built package and carries no
+    # scripts, so there is nothing to run. Denial matches by name; an approval
+    # would have to name the commit and would expire on the next fork build.
+    "@remix-run/ui": false
 
 minimumReleaseAgeExclude:
     - "@oh-my-pi/hashline@17.0.0"
@@ -45,3 +50,4 @@ minimumReleaseAgeExclude:
     - "@remix-run/static-middleware@0.4.14"
     - "@remix-run/ui@0.8.0"
     - remix@3.0.0-rc.1
+    - "@bomb.sh/tty@0.9.0"

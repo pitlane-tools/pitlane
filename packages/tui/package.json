@@ -1,0 +1,58 @@
+{
+    "name": "@pitlane/tui",
+    "version": "0.0.0",
+    "description": "Experimental terminal rendering for Remix 3 UI components, powered by @bomb.sh/tty: Box and Text with the normal mix prop, a zero-I/O root for embedding, and a Node runner that owns terminal modes.",
+    "keywords": [
+        "pitlane",
+        "remix",
+        "renderer",
+        "terminal",
+        "tty",
+        "tui"
+    ],
+    "homepage": "https://github.com/pitlane-tools/pitlane/tree/main/packages/tui#readme",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/tui"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        },
+        "./node": {
+            "types": "./dist/node.d.mts",
+            "import": "./dist/node.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "dependencies": {
+        "@bomb.sh/tty": "0.9.0"
+    },
+    "devDependencies": {
+        "@remix-run/ui": "github:markmals/remix#preview/ui-universal-renderer&path:packages/ui",
+        "@types/node": "^25.5.0",
+        "typescript": "^7.0.2",
+        "vite-plus": "^0.2.6"
+    },
+    "peerDependencies": {
+        "@remix-run/ui": "^0.8.0"
+    },
+    "engines": {
+        "node": ">=24.3.0"
+    }
+}

@@ -100,6 +100,28 @@ importers:
         specifier: npm:@voidzero-dev/vite-plus-core@0.1.19
         version: '@voidzero-dev/vite-plus-core@0.1.19(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
 
+  demos/tui:
+    dependencies:
+      '@bomb.sh/tty':
+        specifier: 0.9.0
+        version: 0.9.0
+      '@pitlane/tui':
+        specifier: workspace:*
+        version: link:../../packages/tui
+      '@remix-run/ui':
+        specifier: github:markmals/remix#preview/ui-universal-renderer&path:packages/ui
+        version: https://codeload.github.com/markmals/remix/tar.gz/a44629efafcf4d4bdd06190a69039669cede103b#path:packages/ui
+    devDependencies:
+      '@remix-run/node-tsx':
+        specifier: 0.1.1
+        version: 0.1.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/crawler:
     devDependencies:
       '@types/node':
@@ -193,6 +215,25 @@ importers:
         specifier: ^0.2.6
         version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
+  packages/tui:
+    dependencies:
+      '@bomb.sh/tty':
+        specifier: 0.9.0
+        version: 0.9.0
+    devDependencies:
+      '@remix-run/ui':
+        specifier: github:markmals/remix#preview/ui-universal-renderer&path:packages/ui
+        version: https://codeload.github.com/markmals/remix/tar.gz/a44629efafcf4d4bdd06190a69039669cede103b#path:packages/ui
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite-plus:
+        specifier: ^0.2.6
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+
 packages:
 
   '@agentclientprotocol/sdk@1.2.1':
@@ -236,6 +277,10 @@ packages:
 
   '@blazediff/core@1.9.1':
     resolution: {integrity: sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA==}
+
+  '@bomb.sh/tty@0.9.0':
+    resolution: {integrity: sha512-1fX9lgwdc+kGRQeVEYwv7cJb5i855ysvB/TMCC3/wnnjMiKLZjWew6LLnsAMq4pLzkweivYw+zwYNZRUVhjoBA==}
+    engines: {node: '>= 22'}
 
   '@bufbuild/protobuf@2.12.1':
     resolution: {integrity: sha512-BvAMfS6LrgZiryOAZ4pBYucu4wG/Ei/9o9DZ9akbREnMLbPJiom2i8b9C8IsKErQoiKqVhrerzt3kOT/RrzLHg==}
@@ -2821,6 +2866,10 @@ packages:
 
   '@remix-run/ui@0.8.0':
     resolution: {integrity: sha512-4OdZ3oj0zbyVVaCFT/x2vjK5YxpD63KpLONkLZ2QVKIEBcLjJUGSenp2f08BOzC8oythLHCJgzHLKKulYJpIQA==}
+
+  '@remix-run/ui@https://codeload.github.com/markmals/remix/tar.gz/a44629efafcf4d4bdd06190a69039669cede103b#path:packages/ui':
+    resolution: {gitHosted: true, integrity: sha512-ZdZl/Rv91C+W3xCyhDoHGxrtUZ32YLj+CMlJpupQ0O+0ZJ/99tT/JqrNVdmkN0NlA7NE9v0TqvidZKQ1p10wqA==, path: packages/ui, tarball: https://codeload.github.com/markmals/remix/tar.gz/a44629efafcf4d4bdd06190a69039669cede103b}
+    version: 0.8.0
 
   '@rive-app/canvas-lite@2.38.5':
     resolution: {integrity: sha512-N6clhjB8CYmIMmtYZN5mBSHJmaWiLKoFhFkHbhrkmHWMWYb1076K+NcKTHg8G7w6M/VTdzJ0ntuEMkGS7Egczw==}
@@ -5986,6 +6035,8 @@ snapshots:
 
   '@blazediff/core@1.9.1': {}
 
+  '@bomb.sh/tty@0.9.0': {}
+
   '@bufbuild/protobuf@2.12.1': {}
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
@@ -7872,6 +7923,10 @@ snapshots:
       - '@emnapi/runtime'
 
   '@remix-run/ui@0.8.0':
+    dependencies:
+      '@types/dom-navigation': 1.0.7
+
+  '@remix-run/ui@https://codeload.github.com/markmals/remix/tar.gz/a44629efafcf4d4bdd06190a69039669cede103b#path:packages/ui':
     dependencies:
       '@types/dom-navigation': 1.0.7
 
