@@ -414,6 +414,70 @@ backends is one file.
 The Vite plugin is the piece with independent value. It works for stock React
 Native apps too, and it is the first Vite native pipeline that exists.
 
+## Fit against the vision
+
+`docs/internal/VISION.md` scopes Pitlane as a meta-framework that takes a Remix
+application "from development to production across Cloudflare, Netlify, Vercel,
+Railway, Deno Deploy, and plain Node, Bun, or Deno runtimes", and names the
+stable contract precisely: "the server entry's default-exported
+`.fetch(Request)` handler". An iOS app has no fetch handler. It has a bundle
+identifier, a signing certificate, and a review queue. This is the widest
+stretch the proposal makes, and it should be settled before any of the rest.
+
+What fits without argument:
+
+- The adapter pattern, as written. "Remix owns the capability interface (e.g.
+  `Database` from `remix/data-table`). A Pitlane adapter package supplies the
+  concrete implementation." `RendererHost` from `remix/ui/renderer` is a
+  Remix-owned interface with no implementation for native views, which is the
+  same shape `@pitlane/data-table-d1` has against `Database`.
+- Principle 5, Demand Composition. Four single-purpose packages, each usable
+  and documented on its own, none requiring the umbrella.
+- Principle 3, Runtime When Possible. The renderer is runtime-only and its
+  tests need no bundler. `@pitlane/native-vite` is the case the principle
+  already carves out: "a package whose stated purpose intrinsically requires
+  build-time integration, such as a Vite plugin, may use it directly".
+- The explicit non-goals. None of the four are touched. There is no platform
+  plugin, no universal CLI, no deploy action, no delegated build.
+
+What strains:
+
+- The Framework table assigns Components, Styles, Animations, and HMR to Remix,
+  under "Remix 3 owns every framework-level concern. Pitlane never reimplements
+  these." A renderer backend reimplements none of them, but the table has no row
+  that describes it either.
+- Principle 4, Avoid Dependencies. `react-native` plus four `@symbiote-native/*`
+  packages is the largest foundational dependency Pitlane would have taken, and
+  it is not one the principle expects to "replace with Pitlane packages over
+  time". The clause that permits it, "necessary provider, runtime, and tooling
+  dependencies are acceptable along the way", is doing more work here than
+  anywhere else in the repo.
+- The Deployment boundary table has six rows and all six are web hosts. An App
+  Store submission is not composable hosting around a fetch handler, and no part
+  of that section generalizes to it.
+- The planned package sequence runs to fifteen numbered items with no render
+  target among them. These four are a parallel track, not an insertion.
+
+The precedent that resolves it is already in the document. The Framework table
+gives Styles and Design system to Remix, and Pitlane ships `@pitlane/theme`
+anyway, because the Meta-Framework capability table carries a "Type-safe
+styling" row marked Pitlane-native. Remix owns the primitive; Pitlane owns a
+typed layer above it; the capability table is where that ownership gets
+recorded. A render target is the same move.
+
+So the amendment this needs is small and specific: a Render targets row in the
+Meta-Framework capability table, and one sentence extending the portable
+boundary from where an application runs to what it paints. Pitlane's own
+tagline already reads "the portable boundary is the application, not a
+synthesized hosting layer", and the same components rendering to a different
+host is that claim taken one step further rather than a different claim.
+
+That amendment should not be argued here. `@pitlane/tui`, proposed separately,
+asks the identical question with code that already exists, one dependency, and
+no bet on an eleven-week-old project. It is the cheaper place to decide whether
+Pitlane hosts render targets at all. If the answer there is no, this proposal
+is moot regardless of how well Fabric maps onto nine operations.
+
 ## Risks
 
 1. SymbioteNative is eleven weeks old (created 2026-06-20), has 60 stars, one
