@@ -37,9 +37,10 @@ run = [
     "typedoc --options .typedoc/data-table-d1.json",
     "typedoc --options .typedoc/dev.json",
     "typedoc --options .typedoc/theme.json",
+    "typedoc --options .typedoc/tui.json",
 ]
 
-# The sidebar links /package/dev/* and /package/theme/*, which only exist once
+# The sidebar links /package/<name>/*, which only exists once
 # typedoc has emitted them; VitePress fails the build on those dead links
 # otherwise.
 [tasks."docs:dev"]

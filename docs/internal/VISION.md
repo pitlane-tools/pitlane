@@ -8,6 +8,8 @@ Pitlane is a **meta-framework** for Remix 3. It provides the framework-adjacent 
 
 The portable boundary is the application, not a synthesized hosting layer. Controllers, job definitions, and capability usage depend on Remix or Pitlane-owned contracts; the server entry exposes a standard fetch handler. Hosting then composes explicitly around that handler through a provider's Vite plugin, native configuration, CLI, or a small runtime launcher.
 
+That boundary covers what an application paints as well as where it runs: `@remix-run/ui` owns the component model and the `RendererHost` interface from its `renderer` subpath, and a Pitlane package binds that interface to a substrate, the way an adapter binds a capability to a provider. `@pitlane/tui` is the first one, for the terminal, and it is experimental until Remix publishes that subpath.
+
 The goal is to make Remix 3 production-ready without becoming a deployment platform, hiding the host, building a multi-tenant control plane, or breaking Remix's explicit composition patterns.
 
 **Key principles:**
@@ -99,6 +101,7 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 | Router RPC               | Pitlane-native                                                                        |
 | Prerendering             | Pitlane-native                                                                        |
 | Crawling                 | Pitlane-native                                                                        |
+| Render targets           | Pitlane-native (terminal, experimental)                                               |
 
 **Name and distribution:**
 

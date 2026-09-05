@@ -1,0 +1,12 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "./base.json",
+    "entryPoints": ["../packages/tui/src/index.ts", "../packages/tui/src/node.ts"],
+    "tsconfig": "../packages/tui/tsconfig.json",
+    "out": "../docs/package/tui",
+    "entryModule": "@pitlane/tui",
+    // Host-tree types that appear in public signatures without being part of
+    // the package's export surface. They are inlined into the emitted .d.ts,
+    // and the `Box`/`Text` documentation is the reference for what they hold.
+    "intentionallyNotExported": ["TerminalElement", "TerminalNode", "TerminalNodeBase"]
+}
