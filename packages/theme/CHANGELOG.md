@@ -1,5 +1,14 @@
 # @pitlane/theme
 
+## 0.4.1
+
+Target Remix `3.0.0-rc.2`.
+
+- No API changes. `createTheme`, `extend`, `select`, `<Theme />`, and the
+  `css`/`tva`/`combine`/`cx` helpers behave as they did in 0.4.0.
+- The `remix` peer stays at `^3.0.0-rc.1`, which already admits rc.2.
+- Tested against `remix@3.0.0-rc.2`, type tests included.
+
 ## 0.4.0
 
 Target Remix `3.0.0-rc.1`.

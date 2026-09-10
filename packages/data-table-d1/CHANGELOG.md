@@ -1,5 +1,18 @@
 # @pitlane/data-table-d1
 
+## 0.2.1
+
+Target Remix `3.0.0-rc.2`.
+
+- No driver code changed. `createD1Database`, `D1Database`, and
+  `D1DatabaseDriver` behave as they did in 0.2.0.
+- rc.2 raises `@remix-run/data-table` to 0.5.1. This driver is described
+  structurally against the `DatabaseDriver` contract, which the bump leaves
+  alone.
+- The `remix` peer stays at `^3.0.0-rc.1`, which already admits rc.2.
+- Tested against `remix@3.0.0-rc.2`, including the workerd suite that drives a
+  real Miniflare D1 binding.
+
 ## 0.2.0
 
 Target Remix `3.0.0-rc.1`.

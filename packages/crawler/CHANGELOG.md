@@ -1,5 +1,15 @@
 # @pitlane/crawler
 
+## 0.2.1
+
+Target Remix `3.0.0-rc.2`.
+
+- No crawler code changed. `crawl()` still dispatches into a router's `fetch`
+  and yields the same `{ pathname, filepath, response }` records.
+- The `remix` peer stays at `^3.0.0-rc.1`, which already admits rc.2. Nothing
+  needs to move to install this alongside either prerelease.
+- Tested against `remix@3.0.0-rc.2`.
+
 ## 0.2.0
 
 Target Remix `3.0.0-rc.1`.
