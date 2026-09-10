@@ -8,7 +8,10 @@ import { clientEntryTransform } from "../src/transform.ts";
 
 type TransformResult = { code: string; map?: unknown } | undefined | null | void;
 type TransformHandler = (
-    this: { environment: { name: string; config: { root: string } } },
+    this: {
+        environment: { name: string; config: { root: string } };
+        warn: (message: string) => void;
+    },
     code: string,
     id: string,
 ) => TransformResult | Promise<TransformResult>;
@@ -19,13 +22,21 @@ async function runTransform(
     code: string,
     id: string,
     root = "/project",
+    warnings: string[] = [],
 ): Promise<TransformResult> {
     let hook = plugin.transform;
     if (!hook || typeof hook === "function") {
         throw new Error("expected an object-form transform hook with a filter");
     }
     let handler = hook.handler as TransformHandler;
-    return await handler.call({ environment: { name: environment, config: { root } } }, code, id);
+    return await handler.call(
+        {
+            environment: { name: environment, config: { root } },
+            warn: message => warnings.push(message),
+        },
+        code,
+        id,
+    );
 }
 
 // Narrows a transform result to its emitted code, failing the test when the
@@ -65,6 +76,59 @@ const ARROW_COMPONENT = `export const Card = (handle) => {
 
 const NON_COMPONENT_ARROW = `export const NotAComponent = () => 42;
 export const helper = (handle) => () => null;
+`;
+
+// Every shape `remix/ui-hmr` matches on "PascalCase export that returns
+// something" and then miscompiles. Instrumenting any of them breaks the
+// module, so the plugin has to leave the whole file alone.
+const UNSUPPORTED_EXPORTS: Record<string, string> = {
+    "async function": `export async function Loader(props) {
+    let data = await props.query;
+    return <p>{data}</p>;
+}
+`,
+    generator: `export function* Rows(props) {
+    yield props.first;
+    return props.rest;
+}
+`,
+    "element-returning helper": `export function Card(props) {
+    return <div>{props.children}</div>;
+}
+`,
+    "element-returning function expression": `export const Card = function (props) {
+    return <div>{props.children}</div>;
+};
+`,
+    "async clientEntry setup": `import { clientEntry } from "remix/ui";
+export const Counter = clientEntry(import.meta.url, async function Counter(handle) {
+    let start = await handle.props.start;
+    return () => <b>{start}</b>;
+});
+`,
+    "clientEntry setup returning no render function": `import { clientEntry } from "remix/ui";
+export const Counter = clientEntry(import.meta.url, function Counter(handle) {
+    handle.ready = true;
+});
+`,
+    "async function behind an export list": `async function Loader(props) {
+    let data = await props.query;
+    return <p>{data}</p>;
+}
+export { Loader };
+`,
+};
+
+/** A real component sharing a module with one of the shapes above. */
+const MIXED_MODULE = `export function Counter(handle) {
+    let count = 0;
+    return () => <b>{count}</b>;
+}
+
+export async function Loader(props) {
+    let data = await props.query;
+    return <p>{data}</p>;
+}
 `;
 
 describe("componentHmr", () => {
@@ -143,6 +207,80 @@ describe("componentHmr", () => {
         );
 
         expect(result).toBeUndefined();
+    });
+
+    it.each(Object.entries(UNSUPPORTED_EXPORTS))(
+        "leaves a module holding %s alone in both environments",
+        async (_shape, code) => {
+            let plugin = componentHmr(new Set(["ssr"]));
+
+            expect(
+                await runTransform(plugin, "client", code, "/project/app/x.tsx"),
+            ).toBeUndefined();
+            expect(await runTransform(plugin, "ssr", code, "/project/app/x.tsx")).toBeUndefined();
+        },
+    );
+
+    it("warns when an unsupported export costs a real component its hot swap", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        let warnings: string[] = [];
+        let result = await runTransform(
+            plugin,
+            "client",
+            MIXED_MODULE,
+            "/project/app/mixed.tsx",
+            "/project",
+            warnings,
+        );
+
+        expect(result).toBeUndefined();
+        expect(warnings).toHaveLength(1);
+        // Names both the export to move and what moving it buys back.
+        expect(warnings[0]).toContain("Loader");
+        expect(warnings[0]).toContain("Counter");
+    });
+
+    it("stays quiet when the module had no hot swap to lose", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        let warnings: string[] = [];
+        await runTransform(
+            plugin,
+            "client",
+            UNSUPPORTED_EXPORTS["element-returning helper"]!,
+            "/project/app/card.tsx",
+            "/project",
+            warnings,
+        );
+
+        expect(warnings).toEqual([]);
+    });
+
+    it("instruments a component beside an aliased export ui-hmr never matches", async () => {
+        // `export { LoaderImpl as Loader }` is not a component export to
+        // `ui-hmr`, so nothing about the async function behind it is at risk
+        // and Counter has to keep hot-swapping. Guards against over-skipping.
+        let plugin = componentHmr(new Set(["ssr"]));
+        let code = codeOf(
+            await runTransform(
+                plugin,
+                "client",
+                `async function LoaderImpl(props) {
+    let data = await props.query;
+    return <p>{data}</p>;
+}
+export { LoaderImpl as Loader };
+
+export function Counter(handle) {
+    let count = 0;
+    return () => <b>{count}</b>;
+}
+`,
+                "/project/app/aliased.tsx",
+            ),
+        );
+
+        expect(code).toContain("import.meta.hot.accept");
+        expect(code).toContain('"Counter"');
     });
 });
 
@@ -418,7 +556,7 @@ describe("componentHmr composes with clientEntryTransform", () => {
             throw new Error("expected an object-form transform hook");
         }
         return await (hook.handler as TransformHandler).call(
-            { environment: { name: env, config: { root: "/project" } } },
+            { environment: { name: env, config: { root: "/project" } }, warn: () => {} },
             code,
             id,
         );

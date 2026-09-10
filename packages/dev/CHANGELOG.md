@@ -1,5 +1,28 @@
 # @pitlane/dev
 
+## 0.6.1
+
+Target Remix `3.0.0-rc.2`.
+
+- Component HMR no longer instruments a PascalCase export that is not a
+  Remix component setup. `remix/ui-hmr` matches any exported PascalCase
+  function whose body returns something, so an `export async function` had
+  its body moved into a plain arrow, where the `await` no longer parsed and
+  the browser failed the module and every importer with
+  `SyntaxError: Unexpected reserved word`. A generator broke the same way on
+  `yield`, a helper returning an element was rewritten to return a function,
+  and a `clientEntry()` setup with no render function threw inside the
+  transform. The plugin now checks the shape itself and leaves the module
+  alone when one of them is present, warning when a real component in that
+  file loses its hot swap as a result.
+- The `remix` peer stays at `^3.0.0-rc.1`, which already admits rc.2. Tested
+  against Vite 8.1 (Rolldown), Vite+ 0.2 (`vp`), and `remix@3.0.0-rc.2`,
+  across the node, cloudflare, hmr, spa, and prerender fixtures.
+- Now depends on `@pitlane/crawler@^0.2.1`, its rc.2 release. The manifest
+  carries `workspace:^` and the release workflow packs with pnpm, which
+  rewrites it to the version the monorepo resolved, so crawler publishes
+  first.
+
 ## 0.6.0
 
 Target Remix `3.0.0-rc.1`.

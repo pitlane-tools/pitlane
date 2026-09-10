@@ -1,4 +1,4 @@
-import type { Expression } from "oxc-parser";
+import type { Expression, Function as FunctionNode, FunctionBody, Program } from "oxc-parser";
 import type { Plugin } from "vite";
 
 import MagicString from "magic-string";
@@ -37,6 +37,12 @@ const SERVER_UPDATE_SETTLE_MS = 50;
  * source changes. The normalization is discarded when `ui-hmr` does not
  * instrument the module, so non-component arrows are never rewritten.
  *
+ * `ui-hmr` instruments any exported PascalCase function whose body returns
+ * something, which is a wider net than a Remix component: an `async` function,
+ * a generator, or a plain JSX helper all match, and all three are miscompiled
+ * by it. Modules holding one are left alone entirely. See
+ * {@link findComponentExports}.
+ *
  * The browser transform runs in the client environment and the server transform
  * in the server environment(s); both emit the standard `import.meta.hot.accept()`
  * protocol that Vite's own HMR runtime drives.
@@ -57,6 +63,23 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
             },
             handler(code, id) {
                 let source = normalizeArrowComponents(code, id) ?? code;
+
+                let { supported, unsupported } = findComponentExports(source, id);
+                if (unsupported.length > 0) {
+                    // Silent when nothing was lost: a module of plain helpers
+                    // was never going to hot-swap. Worth saying when a real
+                    // component is sitting next to one and now cannot.
+                    if (supported.length > 0) {
+                        this.warn(
+                            `Component HMR is off for this module. These exports are PascalCase ` +
+                                `but are not Remix component setups, which are synchronous and ` +
+                                `return a render function: ${unsupported.join(", ")}. Moving or ` +
+                                `renaming them lets ${supported.join(", ")} hot-swap again.`,
+                        );
+                    }
+                    return;
+                }
+
                 let result = serverEnvironments.has(this.environment.name)
                     ? transformComponentsForServer(source, {
                           importSource: "remix",
@@ -199,18 +222,138 @@ function getNormalizableArrow(init: Expression): ArrowNode | undefined {
 /** A Remix component setup returns a render function; that is the HMR signal. */
 function returnsRenderFunction(arrow: ArrowNode): boolean {
     let body = arrow.body;
-    if (body.type === "ArrowFunctionExpression" || body.type === "FunctionExpression") {
-        return true;
+    if (body.type !== "BlockStatement") return isRenderFunction(body);
+    return isRenderFunction(getRenderArgument(body));
+}
+
+/**
+ * The expression `ui-hmr` hoists out of a setup body and re-registers on every
+ * update: the argument of the first top-level `return`. Mirrors its own
+ * `getRenderArgument`, so this module agrees with it about what it will match.
+ */
+function getRenderArgument(body: FunctionBody): Expression | undefined {
+    let statement = body.body.find(node => node.type === "ReturnStatement");
+    return statement?.argument ?? undefined;
+}
+
+function isRenderFunction(node: Expression | undefined): boolean {
+    return node?.type === "ArrowFunctionExpression" || node?.type === "FunctionExpression";
+}
+
+interface ComponentExports {
+    /** Exports `ui-hmr` instruments correctly. */
+    supported: string[];
+    /** Exports `ui-hmr` would instrument and break. */
+    unsupported: string[];
+}
+
+/**
+ * Splits a module's PascalCase exports into the ones `remix/ui-hmr` can
+ * instrument and the ones it would instrument but miscompile.
+ *
+ * All `ui-hmr` asks is whether an exported PascalCase function returns
+ * something, which catches three shapes it cannot handle. An `async` setup or
+ * a generator has its body moved into a plain arrow, so the `await` or `yield`
+ * stops parsing and the module — along with everything importing it — fails to
+ * load. A function returning an element rather than a render function is
+ * rewritten to return a function, so anything calling it directly gets the
+ * wrong value back. A `clientEntry()` setup with no `return` at all throws
+ * inside the transform.
+ *
+ * Instrumentation is per module, so a single one of those turns component HMR
+ * off for the whole file. Losing the hot swap beats emitting a module that
+ * does not run.
+ */
+function findComponentExports(code: string, id: string): ComponentExports {
+    let program = parseSync(id, code).program;
+    let exportedNames = getExportedNames(program);
+    let supported: string[] = [];
+    let unsupported: string[] = [];
+
+    for (let item of program.body) {
+        let statement =
+            item.type === "ExportNamedDeclaration" && item.declaration ? item.declaration : item;
+        let directExport = statement !== item;
+
+        if (statement.type === "FunctionDeclaration") {
+            let name = statement.id?.name;
+            if (!name || !isPascalCase(name)) continue;
+            if (!directExport && !exportedNames.has(name)) continue;
+            if (!statement.body || !getRenderArgument(statement.body)) continue;
+
+            if (isComponentSetup(statement)) supported.push(name);
+            else unsupported.push(name);
+            continue;
+        }
+
+        if (statement.type !== "VariableDeclaration") continue;
+
+        for (let declarator of statement.declarations) {
+            if (declarator.id.type !== "Identifier") continue;
+            let name = declarator.id.name;
+            if (!isPascalCase(name)) continue;
+            if (!directExport && !exportedNames.has(name)) continue;
+
+            let init = declarator.init;
+            if (!init) continue;
+
+            // A `clientEntry()` setup is a candidate on sight; a bare function
+            // expression only once it returns something, which is the whole of
+            // what `ui-hmr` looks for.
+            let setup = getClientEntrySetup(init);
+            if (!setup) {
+                if (init.type !== "FunctionExpression") continue;
+                if (!init.body || !getRenderArgument(init.body)) continue;
+                setup = init;
+            }
+
+            if (isComponentSetup(setup)) supported.push(name);
+            else unsupported.push(name);
+        }
     }
-    if (body.type === "BlockStatement") {
-        return body.body.some(
-            statement =>
-                statement.type === "ReturnStatement" &&
-                (statement.argument?.type === "ArrowFunctionExpression" ||
-                    statement.argument?.type === "FunctionExpression"),
-        );
+
+    return { supported, unsupported };
+}
+
+/** The documented shape: a synchronous setup that returns a render function. */
+function isComponentSetup(setup: FunctionNode): boolean {
+    if (setup.async || setup.generator || !setup.body) return false;
+    return isRenderFunction(getRenderArgument(setup.body));
+}
+
+/**
+ * The setup inside `clientEntry(url, setup)`, including the
+ * `clientEntry(url, wrap(setup))` form `ui-hmr` also unwraps.
+ */
+function getClientEntrySetup(init: Expression): FunctionNode | undefined {
+    if (init.type !== "CallExpression") return undefined;
+    if (init.callee.type !== "Identifier" || init.callee.name !== "clientEntry") return undefined;
+
+    let candidate = init.arguments[1];
+    if (candidate?.type === "FunctionExpression") return candidate;
+    if (candidate?.type !== "CallExpression") return undefined;
+
+    let inner = candidate.arguments[0];
+    return inner?.type === "FunctionExpression" ? inner : undefined;
+}
+
+/**
+ * PascalCase names re-exported under their own name (`export { Card }`), which
+ * `ui-hmr` instruments alongside `export function`. An alias
+ * (`export { CardImpl as Card }`) is not one of them.
+ */
+function getExportedNames(program: Program): Set<string> {
+    let names = new Set<string>();
+
+    for (let item of program.body) {
+        if (item.type !== "ExportNamedDeclaration") continue;
+        for (let { exported, local } of item.specifiers) {
+            if (local.type !== "Identifier" || exported.type !== "Identifier") continue;
+            if (local.name === exported.name && isPascalCase(local.name)) names.add(local.name);
+        }
     }
-    return false;
+
+    return names;
 }
 
 /** Source of the arrow's parameter list, always parenthesized. */
