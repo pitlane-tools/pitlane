@@ -52,7 +52,7 @@
         "csstype": "^3.2.3"
     },
     "devDependencies": {
-        "remix": "3.0.0-rc.1",
+        "remix": "3.0.0-rc.2",
         "typescript": "^7.0.2",
         "vite-plus": "^0.2.6"
     },

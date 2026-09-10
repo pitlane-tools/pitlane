@@ -12,7 +12,7 @@ npm install --save-dev @pitlane/dev
 vp add -D @pitlane/dev
 ```
 
-Requires `remix@^3.0.0-rc.1` and `vite@>=7` as peers. Tested against **Vite 8.1** (Rolldown), **Vite+ 0.2** (`vp`), and `remix@3.0.0-rc.1` — the [templates](https://github.com/pitlane-tools/templates) are the continuously tested reference.
+Requires `remix@^3.0.0-rc.1` and `vite@>=7` as peers. Tested against **Vite 8.1** (Rolldown), **Vite+ 0.2** (`vp`), and `remix@3.0.0-rc.2` — the [templates](https://github.com/pitlane-tools/templates) are the continuously tested reference.
 
 ## Quick start
 
@@ -429,7 +429,7 @@ dist/
 | ----------- | -------------- |
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
-| `remix`     | 3.0.0-rc.1     |
+| `remix`     | 3.0.0-rc.2     |
 | Node        | 24 LTS, 26     |
 
 Remix 3 is in prerelease; each `@pitlane/dev` release records the exact prerelease it was verified against. Rolldown is not required — the transform runs identically on generic Vite and Vite+.
