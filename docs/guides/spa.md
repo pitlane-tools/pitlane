@@ -118,7 +118,7 @@ createRoot(container).render(<App />);
 
 ### A router
 
-`remix/spa` connects an ordinary Remix fetch router to the document. The `render()` middleware gives every handler a `context.render()` that answers with a UI node, and `run()` dispatches the current URL plus every same-origin navigation and form submission through that router:
+`remix/spa` connects an ordinary Remix fetch router to the document. `remix@3.0.0-rc.1` is the first release that includes it. The `render()` middleware gives every handler a `context.render()` that answers with a UI node, and `run()` dispatches the current URL plus every same-origin navigation and form submission through that router:
 
 ```tsx
 // app/router.tsx
@@ -135,23 +135,34 @@ router.get("/about", ({ render }) => render(<About />));
 // app/entry.browser.tsx
 import { run } from "remix/spa";
 
+import { Loading } from "./loading.tsx";
 import { router } from "./router.tsx";
 
-let app = run(router);
+let app = run(router, { fallback: <Loading /> });
 await app.ready();
 ```
 
-::: warning `remix/spa` is in preview
+`run()` renders into the document's top frame. Whatever the shell left in `<body>` goes away with the first render, so the `#app` container from [the app shell](#the-app-shell) is `createRoot` machinery this shape never reads.
 
-`remix/spa` lands in [remix-run/remix#11687](https://github.com/remix-run/remix/pull/11687) and is not in a published Remix release yet. Until it is, install the PR's preview build:
+The optional `fallback` is a live node for the gap before the first route resolves. `app.ready()` waits for the routed node to take its place.
 
-```sh
-pnpm add "remix-run/remix#preview/pr-11687&path:packages/remix"
+Everything past the first render stays inside the router. Anchors, form submissions, and history traversal become `Request` objects it answers, and a handler that returns a `redirect()` is followed before anything renders. Redirects have to stay same-origin, and a chain longer than ten throws.
+
+Give `render()` a transform when every route shares a shell. It receives the route's node and the request context, so the layout can read the URL it is rendering:
+
+```tsx
+// app/router.tsx
+export let router = createRouter({
+    middleware: [
+        render((content, { url }) => (
+            <main>
+                <Nav pathname={url.pathname} />
+                {content}
+            </main>
+        )),
+    ],
+});
 ```
-
-SPA mode itself does not depend on it. The plugin only cares that nothing renders on a server.
-
-:::
 
 ## The build
 
@@ -296,8 +307,4 @@ await app.ready();
 
 Two routers, and they are not the same one. The browser router owns what the user sees. The server router owns the shell and the data those views fetch. They meet at the URL, so the server maps every navigable route to the shell: a deep link or a refresh has to arrive at HTML that boots the client router, which then resolves the path.
 
-::: warning `remix/spa` is in preview
-
-It is proposed in [remix-run/remix#11687](https://github.com/remix-run/remix/pull/11687) and is not in a published Remix release yet. See [Rendering](#rendering) for the preview install. Neither this shape nor SPA mode depends on it.
-
-:::
+The shell's `<div id="app" />` is there for the `createRoot` shape. Under `remix/spa`, `run()` renders into the top frame and replaces the body the server sent, so the container goes unread and an empty `<body>` works just as well.
