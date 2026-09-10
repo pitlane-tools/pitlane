@@ -1,6 +1,11 @@
 packages:
     - packages/*
     - demos/*
+    # TypeScript 7 is a Go binary with no JS compiler API, and TypeDoc is built
+    # on that API — its peer range stops at 6.0.x. Keeping TypeDoc in its own
+    # workspace package is what lets it hold TypeScript 6 while the rest of the
+    # repo is on 7, instead of aliasing the name repo-wide.
+    - .typedoc
 
 allowBuilds:
     remix: true

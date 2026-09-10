@@ -9,7 +9,7 @@ export default defineConfig({
                 default: "src/default.ts",
                 dtcg: "src/dtcg.ts",
             },
-            dts: { tsgo: true },
+            dts: true,
         },
     ],
     run: {

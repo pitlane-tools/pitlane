@@ -112,6 +112,15 @@ root, so a package's entry points read `../packages/<name>/src/...` and its
 output `../docs/package/<name>`. Adding a documented package means adding a
 config there plus a line in the `docs:api` task.
 
+`.typedoc/` is also a workspace package, and that is deliberate. TypeDoc is
+built on the TypeScript JS compiler API, which TypeScript 7 does not ship — 7
+is a Go binary, and TypeDoc's peer range stops at 6.0.x. Its `package.json`
+therefore holds `typescript` as an alias for `@typescript/typescript6`, while
+the repo root and every package are on real `typescript@7`. `docs:api` runs
+from `.typedoc/` so TypeDoc picks up its own copy. Do not move TypeDoc back to
+the root: that is what made `typescript` mean 6 repo-wide, which in turn forced
+`@typescript/native-preview` on the `vp pack` declaration build.
+
 Never edit a file under `docs/package/`; the next build overwrites it. Change
 the TSDoc comment in `packages/<name>/src/` instead. Narrative documentation
 belongs in `docs/guides/`.

@@ -31,12 +31,16 @@ run = "tsc"
 depends = "docs:build"
 run = ["oxfmt --check", "oxlint", "tsc"]
 
+# TypeDoc lives in its own workspace package because it needs the TypeScript 6
+# JS API; running it from there picks up that TypeScript instead of the root's
+# 7.x. Config paths resolve relative to the config file, so `dir` costs nothing.
 [tasks."docs:api"]
+dir = "{{config_root}}/.typedoc"
 run = [
-    "typedoc --options .typedoc/crawler.json",
-    "typedoc --options .typedoc/data-table-d1.json",
-    "typedoc --options .typedoc/dev.json",
-    "typedoc --options .typedoc/theme.json",
+    "./node_modules/.bin/typedoc --options crawler.json",
+    "./node_modules/.bin/typedoc --options data-table-d1.json",
+    "./node_modules/.bin/typedoc --options dev.json",
+    "./node_modules/.bin/typedoc --options theme.json",
 ]
 
 # The sidebar links /package/dev/* and /package/theme/*, which only exist once

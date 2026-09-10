@@ -7,7 +7,7 @@ export default defineConfig({
                 index: "src/index.ts",
                 runtime: "src/runtime.ts",
             },
-            dts: { tsgo: true },
+            dts: true,
         },
     ],
     run: {

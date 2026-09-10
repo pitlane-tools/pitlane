@@ -4,7 +4,7 @@ export default defineConfig({
     pack: [
         {
             entry: { index: "src/index.ts" },
-            dts: { tsgo: true },
+            dts: true,
         },
     ],
     run: {
