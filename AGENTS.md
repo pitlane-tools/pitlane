@@ -40,6 +40,37 @@ npm view @pitlane/dev versions     # what npm has
 git ls-remote --tags origin        # what has been tagged
 ```
 
+### A green job is not yet an installable package
+
+`publish.yml` finishing green means npm accepted the publish. It does not mean
+anyone can install the version yet, and the two halves of the registry catch up
+in the order that looks most like failure:
+
+| What                                                        | When it caught up       |
+| ----------------------------------------------------------- | ----------------------- |
+| `npm view <package> version`                                | about a minute          |
+| `registry.npmjs.org/@pitlane/<name>/-/<name>-<version>.tgz` | two to six more minutes |
+
+So there is a window, minutes long, where `npm view` names the new version and
+`npm install` still fails with a 404 on its tarball. All four releases on
+2026-09-10 behaved this way. Do not re-cut a tag or re-run the workflow into it.
+
+Read the job log instead of guessing. `+ @pitlane/<name>@<version>` and a
+`Provenance statement published to transparency log` line mean npm took it, and
+npm says so itself: `Your package is being processed and may take a few minutes
+to become available`.
+
+The only check worth trusting is an install, which is what a consumer hits:
+
+```sh
+cd "$(mktemp -d)" && npm init -y >/dev/null
+npm install @pitlane/<name>@<version>
+```
+
+That is also the gate for releasing a dependent. `pnpm pack` writes the
+resolved version into the dependent's manifest, so `@pitlane/dev` naming
+`@pitlane/crawler@^0.2.1` is uninstallable until crawler's own install works.
+
 ### A package's first publish is manual, once
 
 `publish.yml` authenticates through npm Trusted Publishing (OIDC). A trusted
@@ -77,14 +108,9 @@ Afterwards, configure the trusted publisher on npmjs.com (package settings →
 Trusted Publisher → GitHub Actions, naming this repo and `publish.yml`). Every
 later version then goes through the release workflow, with provenance.
 
-Expect `npm view` to 404 for several minutes after a first publish while the
-packument cache invalidates. The publish still succeeded; check the parts that
-update first:
-
-```sh
-curl -sI https://registry.npmjs.org/@pitlane/<name>/-/<name>-<version>.tgz
-npm access list packages @pitlane
-```
+A first publish is the slow case: `npm view` itself 404s for several minutes,
+because the packument is being created rather than invalidated. The install
+check above is still the gate.
 
 ### Preview builds are not releases
 
