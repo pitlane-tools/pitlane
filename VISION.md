@@ -1,3 +1,8 @@
+---
+title: Pitlane Vision
+updated: 2026-09-11
+---
+
 # Pitlane Vision
 
 ![Pitlane logo](https://i.imgur.com/3QRfNfi.png)

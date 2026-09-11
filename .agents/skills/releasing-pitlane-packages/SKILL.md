@@ -20,8 +20,8 @@ and nothing downstream still points at a preview.
 All seven, every time. A release that stops after the tag is a release that left
 work for whoever notices next.
 
-- [ ] `docs/internal/VISION.md` describes the world this PR creates, and the
-      update is **on the branch** so the merge carries it
+- [ ] `VISION.md` describes the world this PR creates, and the update is
+      **on the branch** so the merge carries it
 - [ ] The PR is landed, and the intent behind the work is retrievable from
       `main` without the branch
 - [ ] The tag is pushed and the GitHub release is published — one release per
@@ -35,9 +35,9 @@ work for whoever notices next.
 
 ## 1. Bring VISION onto this PR — before the merge
 
-`docs/internal/VISION.md` is the project's account of itself, and a release is
-the event that makes it wrong. **Open it and check all six places before you
-merge anything.** Not the one you remember.
+`VISION.md` is the project's account of itself, and a release is the event
+that makes it wrong. **Open it and check all six places before you merge
+anything.** Not the one you remember.
 
 | Where in `VISION.md`                     | Goes stale when                                         |
 | ---------------------------------------- | ------------------------------------------------------- |
@@ -58,9 +58,11 @@ longer compiles. **Ask the user first** when the edit changes direction rather
 than fact: killing or reordering a planned package, claiming a capability the
 document never claimed, or anything that changes what Pitlane says it is.
 
-Commit it on the release branch, as its own `docs:` commit, before the merge.
+Commit it on the release branch, as its own `vision:` commit, before the merge.
 `17af271` is exactly that — the last commit on the branch before the
-`@pitlane/theme@0.3.0` merge, with `e7bd843` earlier on the same branch.
+`@pitlane/theme@0.3.0` merge, with `e7bd843` earlier on the same branch. Both
+predate the move to the repository root and so carry the `docs:` scope the
+document's old path implied.
 
 ### The rationalizations, and what is true instead
 
@@ -70,7 +72,7 @@ Commit it on the release branch, as its own `docs:` commit, before the merge.
 | "The line already says shipped"                            | Issue #10 was three packages missing from a document that already said "shipped" about others.                 |
 | "I'll sweep the docs after the release"                    | That is the sequence that produced #10. `f3c8ffb` is the cleanup nobody had scheduled.                         |
 | "The PR author would have handled it"                      | Sometimes they did, on the branch. Where the commits are missing, you write them.                              |
-| "It's internal, and gitignored docs regenerate"            | `docs/package/` regenerates. `docs/internal/VISION.md` is hand-written and tracked.                            |
+| "It's unpublished, and gitignored docs regenerate"         | `docs/package/` regenerates. `VISION.md` is hand-written and tracked at the repo root.                         |
 
 ## 2. Land the PR so the intent outlives the branch
 
@@ -273,7 +275,7 @@ broke, and **report rather than bundle** anything that was already stale:
 
 ## Red flags — stop
 
-- About to run `gh pr merge` without having opened `docs/internal/VISION.md`
+- About to run `gh pr merge` without having opened `VISION.md`
 - About to `gh pr ready` while the branch still names a preview build
 - About to merge a dependent PR while `npm view` has not shown the version
 - Release notes that are the CHANGELOG with the bullets still in it
