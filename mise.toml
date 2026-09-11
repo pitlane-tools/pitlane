@@ -1,4 +1,5 @@
 [tools]
+"github:can1357/oh-my-pi" = "latest"
 node = "26"
 pnpm = "11"
 vale = "3"
