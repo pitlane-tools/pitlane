@@ -89,3 +89,24 @@ jobs:
                       exit 1
                   fi
                   echo "No dependency API leaks."
+
+    # Validating the record and testing its tooling are repo-level tasks, so
+    # they run through Mise like the other root tasks above.
+    record:
+        name: The record must validate
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup toolchain
+              uses: jdx/mise-action@v4
+
+            - name: Install
+              run: pnpm install --frozen-lockfile
+
+            - name: Validate the record
+              run: mise run validate
+
+            - name: Test the record tooling
+              run: mise run tools:test
