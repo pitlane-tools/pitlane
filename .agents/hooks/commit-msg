@@ -1,0 +1,85 @@
+#!/bin/sh
+# Standard Git commit-msg hook. Enforces Scoped Commits for ordinary commits.
+
+fail() {
+    printf '%s\n' "$1" >&2
+    exit 1
+}
+
+if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
+    fail "commit-msg: Git did not supply a readable commit-message file."
+fi
+
+root=$(git rev-parse --show-toplevel 2>/dev/null) ||
+    fail "commit-msg: cannot determine the repository root."
+message_file=$1
+
+# Git message templates may be blank or contain only comment lines.
+subject=$(
+    sed -n \
+        -e '/^[[:space:]]*#/d' \
+        -e '/^[[:space:]]*$/d' \
+        -e 's/^[[:space:]]*//' \
+        -e 's/[[:space:]]*$//' \
+        -e 'p; q' \
+        "$message_file"
+)
+[ -n "$subject" ] || exit 0
+
+# Git-generated mechanical commits are exempt.
+case "$subject" in
+    [Mm]erge\ *|[Mm]erge:\ *|[Rr]evert\ *|[Rr]evert:\ *|fixup!\ *|squash!\ *)
+        exit 0
+        ;;
+esac
+
+if printf '%s\n' "$subject" |
+    grep -Eq '^[A-Za-z][A-Za-z0-9-]*\([A-Za-z0-9._/-]+\)!?:[[:space:]]'; then
+    fail "commit-msg: Conventional Commits 'type(scope):' subjects are not allowed; use Scoped Commits '<scope>: <imperative description>'."
+fi
+
+if ! printf '%s\n' "$subject" |
+    grep -Eq '^[^[:space:]:][^[:space:]:]*:[[:space:]]+[^[:space:]].*$'; then
+    fail "commit-msg: subject must be a Scoped Commit: '<scope>: <imperative description>'."
+fi
+
+scope=${subject%%:*}
+
+is_builtin_scope() {
+    case "$1" in
+        proposal|policy|decision|guides|docs|tools|ci|agents|skills|rules|templates|hooks|mise|readme|vision|treewide)
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+is_proposal_scope() {
+    printf '%s\n' "$1" | grep -Eq '^[0-9]{4}-[a-z0-9-]+$' &&
+        [ -f "$root/proposals/$1.md" ]
+}
+
+is_configured_scope() {
+    [ -f "$root/.agents/commit-scopes" ] || return 1
+
+    while IFS= read -r candidate || [ -n "$candidate" ]; do
+        candidate=$(printf '%s\n' "$candidate" |
+            sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        case "$candidate" in
+            ''|\#*)
+                continue
+                ;;
+        esac
+        [ "$candidate" = "$1" ] && return 0
+    done < "$root/.agents/commit-scopes"
+
+    return 1
+}
+
+if ! is_builtin_scope "$scope" &&
+    ! is_proposal_scope "$scope" &&
+    ! is_configured_scope "$scope"; then
+    fail "commit-msg: scope '$scope' is not allowed. Use a built-in scope, a real proposals/<NNNN>-<slug>.md filename, or a scope in .agents/commit-scopes."
+fi
+
+exit 0

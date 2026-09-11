@@ -1,0 +1,40 @@
+# Product scopes accepted by .agents/hooks/commit-msg, one per line. Blank
+# lines and `#` comment lines are ignored. A trailing comment on a scope line
+# is not: the hook compares the whole trimmed line, so `dev  # ...` would stop
+# matching `dev`.
+#
+# The process scopes are built into the hook and need no entry here: proposal,
+# policy, decision, guides, docs, tools, ci, agents, skills, rules, templates,
+# hooks, mise, readme, vision, treewide. Neither does a real
+# proposals/<NNNN>-<slug>.md filename, used as `0007-export-queue: ...`.
+
+# Published packages, packages/<name>
+dev
+theme
+crawler
+data-table-d1
+
+# Reserved npm names with no implementation yet, packages/<name>
+pitlane
+create-pitlane
+
+# demos/theme and demos/tui
+demos
+
+# worker.ts and wrangler.jsonc, the Worker that fronts the docs site's assets
+worker
+
+# .typedoc/, which generates every page under docs/package/
+typedoc
+
+# Version-only commits. See AGENTS.md: a commit that also changes code or prose
+# takes the scope of what it changes.
+release
+
+# The repo toolchain itself: .oxfmtrc.jsonc, .oxlintrc.jsonc, vite.config.ts,
+# tsconfig.json, .npmrc
+tooling
+
+# Dependency upgrades, and housekeeping with no narrower home
+deps
+chore
