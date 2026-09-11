@@ -28,8 +28,23 @@ depends = "docs:build"
 run = "tsc"
 
 [tasks.check]
-depends = "docs:build"
+depends = ["docs:build", "validate", "tools:test"]
 run = ["oxfmt --check", "oxlint", "tsc"]
+
+[tasks.validate]
+description = "Validate the record: vision, proposals, policies, decisions"
+run = "node tools/validate.mjs"
+
+[tasks.status]
+description = "Show where the work is in the process and what happens next"
+run = "node tools/status.mjs"
+
+# The record tooling carries its own `node:test` suites so it stays
+# dependency-free. Package tests run through Vite+ (`vp test`) from inside each
+# package, so this task is namespaced instead of claiming the bare `test` name.
+[tasks."tools:test"]
+description = "Run the record tooling's own tests"
+run = "node --test tools/*.test.mjs"
 
 # TypeDoc lives in its own workspace package because it needs the TypeScript 6
 # JS API; running it from there picks up that TypeScript instead of the root's
