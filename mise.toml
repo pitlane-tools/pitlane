@@ -58,9 +58,11 @@ run = [
     "./node_modules/.bin/typedoc --options theme.json",
 ]
 
-# The sidebar links /package/dev/* and /package/theme/*, which only exist once
-# typedoc has emitted them; VitePress fails the build on those dead links
-# otherwise.
+# Five guide pages link into /package/* from their prose — cloudflare-d1,
+# crawler, prerendering, styling, vite-plugin — and those pages only exist once
+# typedoc has emitted them. VitePress fails the build on a dead content link
+# (a sidebar entry pointing at a missing page builds fine, verified against
+# vitepress 2.0.0-alpha.18), so the reference has to be generated first.
 [tasks."docs:dev"]
 depends = "docs:api"
 run = "vitepress dev docs --port 1337"
