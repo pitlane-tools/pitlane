@@ -889,7 +889,7 @@ be reimplementing `processStyleClass` and the `rmx` layer.
 | `demos/theme/app/theme.ts`                                                        | Rewritten, 124 lines to 77                                                                                                                                                                 |
 | `docs/guides/styling.md`                                                          | "Define a theme", "Dark mode", and "A complete component"; the other seven sections stand                                                                                                  |
 | `packages/theme/README.md`                                                        | Quick start                                                                                                                                                                                |
-| `docs/internal/VISION.md`                                                         | The `createTheme` example at L773-830 and the paragraph at L767                                                                                                                            |
+| `VISION.md`                                                                       | The `createTheme` example at L773-830 and the paragraph at L767                                                                                                                            |
 
 ## What was verified
 
