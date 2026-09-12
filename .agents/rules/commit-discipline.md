@@ -127,11 +127,36 @@ pull request that serves as the durable workspace. Push early and push often.
 This repository-level rule deliberately overrides the global agent rule that forbids pushing,
 opening a pull request, or otherwise sending commits upstream without an explicit request. Phase 1
 cannot run without a pushed branch and a draft pull request, so both are authorized here; release,
-merge, force-push, and branch deletion stay gated below.
+force-push, and branch deletion stay gated below.
 
-Pushing directly to the default branch is prohibited. Work reaches the default branch only by
-merging its pull request.
+### When the default branch is reachable directly
 
-Force-pushing, deleting a branch, publishing a release, and merging require explicit human
-confirmation. Merging happens in phase 5 after human acceptance, not because the agent judges the
-work acceptable.
+Work that decides something reaches the default branch by merging its pull request. That is the
+normal path and the one to assume.
+
+A change that decides nothing may be committed straight to `main`. The test is whether a reviewer
+would have anything to say: when the diff is its own description, a branch and a pull request buy
+ceremony rather than review. Moving a file and deleting the directory it left behind is the
+canonical case; so are a typo, a dead link, a path left stale by an earlier move, and a generated
+file refreshed by its generator.
+
+All three must hold:
+
+- **No decision.** Intent already exists — a proposal promised the behavior, or the correct
+  outcome was never in question. A change to how a package behaves fails this by definition,
+  whatever its size.
+- **Nothing to review.** The change is mechanical or factual, not a judgement someone could
+  reasonably have made differently.
+- **Verified by the gate.** `mise run check`, or the narrower task covering the change, passes —
+  and passing is the whole proof, with no judgement left over.
+
+Anything failing one of the three goes through a pull request. When it is genuinely unclear, open
+one: an unnecessary pull request costs seconds, and a skipped one costs a merged decision nobody
+saw. A human asking for a pull request is always right and never has to justify it.
+
+Batching is not a way around this. Three mechanical commits may land together; a mechanical commit
+riding along with a substantive one may not.
+
+Force-pushing, deleting a branch, publishing a release, and merging a pull request require explicit
+human confirmation. Merging happens in phase 5 after human acceptance, not because the agent judges
+the work acceptable.

@@ -69,8 +69,14 @@ branch → draft PR → proposal → tests → guides → code → validation
 **Scale the process to the change.** The loop is written for substantial work —
 new or changed behavior, anything a reasonable person could build differently.
 A typo, a dead link, or a bug whose correct behavior was never in question does
-not need a proposal, and often does not need a pull request; fixing it is
-faster than describing it.
+not need a proposal; fixing it is faster than describing it.
+
+Some of those do not need a pull request either. Moving a file and deleting the
+empty directory behind it is a commit, not a review — there is nothing for a
+reviewer to agree or disagree with. The three conditions that allow a direct
+commit to `main`, and the reminder that an unnecessary pull request is cheap
+while a skipped one is not, are in
+[`.agents/rules/commit-discipline.md`](.agents/rules/commit-discipline.md#when-the-default-branch-is-reachable-directly).
 
 Lean on one question: **does this change decide something?** If intent already
 exists — because a proposal promised the behavior, or because the contract is
