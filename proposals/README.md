@@ -32,8 +32,12 @@ changes — until they are satisfied. Iteration is the normal case, not a sign o
 History is preserved: never delete a superseded entry — mark it `superseded` and link its
 replacement through `supersedes`.
 
-The numbered record starts at `0001`. Design documents that predate it are kept
-where they were written and are not retrofitted: `docs/internal/proposals/` holds two
-hand-written designs, and `docs/superpowers/` holds the plan and spec pairs from the
-task-runner workflow this process replaced. They remain readable history; they are not
-part of the record, and the validator does not read them.
+The numbered record starts at `0001`. Two directories hold writing that predates it, and neither is
+part of the record: `docs/internal/designs/` holds hand-written design documents, and
+`docs/superpowers/` holds the plan and spec pairs from the task-runner workflow this process
+replaced. They remain readable history, and the validator does not read them.
+
+Nothing outside this directory is called "proposals". A design that predates the record and is
+still live gets adopted into it as a new numbered proposal rather than edited in place — `0003` came
+from `docs/internal/proposals/migration-tooling.md` that way. A design whose work already shipped
+stays where it was written.

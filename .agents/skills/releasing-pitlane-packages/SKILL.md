@@ -104,9 +104,17 @@ landed, what is breaking, and where the design record lives.
 
 Three places hold the intent afterward, and a release should leave all three
 readable: the merge or squash commit body, the PR page (which keeps every commit
-even after the branch is deleted), and any `docs/internal/proposals/<name>.md`
-that designed the work. Update that proposal's status line to name the version
-that shipped it — `285287b` is the template:
+even after the branch is deleted), and the proposal that designed the work.
+
+The proposal is `proposals/<NNNN>-<slug>.md`, and the edit it needs is
+`status: implemented` — set after the release, never before, because an
+unshipped proposal marked implemented misrepresents the record.
+[`completing-a-feature`](../completing-a-feature/SKILL.md) owns that step; this
+skill only has to not leave it undone.
+
+Work that predates the record has its design in `docs/internal/designs/`
+instead, in a different shape: a prose `Status:` line rather than frontmatter.
+`285287b` is the template for updating one of those.
 
 ```
 Status: **shipped in `@pitlane/theme@0.3.0`** (pitlane-tools/pitlane#9, merged).
