@@ -470,6 +470,45 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         ).rejects.toThrow(/import\.meta.*outside a bundler/s);
     });
 
+    it("reads imports from a block that also defines a component", async () => {
+        // JSX in an ESM block is the canonical way an MDX document defines a
+        // local component. A JavaScript lexer cannot parse it.
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\n' +
+                "export const Note = () => <em>n</em>;\n" +
+                '\n<Badge label="a" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">a</strong>',
+        );
+    });
+
+    it("keeps a semicolon out of the page when a comment precedes it", async () => {
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx" /* c */;\nexport const year = 2026;\n\n<p>{year}</p>\n<Badge label="a" />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("2026");
+        expect(html).not.toMatch(/<p>\s*;/);
+    });
+
+    it("never imports the module a spaceless type-only statement names", async () => {
+        // `import type{X}` is valid TypeScript. A bundler erases it, so the
+        // module it names need not exist at runtime.
+        let { Content } = await post('import type{Handle} from "./nowhere.ts";\n\n<p>safe</p>\n');
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("safe");
+    });
+
+    it("names the document when a body expression cannot be compiled", async () => {
+        // `import.meta` in an expression never reaches the ESM block, so the
+        // engine reports it from generated source with nothing to locate.
+        await expect(post("<p>{import.meta.url}</p>\n")).rejects.toThrow(/post\.mdx/);
+    });
+
     it("still renders a document with no imports", async () => {
         let { Content } = await post("# Plain\n\nNo imports here.\n");
 

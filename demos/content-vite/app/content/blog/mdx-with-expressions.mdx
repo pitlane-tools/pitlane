@@ -8,6 +8,7 @@ author: grace
 import { Badge } from "#/ui/badge.tsx";
 import { Counter } from "#/ui/public/counter.tsx";
 import { Footnote } from "./footnote.tsx";
+export const Aside = handle => () => <aside class="aside">{handle.props.children}</aside>;
 
 # MDX with components
 
@@ -26,3 +27,5 @@ its own state. Both imports are ordinary `import` statements, and this file is
 byte-identical between the two demos.
 
 <Footnote text="Imported with a relative path, from the document's own directory." />
+
+<Aside>Defined in this document's own block.</Aside>

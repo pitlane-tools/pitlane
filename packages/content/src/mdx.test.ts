@@ -23,4 +23,25 @@ describe("readEsm, on an import with attributes", () => {
 
         expect(imports[0]!.attributes).toBeUndefined();
     });
+
+    it.each([
+        ['import d from "./d.json" with { type: "json", };', "a trailing comma"],
+        ['import d from "./d.json"\n    with { type: "json" };', "the clause on its own line"],
+        [
+            'import d from "./d.json" with { type: "json" /* , type: "yaml" */ };',
+            "a comment inside",
+        ],
+    ])("reads the clause with %s", async source => {
+        let { imports, remainder } = await readEsm(source, "post.mdx");
+
+        expect(imports[0]!.attributes).toEqual({ type: "json" });
+        // Anything left behind is spliced into the document and rendered.
+        expect(remainder.trim()).toBe("");
+    });
+
+    it("reports an empty clause as empty rather than absent", async () => {
+        let { imports } = await readEsm('import d from "./d.json" with {};', "post.mdx");
+
+        expect(imports[0]!.attributes).toEqual({});
+    });
 });

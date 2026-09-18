@@ -77,7 +77,7 @@ async function fromSource(
     // it is unavoidable on this path: a compiled MDX body is a function body by
     // construction. A host that forbids it prebuilds the collection instead.
     // oxlint-disable-next-line typescript/no-implied-eval
-    let evaluate = new Function("__mdxRuntime", ...names, compiled.code);
+    let evaluate = compile(names, compiled.code, entry.filePath ?? entry.id);
     let module = evaluate(
         { ...jsxRuntime },
         ...names.map(name => imported.bindings.get(name)),
@@ -86,6 +86,30 @@ async function fromSource(
         Content: mdxComponent(module.default, imported.bindings),
         headings: headingList(module.headings),
     };
+}
+
+/**
+ * The compiled body, as a callable function.
+ *
+ * The engine reports a body it cannot compile against generated source the
+ * author never saw: `import.meta` in an expression, which is ordinary under a
+ * bundler, arrives as a bare `SyntaxError: Cannot use 'import.meta' outside a
+ * module` naming neither the document nor the reason. `readEsm` catches the
+ * form written in an `import`/`export` block; this catches every other one.
+ */
+function compile(names: readonly string[], code: string, where: string) {
+    try {
+        // oxlint-disable-next-line typescript/no-implied-eval
+        return new Function("__mdxRuntime", ...names, code);
+    } catch (error) {
+        let cause = error instanceof Error ? error.message : String(error);
+        throw new Error(
+            `"${where}" has a body that cannot be compiled outside a bundler: ${cause}. The ` +
+                `document becomes a function body here rather than a module. Add content() from ` +
+                `@pitlane/content/vite so the build compiles this collection.`,
+            { cause: error },
+        );
+    }
 }
 
 /**

@@ -1,3 +1,5 @@
+import type { ImportSpecifier, parse as parseEsm } from "es-module-lexer";
+
 /** One `import` statement an MDX document makes. */
 interface Import {
     specifier: string;
@@ -37,17 +39,19 @@ export async function readEsm(block: string, where: string) {
     let { init, parse } = await import("es-module-lexer");
     await init;
 
-    let comments = commentSpans(block);
+    let lexable = readable(block, parse, where);
+    let comments = commentSpans(lexable);
     let statements: Span[] = [];
     let imports: Import[] = [];
 
-    for (let found of parse(block)[0]) {
+    for (let found of parse(lexable)[0]) {
         if (found.t === 3) throw importMeta(where);
         // A re-export has a specifier too, and it is an export: it stays.
         if (found.t !== 1 || !block.startsWith("import", found.ss)) continue;
 
-        statements.push({ start: found.ss, end: endOfStatement(block, found.se) });
-        let read = readImport(block, found, comments, where);
+        let tail = endOfStatement(block, found.e + 1, comments);
+        statements.push({ start: found.ss, end: tail.end });
+        let read = readImport(block, found, tail, comments, where);
         if (read) imports.push(read);
     }
 
@@ -60,13 +64,92 @@ function covers(outer: Span, inner: Span) {
 }
 
 /**
- * The lexer's statement end stops at the specifier or its attributes, so the
- * trailing semicolon is left behind. On its own line in the remainder it is a
- * paragraph reading `;`.
+ * The block in a form the lexer can read.
+ *
+ * An MDX document defines a component by writing JSX in its ESM block, and the
+ * lexer is a JavaScript lexer: `() => <em>n</em>` is a parse error to it. So
+ * each line is masked from the first JSX tag it holds, which leaves every
+ * import intact -- an import statement cannot contain a `<` -- and keeps every
+ * offset, because the mask is the same width as what it covers.
  */
-function endOfStatement(block: string, end: number) {
-    let semicolon = /^[^\S\n]*;/.exec(block.slice(end));
-    return semicolon ? end + semicolon[0].length : end;
+function readable(block: string, parse: Parse, where: string) {
+    if (lexes(block, parse)) return block;
+
+    let masked = block
+        .split("\n")
+        .map(line => {
+            let at = line.search(/<(?=[A-Za-z_$>/])/);
+            return at === -1 ? line : line.slice(0, at) + " ".repeat(line.length - at);
+        })
+        .join("\n");
+    if (lexes(masked, parse)) return masked;
+
+    throw new Error(
+        `Could not read the imports of "${where}": its \`import\` and \`export\` block is not ` +
+            `valid JavaScript. Add content() from @pitlane/content/vite so the build compiles ` +
+            `this collection.`,
+    );
+}
+
+function lexes(source: string, parse: Parse) {
+    try {
+        parse(source);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * What follows the specifier: an optional attributes clause, then an optional
+ * semicolon, with comments allowed in both gaps.
+ *
+ * The lexer reports neither reliably. Its statement end stops at the specifier,
+ * leaving a `;` that becomes a paragraph reading `;` in the rendered page, and
+ * it declines to report a clause written with a trailing comma, with no
+ * attributes at all, or on the line below -- all of which are valid, and all of
+ * which the host still demands before it will load the module.
+ */
+function endOfStatement(block: string, after: number, comments: readonly Span[]) {
+    let end = skipBlanks(block, after, comments);
+    let attributes: Span | undefined;
+
+    let phrase = /^(?:with|assert)\b/.exec(block.slice(end));
+    if (phrase) {
+        let open = skipBlanks(block, end + phrase[0].length, comments);
+        if (block[open] === "{") {
+            let close = balanced(block, open);
+            attributes = { start: open, end: close };
+            end = close;
+        }
+    }
+
+    let semicolon = skipBlanks(block, end, comments);
+    return { end: block[semicolon] === ";" ? semicolon + 1 : end, attributes };
+}
+
+/** Past whitespace and comments, which may sit anywhere in a statement. */
+function skipBlanks(block: string, from: number, comments: readonly Span[]) {
+    let index = from;
+    for (;;) {
+        while (index < block.length && /\s/.test(block[index]!)) index += 1;
+        let comment = comments.find(held => held.start === index);
+        if (!comment) return index;
+        index = comment.end;
+    }
+}
+
+/** The index just past the `}` closing the `{` at `open`. */
+function balanced(block: string, open: number) {
+    let depth = 0;
+    for (let index = open; index < block.length; index += 1) {
+        if (block[index] === "{") depth += 1;
+        else if (block[index] === "}") {
+            depth -= 1;
+            if (depth === 0) return index + 1;
+        }
+    }
+    return block.length;
 }
 
 /**
@@ -87,28 +170,29 @@ function blank(block: string, spans: readonly Span[]) {
     return out;
 }
 
-/** One import statement, as the lexer reports it. */
-interface Found {
-    /** Start and end of the module specifier, inside its quotes. */
-    s: number;
-    e: number;
-    /** Start and end of the statement; the end is past any attributes clause. */
-    ss: number;
-    se: number;
-    /** Start of the `with { ... }` clause, or -1. */
-    a: number;
-    /** The specifier with its escape sequences decoded. */
-    n: string | undefined;
+type Parse = typeof parseEsm;
+
+/**
+ * One import statement, as the lexer reports it. Its `t` is the kind: `1` a
+ * static declaration, `3` an `import.meta` expression.
+ */
+type Found = ImportSpecifier;
+
+/** Where a statement ends, and the attributes clause it carries. */
+interface Tail {
+    end: number;
+    attributes?: Span;
 }
 
 /** Reads one statement, or nothing when it is type-only. */
 function readImport(
     block: string,
     found: Found,
+    tail: Tail,
     comments: readonly Span[],
     where: string,
 ): Import | undefined {
-    let statement = block.slice(found.ss, found.e + 1);
+    let statement = block.slice(found.ss, tail.end);
     let specifier = found.n;
     if (specifier === undefined) throw unreadable(statement, where);
 
@@ -122,11 +206,11 @@ function readImport(
 
     // `import type X from` and `import type { X } from` are erased by a bundler
     // before anything runs, and the module they name may hold nothing but
-    // types. `import type from` is different: that is a default import whose
-    // local name happens to be `type`.
-    if (/^type\s+\S/.test(clause)) return undefined;
+    // types. The brace needs no space before it, and `import type from` is
+    // different again: that is a default import whose local name is `type`.
+    if (/^type\b/.test(clause) && clause.slice(4).trim().length > 0) return undefined;
 
-    let attributes = found.a === -1 ? undefined : readAttributes(block.slice(found.a, found.se));
+    let attributes = tail.attributes && readAttributes(erase(block, tail.attributes, comments));
     return { specifier, bindings: readBindings(clause, statement, where), attributes };
 }
 

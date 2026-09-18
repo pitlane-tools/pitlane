@@ -259,9 +259,13 @@ to a module and the namespace import is ordinary.
 becomes a function body here rather than a module, so there is no `import.meta`
 to read.
 
-MDX decides one more thing itself. A block of `import`s and `export`s cannot
-begin with a comment: MDX reads the whole run as prose on every host, leaving
-the components it names undefined. Put the comment after the first statement.
+MDX decides two more things itself, the same way on every host. A block of
+`import`s and `export`s cannot begin with a comment. MDX reads the whole run as
+prose instead, and the components it names go undefined, so put the comment
+after the first statement. The block is also parsed as JavaScript with JSX
+rather than TypeScript, so a type annotation in it fails to parse.
+`export const Aside = handle => <aside>{handle.props.children}</aside>` is
+fine. Annotating `handle` is not.
 
 A bare specifier resolves under Node's `require` conditions. A dependency
 published with only an `import` condition fails at runtime, naming the file and
