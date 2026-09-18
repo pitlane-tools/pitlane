@@ -329,6 +329,20 @@ export default defineConfig({
 `jsxImportSource: "remix/ui"` is required: it is what makes a compiled MDX file
 a Remix component rather than a React one.
 
+`headings()` is what fills the `headings` array `render()` resolves to. An MDX
+file exports the list from its compiled module. Markdown compiles to an HTML
+string with no room for one, so `content()` measures that list itself during the
+build. A prebuilt `.md` page gets the same table of contents as the same file
+rendered at runtime.
+
+::: warning
+`content()` measures a Markdown heading list with `headings()` alone. Another
+`mdastPlugin` that rewrites heading text or slugs changes the prebuilt HTML
+without changing that list, because `vite-plugin-satteri` does not publish the
+options it was given. Rewriting headings is a reason to use `.mdx`, which
+carries its own list.
+:::
+
 A collection of `.json` or `.yaml` files needs none of this. Calling `render()`
 on a data entry is an error rather than an empty component, because a blank page
 is the harder bug to find:
@@ -375,13 +389,6 @@ serving an empty list:
 Collection "blog" has no prebuilt content and no filesystem to read.
 Add content() from "@pitlane/content/vite" to your Vite config.
 ```
-
-::: warning A prebuilt `.md` entry has no headings
-For Markdown, `vite-plugin-satteri` emits an HTML string with no room for a
-heading list, so `headings` is `[]` once a `.md` file is prebuilt. `.mdx`
-produces headings on every host, which is the reason to prefer it for any page
-that needs a table of contents.
-:::
 
 ## Highlighting code
 
