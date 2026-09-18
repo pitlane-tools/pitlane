@@ -217,14 +217,59 @@ for bodies it does not show.
 - **A prebuilt `.md` entry** carries an HTML string. `Content` renders a single `<div>` carrying it
   through `remix/ui`'s `innerHTML` prop. The wrapper element is unavoidable: `innerHTML` is an
   element prop, so the markup needs an element to land on.
-- **A runtime-resolved Markdown entry** renders through `satteri` on first call and caches the result —
-  `markdownToHtml` for `.md`, `evaluate` with `remix/ui/jsx-runtime` for `.mdx` — producing the
-  same two shapes.
+- **A runtime-resolved Markdown entry** renders through `satteri` on first call and caches the
+  result — `markdownToHtml` for `.md`, a `function-body` compile for `.mdx` — producing the same
+  two shapes.
 - **An entry with no body** — everything `loaders.file` produces, and every `.json`, `.yaml`, or
   `.yml` entry from `loaders.glob` — rejects with
   `Entry "<collection>/<id>" has no renderable content.` It does not resolve to an empty component:
   calling `render()` on a data entry is a mistake, and hiding it produces a blank page instead of
   an error.
+
+#### Components imported by an MDX entry
+
+An MDX file imports components. That is most of why an application chooses `.mdx` over `.md`, and
+it has to work on both hosts or the format is only half supported.
+
+With `content()` the bundler does it: the body is a real module, its imports are ordinary imports,
+and `@pitlane/dev`'s `clientEntry` transform gives a browser component its asset URL. Nothing there
+is new.
+
+Without a bundler nothing resolves them, and the failure is silent. Sätteri's `function-body`
+output reads each imported binding off the runtime object it is handed —
+`const { Badge } = arguments[0];` — and `satteri.evaluate` supplies only
+`{ Fragment, jsx, jsxs, jsxDEV, useMDXComponents }`. Every imported component is therefore
+`undefined`, and `jsx(undefined, …)` renders nothing: no error, no warning, a missing section.
+That is measured, not inferred.
+
+So `render()` resolves the imports itself:
+
+1. Collect the document's `mdxjsEsm` nodes, which Sätteri already parses, and read the specifier
+   and bindings out of each.
+2. Resolve each specifier against the entry's `filePath` and `await import()` it. A relative
+   specifier resolves relative to the file; a bare or subpath specifier resolves the way Node
+   resolves it from that directory, so `#/ui/public/counter.tsx` means what it means in a
+   controller.
+3. Compile with `mdxToJs(source, { outputFormat: "function-body" })` and call the result with the
+   JSX runtime plus those bindings.
+
+`import` in an MDX file therefore means what it means everywhere else, and the same file renders
+identically whether the bundler compiled it or Sätteri did.
+
+A specifier that does not resolve fails the render naming the file, the specifier, and the
+underlying error, rather than rendering a hole. An import Sätteri cannot parse fails the same way.
+
+This does not widen the host requirement. Runtime `.mdx` already needs `new Function`, so it was
+already Node, Bun, and Deno only, and resolving its imports needs the module loader those already
+have.
+
+**A `clientEntry` component needs nothing from this package.** `clientEntry(entryId, component)`
+tags a component with a browser-reachable module URL, and the server renderer emits the hydration
+marker from that tag. Whether the component reached the tree through a controller or through an
+MDX import is not a distinction the renderer makes. What the application owes is what it owes for
+any browser module: the component lives where its asset server can serve it, which for
+`remix/assets` means an `app/**/public/**` path, and the document renders `<ImportMap>` so the
+browser can resolve the bare specifiers the served module keeps.
 
 ### The two loader kinds
 
@@ -377,7 +422,7 @@ takes effect on some hosts is a trap.
 Rendering a runtime-resolved Markdown entry without `satteri` installed throws
 `Rendering "<path>" needs the optional peer dependency "satteri"; install it, or add content() from @pitlane/content/vite so the build compiles this collection.`
 
-`.mdx` rendered at runtime is Node-only by construction: `satteri.evaluate` compiles to a function
+`.mdx` rendered at runtime is Node-only by construction: the compile produces a function
 body and runs it through `new Function`, which Cloudflare Workers forbids. That is not a new
 restriction, because a collection reaching that path already needed `node:fs`.
 
@@ -615,6 +660,9 @@ pointed. Removing the package means deleting the module that calls `createConten
   implementations of `ContentLoader`, reporting raw bodies rather than rendering them.
 - Lazy `render()` over both a prebuilt module and a runtime Sätteri call, producing the same
   `{ Content, headings }` either way.
+- Resolution of an MDX entry's own `import`s on the runtime path, so a component an MDX file imports
+  renders on a host with no bundler, and a `clientEntry` component among them hydrates through the
+  application's asset server.
 - `content()`: executing the entry through Vite's module runner in prebuild mode, prebuilding only
   `ContentLoader` collections, the manifest and body virtual modules, the watch-and-rebuild path, and
   the loud failure when neither source exists.
@@ -625,7 +673,8 @@ pointed. Removing the package means deleting the module that calls `createConten
   `vite-plugin-satteri`; `demos/content-runtime` runs no bundler at all, serving browser modules
   through `remix/assets` and rendering content with `satteri` at request time. Both declare the
   same collections with the same `loaders.glob` and `loaders.file` calls, and each must serve
-  Markdown, MDX, and JSON. They are the proof the unification is real rather than described, and
+  Markdown, MDX, and JSON. Each MDX entry imports two components — one server-only, one
+  `clientEntry` — so both demos prove component imports work on both hosts. They are the proof the unification is real rather than described, and
   a diff of their `app/content.ts` files is the reviewable artifact.
 - `docs/guides/content.md`, covering both hosts, the Sätteri setup, code highlighting with
   Expressive Code, and references.

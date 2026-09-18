@@ -218,6 +218,71 @@ elements it renders:
 <Content components={{ h2: Heading, a: Link }} />
 ```
 
+### Importing components into MDX
+
+An MDX file imports components the way any module does, and the same file works
+on both hosts:
+
+```mdx
+import { Badge } from "#/ui/badge.tsx";
+import { Counter } from "#/ui/public/counter.tsx";
+
+# Release notes
+
+<Badge label="new" /> is rendered on the server and never reaches the browser.
+
+<Counter start={0} />
+```
+
+With a bundler the imports are ordinary imports. Without one,
+`@pitlane/content` resolves them itself, starting from the MDX file's own
+location. A relative path means what it says, and `#/ui/badge.tsx` means what it
+means in a controller of the same app.
+
+A specifier that does not resolve fails the render, naming the file and the
+specifier. It never renders a hole.
+
+A component that hydrates in the browser is a `clientEntry` component, and the
+only thing it needs from you is a URL the browser can load:
+
+```tsx
+// app/ui/public/counter.tsx
+import { clientEntry, on, type Handle } from "remix/ui";
+
+export const Counter = clientEntry(
+    import.meta.url,
+    function Counter(handle: Handle<{ start: number }>) {
+        let count = handle.props.start;
+
+        return () => (
+            <button
+                mix={[
+                    on("click", () => {
+                        count += 1;
+                        void handle.update();
+                    }),
+                ]}
+                type="button"
+            >
+                clicked {count} times
+            </button>
+        );
+    },
+);
+```
+
+Under `@pitlane/dev` that `import.meta.url` is rewritten to the built asset's
+URL. With no bundler nothing rewrites it, so pass the path your asset server
+serves the file at instead. For `remix/assets` with
+`allowFiles: ["app/**/public/**"]` that is `/assets/app/ui/public/counter.tsx`. Whether the component arrived
+through a controller or through an MDX import makes no difference to hydration.
+
+::: tip Runtime MDX is Node, Bun, and Deno only
+Compiling MDX per request needs `new Function`, which Cloudflare Workers
+forbids. A collection of `.mdx` files served from Workers goes through
+`content()`, where the bundler compiles it and its imports ahead of time.
+:::
+
 ### Markdown needs Sätteri
 
 Rendering a Markdown body at runtime uses

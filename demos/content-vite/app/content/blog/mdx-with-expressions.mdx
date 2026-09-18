@@ -1,17 +1,25 @@
 ---
-title: MDX with expressions
-summary: A .mdx post, compiled to a component.
+title: MDX with components
+summary: A .mdx post importing a server component and a browser component.
 publishedOn: 2026-04-05
 author: grace
 ---
 
-# MDX with expressions
+import { Badge } from "#/ui/badge.tsx";
+import { Counter } from "#/ui/public/counter.tsx";
+
+# MDX with components
 
 This file is `.mdx`, so `{2 ** 10}` evaluates to {2 ** 10} rather than
 printing as text.
 
-## Headings on every host
+## Importing components
 
-An `.mdx` entry exports its own heading list, so the table of contents above is
-identical whether the build compiled this file or Sätteri rendered it per
-request.
+<Badge label="server-only" /> renders during the response and never reaches the
+browser.
+
+<Counter start={0} />
+
+That button is a `clientEntry` component: it hydrates in the browser and keeps
+its own state. Both imports are ordinary `import` statements, and this file is
+byte-identical between the two demos.

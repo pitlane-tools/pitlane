@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import * as s from "remix/data-schema";
 import * as jsxRuntime from "remix/ui/jsx-runtime";
 import { renderToString } from "remix/ui/server";
@@ -144,6 +145,69 @@ describe("render, on a collection rendered at runtime", () => {
         ]);
 
         await expect(content.blog.getCollection()).resolves.toHaveLength(1);
+    });
+});
+
+describe("render, on a runtime-resolved MDX entry that imports components", () => {
+    let components = fileURLToPath(new URL("./fixtures/components", import.meta.url));
+
+    async function post(source: string) {
+        let content = await blogFrom([
+            {
+                id: "hello",
+                data: { title: "Hello" },
+                filePath: `${components}/post.mdx`,
+                body: { format: "mdx", source },
+            },
+        ]);
+        let entry = await content.blog.getEntry("hello");
+        return await entry!.render();
+    }
+
+    it("renders a component the document imported", async () => {
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\n\n# Title\n\n<Badge label="shipped" />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("<h1");
+        expect(html).toContain('<strong class="badge">shipped</strong>');
+    });
+
+    it("keeps a clientEntry component's hydration tag through the import", async () => {
+        let { Content } = await post(
+            'import { Counter } from "./counter.tsx";\n\n<Counter start={3} />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("count 3");
+    });
+
+    it("renders several imported components, named and default", async () => {
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\n' +
+                'import { Counter } from "./counter.tsx";\n\n' +
+                '<Badge label="a" />\n\n<Counter start={1} />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain('class="badge"');
+        expect(html).toContain("count 1");
+    });
+
+    it("fails naming the file and the specifier when an import does not resolve", async () => {
+        await expect(post('import { Gone } from "./missing.tsx";\n\n<Gone />\n')).rejects.toThrow(
+            /post\.mdx.*\.\/missing\.tsx/s,
+        );
+    });
+
+    it("still renders a document with no imports", async () => {
+        let { Content } = await post("# Plain\n\nNo imports here.\n");
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("Plain");
     });
 });
 

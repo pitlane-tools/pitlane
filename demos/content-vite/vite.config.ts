@@ -11,6 +11,6 @@ export default defineConfig({
         // runtime path loads, which is what makes the two agree.
         satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
         content(),
-        remix({ clientEntry: false }),
+        remix(),
     ],
 });
