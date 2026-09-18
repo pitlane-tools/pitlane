@@ -2,7 +2,7 @@
 id: proposal.0002
 title: Typed Content Collections
 authors: [markmals, Claude]
-status: draft
+status: awaiting-implementation
 pull-request: https://github.com/pitlane-tools/pitlane/pull/16
 issues: []
 supersedes: []
@@ -14,7 +14,7 @@ supersedes: []
 
 `@pitlane/content` turns local Markdown, MDX, and data files into schema-validated,
 cross-referenced collections a Remix controller can query. Collections are declared at runtime with
-`createContent`, and a Vite plugin bakes them into the bundle for hosts without a filesystem.
+`createContent`, and a Vite plugin prebuilds them into the bundle for hosts without a filesystem.
 
 ## Motivation
 
@@ -85,7 +85,7 @@ is handed, and has no idea a bundler exists. That is enough for Node, Bun, Deno,
 scripts, and the package's own tests.
 
 For a host with no filesystem, `content()` from `@pitlane/content/vite` **runs those same loaders in
-Node during the build and bakes the result into the bundle** — entry data as plain values, Markdown
+Node during the build and prebuilds the collection into the bundle** — entry data as plain values, Markdown
 bodies as modules the bundler compiles. Application code is identical either way. Adding a host
 edits the Vite config; it never edits a collection.
 
@@ -115,11 +115,11 @@ to replace. It ships as `export default null`.
 
 `dependencies` is `{ "yaml": "^2" }` — YAML frontmatter and `.yaml` data files need a parser, and
 neither Remix nor the platform provides one. `@pitlane/content/vite` adds `vite` as a peer and
-nothing else; serializing baked values is a few dozen lines and does not want a dependency.
+nothing else; serializing prebuilt values is a few dozen lines and does not want a dependency.
 
 `remix` is a peer dependency. `satteri` is an **optional** peer dependency (`^0.9.4`, caret-pinned
-because Sätteri is pre-1.0 and breaks on minor bumps). Only `render()` on an unbaked Markdown entry
-and `@pitlane/content/satteri` import it, so an application whose content is baked never installs
+because Sätteri is pre-1.0 and breaks on minor bumps). Only `render()` on a runtime-resolved Markdown entry
+and `@pitlane/content/satteri` import it, so an application whose content is prebuilt never installs
 it.
 
 ### `createContent`
@@ -144,12 +144,12 @@ interface ContentBuilder {
   `createContent` is called at module scope.
 - Each collection is wired according to the kind of loader it was given, which `createContent`
   determines by whether the loader has a `load` method:
-    - A **`ContentLoader`** collection whose name appears in the baked manifest reads from it. The
+    - A **`ContentLoader`** collection whose name appears in the prebuilt manifest reads from it. The
       manifest is inlined, so that is a synchronous lookup with no loader involved.
     - A **`ContentLoader`** collection with no manifest entry runs its loader on **first access**,
       from `getCollection` or `getEntry`. The result is memoized for the life of the process, and
       concurrent callers share one in-flight load rather than starting several.
-    - A **`LiveLoader`** collection is never baked and never memoized. `getCollection` calls
+    - A **`LiveLoader`** collection is never prebuilt and never memoized. `getCollection` calls
       `loadCollection` and `getEntry` calls `loadEntry`, every time.
 - It returns an object with one property per key in `build`'s return value. Each is a `Collection`,
   and the two kinds are indistinguishable to a caller.
@@ -194,7 +194,7 @@ interface Heading {
 
 - `getCollection()` returns every entry sorted by `id`, ascending, using `Array.prototype.sort`'s
   default string comparison. The order is stable across runs so prerendered output and tests do not
-  depend on filesystem or glob ordering, and it does not depend on whether the collection was baked.
+  depend on filesystem or glob ordering, and it does not depend on whether the collection was prebuilt.
 - `getCollection(filter)` returns the entries for which `filter` returns a truthy value, in the same
   order.
 - `getEntry` accepts a bare id or a reference object. Given `{ collection, id }` it ignores
@@ -209,15 +209,15 @@ interface Heading {
 parses Markdown until an entry is rendered, so loading a collection to list its titles never pays
 for bodies it does not show.
 
-- **A baked `.mdx` entry** carries a compiled module. `Content` is a Remix factory wrapping the MDX
+- **A prebuilt `.mdx` entry** carries a compiled module. `Content` is a Remix factory wrapping the MDX
   function: `handle => () => MDXContent(handle?.props ?? {})`. MDX compiles to a plain function of
   props while a Remix component is a factory returning a render function, so the wrapper bridges
   the two. Props passed to `<Content />` reach the MDX content, which is how `components` overrides
   work.
-- **A baked `.md` entry** carries an HTML string. `Content` renders a single `<div>` carrying it
+- **A prebuilt `.md` entry** carries an HTML string. `Content` renders a single `<div>` carrying it
   through `remix/ui`'s `innerHTML` prop. The wrapper element is unavoidable: `innerHTML` is an
   element prop, so the markup needs an element to land on.
-- **An unbaked Markdown entry** renders through `satteri` on first call and caches the result —
+- **A runtime-resolved Markdown entry** renders through `satteri` on first call and caches the result —
   `markdownToHtml` for `.md`, `evaluate` with `remix/ui/jsx-runtime` for `.mdx` — producing the
   same two shapes.
 - **An entry with no body** — everything `loaders.file` produces, and every `.json`, `.yaml`, or
@@ -253,8 +253,8 @@ A **`LiveLoader` answers one query at a time.** There is no store to fill, so th
 serialize; the only way to get entries out of it is to ask it, which means asking it every time.
 
 That is the whole discrimination. `c.collection({ loader })` accepts either and branches on whether
-the object has `load`. A `ContentLoader` is bakeable because its shape says a single execution
-produces the complete answer. A `LiveLoader` is not bakeable because its shape says it does not have
+the object has `load`. A `ContentLoader` can be prebuilt because its shape says a single execution
+produces the complete answer. A `LiveLoader` cannot be prebuilt because its shape says it does not have
 one. Nothing has to be declared twice, and a loader cannot be configured into lying about which it
 is — the contract it satisfies _is_ the claim.
 
@@ -268,7 +268,7 @@ to a question this proposal previously answered with a boolean.
 | Shape             | `load(context)` fills a store              | `loadCollection()` / `loadEntry(id)` return entries |
 | With `content()`  | executed during the build, entries inlined | untouched; runs per request                         |
 | Without a bundler | executed on first access                   | runs per request                                    |
-| Markdown bodies   | rendered ahead of time when baked          | rendered at runtime, so no MDX on Workers           |
+| Markdown bodies   | rendered ahead of time when prebuilt       | rendered at runtime, so no MDX on Workers           |
 | Data freshness    | fixed at build, or at first access         | every query                                         |
 | Ships here        | `glob`, `file`                             | none; the interface is public                       |
 
@@ -277,6 +277,16 @@ qualified to make. A directory of Markdown is a `ContentLoader`. A CMS whose edi
 change without a deploy is a `LiveLoader`. A CMS an application is content to snapshot per release
 is a `ContentLoader` over `fetch` — and that is a legitimate choice rather than a mistake, which is
 exactly why it should not be inferred from the environment.
+
+**Terminology.** A collection whose entries `content()` resolved during the build and inlined into
+the bundle is **prebuilt**. One whose loader runs in the serving process is **runtime-resolved**.
+Both are `ContentLoader` collections; the difference is only who ran the loader. A `LiveLoader`
+collection is **live** and is neither.
+
+This is deliberately not called _prerendering_. In Pitlane that word already means
+`remix({ prerender })` walking routes with `@pitlane/crawler` and writing HTML, which is a
+different operation at a different layer — a prebuilt collection is data in a bundle, not a page on
+disk, and the two compose rather than overlap.
 
 #### The `ContentLoader` context
 
@@ -308,12 +318,12 @@ decides what to do with it. That is what lets one `ContentLoader` serve both the
 runtime: the build wants the source so the bundler can compile it, and the runtime wants it so
 Sätteri can. It is also why a `LiveLoader` can carry Markdown at all.
 
-`watchedPaths` is what `content()` watches in order to re-bake in dev. A loader that omits it is
+`watchedPaths` is what `content()` watches in order to rebuild the manifest in dev. A loader that omits it is
 simply not watched.
 
 `parseData` validates against the collection's schema and returns the parsed value. On failure it
 throws an `Error` whose message names the collection, the entry id, the file path when there is one,
-and one line per Standard Schema issue in `  - <path>: <message>` form. A baked collection fails the
+and one line per Standard Schema issue in `  - <path>: <message>` form. A prebuilt collection fails the
 build; any other collection fails the access that triggered it, which is the earliest the data
 exists. Live entries are validated the same way, on every query.
 
@@ -350,7 +360,7 @@ derivation.
 
 Frontmatter is the leading `---`-fenced block, parsed with `yaml`. `@pitlane/content` parses it
 itself, in one place, rather than reading the `frontmatter` export `vite-plugin-satteri` also
-produces — so a baked and an unbaked collection cannot disagree about an entry's `data`. The
+produces — so a prebuilt and a runtime-resolved collection cannot disagree about an entry's `data`. The
 compiled module is used for its component, never for its metadata.
 
 `loaders.file` reads one file holding many entries. An array result requires each item to carry a
@@ -360,11 +370,11 @@ result uses its keys as ids.
 `options.satteri` configures the runtime rendering path and is forwarded to whichever Sätteri entry
 point the format selects. `@pitlane/content/satteri`'s `headings` plugin is prepended to
 `options.satteri.mdastPlugins` and `features.frontmatter` is forced on; everything else is the
-application's. A baked entry was compiled by `vite-plugin-satteri` instead, so `options.satteri`
+application's. A prebuilt entry was compiled by `vite-plugin-satteri` instead, so `options.satteri`
 does not apply to it — `content()` warns when both are configured, because a plugin list that only
 takes effect on some hosts is a trap.
 
-Rendering an unbaked Markdown entry without `satteri` installed throws
+Rendering a runtime-resolved Markdown entry without `satteri` installed throws
 `Rendering "<path>" needs the optional peer dependency "satteri"; install it, or add content() from @pitlane/content/vite so the build compiles this collection.`
 
 `.mdx` rendered at runtime is Node-only by construction: `satteri.evaluate` compiles to a function
@@ -382,11 +392,11 @@ ordinary application module — controllers import `content` from it — not a c
 plugin owns. The plugin needs to be told which module it is, and that is the whole of its
 configuration.
 
-The plugin bakes in four steps:
+The plugin prebuilds in four steps:
 
-1. **Execute the entry in Node, in bake mode.** `createRunnableDevEnvironment` from Vite runs
+1. **Execute the entry in Node, in prebuild mode.** `createRunnableDevEnvironment` from Vite runs
    `entry` through Vite's own module runner, so TypeScript, aliases, and `vite.config.ts`
-   resolution all apply. `createContent` sees the bake flag and populates **only** its
+   resolution all apply. `createContent` sees the prebuild flag and populates **only** its
    `ContentLoader` collections, eagerly, with the filesystem available. A `LiveLoader` has no
    `load` to call, so the build cannot execute it even in principle — which is why the build makes
    no network calls on its behalf and needs none of its credentials.
@@ -397,7 +407,7 @@ The plugin bakes in four steps:
 3. **Emit a manifest.** A virtual module replaces `@pitlane/content/internal/manifest`. Each entry
    contributes its `id`, `filePath`, and `data` as JavaScript literals — `Date` as
    `new Date("…")`, nested objects and arrays structurally — so a `coerce.date()` schema survives
-   the trip as a `Date` rather than a string. A collection that was not baked contributes nothing,
+   the trip as a `Date` rather than a string. A collection that was not prebuilt contributes nothing,
    and its absence is what tells the runtime to use the loader.
 4. **Emit a module per body.** An entry with a `body` gets a virtual module whose id ends in its
    format, `\0pitlane-content/entry/<collection>/<id>.mdx`, loading as the raw source. The manifest
@@ -421,7 +431,7 @@ handler", and that bindings are reachable at the top level but their methods are
 throw `Disallowed operation called within global scope` on import, and a KV- or D1-backed loader
 with it.
 
-**The build cannot reach a live loader by accident.** Baking one would run the fetch during
+**The build cannot reach a live loader by accident.** Prebuilding one would run the fetch during
 `vite build` and freeze whatever came back, so a post published afterwards would never appear and
 nothing would report it. Under a boolean that was a mistake waiting to be made; under two
 interfaces it is unrepresentable.
@@ -452,7 +462,7 @@ through to its loader and finds no `node:fs`. That surfaces from the first acces
 the fix:
 
 ```text
-Collection "blog" has no baked content and no filesystem to read.
+Collection "blog" has no prebuilt content and no filesystem to read.
 Add content() from "@pitlane/content/vite" to your Vite config.
 ```
 
@@ -492,11 +502,11 @@ export default defineConfig({
 
 `jsxImportSource: "remix/ui"` is required, and `satteri()` must precede `remix()`.
 
-**Known limitation.** A baked `.md` entry has `headings: []`. `vite-plugin-satteri` emits only
+**Known limitation.** A prebuilt `.md` entry has `headings: []`. `vite-plugin-satteri` emits only
 `frontmatter` and an HTML string for Markdown, and the plugin has nowhere to put a heading list that
 survives into the module. The workaround is `.mdx`, which is what the guide will recommend for any
 page that needs a table of contents. The other three combinations — `.md` and `.mdx` rendered at
-runtime, `.mdx` baked — all produce headings.
+runtime, `.mdx` prebuilt — all produce headings.
 
 This is the one place the two rendering paths differ in output, and it is the strongest argument for
 `.mdx` as the default authoring format.
@@ -515,7 +525,7 @@ import expressiveCode from "satteri-expressive-code";
 
 let code = expressiveCode({ themes: ["github-dark", "github-light"] });
 
-// baked by the build
+// prebuilt by content()
 satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()], hastPlugins: [code] });
 
 // rendered at runtime
@@ -573,7 +583,7 @@ VISION.md is corrected in phase 5.
 | `loaders.glob({ pattern: "app/content/**/*.{md,mdx}", base: "blog" })` | `base` is the directory patterns resolve against, as in the prior art  | `base: "blog"` alongside a full-path pattern reads as a collection prefix, which nothing implements. One meaning for `base` is enough.            |
 | `loaders.file("app/content/authors.jsonc")`                            | `.json`, `.yaml`, and `.yml` built in; `.jsonc` needs `options.parser` | JSONC needs a third parser for comments YAML already allows. The sample becomes `authors.json`.                                                   |
 | `import { createContent } from "pitlane/content"`                      | `@pitlane/content`                                                     | The umbrella vends no subpaths yet — VISION.md's own [Reserved names](../VISION.md#reserved-names) says a package that exists is imported scoped. |
-| Nothing about how content reaches a Worker                             | `content()` bakes the collections at build time                        | The published sample only shows filesystem loaders, which cannot run on Cloudflare Workers, the flagship target.                                  |
+| Nothing about how content reaches a Worker                             | `content()` prebuilds the collections at build time                    | The published sample only shows filesystem loaders, which cannot run on Cloudflare Workers, the flagship target.                                  |
 
 ## Implications on adoption
 
@@ -603,10 +613,10 @@ pointed. Removing the package means deleting the module that calls `createConten
   shared by concurrent callers, and no I/O at module scope on any host.
 - The two loader interfaces, the structural discrimination between them, and the `glob` and `file`
   implementations of `ContentLoader`, reporting raw bodies rather than rendering them.
-- Lazy `render()` over both a baked module and a runtime Sätteri call, producing the same
+- Lazy `render()` over both a prebuilt module and a runtime Sätteri call, producing the same
   `{ Content, headings }` either way.
-- `content()`: executing the entry through Vite's module runner in bake mode, baking only
-  `ContentLoader` collections, the manifest and body virtual modules, the watch-and-rebake path, and
+- `content()`: executing the entry through Vite's module runner in prebuild mode, prebuilding only
+  `ContentLoader` collections, the manifest and body virtual modules, the watch-and-rebuild path, and
   the loud failure when neither source exists.
 - The `headings` Sätteri plugin, shared by both rendering paths, and the `satteri` pass-through that
   lets `satteri-expressive-code` configure the runtime one.
@@ -630,9 +640,9 @@ pointed. Removing the package means deleting the module that calls `createConten
   `.d.ts` generation is not carried over with its loading mechanism.
 - **Images in frontmatter.** The prior art's `SchemaContext.image()` is a stub there and belongs
   with `@pitlane/image`, which is separately sequenced in VISION.md.
-- **Incremental baking.** The plugin re-executes the entry module on a content change rather than
+- **Incremental prebuilding.** The plugin re-executes the entry module on a content change rather than
   diffing entries. The prior art carries a per-entry digest for this; it is worth adding when a
-  real collection makes rebake latency visible, and guessing at that now would be premature.
+  real collection makes rebuild latency visible, and guessing at that now would be premature.
 - **Shipping a remote or database loader.** The `ContentLoader` interface is public and the runtime
   path is specified for exactly this case, so an application can write one today. Pitlane shipping
   one before a caller exists is an interface built for nobody.
@@ -690,12 +700,12 @@ pointed. Removing the package means deleting the module that calls `createConten
 
 - A Markdown entry rendering without its `<div>` wrapper, by walking Sätteri's HAST into Remix nodes
   instead of passing an HTML string to `innerHTML`. It would also make element overrides work
-  uniformly across `.md` and `.mdx`. It is not here because a baked `.md` entry arrives as a string
+  uniformly across `.md` and `.mdx`. It is not here because a prebuilt `.md` entry arrives as a string
   from `vite-plugin-satteri`, so the two paths could not agree on it.
-- Headings for a baked `.md` entry, once `vite-plugin-satteri` can surface a compile's data bag or
+- Headings for a prebuilt `.md` entry, once `vite-plugin-satteri` can surface a compile's data bag or
   extra exports for Markdown. That is an upstream capability, not something this package can add
   from the outside, and it is the last output difference between the two rendering paths.
-- Per-entry digests, so a content change rebakes only what changed.
+- Per-entry digests, so a content change rebuilds only what changed.
 - Revalidation for a runtime collection — a TTL, a manual invalidate, or an integration with
   `@pitlane/cache` — so a CMS-backed collection refreshes without waiting for the process to be
   recycled. The lazy population this proposal specifies is the seam that would hang off.
@@ -759,7 +769,7 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   doing I/O, whether over HTTP, KV, or D1, would throw
   `Disallowed operation called within global scope` when the module was imported. Lazy population
   is not a performance choice; it is the only shape that runs on the flagship target.
-- **A `bake?: boolean` on one loader interface.** What this proposal specified before Astro's
+- **A `prebuild?: boolean` on one loader interface.** What this proposal specified before Astro's
   design was read: one `ContentLoader`, with a flag saying whether the build may resolve it.
   Rejected because a flag puts the claim in the wrong place. It is a second declaration that can
   disagree with the loader's actual behavior, it invites configuring a loader into lying, and it
@@ -777,7 +787,7 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   whichever loader produced it. Splitting the query API would therefore encode a distinction that
   is not true at that layer, and it would break the property this proposal is for: a controller
   that reads `content.blog` should not have to know how `blog` gets its bytes.
-- **Inferring the kind from the environment.** Decide at runtime: bake when a bundler is present,
+- **Inferring the kind from the environment.** Decide at runtime: prebuild when a bundler is present,
   go live when it is not. Rejected because the environment does not know the answer. Whether a CMS
   should be snapshotted per release or read per request is a product decision, and the same
   application may want both from the same CMS in different collections.
@@ -795,7 +805,7 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   and injects `import.meta.glob` for it, the way `packages/dev/src/transform.ts` rewrites
   `clientEntry(import.meta.url, …)`. Keeps the ergonomics but demands a literal pattern, warns
   instead of working when it finds a computed one, and reimplements at parse time what the loaders
-  can just do. Baking the loaders' own output has no such constraint.
+  can just do. Prebuilding the loaders' own output has no such constraint.
 - **Resolving a glob at runtime inside the loader.** The shape this design wants most:
   `loaders.glob` calls `import.meta.glob(options.pattern)` itself. It does not work, and it fails in
   the worst available way. `import.meta.glob` is a compile-time rewrite whose pattern must be a
