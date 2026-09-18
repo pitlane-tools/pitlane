@@ -10,7 +10,7 @@ import {
 import type { LoadedEntry } from "./types.ts";
 
 import { BODY_PREFIX, manifestModule } from "./codegen.ts";
-import { closePrebuild, openPrebuild } from "./prebuild.ts";
+import { closePrebuild, openPrebuild, unfinishedContent } from "./prebuild.ts";
 
 const MANIFEST_OWNER = "@pitlane/content";
 const MANIFEST_SPECIFIER = `${MANIFEST_OWNER}/internal/manifest`;
@@ -42,7 +42,14 @@ export function content(options?: { entry?: string }): Plugin {
     let queue: Promise<void> = Promise.resolve();
 
     async function prebuild(warn: (message: string) => void) {
-        let loaded = await inPrebuildServer(root, entry, resolution);
+        let loaded = await inPrebuildServer(root, entry, resolution, paths => {
+            // Captured even when the prebuild goes on to throw. Otherwise a
+            // failed *first* prebuild leaves nothing watched, every later edit
+            // is ignored, and fixing the file needs a server restart — the
+            // worst moment to ask for one.
+            watched = [...new Set([...watched, ...paths])];
+            for (let path of watched) server?.watcher.add(path);
+        });
         collections = loaded.collections;
         watched = loaded.watched;
         for (let path of watched) server?.watcher.add(path);
@@ -72,6 +79,9 @@ export function content(options?: { entry?: string }): Plugin {
 
     return {
         name: "pitlane-content",
+        // Runs after the Markdown compiler so the `transform` below can see
+        // whether anything actually compiled a body module.
+        enforce: "post",
 
         /**
          * A server build externalizes dependencies by default, which would
@@ -128,7 +138,7 @@ export function content(options?: { entry?: string }): Plugin {
                 } catch (error) {
                     created.config.logger.error(String(error));
                 }
-                invalidate(created);
+                invalidate(created, entry);
                 created.hot.send({ type: "full-reload" });
             });
         },
@@ -141,6 +151,26 @@ export function content(options?: { entry?: string }): Plugin {
             if (source === MANIFEST_SPECIFIER) return VIRTUAL_MANIFEST;
             if (source.startsWith(BODY_PREFIX)) return source;
             return undefined;
+        },
+
+        /**
+         * Catches the one misconfiguration that would otherwise surface as a
+         * JavaScript tokenizer error on a virtual path.
+         *
+         * A body module's id ends in `.md` or `.mdx` and its contents are raw
+         * Markdown. If it reaches here unchanged, no plugin claimed it, and the
+         * bundler is about to parse prose as JavaScript. Every other
+         * misconfiguration in this package names its own fix; this one sits on
+         * the documented adoption path, so it gets the same treatment.
+         */
+        transform(code, id) {
+            if (!id.startsWith(BODY_PREFIX) || code !== bodies.get(id)) return undefined;
+            throw new Error(
+                `Nothing compiled the Markdown in "${id.slice(BODY_PREFIX.length)}". ` +
+                    "Add vite-plugin-satteri to your Vite config, before remix():\n" +
+                    '  satteri({ mdx: { jsxImportSource: "remix/ui" }, ' +
+                    "mdastPlugins: [headings()] })",
+            );
         },
 
         async load(id) {
@@ -193,10 +223,18 @@ function isManifestModule(id: string) {
  * them, so the next request re-evaluates the collections rather than reusing
  * the entries the previous prebuild produced.
  */
-function invalidate(server: ViteDevServer) {
+function invalidate(server: ViteDevServer, entry: string) {
+    // The entry module is invalidated alongside the emitted ones because a
+    // prebuild that threw never registered a manifest node for this to find,
+    // and the entry's own failed evaluation is what would otherwise be served
+    // from cache forever.
+    let entryPath = posix(entry).replace(/^\/+/, "");
     for (let environment of Object.values(server.environments)) {
         let graph = environment.moduleGraph;
-        let stale = [...graph.idToModuleMap.values()].filter(node => isEmitted(node.id ?? ""));
+        let stale = [...graph.idToModuleMap.values()].filter(node => {
+            let id = posix(node.id ?? "");
+            return isEmitted(id) || id.endsWith(`/${entryPath}`);
+        });
         let seen = new Set(stale);
         while (stale.length > 0) {
             let node = stale.pop()!;
@@ -223,7 +261,12 @@ function isEmitted(id: string) {
  * `load` to call, so the build cannot execute one even in principle, which is
  * why it makes no network calls on a live collection's behalf.
  */
-async function inPrebuildServer(root: string, entry: string, resolution: Resolution) {
+async function inPrebuildServer(
+    root: string,
+    entry: string,
+    resolution: Resolution,
+    onWatched: (paths: string[]) => void,
+) {
     let server = await createServer({
         root,
         configFile: false,
@@ -239,14 +282,20 @@ async function inPrebuildServer(root: string, entry: string, resolution: Resolut
         },
     });
     try {
-        return await execute(server, root, entry);
+        return await execute(server, root, entry, onWatched);
     } finally {
         await server.close();
     }
 }
 
-async function execute(server: ViteDevServer, root: string, entry: string) {
+async function execute(
+    server: ViteDevServer,
+    root: string,
+    entry: string,
+    onWatched: (paths: string[]) => void,
+) {
     let recorded = openPrebuild(root);
+    let unfinished = false;
     try {
         await server.ssrLoadModule(entry.startsWith("/") ? entry : `/${entry}`);
     } catch (error) {
@@ -255,7 +304,17 @@ async function execute(server: ViteDevServer, root: string, entry: string) {
             cause: error,
         });
     } finally {
+        unfinished = unfinishedContent();
+        onWatched([...recorded.watched]);
         closePrebuild();
+    }
+
+    if (unfinished) {
+        throw new Error(
+            `The content entry "${entry}" declares collections without awaiting ` +
+                "createContent, so the build cannot see them. Add `await`: " +
+                "`export let content = await createContent(...)`.",
+        );
     }
 
     let collections: Record<string, LoadedEntry[]> = {};

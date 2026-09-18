@@ -7,6 +7,7 @@ import type { ContentLoader, EntryBody, GenerateIdOptions, LoadedEntry } from ".
 
 import { filesystem } from "./filesystem.ts";
 import { splitFrontmatter } from "./frontmatter.ts";
+import { read } from "./read.ts";
 
 /** One parsed file, before an id is derived for it or its data is validated. */
 interface Document {
@@ -51,14 +52,16 @@ export function glob(options: {
     generateId?: (options: GenerateIdOptions) => string;
     satteri?: CompileOptions;
 }): ContentLoader {
-    // Resolved against `context.root` on load, and against the working
-    // directory until then, so `watchedPaths()` answers before a load too.
-    let base = resolve(process.cwd(), options.base ?? ".");
+    // Nothing is resolved here. `createContent` runs this factory at module
+    // scope on every host, including the hosts that have no `process` to ask
+    // for a working directory, so `context.root` on load is the only root.
+    let watched: string[] = [];
 
     return {
         name: "glob",
         async load(context) {
-            base = resolve(context.root, options.base ?? ".");
+            let base = resolve(context.root, options.base ?? ".");
+            watched = watchedDirectories(base, options.pattern);
             let fs = await filesystem(context.collection);
             let matches: Match[] = [];
 
@@ -87,8 +90,36 @@ export function glob(options: {
                 context.store.set(stored);
             }
         },
-        watchedPaths: () => [base],
+        // Empty until a load has happened, which is all the plugin needs:
+        // `runLoader` loads before it records anything to watch.
+        watchedPaths: () => watched,
     };
+}
+
+/** The syntax that makes a pattern segment a glob rather than a literal name. */
+const GLOB_SYNTAX_RE = /[*?[\]{}!()]/;
+
+/**
+ * The directories a pattern can match under, resolved against `base`.
+ *
+ * Watching `base` would watch the project root whenever `base` is left at its
+ * default, and then every save anywhere in the project looks like a content
+ * change: a whole extra Vite server and a full browser reload for editing an
+ * unrelated module. A pattern's leading literal segments are the narrowest
+ * directories that still contain everything it can match.
+ */
+function watchedDirectories(base: string, pattern: string | string[]): string[] {
+    let patterns = Array.isArray(pattern) ? pattern : [pattern];
+    return [...new Set(patterns.map(one => resolve(base, literalPrefix(one))))];
+}
+
+function literalPrefix(pattern: string): string {
+    let segments = pattern.replaceAll("\\", "/").split("/");
+    let firstGlob = segments.findIndex(segment => GLOB_SYNTAX_RE.test(segment));
+
+    // A pattern holding no glob syntax at all names one file, and the directory
+    // holding that file is what a watcher can report a change under.
+    return segments.slice(0, firstGlob === -1 ? -1 : firstGlob).join("/");
 }
 
 /**
@@ -111,23 +142,6 @@ function identify(
             document,
         }))
         .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
-}
-
-/**
- * Parses one file, naming it when the parse fails.
- *
- * Malformed frontmatter and malformed JSON are the two most likely authoring
- * mistakes here, and the parsers report a line and column relative to the
- * snippet they were handed. Without the path that is unactionable in a
- * collection of any size.
- */
-function read(parse: (text: string) => Document, text: string, filePath: string): Document {
-    try {
-        return parse(text);
-    } catch (error) {
-        let cause = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to parse "${filePath}": ${cause}`, { cause: error });
-    }
 }
 
 function markdown(format: "md" | "mdx", text: string): Document {

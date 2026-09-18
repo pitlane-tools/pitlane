@@ -12,6 +12,7 @@ import type {
 
 import { ContentError, parseEntryData } from "./parse.ts";
 import {
+    beginContent,
     contentRoot,
     isPrebuilding,
     prebuiltManifest,
@@ -38,6 +39,7 @@ import { collectionStore, type StoredEntry } from "./store.ts";
 export async function createContent<T extends Record<string, CollectionDefinition>>(
     build: (c: ContentBuilder) => T,
 ): Promise<Content<T>> {
+    let finished = beginContent();
     let referenced: string[] = [];
     let definitions = build({
         collection: input => input,
@@ -64,6 +66,7 @@ export async function createContent<T extends Record<string, CollectionDefinitio
     }
 
     if (isPrebuilding()) await populateEagerly(content, definitions);
+    finished();
     return content as Content<T>;
 }
 
@@ -120,7 +123,7 @@ function contentCollection(
 }
 
 async function runLoader(name: string, schema: StandardSchemaV1, loader: ContentLoader) {
-    let store = collectionStore(name);
+    let store = collectionStore(name, contentRoot());
     try {
         await loader.load({
             collection: name,
@@ -130,10 +133,15 @@ async function runLoader(name: string, schema: StandardSchemaV1, loader: Content
         });
     } catch (error) {
         throw annotate(name, error);
+    } finally {
+        // Reported whether or not the load succeeded. A prebuild that fails is
+        // exactly when the author is about to edit one of these files, so
+        // dropping the watch set here would mean their fix needs a restart.
+        if (isPrebuilding()) recordWatched(loader.watchedPaths?.() ?? []);
     }
+
     if (isPrebuilding()) {
         recordPrebuilt(name, store.serializable());
-        recordWatched(loader.watchedPaths?.() ?? []);
         if (store.configuredSatteri()) recordConfiguredSatteri(name);
     }
     return store.entries;

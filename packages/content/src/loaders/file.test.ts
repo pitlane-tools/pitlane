@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ContentLoader, LoadedEntry } from "../types.ts";
 
@@ -66,8 +66,32 @@ describe("loaders.file", () => {
         expect(entries.every(entry => entry.body === undefined)).toBe(true);
     });
 
-    it("reports the file it read so the plugin can watch it", () => {
+    it("builds where there is no process, because the factory runs at module scope", () => {
+        let built: ContentLoader | undefined;
+        let thrown: unknown;
+
+        vi.stubGlobal("process", undefined);
+        try {
+            built = file("app/content/authors.json");
+        } catch (error) {
+            thrown = error;
+        } finally {
+            vi.unstubAllGlobals();
+        }
+
+        expect(thrown).toBeUndefined();
+        expect(built?.watchedPaths?.()).toEqual([]);
+    });
+
+    it("reports nothing to watch until a load has told it where the root is", () => {
+        let loader = file("app/content/authors.json");
+
+        expect(loader.watchedPaths?.()).toEqual([]);
+    });
+
+    it("reports the file it read so the plugin can watch it", async () => {
         let loader = file(`${fixtures}/authors.json`);
+        await collect(loader);
 
         expect(loader.watchedPaths?.()).toEqual([`${fixtures}/authors.json`]);
     });
@@ -92,5 +116,27 @@ describe("loaders.file", () => {
                 filePath: `${fixtures}/notes.txt`,
             },
         ]);
+    });
+});
+
+describe("loaders.file parse failures", () => {
+    it("names the file whose JSON will not parse", async () => {
+        await expect(collect(file(`${fixtures}/broken/bad.json`))).rejects.toThrow(
+            new RegExp(`Failed to parse "${fixtures}/broken/bad\\.json"`),
+        );
+    });
+
+    it("names the file whose YAML will not parse", async () => {
+        await expect(collect(file(`${fixtures}/broken/bad.yaml`))).rejects.toThrow(
+            new RegExp(`Failed to parse "${fixtures}/broken/bad\\.yaml"`),
+        );
+    });
+
+    it("says what a parser must return when the file parses to null", async () => {
+        await expect(collect(file(`${fixtures}/broken/null.json`))).rejects.toThrow(
+            new RegExp(
+                `Parsing "${fixtures}/broken/null\\.json" produced null; loaders\\.file needs`,
+            ),
+        );
     });
 });

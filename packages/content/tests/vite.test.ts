@@ -32,6 +32,7 @@ afterEach(async () => {
 async function buildFixture(
     options?: Parameters<typeof content>[0],
     onWarn?: (warning: string) => void,
+    output?: { ssr?: string; satteri?: boolean },
 ) {
     let outDir = await mkdtemp(fileURLToPath(new URL("./.tmp-out-", import.meta.url)));
     outputs.push(outDir);
@@ -50,13 +51,15 @@ async function buildFixture(
             },
         },
         plugins: [
-            satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
+            ...(output?.satteri === false
+                ? []
+                : [satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })]),
             content(options),
         ],
         build: {
             outDir,
             emptyOutDir: true,
-            ssr: "app/entry.server.ts",
+            ssr: output?.ssr ?? "app/entry.server.ts",
             rollupOptions: { output: { entryFileNames: "entry.server.mjs" } },
         },
     });
@@ -69,6 +72,32 @@ async function buildAndQuery(options?: Parameters<typeof content>[0]) {
     let entry = await import(pathToFileURL(join(outDir, "entry.server.mjs")).href);
     return { outDir, result: await entry.query() };
 }
+
+describe("the two paths agree", () => {
+    it("produces the same data prebuilt as it does from the filesystem", async () => {
+        // The proposal's stated reason for parsing frontmatter in-package is
+        // that "a prebuilt and a runtime-resolved collection cannot disagree
+        // about an entry's `data`". This is that claim, measured: one fixture,
+        // one schema, read once through the bundle and once through the loader.
+        let outDir = await buildFixture({ entry: "app/content-passthrough.ts" }, undefined, {
+            ssr: "app/entry.passthrough.ts",
+        });
+        let bundled = await import(pathToFileURL(join(outDir, "entry.server.mjs")).href);
+        let prebuilt = await bundled.query();
+
+        let { content } = await import(
+            pathToFileURL(join(fixture, "app/content-passthrough.ts")).href
+        );
+        let entries = await content.settings.getCollection();
+        let runtime = entries.map((entry: { id: string; data: unknown; filePath?: string }) => ({
+            id: entry.id,
+            data: entry.data,
+            filePath: entry.filePath,
+        }));
+
+        expect(prebuilt).toStrictEqual(runtime);
+    });
+});
 
 describe("content()", () => {
     it("answers from the bundle, with no filesystem read at runtime", async () => {
@@ -142,6 +171,26 @@ describe("content()", () => {
         await buildFixture(undefined, warning => warnings.push(warning));
 
         expect(warnings.filter(warning => warning.includes("options.satteri"))).toEqual([]);
+    });
+
+    it("fails the build when the entry does not await createContent", async () => {
+        // The collections are declared but the promise is never awaited, so the
+        // build sees nothing. An empty manifest is the one outcome this design
+        // refuses: it works on Node and fails only on a host with no filesystem.
+        await expect(buildFixture({ entry: "app/content-unawaited.ts" })).rejects.toThrow(
+            /app\/content-unawaited\.ts.*await/s,
+        );
+    });
+
+    it("names vite-plugin-satteri when nothing can compile a Markdown body", async () => {
+        // Without a Markdown compiler the emitted body module is parsed as
+        // JavaScript, which used to die on a tokenizer error pointing at a
+        // virtual path the author has never seen.
+        await expect(
+            buildFixture({ entry: "app/content-markdown-only.ts" }, undefined, {
+                satteri: false,
+            }),
+        ).rejects.toThrow(/vite-plugin-satteri/);
     });
 
     it("names the module and the underlying error when the entry cannot be imported", async () => {

@@ -41,6 +41,46 @@ describe("splitFrontmatter", () => {
         });
     });
 
+    it("keeps reading data past a value that ends in a fence", () => {
+        let { data, body } = splitFrontmatter(
+            "---\ntitle: foo---\nsummary: should be data\n---\n\n# Body\n\nreal body\n",
+        );
+
+        expect(data).toEqual({ title: "foo---", summary: "should be data" });
+        expect(body).toBe("\n# Body\n\nreal body\n");
+    });
+
+    it("keeps reading data past a value that ends in a fence and trailing spaces", () => {
+        let { data, body } = splitFrontmatter(
+            "---\ntitle: foo---   \nsummary: data\n---\n\nBody\n",
+        );
+
+        expect(data).toEqual({ title: "foo---", summary: "data" });
+        expect(body).toBe("\nBody\n");
+    });
+
+    it("leaves a value containing a fence mid-line alone", () => {
+        let { data, body } = splitFrontmatter("---\ntitle: a---b\n---\n\n# Greeting\n");
+
+        expect(data).toEqual({ title: "a---b" });
+        expect(body).toBe("\n# Greeting\n");
+    });
+
+    it("keeps an indented fence inside a block scalar in the data", () => {
+        let document = "---\nsummary: |\n  intro\n  ---\n  outro\ntitle: Hello\n---\n\n# Body\n";
+        let { data, body } = splitFrontmatter(document);
+
+        expect(data).toEqual({ summary: "intro\n---\noutro\n", title: "Hello" });
+        expect(body).toBe("\n# Body\n");
+    });
+
+    it("closes on a fence followed by trailing whitespace", () => {
+        let { data, body } = splitFrontmatter("---\ntitle: Hello\n---   \n\n# Greeting\n");
+
+        expect(data).toEqual({ title: "Hello" });
+        expect(body).toBe("\n# Greeting\n");
+    });
+
     it("accepts CRLF line endings", () => {
         let { data, body } = splitFrontmatter("---\r\ntitle: Hello\r\n---\r\n\r\n# Greeting\r\n");
 

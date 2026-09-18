@@ -108,6 +108,57 @@ describe("literal", () => {
         );
     });
 
+    it("refuses a __proto__ key rather than writing a prototype assignment", () => {
+        // `{ "__proto__": ... }` in an object literal sets the prototype instead
+        // of defining a property, so writing the key verbatim makes a prebuilt
+        // collection disagree with a runtime-resolved one about the same data.
+        let data = JSON.parse('{ "a": 1, "__proto__": { "injected": true } }') as unknown;
+
+        expect(() => literal(data, "blog/hello")).toThrow(
+            /blog\/hello.*cannot be written into the manifest/s,
+        );
+    });
+
+    it("refuses a null prototype rather than re-emitting it as a plain object", () => {
+        let bare = Object.create(null) as Record<string, unknown>;
+        bare.a = 1;
+
+        expect(() => literal(bare, "blog/hello")).toThrow(/cannot be written into the manifest/);
+    });
+
+    it("refuses a key it would silently drop", () => {
+        let withHidden = { a: 1 };
+        Object.defineProperty(withHidden, "hidden", { value: 2, enumerable: false });
+        let withSymbol = { a: 1, [Symbol("s")]: 2 };
+        let arrayWithFields = Object.assign([1, 2], { extra: 3 });
+
+        for (let value of [withHidden, withSymbol, arrayWithFields]) {
+            expect(() => literal(value, "blog/hello")).toThrow(
+                /cannot be written into the manifest/,
+            );
+        }
+    });
+
+    it("refuses an invalid Date with its own message rather than a bare RangeError", () => {
+        let error = (() => {
+            try {
+                literal({ publishedOn: new Date("nonsense") }, "blog/hello");
+            } catch (thrown) {
+                return thrown as Error;
+            }
+            return undefined;
+        })();
+
+        expect(error?.message).toMatch(/blog\/hello.*cannot be written into the manifest/s);
+        expect(error).not.toBeInstanceOf(RangeError);
+    });
+
+    it("preserves an object's prototype across the round trip", async () => {
+        // `toEqual` ignores prototypes, so the round-trip suite above cannot
+        // see a plain object arriving where a bare one went in.
+        expect(await roundTrip({ nested: { a: 1 } })).toStrictEqual({ nested: { a: 1 } });
+    });
+
     it("refuses a cycle rather than recursing until the stack ends", () => {
         let cyclic: Record<string, unknown> = { name: "loop" };
         cyclic.self = cyclic;

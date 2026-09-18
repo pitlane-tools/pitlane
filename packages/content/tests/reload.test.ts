@@ -137,6 +137,41 @@ describe("content() in dev", () => {
         expect(outcome).not.toHaveProperty("titled", "Hello");
     });
 
+    it("recovers from a first prebuild that failed", async () => {
+        let { server, root } = await devServer();
+
+        // Broken before the server ever prebuilt successfully, so the plugin
+        // never learned which paths to watch. Fixing the file has to take
+        // effect anyway; otherwise the author's only move is a restart, right
+        // after being shown an error and told to fix it.
+        await writeFile(
+            join(root, "app/content/blog/hello.md"),
+            "---\ntitle: 7\npublishedOn: not-a-date\n---\n\n# Broken\n",
+        );
+
+        await expect(blogIds(server, "/app/content.ts")).rejects.toThrow(/Failed to parse entry/);
+
+        await writeFile(
+            join(root, "app/content/blog/hello.md"),
+            "---\ntitle: Repaired\npublishedOn: 2026-01-02\nauthor: ada\n---\n\n# Repaired\n",
+        );
+
+        // Polls through the rejection: recovery is what is being waited for, so
+        // a failing read is a not-yet rather than a result.
+        let ids = await until(
+            async () => {
+                try {
+                    return await blogIds(server, "/app/content.ts");
+                } catch {
+                    return undefined;
+                }
+            },
+            value => value?.length === 2,
+        );
+
+        expect(ids).toEqual(["hello", "second"]);
+    });
+
     it("picks up a deleted post", async () => {
         let { server, root } = await devServer();
 

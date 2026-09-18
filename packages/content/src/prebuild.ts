@@ -20,6 +20,8 @@ interface Channel {
     watched: Set<string>;
     /** Collections whose loader configured runtime rendering options. */
     configuredSatteri: Set<string>;
+    /** `createContent` calls that started and have not finished. */
+    inFlight: number;
     root: string;
 }
 
@@ -34,6 +36,7 @@ export function openPrebuild(root: string): Channel {
         collections: new Map(),
         watched: new Set(),
         configuredSatteri: new Set(),
+        inFlight: 0,
         root,
     };
     (globalThis as Global)[PREBUILD_CHANNEL] = channel;
@@ -53,6 +56,30 @@ export function isPrebuilding(): boolean {
 /** The root loaders resolve relative paths against. */
 export function contentRoot(): string {
     return (globalThis as Global)[PREBUILD_CHANNEL]?.root ?? process.cwd();
+}
+
+/**
+ * Marks a `createContent` call as started, and returns its completion callback.
+ *
+ * `content()` uses this to notice an entry module that declares collections
+ * without awaiting them. `ssrLoadModule` resolves as soon as the module body
+ * does, so every later `recordPrebuilt` would no-op into a closed channel and
+ * the build would emit an empty manifest — working on Node and failing only on
+ * a host with no filesystem. An unfinished call is what distinguishes "this
+ * app has no prebuildable collections" from "nobody waited for them".
+ */
+export function beginContent(): () => void {
+    let channel = (globalThis as Global)[PREBUILD_CHANNEL];
+    if (!channel) return () => {};
+    channel.inFlight += 1;
+    return () => {
+        channel.inFlight -= 1;
+    };
+}
+
+/** Whether any `createContent` call started and never finished. */
+export function unfinishedContent(): boolean {
+    return ((globalThis as Global)[PREBUILD_CHANNEL]?.inFlight ?? 0) > 0;
 }
 
 /** Records one collection's entries for `content()` to read back. */

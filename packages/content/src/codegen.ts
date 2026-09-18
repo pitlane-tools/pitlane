@@ -83,20 +83,58 @@ export function literal(value: unknown, where = "an entry", seen = new Set<objec
     }
 
     let nested = new Set(seen).add(value);
-    if (value instanceof Date) return `new Date(${quote(value.toISOString())})`;
+    if (value instanceof Date) {
+        // An invalid Date would make `toISOString` throw a bare `RangeError`,
+        // which names neither the entry nor the manifest.
+        if (Number.isNaN(value.getTime())) throw unwritable(where, value);
+        return `new Date(${quote(value.toISOString())})`;
+    }
+
+    // Anything with a prototype other than `Object.prototype` carries behavior
+    // or private state a literal cannot reproduce, so `{ ...it }` would be a
+    // quiet lie. A null prototype is refused for the same reason in reverse:
+    // an object literal always has `Object.prototype`, so re-emitting a bare
+    // object would hand the runtime something the build never had.
+    if (
+        Object.getPrototypeOf(value) !== (Array.isArray(value) ? Array.prototype : Object.prototype)
+    ) {
+        throw unwritable(where, value);
+    }
+
+    let keys = Reflect.ownKeys(value);
     if (Array.isArray(value)) {
+        // Indices plus `length`; anything else is an own property the array
+        // branch below would drop.
+        let extra = keys.filter(key => key !== "length" && !isIndex(key, value.length));
+        if (extra.length > 0) throw unwritableKey(where, extra[0]!);
         return `[${value.map(item => literal(item, where, nested)).join(", ")}]`;
     }
 
-    // Anything with its own prototype carries behavior or private state that a
-    // literal cannot reproduce, so `{ ...it }` would be a quiet lie.
-    let prototype = Object.getPrototypeOf(value) as object | null;
-    if (prototype !== Object.prototype && prototype !== null) throw unwritable(where, value);
-
-    let fields = Object.entries(value).map(
-        ([key, field]) => `${quote(key)}: ${literal(field, where, nested)}`,
-    );
+    let fields = keys.map(key => {
+        // `Reflect.ownKeys` sees what `Object.entries` hides: a symbol key and
+        // a non-enumerable one have no literal spelling, and dropping either
+        // silently is the failure this function exists to prevent.
+        if (typeof key === "symbol") throw unwritableKey(where, key);
+        let descriptor = Object.getOwnPropertyDescriptor(value, key);
+        if (!descriptor?.enumerable || !("value" in descriptor)) throw unwritableKey(where, key);
+        // `{ "__proto__": … }` sets the prototype rather than defining a
+        // property, so writing this key verbatim is the one case where the two
+        // hosts genuinely disagree about an entry's data.
+        if (key === "__proto__") throw unwritableKey(where, key);
+        return `${quote(key)}: ${literal(descriptor.value, where, nested)}`;
+    });
     return `{ ${fields.join(", ")} }`;
+}
+
+function isIndex(key: string | symbol, length: number) {
+    if (typeof key === "symbol") return false;
+    let index = Number(key);
+    return Number.isInteger(index) && index >= 0 && index < length;
+}
+
+function unwritableKey(where: string, key: string | symbol) {
+    let name = typeof key === "symbol" ? key.toString() : `"${key}"`;
+    return new Error(`${where} has a key ${name} that cannot be written into the manifest.`);
 }
 
 /**

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ContentLoader, LoadedEntry, StandardSchemaV1 } from "../types.ts";
 
@@ -147,10 +147,55 @@ describe("loaders.glob", () => {
         expect(entries.map(entry => entry.id)).toEqual(["src/fixtures/data/one"]);
     });
 
-    it("reports the directories it read so the plugin can watch them", () => {
+    it("builds where there is no process, because the factory runs at module scope", () => {
+        let built: ContentLoader | undefined;
+        let thrown: unknown;
+
+        vi.stubGlobal("process", undefined);
+        try {
+            built = glob({ pattern: "**/*.md", base: "app/content/blog" });
+        } catch (error) {
+            thrown = error;
+        } finally {
+            vi.unstubAllGlobals();
+        }
+
+        expect(thrown).toBeUndefined();
+        expect(built?.watchedPaths?.()).toEqual([]);
+    });
+
+    it("reports nothing to watch until a load has told it where the root is", () => {
+        let loader = glob({ pattern: "**/*.md", base: "app/content/blog" });
+
+        expect(loader.watchedPaths?.()).toEqual([]);
+    });
+
+    it("reports the directories it read so the plugin can watch them", async () => {
         let loader = glob({ pattern: "**/*.md", base: `${fixtures}/blog` });
+        await collect(loader);
 
         expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog`]);
+    });
+
+    it("watches the pattern's own directory rather than the whole of base", async () => {
+        let loader = glob({ pattern: "src/fixtures/blog/**/*.md" });
+        await collect(loader);
+
+        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog`]);
+    });
+
+    it("unions the directories of an array of patterns", async () => {
+        let loader = glob({ pattern: ["src/fixtures/blog/**/*.md", "src/fixtures/data/*.yml"] });
+        await collect(loader);
+
+        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog`, `${fixtures}/data`]);
+    });
+
+    it("watches the containing directory of a pattern that names one file", async () => {
+        let loader = glob({ pattern: "nested/second.mdx", base: `${fixtures}/blog` });
+        await collect(loader);
+
+        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog/nested`]);
     });
 });
 
