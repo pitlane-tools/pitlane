@@ -53,9 +53,7 @@ import * as coerce from "remix/data-schema/coerce";
 
 export let content = await createContent(c => ({
     blog: c.collection({
-        loader: loaders.modules(import.meta.glob("./content/blog/*.mdx", { eager: true }), {
-            base: "./content/blog",
-        }),
+        loader: loaders.glob({ pattern: "**/*.mdx", base: "app/content/blog" }),
         schema: s.object({
             title: s.string(),
             summary: s.string(),
@@ -77,19 +75,16 @@ let { Content, headings } = await post.render();
 let author = await content.authors.getEntry(post.data.author);
 ```
 
-Types come from inference. `post.data.title` is a `string` because the schema says so, and
-`content.authors.getEntry(post.data.author)` type-checks because `c.reference("authors")` produced a
-`Reference<"authors">`. Nothing is generated, so nothing can be stale.
+The **loader is not the portability seam — the source behind it is.** `loaders.glob` and
+`loaders.file` name local files and nothing else. Add `content()` from `@pitlane/content/vite` and
+the bundler resolves those files at build time, inlining them so the collection works on Cloudflare
+Workers with no filesystem and no cold-start I/O. Leave it out and the same call reads `node:fs`,
+for container hosts, scripts, and anywhere a bundler is not involved. The application code is
+identical either way; a host change edits the Vite config, never a collection.
 
-The **loader is the portability seam**. `loaders.modules` is handed a record the bundler already
-resolved, so its content is inlined and the collection works on Cloudflare Workers with no
-filesystem and no cold-start I/O. `loaders.glob` and `loaders.file` read `node:fs` instead, for
-container hosts, for the dev server, and for scripts. Both produce the same entries, and swapping
-one for the other is the only edit a host change requires.
-
-[Sätteri](https://satteri.bruits.org) is the Markdown engine on both paths, composed rather than
-wrapped: `vite-plugin-satteri` compiles the bundled path, and the `satteri` package renders the
-filesystem path.
+[Sätteri](https://satteri.bruits.org) is the Markdown engine on both sources, composed rather than
+wrapped: `vite-plugin-satteri` compiles the bundled files, and the `satteri` package renders the
+ones read from disk.
 
 ```text
 a .mdx file gains a heading → content.blog.getEntry(slug) → render() → { Content, headings }
@@ -99,19 +94,22 @@ a .mdx file gains a heading → content.blog.getEntry(slug) → render() → { C
 
 ### Package shape
 
-`@pitlane/content`, at `packages/content`, with three entry points:
+`@pitlane/content`, at `packages/content`, with four entry points:
 
 | Entry point                | Exports                                                                                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@pitlane/content`         | `createContent`, and the `Collection`, `CollectionEntry`, `ContentLoader`, `LoaderContext`, `LoadedEntry`, `Reference`, `Heading`, `RenderedEntry` types |
-| `@pitlane/content/loaders` | `glob`, `file`, `modules`                                                                                                                                |
+| `@pitlane/content/loaders` | `glob`, `file`                                                                                                                                           |
 | `@pitlane/content/satteri` | `headings`, a Sätteri MDAST plugin                                                                                                                       |
+| `@pitlane/content/vite`    | `content`, the call-site transform                                                                                                                       |
 
 `dependencies` is `{ "yaml": "^2" }` — YAML frontmatter and `.yaml` data files need a parser, and
-neither Remix nor the platform provides one. `remix` is a peer dependency. `satteri` is an
-**optional** peer dependency (`^0.9.4`, caret-pinned because Sätteri is pre-1.0 and breaks on minor
-bumps): only `@pitlane/content/loaders`' filesystem paths and `@pitlane/content/satteri` import it,
-so an application that loads content through `loaders.modules` never installs it.
+neither Remix nor the platform provides one. `@pitlane/content/vite` adds `oxc-parser` and
+`magic-string`, the two `@pitlane/dev` already uses for the same job, and `vite` as a peer.
+
+`remix` is a peer dependency. `satteri` is an **optional** peer dependency (`^0.9.4`, caret-pinned
+because Sätteri is pre-1.0 and breaks on minor bumps): only the loaders' filesystem source and
+`@pitlane/content/satteri` import it, so an application whose content is bundled never installs it.
 
 ### `createContent`
 
@@ -222,7 +220,7 @@ interface LoadedEntry {
 ```
 
 A loader reads its source, calls `parseData` for each entry, and calls `store.set`. The interface is
-public, so an application can write a loader over a database, a CMS, or anything else, and three
+public, so an application can write a loader over a database, a CMS, or anything else, and two
 implementations ship.
 
 `parseData` validates against the collection's schema and returns the parsed value. On failure it
@@ -233,33 +231,7 @@ fails on the first invalid entry rather than skipping it.
 Two loaders calling `store.set` with the same `id` is a conflict, not a merge: the second call
 throws `Duplicate entry id "<id>" in collection "<collection>".`
 
-### `loaders.modules` — the bundled path
-
-```ts
-loaders.modules(modules: Record<string, unknown>, options?: { base?: string; generateId?: (path: string) => string }): ContentLoader
-```
-
-Takes the record `import.meta.glob(pattern, { eager: true })` returns. Because the argument is a
-plain record, the loader has no bundler dependency and its tests pass object literals.
-
-- The default id is the record key with `options.base` (when given) and the file extension stripped,
-  and any leading `./` or `/` removed. `options.generateId` replaces that derivation and receives
-  the raw key.
-- Each value is read as a module namespace:
-    - `frontmatter`, when present, is the entry's unvalidated data; otherwise `{}`.
-    - `default` being a function means a component entry. `default` being a string means an HTML
-      entry. Any other `default` throws
-      `Module "<key>" exports a default of type <type>; expected a component or an HTML string.`
-    - `headings`, when present and an array, becomes the entry's headings; otherwise `[]`.
-      These are exactly the shapes `vite-plugin-satteri` emits: `.mdx` compiles to
-      `export const frontmatter` plus a component default, and `.md` to `export const frontmatter` plus
-      an HTML-string default.
-- A record value that is itself a function is a non-eager glob. That case throws
-  `loaders.modules requires import.meta.glob(..., { eager: true }).` rather than treating the
-  importer as a component. Lazy globs are not supported: `getCollection` would have to await every
-  module to expose `data`, which is what eager loading already does, only later.
-
-### `loaders.glob` — the filesystem path
+### `loaders.glob` and `loaders.file` — one API, two sources
 
 ```ts
 loaders.glob(options: {
@@ -267,46 +239,160 @@ loaders.glob(options: {
     base?: string;
     generateId?: (options: GenerateIdOptions) => string;
     satteri?: CompileOptions;
+    modules?: Record<string, unknown>;
+}): ContentLoader
+
+loaders.file(fileName: string, options?: {
+    parser?: (text: string) => Record<string, unknown> | unknown[];
+    modules?: Record<string, unknown>;
 }): ContentLoader
 ```
 
-Walks `base` (default `.`) with `node:fs/promises`' `glob`, resolving each pattern against it. The
-default id is the path relative to `base` with its extension stripped and `\` normalised to `/`.
+Both name local files, and neither names a mechanism. A loader resolves those files from whichever
+source the context has:
 
-| Extension       | Behavior                                                                                                                                       |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.md`           | `satteri.markdownToHtml` with `features: { frontmatter: true }`; YAML frontmatter becomes `data`, the HTML becomes an `html` rendered source   |
-| `.mdx`          | `satteri.evaluate` with `remix/ui/jsx-runtime`; the module's `frontmatter` becomes `data` and its default export a `component` rendered source |
-| `.json`         | `JSON.parse`; the parsed object is `data`, and the entry has no rendered source                                                                |
-| `.yaml`, `.yml` | parsed with `yaml`; the parsed object is `data`, and the entry has no rendered source                                                          |
-| anything else   | skipped                                                                                                                                        |
+- **`modules` present** — the bundler resolved the files already, and the loader reads that record.
+  Nothing touches the filesystem.
+- **`modules` absent** — the loader walks `node:fs/promises`' `glob`, or reads the one file, and
+  renders Markdown with `satteri` directly.
+
+`modules` is normally injected by [`content()`](#pitlanecontentvite--the-content-plugin) rather than
+written by hand. Writing it by hand is supported, and is what this package's own tests do, because a
+plain object literal needs no bundler.
+
+`base` defaults to `.` and is relative to the project root. An id is the file path relative to
+`base` with its extension stripped and `\` normalised to `/`; `generateId` replaces that
+derivation. Ids never depend on which source resolved the file, so a collection keeps its URLs when
+the host changes.
+
+`loaders.file` reads one file holding many entries. An array result requires each item to carry a
+string `id`, which is removed from `data`; an item without one throws naming its index. An object
+result uses its keys as ids. Its entries never have a rendered source.
+
+#### What each extension becomes
+
+| Extension       | Bundled source                                                                                               | Filesystem source                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `.md`           | `vite-plugin-satteri` module — `frontmatter` is `data`, the string `default` an `html` rendered source       | `satteri.markdownToHtml`, same two outputs                       |
+| `.mdx`          | `vite-plugin-satteri` module — `frontmatter` is `data`, the function `default` a `component` rendered source | `satteri.evaluate` with `remix/ui/jsx-runtime`, same two outputs |
+| `.json`         | the file's text through `?raw`, parsed with `JSON.parse`                                                     | `JSON.parse`                                                     |
+| `.yaml`, `.yml` | the file's text through `?raw`, parsed with `yaml`                                                           | parsed with `yaml`                                               |
+| anything else   | skipped by `glob`; `loaders.file` requires `options.parser`                                                  | same                                                             |
+
+Data files arrive as raw text from both sources deliberately. Vite would parse `.json` itself, but
+then a bundled and an unbundled collection would parse through different code, and `.yaml` would
+need a Vite plugin that `.yml` on disk does not. One parser per format, fed a string, is what keeps
+the two sources agreeing.
+
+Markdown cannot work that way: rendering it needs Sätteri, whose native binding does not run on an
+edge runtime. Markdown is therefore the one case where the bundled source hands over a finished
+module instead of text — which is exactly what `vite-plugin-satteri` produces.
+
+#### Module shapes and their failures
+
+From the bundled source each record value is read as a module namespace. `frontmatter` is the
+entry's unvalidated data, or `{}`; a function `default` is a component entry and a string `default`
+an HTML entry; `headings`, when an array, becomes the entry's headings.
+
+- Any other `default` throws
+  `Module "<key>" exports a default of type <type>; expected a component or an HTML string.`
+- A record value that is itself a function is a non-eager glob, and throws
+  `Content modules must come from import.meta.glob(..., { eager: true }).` Lazy globs are not
+  supported: `getCollection` would have to await every module to expose `data`, which is what eager
+  loading already does, only later.
+
+#### Configuring Sätteri, and when it is needed
 
 `options.satteri` is forwarded to whichever Sätteri entry point the extension selects, so a
-filesystem collection configures the engine exactly as the bundled path configures
-`vite-plugin-satteri`. `@pitlane/content/satteri`'s `headings` plugin is prepended to
-`options.satteri.mdastPlugins`, and `features.frontmatter` is forced on; everything else is the
-application's.
+filesystem collection configures the engine the way a bundled one configures `vite-plugin-satteri`.
+`@pitlane/content/satteri`'s `headings` plugin is prepended to `options.satteri.mdastPlugins`, and
+`features.frontmatter` is forced on; everything else is the application's. From the bundled source
+`options.satteri` is ignored, because `vite-plugin-satteri` already ran — `content()` warns when
+both are configured, since a plugin list that only takes effect on one host is a trap.
 
-Encountering a `.md` or `.mdx` file without `satteri` installed throws
-`Rendering "<path>" needs the optional peer dependency "satteri"; install it, or load this collection with loaders.modules.`
+`satteri` is needed only by the filesystem source. A `.md` or `.mdx` file reached without it throws
+`Rendering "<path>" needs the optional peer dependency "satteri"; install it, or add content() from @pitlane/content/vite so the bundler compiles this collection.`
 
-`.mdx` on this path is Node-only by construction: `satteri.evaluate` compiles to a function body and
-runs it through `new Function`, which Cloudflare Workers forbids. That is not a new restriction —
-the loader already needs `node:fs` — but it is the reason `loaders.modules` exists.
+`.mdx` from the filesystem source is Node-only by construction: `satteri.evaluate` compiles to a
+function body and runs it through `new Function`, which Cloudflare Workers forbids. That is not a
+new restriction, because that source already needs `node:fs`.
 
-### `loaders.file` — a single data file
+#### Reaching a runtime with neither source
 
-```ts
-loaders.file(fileName: string, options?: { parser?: (text: string) => Record<string, unknown> | unknown[] }): ContentLoader
+A bundled build without `content()` leaves `modules` undefined, so the loader falls through to the
+filesystem and finds no `node:fs`. That fails loudly and names the fix:
+
+```text
+Collection "blog" has no bundled content and no filesystem to read.
+Add content() from "@pitlane/content/vite" to your Vite config, or pass `modules` yourself.
 ```
 
-Reads one file containing many entries. `.json` is parsed with `JSON.parse`, `.yaml` and `.yml` with
-`yaml`, and any other extension requires `options.parser`; without one it throws
-`No parser for "<ext>"; pass options.parser to loaders.file.`
+An empty collection is the one outcome this design refuses. It renders as a blog with no posts,
+which looks like a content problem and is a configuration problem.
 
-An array result requires each item to carry a string `id`, which is removed from `data`; an item
-without one throws naming its index. An object result uses its keys as ids. Entries from this loader
-never have a rendered source.
+### `@pitlane/content/vite` — the `content()` plugin
+
+```ts
+function content(options?: { include?: string | string[] }): Plugin;
+```
+
+A Vite plugin, `enforce: "pre"`, that rewrites `loaders.glob` and `loaders.file` call sites in
+application source to carry the `modules` record the loader then prefers. `include` narrows which
+modules it parses and defaults to the project's own source.
+
+It exists because **`import.meta.glob` is a compile-time transform, not a function.** Its pattern
+must be a literal in the module being transformed, so a loader inside `@pitlane/content` cannot call
+it on a pattern that arrives as an argument. Vite does not reject that — it emits an empty record
+and says nothing, which is why the pattern has to be lifted to the call site by a transform instead
+of being handled at runtime. **Alternatives considered** records the measurement.
+
+Given this call site:
+
+```ts
+loader: loaders.glob({ pattern: "**/*.{mdx,json}", base: "app/content/blog" }),
+```
+
+the plugin emits:
+
+```ts
+loader: loaders.glob({
+    pattern: "**/*.{mdx,json}",
+    base: "app/content/blog",
+    modules: {
+        ...import.meta.glob("./content/blog/**/*.mdx", { eager: true }),
+        ...import.meta.glob("./content/blog/**/*.json", {
+            eager: true,
+            query: "?raw",
+            import: "default",
+        }),
+    },
+});
+```
+
+Four rules govern the rewrite:
+
+1. **`oxc-parser` finds the calls and `magic-string` edits them**, the way
+   `packages/dev/src/transform.ts` already rewrites `clientEntry(import.meta.url, …)`. A call whose
+   `pattern`, `base`, or `fileName` is not a literal is left alone and warned about, naming the file
+   and line — a pattern the plugin cannot read is a collection that would otherwise come back empty.
+2. **Paths are rebased.** `base` is relative to the project root while `import.meta.glob` resolves
+   relative to the module it appears in, so the emitted pattern is `base` joined to `pattern`, made
+   relative to that module's directory.
+3. **Markdown and data split into separate globs**, because they need different options: modules for
+   `.md` and `.mdx`, `?raw` text for data. A pattern naming both emits both globs and spreads them.
+   A pattern naming no extension expands to the two known extension sets rather than globbing
+   everything.
+4. **A call that already has `modules` is left alone**, so a hand-written record beats the transform.
+
+The plugin does not compile Markdown. `vite-plugin-satteri` does, when Vite resolves the `.md` and
+`.mdx` imports these globs create, so it must be in the config for a Markdown collection to build.
+Relative order between the two does not matter: `content()` rewrites the application module, and
+`vite-plugin-satteri` transforms the content files that module then imports.
+
+In `vite dev` the same rewrite runs, so content comes from the module graph and editing a `.md` or
+`.mdx` file updates through Vite's own invalidation. The plugin must also register the emitted
+patterns so that adding or deleting a matching file invalidates the module holding the collection;
+without that, a new post needs a restart.
 
 ### `@pitlane/content/satteri` — the shared `headings` plugin
 
@@ -339,11 +425,14 @@ export default defineConfig({
 
 `jsxImportSource: "remix/ui"` is required, and `satteri()` must precede `remix()`.
 
-**Known limitation.** A `.md` file loaded through `loaders.modules` has `headings: []`.
+**Known limitation.** A `.md` file resolved from the bundled source has `headings: []`.
 `vite-plugin-satteri` emits only `frontmatter` and the HTML string for Markdown, and the plugin has
 nowhere to put a heading list that survives into the module. The workaround is `.mdx`, which is what
 the guide will recommend for any page that needs a table of contents. The other three combinations —
-`.md` and `.mdx` through `loaders.glob`, `.mdx` through `loaders.modules` — all produce headings.
+`.md` and `.mdx` from the filesystem, `.mdx` from the bundler — all produce headings.
+
+This is the one place the two sources differ in output, and it is the strongest argument for
+`.mdx` as the default authoring format.
 
 ### Code highlighting
 
@@ -359,10 +448,10 @@ import expressiveCode from "satteri-expressive-code";
 
 let code = expressiveCode({ themes: ["github-dark", "github-light"] });
 
-// bundled path
+// bundled source
 satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()], hastPlugins: [code] });
 
-// filesystem path
+// filesystem source
 loaders.glob({ pattern: "**/*.md", base: "app/content/blog", satteri: { hastPlugins: [code] } });
 ```
 
@@ -390,10 +479,11 @@ reference is validated. An unresolvable reference surfaces as `getEntry` resolvi
 
 ### Reloading
 
-There is none, beyond what Vite already does. `loaders.modules` is part of the module graph, so
-editing a `.mdx` file invalidates the content module and the dev server reloads it. `loaders.glob`
-and `loaders.file` read the filesystem once at startup, so a content change needs a restart. No
-watcher, no cache invalidation, and no digest tracking ships here.
+Dev reloading comes from Vite, and only with `content()` installed. The emitted globs put content in
+the module graph, so editing a `.md` or `.mdx` file invalidates the module holding the collection
+and the dev server reloads it; the plugin registering its patterns is what extends that to files
+added or deleted. Without `content()` the loaders read the filesystem once at startup and a content
+change needs a restart. No watcher, no cache invalidation, and no digest tracking ships here.
 
 ## Compatibility
 
@@ -411,14 +501,18 @@ VISION.md is corrected in phase 5.
 | `loaders.glob({ pattern: "app/content/**/*.{md,mdx}", base: "blog" })` | `base` is the directory patterns resolve against, as in the prior art  | `base: "blog"` alongside a full-path pattern reads as a collection prefix, which nothing implements. One meaning for `base` is enough.            |
 | `loaders.file("app/content/authors.jsonc")`                            | `.json`, `.yaml`, and `.yml` built in; `.jsonc` needs `options.parser` | JSONC needs a third parser for comments YAML already allows. The sample becomes `authors.json`.                                                   |
 | `import { createContent } from "pitlane/content"`                      | `@pitlane/content`                                                     | The umbrella vends no subpaths yet — VISION.md's own [Reserved names](../VISION.md#reserved-names) says a package that exists is imported scoped. |
-| Nothing about how content reaches a Worker                             | `loaders.modules` is the bundled path                                  | The published sample only shows filesystem loaders, which cannot run on Cloudflare Workers, the flagship target.                                  |
+| Nothing about how content reaches a Worker                             | `content()` inlines the same `loaders.glob` call                       | The published sample only shows filesystem loaders, which cannot run on Cloudflare Workers, the flagship target.                                  |
 
 ## Implications on adoption
 
-Adopting `@pitlane/content` means installing it, and — for Markdown or MDX — also `satteri` and
-`vite-plugin-satteri`, adding `satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })`
-before `remix()`, and writing one module that calls `createContent`. A collection of `.json` or
-`.yaml` files needs none of the Sätteri setup.
+Adopting `@pitlane/content` means installing it and writing one module that calls `createContent`.
+Markdown or MDX adds `satteri` and `vite-plugin-satteri`, plus
+`satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })` before `remix()`. A
+collection of `.json` or `.yaml` files needs none of that.
+
+Any target without a filesystem — Cloudflare Workers above all — additionally needs `content()` from
+`@pitlane/content/vite` in the Vite config. That is the only edit, and the collections themselves do
+not change.
 
 Version floors: `remix@^3.0.0-rc.1` and, when Markdown is used, `satteri@^0.9.4`.
 
@@ -428,29 +522,34 @@ means deleting the module that calls `createContent`.
 
 ## Scope
 
-- A new `packages/content` with the three entry points above, built and tested with Vite+ in the
+- A new `packages/content` with the four entry points above, built and tested with Vite+ in the
   same shape as `packages/crawler`.
 - `createContent`, the collection and entry surface, reference resolution, and schema validation
   with its error reporting.
-- The `ContentLoader` interface and the `glob`, `file`, and `modules` implementations.
-- The `headings` Sätteri plugin, shared by the filesystem and bundled paths, and the plugin
-  pass-through that lets `satteri-expressive-code` configure both.
-- `docs/guides/content.md`, covering both paths, the Sätteri setup, code highlighting with
+- The `ContentLoader` interface and the `glob` and `file` implementations, each resolving from
+  either a bundled `modules` record or the filesystem, with the same ids and entries from both.
+- `content()`, the `oxc-parser` and `magic-string` call-site transform that supplies that record,
+  including the warning for a non-literal pattern and the loud failure when neither source exists.
+- The `headings` Sätteri plugin, shared by both sources, and the plugin pass-through that lets
+  `satteri-expressive-code` configure them.
+- `docs/guides/content.md`, covering both sources, the Sätteri setup, code highlighting with
   Expressive Code, and references.
 - A README and CHANGELOG for the package, and its TypeDoc config in `.typedoc/` plus its line in
   the `docs:api` task.
 
 ### Out of scope
 
-- **A `content()` Vite plugin, a `content.config.ts`, a virtual module, or generated types.** The
-  runtime API is the whole point; a build-time duplicate of it is a second way to do the same thing.
+- **A `content.config.ts`, a virtual module, or generated types.** The runtime API is the whole
+  point. `content()` rewrites one argument at a call site and adds no second way to declare a
+  collection, which is what separates it from the prior art's plugin.
 - **Images in frontmatter.** The prior art's `SchemaContext.image()` is a stub there and belongs
   with `@pitlane/image`, which is separately sequenced in VISION.md.
 - **Incremental loading, digests, and content caching.** The prior art carries a digest per entry to
   skip unchanged files. There is no cache to invalidate here, so there is nothing for a digest to
   do yet.
-- **A file watcher.** Vite already reloads the bundled path, and a watcher over the filesystem path
-  is a second reload mechanism for a case the dev server does not have.
+- **A file watcher.** With `content()` installed Vite's own invalidation covers dev, and a watcher
+  over the filesystem source would be a second reload mechanism for the case the dev server does
+  not have.
 - **Remote and database loaders.** The `ContentLoader` interface is public so they can be written;
   shipping one before a caller exists is an interface built for nobody.
 - **`getEntries(refs)`.** `Promise.all(refs.map(r => content.tags.getEntry(r)))` is the same thing
@@ -475,10 +574,13 @@ means deleting the module that calls `createContent`.
 
 - `policies/` — empty apart from its README. No policy constrains this proposal.
 - `decisions/` — empty apart from its README. No decision constrains this proposal.
-- `VISION.md`, Development principle 3, **Runtime When Possible** — honored. `createContent` and
-  every query are plain runtime calls, and the package's core tests pass object literals to
-  `loaders.modules` with no bundler. Vite is an optional producer of those objects, never a
-  prerequisite.
+- `VISION.md`, Development principle 3, **Runtime When Possible** — honored, and this is the
+  principle the design bends furthest, so it is worth being precise. `createContent`, every query,
+  and both loaders are plain runtime calls that work with no bundler, and the package's core tests
+  exercise them by passing `modules` object literals. `content()` is the "static integration added
+  later as an optional optimization" the principle explicitly allows, not a prerequisite: leave it
+  out and the loaders read the filesystem. What it is not is optional _for a filesystem-less
+  target_, and the proposal says so rather than calling it optional everywhere.
 - `VISION.md`, Development principle 4, **Avoid Dependencies** — one runtime dependency, `yaml`,
   for frontmatter and `.yaml` files. Sätteri is optional and composed rather than wrapped, so it is
   the application's dependency and version choice. The slugger the prior art took from
@@ -497,10 +599,13 @@ means deleting the module that calls `createContent`.
 - A Markdown entry rendering without its `<div>` wrapper, by walking Sätteri's HAST into Remix nodes
   instead of passing an HTML string to `innerHTML`. It would also make element overrides work
   uniformly across `.md` and `.mdx`. It is not here because it is a second renderer for output the
-  bundled path cannot produce — `vite-plugin-satteri` emits a string.
-- Headings for `.md` on the bundled path, once `vite-plugin-satteri` can surface a compile's data
-  bag or extra exports for Markdown. That is an upstream capability, not something this package can
-  add from the outside.
+  bundled source cannot produce — `vite-plugin-satteri` emits a string.
+- Headings for `.md` from the bundled source, once `vite-plugin-satteri` can surface a compile's
+  data bag or extra exports for Markdown. That is an upstream capability, not something this package
+  can add from the outside, and it is the last output difference between the two sources.
+- Build-time validation. `content()` reads every collection's pattern already, so it could resolve
+  and validate entries during the build and fail there rather than at startup. Left out because
+  it duplicates the loader's work at a second time and the startup error is already loud.
 - Loaders over remote sources, once an application needs one.
 - A `@pitlane/content` integration in the target templates, sequenced by
   `.agents/skills/adopting-packages-into-templates/`.
@@ -558,6 +663,20 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   because it contradicts the `createContent` API VISION.md publishes and Development principle 3,
   because a generated `.d.ts` can go stale in a way inference cannot, and because the package would
   be unusable outside Vite.
+- **Runtime switching with no transform.** The shape this design wants most: `loaders.glob` detects
+  its context and calls `import.meta.glob(options.pattern)` itself when bundled. It does not work,
+  and it fails in the worst available way. `import.meta.glob` is a compile-time rewrite whose
+  pattern has to be a literal in the module being transformed, so a pattern arriving as a function
+  argument inside a dependency resolves to nothing. Measured against Vite 8.1.4: a module reading
+  `let pattern = "./content/*.md"; export let mods = import.meta.glob(pattern, { eager: true })`
+  builds with no error, no warning, and emits `Object.assign({})`. Every collection would come back
+  silently empty. That measurement is the whole reason `content()` exists, and the reason the
+  loaders throw rather than return `[]` when they find no source.
+- **Separate `loaders.modules` for the bundled case**, which is what this proposal specified before
+  the transform: the application writes `import.meta.glob` at the call site itself and hands the
+  record over. Honest, no plugin, and the literal lives where Vite needs it. Rejected because the
+  choice of mechanism leaked into every collection — the same blog needed a different loader per
+  host, which is the coupling `@pitlane/content` exists to remove.
 - **Filesystem loaders only, with no bundled path.** The most literal reading of VISION.md's sample:
   `createContent` on the server, `node:fs` everywhere, no `import.meta.glob`. Simpler, one loading
   mode, no Vite-ism at the call site. Rejected because Cloudflare Workers has no filesystem, so the
