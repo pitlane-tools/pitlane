@@ -138,13 +138,20 @@ interface ContentBuilder {
 }
 ```
 
-- `createContent` calls `build` once, then populates every collection **concurrently** and awaits
-  all of them. It resolves once every entry is loaded and validated.
-- A collection whose name appears in the baked manifest is populated from it, and its loader is
-  never called. Otherwise the loader runs.
+- `createContent` calls `build` once and **performs no I/O**. It returns as soon as it has wired the
+  collections up, so a module that declares content does nothing asynchronous at import time. This
+  is not an optimization: Cloudflare Workers forbids asynchronous I/O in global scope, and
+  `createContent` is called at module scope.
+- A collection whose name appears in the baked manifest reads from it. The manifest is inlined, so
+  that is a synchronous lookup with no loader involved.
+- Every other collection **populates on first access**, from `getCollection` or `getEntry`. The
+  result is memoized for the life of the process, and concurrent callers share one in-flight load
+  rather than starting several.
 - It returns an object with one property per key in `build`'s return value. Each is a `Collection`.
-- If a collection fails to populate, `createContent` rejects with that error, annotated with the
-  collection name. Loading is all-or-nothing: a half-populated content object is never returned.
+- A collection that fails to populate rejects the access that triggered it, with the error annotated
+  by collection name. The failure is **not** memoized, so the next access retries — one timed-out
+  fetch should not leave a collection broken until the process restarts. A collection is either
+  fully populated or throws; a half-populated one is never observable.
 - `c.reference(name)` records `name` on the builder. After `build` returns, `createContent`
   compares every recorded name against the keys of the returned object and throws
   `Unknown collection "<name>" referenced by createContent; known collections are <keys>.` when one
@@ -220,6 +227,7 @@ for bodies it does not show.
 interface ContentLoader {
     name: string;
     load(context: LoaderContext): Promise<void> | void;
+    bake?: boolean;
     watchedPaths?(): string[];
 }
 
@@ -245,13 +253,20 @@ A loader never renders. It reports the raw `source` and its `format`, and `rende
 do with it. That is what lets one loader serve both the runtime and the build: the build wants the
 source so the bundler can compile it, and the runtime wants it so Sätteri can.
 
-`watchedPaths` is what `content()` watches to re-bake in dev. A loader that omits it is simply not
-watched.
+`bake` declares that the build may resolve this loader once and inline the result. It defaults to
+**false**, and `loaders.glob` and `loaders.file` set it to `true`. `watchedPaths` only matters for a
+baked loader, since it is what `content()` watches in order to re-bake.
+
+The default is false because of which way the two mistakes fail. A filesystem loader that forgets
+`bake: true` fails loudly on a filesystem-less host, naming the fix. A remote loader wrongly baked
+fails silently: its content freezes at the moment of the build and never updates again, and nothing
+anywhere reports a problem. Defaults belong on the side of the loud failure.
 
 `parseData` validates against the collection's schema and returns the parsed value. On failure it
 throws an `Error` whose message names the collection, the entry id, the file path when there is one,
-and one line per Standard Schema issue in `  - <path>: <message>` form, so an invalid entry fails
-the build rather than reaching a page.
+and one line per Standard Schema issue in `  - <path>: <message>` form. For a baked collection that
+happens during the build, so an invalid entry never reaches a page; for a runtime one it happens on
+first access, which is the earliest the data exists.
 
 Two `store.set` calls with the same `id` is a conflict, not a merge: the second throws
 `Duplicate entry id "<id>" in collection "<collection>".`
@@ -320,37 +335,70 @@ configuration.
 
 The plugin bakes in four steps:
 
-1. **Execute the entry in Node.** `createRunnableDevEnvironment` from Vite runs `entry` through
-   Vite's own module runner, so TypeScript, aliases, and `vite.config.ts` resolution all apply. Its
-   `createContent` call runs there, with the filesystem available, and the loaders do exactly what
-   they do on a Node host.
-2. **Read what loaded.** `createContent` records each resolved collection on a module-scoped
+1. **Execute the entry in Node, in bake mode.** `createRunnableDevEnvironment` from Vite runs
+   `entry` through Vite's own module runner, so TypeScript, aliases, and `vite.config.ts`
+   resolution all apply. `createContent` sees the bake flag and populates **only** collections
+   whose loader sets `bake: true`, eagerly, with the filesystem available. Every other collection
+   is left alone, so the build makes no network calls and needs no runtime credentials.
+2. **Read what loaded.** `createContent` records each populated collection on a module-scoped
    registry inside `@pitlane/content`, which the plugin reads from the same realm afterwards. The
    entry module therefore needs no particular export shape and no annotation — only to have been
    imported.
 3. **Emit a manifest.** A virtual module replaces `@pitlane/content/internal/manifest`. Each entry
    contributes its `id`, `filePath`, and `data` as JavaScript literals — `Date` as
    `new Date("…")`, nested objects and arrays structurally — so a `coerce.date()` schema survives
-   the trip as a `Date` rather than a string.
+   the trip as a `Date` rather than a string. A collection that was not baked contributes nothing,
+   and its absence is what tells the runtime to use the loader.
 4. **Emit a module per body.** An entry with a `body` gets a virtual module whose id ends in its
    format, `\0pitlane-content/entry/<collection>/<id>.mdx`, loading as the raw source. The manifest
    imports it statically, so Vite resolves it, `vite-plugin-satteri` compiles it, and the component
    lands in the bundle. This is the step no amount of runtime cleverness can replace: a component is
    code, and only the bundler can turn source into code.
 
-At runtime `createContent` sees a manifest entry for `blog` and populates it from there. The loader
-is still constructed and still discarded unused, which costs one object.
+#### A custom loader still runs at runtime
+
+A loader an application writes itself — over a CMS, an API, a `remix/data-table` database — leaves
+`bake` at its default, so `content()` skips it entirely and it behaves identically on every host:
+the collection populates on first access, inside whichever request touched it, and re-populates
+after the process or isolate is recycled.
+
+Two properties of the design exist for this case specifically, and neither is optional.
+
+**Nothing loads at module scope.** Cloudflare Workers rejects asynchronous I/O in global scope —
+its documentation is explicit that "asynchronous tasks such as `fetch` must be executed within a
+handler", and that bindings are reachable at the top level but their methods are not. Since
+`createContent` is called at module scope, an eager design would make a remote loader throw
+`Disallowed operation called within global scope` on import, and a KV- or D1-backed loader with it.
+Populating on first access is what puts that I/O inside a request.
+
+**`bake` is opt-in.** Baking a remote loader would run the fetch during `vite build` and freeze
+whatever came back into the bundle, so a post published afterwards would never appear and nothing
+would report it. The build therefore never touches a loader that has not asked to be baked.
+
+A custom loader _may_ set `bake: true` deliberately, and for a fully static site that is the point:
+snapshot a CMS at build time, ship no runtime dependency on it, and redeploy to update. That is a
+choice the loader's author makes, with the freeze as the understood consequence.
+
+What a runtime collection gives up is the build-time guarantee. Its schema violations surface on
+first access rather than failing the build, its content is a per-process snapshot rather than a
+per-request read, and `render()` on a Markdown body it returns needs `satteri` at runtime — which
+on Workers means `.md` only, since `.mdx` evaluation needs `new Function`. A collection that must be
+fresh on every request is not a content collection; it is a controller reading a database, and
+Remix already does that.
 
 **The entry module is executed at build time, so it must be importable in Node.** Collection
 declarations only: no `cloudflare:workers` imports, no request-scoped state, no side effects that
-need a live server. This is the design's one real constraint, it is the same constraint the prior
-art's config file carries, and `content()` reports the module and the underlying error when the
-import fails rather than continuing with an empty manifest.
+need a live server. A module-level import of a CMS client is fine — what is not fine is calling it
+before a request exists, which the lazy population above already rules out. This is the design's
+one real constraint, it is the same constraint the prior art's config file carries, and `content()`
+reports the module and the underlying error when the import fails rather than continuing with an
+empty manifest.
 
 #### Reaching a runtime with neither source
 
-A bundled build without `content()` leaves the manifest `null`, so `createContent` runs the loader
-and finds no `node:fs`. That fails loudly and names the fix:
+A bundled build without `content()` leaves the manifest empty, so a `bake: true` collection falls
+through to its loader and finds no `node:fs`. That surfaces from the first access, loudly, naming
+the fix:
 
 ```text
 Collection "blog" has no baked content and no filesystem to read.
@@ -442,9 +490,10 @@ function reference<C extends string>(collection: C): ReferenceSchema<C>;
 schema that composes inside `s.object`, `s.array`, and `s.optional` like any other. It accepts a
 string and outputs `{ collection, id }`; a non-string input fails with
 `Expected a reference id for collection "<name>"`. It does **not** check that the target entry
-exists: collections populate concurrently, so the referenced collection may not have finished when
-the reference is validated. An unresolvable reference surfaces as `getEntry` resolving to
-`undefined`.
+exists, and under lazy population it could not: the referenced collection may be unpopulated at the
+moment the reference is validated, and populating it to check would turn reading one entry into
+loading every collection it points at. An unresolvable reference surfaces as `getEntry` resolving
+to `undefined`.
 
 ### Reloading
 
@@ -454,8 +503,8 @@ invalidates it along with the affected body modules, and triggers a reload — s
 deleting a post all take effect without a restart. That is a strict improvement over watching the
 module graph, which only ever sees files something already imported.
 
-Without `content()` the loaders read the filesystem once at startup and a content change needs a
-restart. No cache invalidation and no digest tracking ships here.
+Without `content()` a collection reads the filesystem once, when something first accesses it, and a
+later content change needs a restart. No cache invalidation and no digest tracking ships here.
 
 ## Compatibility
 
@@ -499,12 +548,15 @@ pointed. Removing the package means deleting the module that calls `createConten
   the same shape as `packages/crawler`.
 - `createContent`, the collection and entry surface, reference resolution, and schema validation
   with its error reporting.
-- The `ContentLoader` interface and the `glob` and `file` implementations, reporting raw bodies
-  rather than rendering them.
+- Lazy per-collection population: memoized on success, retried after a failure, one in-flight load
+  shared by concurrent callers, and no I/O at module scope on any host.
+- The `ContentLoader` interface, its `bake` opt-in, and the `glob` and `file` implementations,
+  reporting raw bodies rather than rendering them.
 - Lazy `render()` over both a baked module and a runtime Sätteri call, producing the same
   `{ Content, headings }` either way.
-- `content()`: executing the entry through Vite's module runner, the manifest and body virtual
-  modules, the watch-and-rebake path, and the loud failure when neither source exists.
+- `content()`: executing the entry through Vite's module runner in bake mode, baking only
+  `bake: true` collections, the manifest and body virtual modules, the watch-and-rebake path, and
+  the loud failure when neither source exists.
 - The `headings` Sätteri plugin, shared by both rendering paths, and the `satteri` pass-through that
   lets `satteri-expressive-code` configure the runtime one.
 - `docs/guides/content.md`, covering both hosts, the Sätteri setup, code highlighting with
@@ -523,8 +575,13 @@ pointed. Removing the package means deleting the module that calls `createConten
 - **Incremental baking.** The plugin re-executes the entry module on a content change rather than
   diffing entries. The prior art carries a per-entry digest for this; it is worth adding when a
   real collection makes rebake latency visible, and guessing at that now would be premature.
-- **Remote and database loaders.** The `ContentLoader` interface is public so they can be written;
-  shipping one before a caller exists is an interface built for nobody.
+- **Shipping a remote or database loader.** The `ContentLoader` interface is public and the runtime
+  path is specified for exactly this case, so an application can write one today. Pitlane shipping
+  one before a caller exists is an interface built for nobody.
+- **Revalidating a runtime collection.** A populated collection is a per-process snapshot; there is
+  no TTL, no background refresh, and no cache integration. Adding one is a caching design, it
+  belongs with `@pitlane/cache`, and a collection that must be fresh per request is a controller
+  reading a database rather than a content collection.
 - **`getEntries(refs)`.** `Promise.all(refs.map(r => content.tags.getEntry(r)))` is the same thing
   spelled out of the package.
 - **Runtime and streaming Markdown.** Rendering a string that is still growing — an LLM response
@@ -577,7 +634,11 @@ pointed. Removing the package means deleting the module that calls `createConten
   extra exports for Markdown. That is an upstream capability, not something this package can add
   from the outside, and it is the last output difference between the two rendering paths.
 - Per-entry digests, so a content change rebakes only what changed.
-- Loaders over remote sources, once an application needs one.
+- Revalidation for a runtime collection — a TTL, a manual invalidate, or an integration with
+  `@pitlane/cache` — so a CMS-backed collection refreshes without waiting for the process to be
+  recycled. The lazy population this proposal specifies is the seam that would hang off.
+- A first-party loader for a specific CMS or database, once one application wants the same one
+  twice.
 - A `@pitlane/content` integration in the target templates, sequenced by
   `.agents/skills/adopting-packages-into-templates/`.
 
@@ -628,6 +689,19 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
 
 ## Alternatives considered
 
+- **Populating every collection eagerly in `createContent`.** What this proposal specified until a
+  custom remote loader was considered, and simpler to reason about: one `await` at module scope and
+  every collection is ready. Rejected because Cloudflare Workers forbids asynchronous I/O in global
+  scope — its own documentation says "asynchronous tasks such as `fetch` must be executed within a
+  handler", and that a binding is reachable at the top level while its methods are not. Any loader
+  doing I/O, whether over HTTP, KV, or D1, would throw
+  `Disallowed operation called within global scope` when the module was imported. Lazy population
+  is not a performance choice; it is the only shape that runs on the flagship target.
+- **Baking every collection, with no `bake` opt-in.** Removes a field and a decision from the
+  loader contract. Rejected because it is silently wrong for anything remote: the build would fetch
+  once, inline the answer, and the collection would never change again without a redeploy, with no
+  error to notice. It also drags build-time network access and runtime credentials into `vite build`
+  for collections that never asked for either.
 - **Port the prior art wholesale.** Keep `@withsprinkles/content-layer`'s shape entirely — a
   `content.config.ts`, a `sprinkles:content` virtual module, a generated `.d.ts` — and swap Sätteri
   in for `@mdx-js/rollup`. Its loading mechanism _is_ adopted here, and the parts left behind are
