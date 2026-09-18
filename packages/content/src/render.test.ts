@@ -408,6 +408,68 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         expect(html).not.toMatch(/<p>[;"]/);
     });
 
+    it("keeps an import that follows a regex literal containing a quote", async () => {
+        // The quote inside the regex is not a string. Reading it as one
+        // swallows the import that follows, and the component renders as
+        // nothing at all.
+        let { Content } = await post(
+            'export const quote = /"/;\nimport { Badge } from "./badge.tsx";\n\n<Badge label="a" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">a</strong>',
+        );
+    });
+
+    it("leaves a property named `import` alone", async () => {
+        let { Content } = await post(
+            'export const meta = { import: "./x.tsx" };\n\n<p>{meta.import}</p>\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("./x.tsx");
+    });
+
+    it("reads an import with a comment between its parts", async () => {
+        let { Content } = await post(
+            'import /* the badge */ { Badge } from "./badge.tsx";\n\n<Badge label="a" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">a</strong>',
+        );
+    });
+
+    it("carries an import attribute through to the module it loads", async () => {
+        let { Content } = await post(
+            'import data from "./data.json" with { type: "json" };\n\n<p>{data.title}</p>\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("from a json import");
+        expect(html).not.toContain("type: &quot;json&quot;");
+    });
+
+    it("decodes an escape sequence in a specifier before resolving it", async () => {
+        let { Content } = await post(
+            'import { Badge } from "./b\\u0061dge.tsx";\n\n<Badge label="a" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">a</strong>',
+        );
+    });
+
+    it("refuses `import.meta`, which a compiled body cannot evaluate", async () => {
+        // A bundler compiles the document to a module, where `import.meta` is
+        // ordinary. Here the body is a function body, so the engine throws
+        // `SyntaxError: Cannot use 'import.meta' outside a module` from
+        // generated source, naming neither the document nor the cause.
+        await expect(
+            post("export const here = import.meta.url;\n\n<p>{here}</p>\n"),
+        ).rejects.toThrow(/import\.meta.*outside a bundler/s);
+    });
+
     it("still renders a document with no imports", async () => {
         let { Content } = await post("# Plain\n\nNo imports here.\n");
 

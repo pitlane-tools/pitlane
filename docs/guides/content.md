@@ -245,11 +245,23 @@ specifier. So does an export the module does not have. Neither renders a hole.
 A document's own `export` is left alone, so `export const year = 2026` beside
 an import still reaches the body that uses it.
 
+An attributes clause travels with the import, so
+`import data from "./data.json" with { type: "json" }` loads the same way on
+both hosts.
+
 One form is refused without a bundler: `import * as ui from "./badge.tsx"`.
 Sätteri compiles a namespace import to nothing in the mode this path uses, so
 it is rejected by name rather than left undefined. Import the components by
 name, or prebuild the collection with `content()`, where the document compiles
 to a module and the namespace import is ordinary.
+
+`import.meta` is refused the same way, and for the same reason: the document
+becomes a function body here rather than a module, so there is no `import.meta`
+to read.
+
+MDX decides one more thing itself. A block of `import`s and `export`s cannot
+begin with a comment: MDX reads the whole run as prose on every host, leaving
+the components it names undefined. Put the comment after the first statement.
 
 A bare specifier resolves under Node's `require` conditions. A dependency
 published with only an `import` condition fails at runtime, naming the file and

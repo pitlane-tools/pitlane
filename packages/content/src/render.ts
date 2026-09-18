@@ -182,11 +182,11 @@ async function importedBindings(
     // Last block first, so an earlier block's offsets are still the ones
     // Sätteri measured.
     for (let block of [...blocks].reverse()) {
-        let { imports, remainder } = readEsm(block.value, where);
+        let { imports, remainder } = await readEsm(block.value, where);
         body = body.slice(0, block.start) + remainder + body.slice(block.end);
 
-        for (let { specifier, bindings: names } of imports) {
-            let module = await importFrom(specifier, from, where, node);
+        for (let { specifier, bindings: names, attributes } of imports) {
+            let module = await importFrom(specifier, from, where, node, attributes);
             for (let [local, exported] of names) {
                 if (!(exported in module)) throw missingExport(exported, specifier, where);
                 bindings.set(local, module[exported]);
@@ -263,12 +263,22 @@ async function nodeResolution(): Promise<NodeResolution> {
     return { createRequire, pathToFileURL };
 }
 
-async function importFrom(specifier: string, from: URL, where: string, node: NodeResolution) {
+async function importFrom(
+    specifier: string,
+    from: URL,
+    where: string,
+    node: NodeResolution,
+    attributes?: Record<string, string>,
+) {
     let resolved = specifier.startsWith(".")
         ? new URL(specifier, from).href
         : resolveBare(specifier, from, where, node);
     try {
-        return (await import(resolved)) as Record<string, unknown>;
+        // A module with an attributes clause is refused without it, so the
+        // clause the author wrote has to reach the import that replaces theirs.
+        return (await (attributes
+            ? import(resolved, { with: attributes })
+            : import(resolved))) as Record<string, unknown>;
     } catch (error) {
         let cause = error instanceof Error ? error.message : String(error);
         throw new Error(`"${where}" imports "${specifier}", which could not be loaded: ${cause}`, {
