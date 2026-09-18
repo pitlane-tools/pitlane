@@ -3,10 +3,10 @@ import { clientEntry, on, type Handle } from "remix/ui";
 /**
  * A browser component: it hydrates and keeps its own state across clicks.
  *
- * `@pitlane/dev` rewrites `import.meta.url` into the built asset's URL, which
- * is what the browser loads to hydrate this. The no-bundler demo writes the
- * asset-server path out instead: giving a browser module its URL is the host's
- * job either way, and the MDX file importing this is identical in both demos.
+ * The entry id is this file's own URL on every host. Under `@pitlane/dev` the
+ * bundler rewrites it to the built asset; with no bundler `render({ assets })`
+ * hands the `file:` URL to the asset server, which answers with the URL the
+ * browser loads. Giving a browser module its URL is the host's job either way.
  */
 export const Counter = clientEntry(
     import.meta.url,

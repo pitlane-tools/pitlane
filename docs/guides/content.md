@@ -300,11 +300,43 @@ export const Counter = clientEntry(
 );
 ```
 
-Under `@pitlane/dev` that `import.meta.url` is rewritten to the built asset's
-URL. With no bundler nothing rewrites it, so pass the path your asset server
-serves the file at instead. For `remix/assets` with
-`allowFiles: ["app/**/public/**"]` that is `/assets/app/ui/public/counter.tsx`. Whether the component arrived
-through a controller or through an MDX import makes no difference to hydration.
+Under `@pitlane/dev` the bundler rewrites that `import.meta.url` to the built
+asset's URL. With no bundler it stays a `file:` URL, and the renderer resolves
+it through the asset server you gave it:
+
+```ts
+// app/entry.server.tsx
+import { render } from "remix/middleware/render";
+
+createRouter({ middleware: [asyncContext(), loadAssetEntry(), render({ assets })] });
+```
+
+`render({ assets })` calls `assets.getScriptEntry()` for each `clientEntry` the
+page renders, and emits the URL the browser loads, its module preloads, and the
+import map that resolves the bare specifiers inside it. Whether the component
+arrived through a controller or through an MDX import makes no difference to
+hydration.
+
+A page can install more than one import map that way, which not every browser
+supports. Load modules through `remix/multiple-import-maps-polyfill` in the
+browser entry so the ones that do not still hydrate:
+
+```ts
+// app/public/entry.browser.ts
+import { importModule } from "remix/multiple-import-maps-polyfill";
+import { run } from "remix/ui";
+
+run({
+    async loadModule(moduleUrl, exportName) {
+        let module = await importModule(moduleUrl);
+        let Component = module[exportName];
+        if (typeof Component !== "function") {
+            throw new Error(`Unknown component: ${moduleUrl}#${exportName}`);
+        }
+        return Component;
+    },
+});
+```
 
 ::: tip Runtime MDX is Node, Bun, and Deno only
 Compiling MDX per request needs `new Function`, which Cloudflare Workers

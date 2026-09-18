@@ -1,7 +1,8 @@
-import { type Handle, type RemixNode } from "remix/ui";
+import type { Handle, RemixNode } from "remix/ui";
+
 import { ImportMap } from "remix/ui/server";
 
-import { browserAssets } from "#/entry.server.tsx";
+import { getAssetEntry } from "#/middleware/asset-entry.ts";
 
 export interface DocumentProps {
     title: string;
@@ -9,20 +10,19 @@ export interface DocumentProps {
 }
 
 /**
- * No bundler runs here, so every browser asset comes from `remix/assets`: the
- * stylesheet, the hydration runtime, and the modules `clientEntry` components
- * are loaded from.
+ * No bundler runs here, so the browser assets come from `remix/assets`.
  *
- * `<ImportMap>` is what lets those served modules keep their bare `remix/ui`
- * specifiers — the asset server compiles TypeScript and JSX but does not
- * rewrite package imports. The renderer merges the maps of whichever client
- * entries the page used into this one.
+ * The import map is what lets a served module keep its bare `remix/ui`
+ * specifier: the asset server compiles TypeScript and JSX but does not rewrite
+ * package imports. This one covers the hydration runtime. Each `clientEntry`
+ * component the page renders contributes its own, which the renderer emits as
+ * it meets them.
  */
 export function Document(handle: Handle<DocumentProps>) {
-    let { hydration, importMap, styles } = browserAssets;
-
     return () => {
         let { children, title } = handle.props;
+        let { scriptEntry, stylesheetHref } = getAssetEntry();
+        let { href, importMap, preloads } = scriptEntry;
 
         return (
             <html lang="en">
@@ -30,12 +30,12 @@ export function Document(handle: Handle<DocumentProps>) {
                     <meta charSet="utf-8" />
                     <meta content="width=device-width, initial-scale=1" name="viewport" />
                     <title>{title} · no bundler</title>
+                    <link href={stylesheetHref} rel="stylesheet" />
                     <ImportMap value={importMap} />
-                    <link href={styles} rel="stylesheet" />
-                    <script async src={hydration.href} type="module" />
-                    {hydration.preloads.map(href => (
-                        <link href={href} key={href} rel="modulepreload" />
+                    {preloads.map(preloadHref => (
+                        <link href={preloadHref} key={preloadHref} rel="modulepreload" />
                     ))}
+                    <script src={href} type="module" />
                 </head>
                 <body>{children}</body>
             </html>

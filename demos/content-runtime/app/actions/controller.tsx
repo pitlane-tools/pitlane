@@ -6,9 +6,15 @@ import { Authors } from "#/pages/authors.tsx";
 import { Index } from "#/pages/index.tsx";
 import { PostPage } from "#/pages/post.tsx";
 import { routes } from "#/routes.ts";
+import { assets } from "#/utils/assets.ts";
 
 export default createController(routes, {
     actions: {
+        async assets({ request }) {
+            let response = await assets.fetch(request);
+            return response ?? new Response("Not found", { status: 404 });
+        },
+
         async home({ render }) {
             let posts = await content.blog.getCollection();
             return render(
