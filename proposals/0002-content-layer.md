@@ -368,9 +368,10 @@ decides what to do with it. That is what lets one `ContentLoader` serve both the
 runtime: the build wants the source so the bundler can compile it, and the runtime wants it so
 Sätteri can. It is also why a `LiveLoader` can carry Markdown at all.
 
-`watchedPaths` is what a development host watches in order to notice a content change: `content()`
-rebuilds the manifest from it, and `hotContent` registers it with the supervisor's watcher. A
-loader that omits it is simply not watched, on either host.
+`watchedPaths` is what `content()` watches in order to rebuild the manifest in dev; it reports
+directories, which is what Vite's watcher expands, and a loader that omits it is simply not
+watched there. The host with no bundler watches the entries' own file paths instead, for the
+reason given under **Reloading**.
 
 `parseData` validates against the collection's schema and returns the parsed value. On failure it
 throws an `Error` whose message names the collection, the entry id, the file path when there is one,
@@ -643,21 +644,40 @@ await hotContent(content);
 ```
 
 That one line is correct in every environment, because `hotContent` decides for itself whether
-there is anything to do. It resolves immediately, having done nothing, unless **all** of the
-following hold: `process.env.REMIX_NODE_HMR` is set, meaning the process is supervised by
-`remix/node-hmr`; the collection is a `ContentLoader` reading files rather than a prebuilt one;
-and its loader implements `watchedPaths()`. A production `start`, a Worker, a prebuilt collection,
-and a `LiveLoader` all take the no-op path, so nothing about shipping changes and
-`remix/node-hmr/runtime` is never imported outside development. The import is dynamic for the same
-reason `satteri` is: a static one would follow the package into every bundle.
+there is anything to do. It resolves immediately, having done nothing, unless
+`process.env.REMIX_NODE_HMR` is set, meaning the process is supervised by `remix/node-hmr`. A
+production `start` and a Worker take that path, so nothing about shipping changes and
+`remix/node-hmr/runtime` is never imported outside development. The import is dynamic for the
+same reason `satteri` is: a static one would follow the package into every bundle.
+
+Within a supervised process it watches the collections that have files to watch: a
+`ContentLoader` collection reading from a manifest has none, and a `LiveLoader` never reports a
+path, so both are skipped without being special-cased — they simply contribute nothing.
 
 When it does apply, `hotContent` opens its own `BrowserHmrChannel` through
-`createBrowserHmrChannel()` from `remix/node-hmr/runtime`, registers every file the collections
-loaded with `updateWatchedFiles()`, and handles the events the supervisor forwards:
+`createBrowserHmrChannel()` from `remix/node-hmr/runtime` and subscribes to each eligible
+collection. **Registration follows population rather than preceding it.** A collection that
+nothing has read yet has loaded no files, so there is nothing to watch; `hotContent` is called
+one line after `createContent`, before any request, and registering there would register an
+empty set. Each collection instead reports its file set every time it finishes populating, and
+`hotContent` sends the delta to `updateWatchedFiles()` — the first read of a collection is what
+puts its files under the watcher, and every reload refreshes them.
+
+The file set is the entries' own `filePath`s, resolved against the content root, not the
+directories `watchedPaths()` reports. The supervisor matches a file event against the exact paths
+a channel registered, so a directory registers nothing that can ever match: `content()` watches
+directories because Vite's watcher expands them, and this host cannot. The consequence is the
+limitation below — a file that no entry came from is not watched, and a file that does not exist
+yet came from no entry.
+
+On an event the supervisor forwards:
 
 1. Discard the affected collection's memoized population, so the next read re-runs its loader.
-2. Re-register the collection's file set, because the reload may have changed it.
-3. Return `{ type: "reload" }`, which the browser HMR client turns into a page reload.
+2. Return `{ type: "reload" }`, which the browser HMR client turns into a page reload.
+
+A reload does not re-register anything by hand. The population it triggers reports its own file
+set, which is how a post that was renamed or deleted leaves the watch set and a rebuilt
+collection keeps it honest.
 
 The channel is the process's existing watcher rather than a second one. `updateWatchedFiles` adds
 the files to the parent's chokidar instance, which already watches the server's module graph, and
@@ -670,11 +690,12 @@ when a file under it changes; a collection whose files did not change keeps its 
 render cache.
 
 What `hotContent` reaches for is an internal handle, not a public method: each `ContentLoader`
-collection carries a symbol-keyed `{ invalidate(), files() }` beside its queries, named in
-`symbols.ts` alongside the two the prebuild channel already uses. The public `Collection` type
-does not grow an `invalidate()` — a collection that can be emptied by anyone holding it is a
-different contract from the one this proposal specifies, and nothing outside development should
-want it.
+collection carries a symbol-keyed `{ invalidate(), onPopulated(listener) }` beside its queries,
+named in `symbols.ts` alongside the two the prebuild channel already uses. `onPopulated` is how
+the file set arrives without `hotContent` forcing a load, and `invalidate` is the only way to
+discard one. The public `Collection` type grows neither — a collection that can be emptied by
+anyone holding it is a different contract from the one this proposal specifies, and nothing
+outside development should want it.
 
 A reload that fails behaves exactly as a first load that fails: the memoized population stays
 discarded, the error surfaces at the next read rather than at the watcher, and fixing the file
