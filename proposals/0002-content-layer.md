@@ -142,16 +142,21 @@ interface ContentBuilder {
   collections up, so a module that declares content does nothing asynchronous at import time. This
   is not an optimization: Cloudflare Workers forbids asynchronous I/O in global scope, and
   `createContent` is called at module scope.
-- A collection whose name appears in the baked manifest reads from it. The manifest is inlined, so
-  that is a synchronous lookup with no loader involved.
-- Every other collection **populates on first access**, from `getCollection` or `getEntry`. The
-  result is memoized for the life of the process, and concurrent callers share one in-flight load
-  rather than starting several.
-- It returns an object with one property per key in `build`'s return value. Each is a `Collection`.
-- A collection that fails to populate rejects the access that triggered it, with the error annotated
-  by collection name. The failure is **not** memoized, so the next access retries — one timed-out
-  fetch should not leave a collection broken until the process restarts. A collection is either
-  fully populated or throws; a half-populated one is never observable.
+- Each collection is wired according to the kind of loader it was given, which `createContent`
+  determines by whether the loader has a `load` method:
+    - A **`ContentLoader`** collection whose name appears in the baked manifest reads from it. The
+      manifest is inlined, so that is a synchronous lookup with no loader involved.
+    - A **`ContentLoader`** collection with no manifest entry runs its loader on **first access**,
+      from `getCollection` or `getEntry`. The result is memoized for the life of the process, and
+      concurrent callers share one in-flight load rather than starting several.
+    - A **`LiveLoader`** collection is never baked and never memoized. `getCollection` calls
+      `loadCollection` and `getEntry` calls `loadEntry`, every time.
+- It returns an object with one property per key in `build`'s return value. Each is a `Collection`,
+  and the two kinds are indistinguishable to a caller.
+- A `ContentLoader` collection that fails to populate rejects the access that triggered it, with the
+  error annotated by collection name. The failure is **not** memoized, so the next access retries —
+  one timed-out fetch should not leave a collection broken until the process restarts. A collection
+  is either fully populated or throws; a half-populated one is never observable.
 - `c.reference(name)` records `name` on the builder. After `build` returns, `createContent`
   compares every recorded name against the keys of the returned object and throws
   `Unknown collection "<name>" referenced by createContent; known collections are <keys>.` when one
@@ -221,16 +226,61 @@ for bodies it does not show.
   calling `render()` on a data entry is a mistake, and hiding it produces a blank page instead of
   an error.
 
-### The loader contract
+### The two loader kinds
+
+A loader declares what it is by **which interface it implements**, and nothing else. There is no
+flag, no option, and no environment check in application code.
 
 ```ts
 interface ContentLoader {
     name: string;
     load(context: LoaderContext): Promise<void> | void;
-    bake?: boolean;
     watchedPaths?(): string[];
 }
 
+interface LiveLoader<Data = Record<string, unknown>> {
+    name: string;
+    loadCollection(): Promise<LiveEntry<Data>[]>;
+    loadEntry(id: string): Promise<LiveEntry<Data> | undefined>;
+}
+```
+
+A **`ContentLoader` resolves a whole collection by writing into a store.** Handed a store, it fills
+it. That makes its output a value: run it once and the entries can be serialized, cached, or
+inlined into a bundle. `loaders.glob` and `loaders.file` are `ContentLoader`s.
+
+A **`LiveLoader` answers one query at a time.** There is no store to fill, so there is nothing to
+serialize; the only way to get entries out of it is to ask it, which means asking it every time.
+
+That is the whole discrimination. `c.collection({ loader })` accepts either and branches on whether
+the object has `load`. A `ContentLoader` is bakeable because its shape says a single execution
+produces the complete answer. A `LiveLoader` is not bakeable because its shape says it does not have
+one. Nothing has to be declared twice, and a loader cannot be configured into lying about which it
+is — the contract it satisfies _is_ the claim.
+
+This is
+[Astro's split](https://docs.astro.build/en/reference/content-loader-reference/) between an object
+loader's `load()` and a live loader's `loadCollection()` / `loadEntry()`, and it is the right answer
+to a question this proposal previously answered with a boolean.
+
+|                   | `ContentLoader`                            | `LiveLoader`                                        |
+| ----------------- | ------------------------------------------ | --------------------------------------------------- |
+| Shape             | `load(context)` fills a store              | `loadCollection()` / `loadEntry(id)` return entries |
+| With `content()`  | executed during the build, entries inlined | untouched; runs per request                         |
+| Without a bundler | executed on first access                   | runs per request                                    |
+| Markdown bodies   | rendered ahead of time when baked          | rendered at runtime, so no MDX on Workers           |
+| Data freshness    | fixed at build, or at first access         | every query                                         |
+| Ships here        | `glob`, `file`                             | none; the interface is public                       |
+
+Choosing between them is choosing what the data _is_, which is the decision an author is actually
+qualified to make. A directory of Markdown is a `ContentLoader`. A CMS whose editors expect to see a
+change without a deploy is a `LiveLoader`. A CMS an application is content to snapshot per release
+is a `ContentLoader` over `fetch` — and that is a legitimate choice rather than a mistake, which is
+exactly why it should not be inferred from the environment.
+
+#### The `ContentLoader` context
+
+```ts
 interface LoaderContext {
     collection: string;
     parseData<D>(input: { id: string; data: unknown; filePath?: string }): Promise<D>;
@@ -243,30 +293,29 @@ interface LoadedEntry {
     filePath?: string;
     body?: { format: "md" | "mdx"; source: string };
 }
+
+interface LiveEntry<Data> {
+    id: string;
+    data: Data;
+    body?: { format: "md" | "mdx"; source: string };
+}
 ```
 
-A loader reads its source, calls `parseData` for each entry, and calls `store.set`. The interface is
-public, so an application can write a loader over a database, a CMS, or anything else, and two
-implementations ship.
+A loader reads its source, calls `parseData` for each entry, and calls `store.set`.
 
-A loader never renders. It reports the raw `source` and its `format`, and `render()` decides what to
-do with it. That is what lets one loader serve both the runtime and the build: the build wants the
-source so the bundler can compile it, and the runtime wants it so Sätteri can.
+Neither kind of loader renders. Both report the raw `source` and its `format`, and `render()`
+decides what to do with it. That is what lets one `ContentLoader` serve both the build and the
+runtime: the build wants the source so the bundler can compile it, and the runtime wants it so
+Sätteri can. It is also why a `LiveLoader` can carry Markdown at all.
 
-`bake` declares that the build may resolve this loader once and inline the result. It defaults to
-**false**, and `loaders.glob` and `loaders.file` set it to `true`. `watchedPaths` only matters for a
-baked loader, since it is what `content()` watches in order to re-bake.
-
-The default is false because of which way the two mistakes fail. A filesystem loader that forgets
-`bake: true` fails loudly on a filesystem-less host, naming the fix. A remote loader wrongly baked
-fails silently: its content freezes at the moment of the build and never updates again, and nothing
-anywhere reports a problem. Defaults belong on the side of the loud failure.
+`watchedPaths` is what `content()` watches in order to re-bake in dev. A loader that omits it is
+simply not watched.
 
 `parseData` validates against the collection's schema and returns the parsed value. On failure it
 throws an `Error` whose message names the collection, the entry id, the file path when there is one,
-and one line per Standard Schema issue in `  - <path>: <message>` form. For a baked collection that
-happens during the build, so an invalid entry never reaches a page; for a runtime one it happens on
-first access, which is the earliest the data exists.
+and one line per Standard Schema issue in `  - <path>: <message>` form. A baked collection fails the
+build; any other collection fails the access that triggered it, which is the earliest the data
+exists. Live entries are validated the same way, on every query.
 
 Two `store.set` calls with the same `id` is a conflict, not a merge: the second throws
 `Duplicate entry id "<id>" in collection "<collection>".`
@@ -337,9 +386,10 @@ The plugin bakes in four steps:
 
 1. **Execute the entry in Node, in bake mode.** `createRunnableDevEnvironment` from Vite runs
    `entry` through Vite's own module runner, so TypeScript, aliases, and `vite.config.ts`
-   resolution all apply. `createContent` sees the bake flag and populates **only** collections
-   whose loader sets `bake: true`, eagerly, with the filesystem available. Every other collection
-   is left alone, so the build makes no network calls and needs no runtime credentials.
+   resolution all apply. `createContent` sees the bake flag and populates **only** its
+   `ContentLoader` collections, eagerly, with the filesystem available. A `LiveLoader` has no
+   `load` to call, so the build cannot execute it even in principle — which is why the build makes
+   no network calls on its behalf and needs none of its credentials.
 2. **Read what loaded.** `createContent` records each populated collection on a module-scoped
    registry inside `@pitlane/content`, which the plugin reads from the same realm afterwards. The
    entry module therefore needs no particular export shape and no annotation — only to have been
@@ -355,36 +405,37 @@ The plugin bakes in four steps:
    lands in the bundle. This is the step no amount of runtime cleverness can replace: a component is
    code, and only the bundler can turn source into code.
 
-#### A custom loader still runs at runtime
+#### A live loader still runs at runtime
 
-A loader an application writes itself — over a CMS, an API, a `remix/data-table` database — leaves
-`bake` at its default, so `content()` skips it entirely and it behaves identically on every host:
-the collection populates on first access, inside whichever request touched it, and re-populates
-after the process or isolate is recycled.
+A `LiveLoader` an application writes itself — over a CMS, an API, a `remix/data-table` database —
+is untouched by `content()`, because there is no `load` for the build to call. It behaves
+identically on every host: `getCollection` calls `loadCollection`, `getEntry` calls `loadEntry`,
+inside whichever request asked.
 
-Two properties of the design exist for this case specifically, and neither is optional.
+Two properties of the design exist for this case, and neither is optional.
 
 **Nothing loads at module scope.** Cloudflare Workers rejects asynchronous I/O in global scope —
 its documentation is explicit that "asynchronous tasks such as `fetch` must be executed within a
 handler", and that bindings are reachable at the top level but their methods are not. Since
-`createContent` is called at module scope, an eager design would make a remote loader throw
-`Disallowed operation called within global scope` on import, and a KV- or D1-backed loader with it.
-Populating on first access is what puts that I/O inside a request.
+`createContent` is called at module scope, populating anything eagerly would make a live loader
+throw `Disallowed operation called within global scope` on import, and a KV- or D1-backed loader
+with it.
 
-**`bake` is opt-in.** Baking a remote loader would run the fetch during `vite build` and freeze
-whatever came back into the bundle, so a post published afterwards would never appear and nothing
-would report it. The build therefore never touches a loader that has not asked to be baked.
+**The build cannot reach a live loader by accident.** Baking one would run the fetch during
+`vite build` and freeze whatever came back, so a post published afterwards would never appear and
+nothing would report it. Under a boolean that was a mistake waiting to be made; under two
+interfaces it is unrepresentable.
 
-A custom loader _may_ set `bake: true` deliberately, and for a fully static site that is the point:
-snapshot a CMS at build time, ship no runtime dependency on it, and redeploy to update. That is a
-choice the loader's author makes, with the freeze as the understood consequence.
+Snapshotting a remote source at build time is still available, and still a legitimate choice — for
+a fully static site it is the point. It is expressed by writing a `ContentLoader` over `fetch`
+instead, which says "one execution produces the complete answer" in the only place that claim
+belongs.
 
-What a runtime collection gives up is the build-time guarantee. Its schema violations surface on
-first access rather than failing the build, its content is a per-process snapshot rather than a
-per-request read, and `render()` on a Markdown body it returns needs `satteri` at runtime — which
-on Workers means `.md` only, since `.mdx` evaluation needs `new Function`. A collection that must be
-fresh on every request is not a content collection; it is a controller reading a database, and
-Remix already does that.
+What a live collection gives up is everything that depends on having the data early: its schema
+violations surface per query rather than failing the build, there is no digest or memoization, and
+`render()` on a Markdown body it returns needs `satteri` at runtime — which on Workers means `.md`
+only, since `.mdx` evaluation needs `new Function`. Astro documents the same three limitations for
+its live collections, and the third is the one people are surprised by.
 
 **The entry module is executed at build time, so it must be importable in Node.** Collection
 declarations only: no `cloudflare:workers` imports, no request-scoped state, no side effects that
@@ -396,7 +447,7 @@ empty manifest.
 
 #### Reaching a runtime with neither source
 
-A bundled build without `content()` leaves the manifest empty, so a `bake: true` collection falls
+A bundled build without `content()` leaves the manifest empty, so a `ContentLoader` collection falls
 through to its loader and finds no `node:fs`. That surfaces from the first access, loudly, naming
 the fix:
 
@@ -550,15 +601,22 @@ pointed. Removing the package means deleting the module that calls `createConten
   with its error reporting.
 - Lazy per-collection population: memoized on success, retried after a failure, one in-flight load
   shared by concurrent callers, and no I/O at module scope on any host.
-- The `ContentLoader` interface, its `bake` opt-in, and the `glob` and `file` implementations,
-  reporting raw bodies rather than rendering them.
+- The two loader interfaces, the structural discrimination between them, and the `glob` and `file`
+  implementations of `ContentLoader`, reporting raw bodies rather than rendering them.
 - Lazy `render()` over both a baked module and a runtime Sätteri call, producing the same
   `{ Content, headings }` either way.
 - `content()`: executing the entry through Vite's module runner in bake mode, baking only
-  `bake: true` collections, the manifest and body virtual modules, the watch-and-rebake path, and
+  `ContentLoader` collections, the manifest and body virtual modules, the watch-and-rebake path, and
   the loud failure when neither source exists.
 - The `headings` Sätteri plugin, shared by both rendering paths, and the `satteri` pass-through that
   lets `satteri-expressive-code` configure the runtime one.
+- **Two demos, one application surface each, proving the API does not change with the
+  environment.** `demos/content-vite` runs `@pitlane/dev` with `content()` and
+  `vite-plugin-satteri`; `demos/content-runtime` runs no bundler at all, serving browser modules
+  through `remix/assets` and rendering content with `satteri` at request time. Both declare the
+  same collections with the same `loaders.glob` and `loaders.file` calls, and each must serve
+  Markdown, MDX, and JSON. They are the proof the unification is real rather than described, and
+  a diff of their `app/content.ts` files is the reviewable artifact.
 - `docs/guides/content.md`, covering both hosts, the Sätteri setup, code highlighting with
   Expressive Code, and references.
 - A README and CHANGELOG for the package, and its TypeDoc config in `.typedoc/` plus its line in
@@ -599,6 +657,10 @@ pointed. Removing the package means deleting the module that calls `createConten
   the artifact costs a push. It needs one line added to that workflow's package list. Reviewing the
   guide instead would show the API described rather than the API working, and the inference-driven
   typing in particular is only real in an editor against an installed build.
+- The two demos are the second half of the preview, and the half that exercises the claim this
+  design is built around. Run `demos/content-vite` and `demos/content-runtime` side by side, see
+  Markdown, MDX, and JSON served by both, and diff their `app/content.ts`. If that diff is empty,
+  the API does not change with the environment. If it is not, this proposal is wrong.
 
 ## Policies and decisions checked
 
@@ -697,11 +759,28 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   doing I/O, whether over HTTP, KV, or D1, would throw
   `Disallowed operation called within global scope` when the module was imported. Lazy population
   is not a performance choice; it is the only shape that runs on the flagship target.
-- **Baking every collection, with no `bake` opt-in.** Removes a field and a decision from the
-  loader contract. Rejected because it is silently wrong for anything remote: the build would fetch
-  once, inline the answer, and the collection would never change again without a redeploy, with no
-  error to notice. It also drags build-time network access and runtime credentials into `vite build`
-  for collections that never asked for either.
+- **A `bake?: boolean` on one loader interface.** What this proposal specified before Astro's
+  design was read: one `ContentLoader`, with a flag saying whether the build may resolve it.
+  Rejected because a flag puts the claim in the wrong place. It is a second declaration that can
+  disagree with the loader's actual behavior, it invites configuring a loader into lying, and it
+  forces a defaults argument — false is safe for remote loaders and wrong for filesystem ones, so
+  either choice mis-serves half its users. Two interfaces carry the same information in the one
+  place that cannot be inconsistent with itself: a loader that can be resolved once exposes a way
+  to resolve it once.
+- **Astro's split query API.** Astro pairs its two loader kinds with two query APIs —
+  `getCollection()` against the data store, `getLiveCollection()` against a live loader — because,
+  in its words, this ensures "you always know which type of collection you are working with". The
+  loader split is adopted; the query split is not. Astro's reasoning is sound for Astro, where a
+  build-time collection genuinely cannot fail at request time and a live one cannot render MDX at
+  all. Here both are already async and already able to throw, and the MDX restriction is a property
+  of the host rather than of the collection — `.mdx` renders at runtime on Node and not on Workers,
+  whichever loader produced it. Splitting the query API would therefore encode a distinction that
+  is not true at that layer, and it would break the property this proposal is for: a controller
+  that reads `content.blog` should not have to know how `blog` gets its bytes.
+- **Inferring the kind from the environment.** Decide at runtime: bake when a bundler is present,
+  go live when it is not. Rejected because the environment does not know the answer. Whether a CMS
+  should be snapshotted per release or read per request is a product decision, and the same
+  application may want both from the same CMS in different collections.
 - **Port the prior art wholesale.** Keep `@withsprinkles/content-layer`'s shape entirely — a
   `content.config.ts`, a `sprinkles:content` virtual module, a generated `.d.ts` — and swap Sätteri
   in for `@mdx-js/rollup`. Its loading mechanism _is_ adopted here, and the parts left behind are
@@ -717,11 +796,11 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   `clientEntry(import.meta.url, …)`. Keeps the ergonomics but demands a literal pattern, warns
   instead of working when it finds a computed one, and reimplements at parse time what the loaders
   can just do. Baking the loaders' own output has no such constraint.
-- **Resolving a glob at runtime inside the loader.** The shape this design wants most: `loaders.glob`
-  calls `import.meta.glob(options.pattern)` itself. It does not work, and it fails in the worst
-  available way. `import.meta.glob` is a compile-time rewrite whose pattern must be a literal in the
-  module being transformed, so a pattern arriving as a function argument inside a dependency
-  resolves to nothing. Measured against Vite 8.1.4: a module reading
+- **Resolving a glob at runtime inside the loader.** The shape this design wants most:
+  `loaders.glob` calls `import.meta.glob(options.pattern)` itself. It does not work, and it fails in
+  the worst available way. `import.meta.glob` is a compile-time rewrite whose pattern must be a
+  literal in the module being transformed, so a pattern arriving as a function argument inside a
+  dependency resolves to nothing. Measured against Vite 8.1.4: a module reading
   `let pattern = "./content/*.md"; export let mods = import.meta.glob(pattern, { eager: true })`
   builds with no error, no warning, and emits `Object.assign({})` — every collection silently
   empty. This is why the build executes the loaders instead of trying to translate them, and why a
@@ -751,12 +830,22 @@ None.
 
 ## Acknowledgments
 
+[Astro's content layer](https://docs.astro.build/en/guides/content-collections/) is where this
+design's central idea comes from. Astro distinguishes an
+[object loader](https://docs.astro.build/en/reference/content-loader-reference/) implementing
+`load()` against a data store from a
+[live loader](https://docs.astro.build/en/reference/content-loader-reference/#the-liveloader-object)
+implementing `loadCollection()` and `loadEntry()`, and that structural split is what lets a
+collection's nature be stated once — by the contract it satisfies — instead of configured. Its
+`renderMarkdown` loader-context helper, and its `retainBody` and `deferRender` options, also shaped
+how bodies and rendering are separated here.
+
 [`@withsprinkles/content-layer`](https://github.com/withsprinkles/content-layer) by Mark Malstrom is
 the prior art this proposal is measured against, and its loading mechanism is adopted rather than
 reinvented: run the loaders in Node at build time, serialize the entries, and carry each Markdown
 body into the bundle as a virtual module the bundler compiles. Its loader contract, `reference()`
 schema, and Remix MDX component wrapper are all carried forward too. Its collection model in turn
-follows [Astro's content layer](https://docs.astro.build/en/guides/content-collections/).
+follows Astro's.
 
 [Sätteri](https://satteri.bruits.org), from the [Bruits](https://bruits.org) collective, is the
 Markdown and MDX engine on both rendering paths. Its `after` lifecycle hook, documented with a
