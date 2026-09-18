@@ -1009,15 +1009,17 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   incremental prebuilding, and the same answer: a collection small enough to fit an editor's
   attention re-reads in milliseconds, and the machinery costs more than it saves until a real
   collection makes the latency visible.
+- **Holding the whole feature until `remix/node-hmr` can forward a directory's `add`.** It would
+  ship one behavior instead of one behavior with a footnote. Rejected on the human's decision: it
+  trades a rare annoyance for a constant one, because until then every content edit on a host
+  with no bundler needs a restart, and it makes this package's release wait on someone else's.
+  The asymmetry ships documented, and **Future directions** records what closes it.
 
 ## Open questions
 
-- [NEEDS CLARIFICATION: On a host with no bundler, creating a content file cannot reload the page —
-  `remix/node-hmr` forwards an event only for a path the channel registered, and a file that does
-  not exist yet cannot be registered. Editing and deleting both work, and `content()` has no such
-  gap. Is shipping that asymmetry acceptable, documented in the guide, with the upstream fix in
-  Future directions? The alternative is holding this feature until `remix/node-hmr` can forward
-  directory events, which leaves the no-bundler host needing a restart for every content edit.]
+None. The one that was open — whether to ship without a reload when a content file is created on
+a host with no bundler — was decided in favor of shipping it, documented in the guide and in
+**Reloading** above.
 
 ## Acknowledgments
 
