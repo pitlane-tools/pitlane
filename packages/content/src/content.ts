@@ -23,6 +23,7 @@ import {
 import { reference } from "./reference.ts";
 import { renderedEntry } from "./render.ts";
 import { collectionStore, type StoredEntry } from "./store.ts";
+import { HOT_COLLECTION } from "./symbols.ts";
 
 /**
  * Declares a set of content collections.
@@ -101,6 +102,7 @@ function contentCollection(
     prebuiltEntries: PrebuiltEntry[] | undefined,
 ) {
     let populated: Promise<Map<string, StoredEntry>> | undefined;
+    let listeners = new Set<(files: string[]) => void>();
 
     function entries() {
         // Memoized on both paths. The manifest is immutable for the life of the
@@ -112,14 +114,50 @@ function contentCollection(
             populated ??= Promise.resolve(fromManifest(name, prebuiltEntries));
             return populated;
         }
-        populated ??= runLoader(name, schema, loader).catch((error: unknown) => {
-            populated = undefined;
-            throw error;
-        });
+        populated ??= runLoader(name, schema, loader)
+            .then(stored => {
+                // After the memo is in place, so a listener reading the
+                // collection cannot re-enter this load.
+                announce(stored);
+                return stored;
+            })
+            .catch((error: unknown) => {
+                populated = undefined;
+                throw error;
+            });
         return populated;
     }
 
-    return queries(name, entries);
+    function announce(stored: Map<string, StoredEntry>) {
+        if (listeners.size === 0) return;
+        let files = [
+            ...new Set(
+                [...stored.values()]
+                    .map(entry => entry.filePath)
+                    .filter(filePath => filePath !== undefined),
+            ),
+        ];
+        for (let listener of listeners) listener(files);
+    }
+
+    return {
+        ...queries(name, entries),
+        /**
+         * The seam `@pitlane/content/hot` reads. Prebuilt entries have no files
+         * to watch and cannot be reloaded, so that collection offers nothing.
+         */
+        [HOT_COLLECTION]: prebuiltEntries
+            ? undefined
+            : {
+                  invalidate() {
+                      populated = undefined;
+                  },
+                  onPopulated(listener: (files: string[]) => void) {
+                      listeners.add(listener);
+                      return () => listeners.delete(listener);
+                  },
+              },
+    };
 }
 
 async function runLoader(name: string, schema: StandardSchemaV1, loader: ContentLoader) {

@@ -45,6 +45,10 @@
             "types": "./dist/vite.d.mts",
             "import": "./dist/vite.mjs"
         },
+        "./hot": {
+            "types": "./dist/hot.d.mts",
+            "import": "./dist/hot.mjs"
+        },
         "./internal/manifest": {
             "types": "./dist/manifest.d.mts",
             "import": "./dist/manifest.mjs"

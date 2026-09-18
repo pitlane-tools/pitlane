@@ -785,10 +785,13 @@ pointed. Removing the package means deleting the module that calls `createConten
   through `remix/assets` and rendering content with `satteri` at request time. Both declare the
   same collections with the same `loaders.glob` and `loaders.file` calls, and each must serve
   Markdown, MDX, and JSON. Each MDX entry imports two components — one server-only, one
-  `clientEntry` — so both demos prove component imports work on both hosts. Both must also pick up
-  an edit to a `.md`, `.mdx`, and `.json` entry while running, under each demo's own `dev`
-  command, without a restart. They are the proof the unification is real rather than described,
-  and a diff of their `app/content.ts` files is the reviewable artifact.
+  `clientEntry` — so both demos prove component imports work on both hosts. `demos/content-runtime`
+  must also pick up an edit to a `.md`, `.mdx`, and `.json` entry under its own `dev` command,
+  without a restart. The bundled demo cannot demonstrate the same thing, because `vp dev` fails
+  for it on a pre-existing plugin defect filed as issue #19; `content()`'s watch path is covered
+  instead by `tests/reload.test.ts`, which drives a real Vite dev server through an add, a
+  delete, an edit, and a broken edit. They are the proof the unification is real rather than
+  described, and a diff of their `app/content.ts` files is the reviewable artifact.
 - `docs/guides/content.md`, covering both hosts, the Sätteri setup, code highlighting with
   Expressive Code, and references.
 - A README and CHANGELOG for the package, and its TypeDoc config in `.typedoc/` plus its line in
@@ -843,10 +846,10 @@ pointed. Removing the package means deleting the module that calls `createConten
   design is built around. Run `demos/content-vite` and `demos/content-runtime` side by side, see
   Markdown, MDX, and JSON served by both, and diff their `app/content.ts`. If that diff is empty,
   the API does not change with the environment. If it is not, this proposal is wrong.
-- Reloading is exercised in the same pass, and it is the part worth doing by hand: with both `dev`
-  commands running, edit a post's frontmatter and its body, save, and watch both pages come back
-  with the change. Then create a new post and watch the bundled demo pick it up while the other
-  one does not, which is the limitation this proposal asks to ship.
+- Reloading is exercised in the same pass, and it is the part worth doing by hand. Run
+  `pnpm dev` in `demos/content-runtime`, edit a post's frontmatter, its body, and the authors
+  file, and watch each page come back with the change while the terminal shows no restart. Then
+  create a post and watch nothing happen, which is the limitation this proposal asks to ship.
 
 ## Policies and decisions checked
 

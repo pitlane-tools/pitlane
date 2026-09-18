@@ -19,3 +19,12 @@ export const PREBUILT_MANIFEST = Symbol.for("pitlane.content.manifest");
 
 /** The spelling the emitted module writes, which has to match {@link PREBUILT_MANIFEST}. */
 export const PREBUILT_MANIFEST_KEY = "pitlane.content.manifest";
+
+/**
+ * Hangs the development watcher's handle off a collection.
+ *
+ * A symbol rather than a method because `invalidate()` on the public
+ * `Collection` would let any caller empty a collection someone else is
+ * reading. `@pitlane/content/hot` is the only intended reader.
+ */
+export const HOT_COLLECTION = Symbol.for("pitlane.content.hot");

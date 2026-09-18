@@ -427,8 +427,8 @@ content({ entry: "app/collections.ts" });
 ```
 
 With `content()` installed, editing, adding, or deleting a content file
-rebuilds the affected collection and reloads the page. Without it, a collection
-reads the filesystem once and a later change needs a restart.
+rebuilds the affected collection and reloads the page. The section below is
+how a host without a bundler gets the same thing.
 
 If a bundled app reaches a collection with neither source, it says so instead of
 serving an empty list:
@@ -437,6 +437,57 @@ serving an empty list:
 Collection "blog" has no prebuilt content and no filesystem to read.
 Add content() from "@pitlane/content/vite" to your Vite config.
 ```
+
+## Reloading a content file while the app runs
+
+With `content()`, this is already done. The plugin watches what the loaders
+read. Without a bundler, add one line beside `createContent`:
+
+```ts
+// app/content.ts
+import { createContent } from "@pitlane/content";
+import { hotContent } from "@pitlane/content/hot";
+import * as loaders from "@pitlane/content/loaders";
+import * as s from "remix/data-schema";
+
+export let content = await createContent(c => ({
+    blog: c.collection({
+        loader: loaders.glob({ pattern: "**/*.{md,mdx}", base: "app/content/blog" }),
+        schema: s.object({ title: s.string() }),
+    }),
+}));
+
+await hotContent(content);
+```
+
+Leave that line in for production. `hotContent` does nothing unless the
+process is supervised by `remix/node-hmr`, which is what the `dev` command
+below does. A production server, a Worker, and a prebuilt collection all skip
+it, so `remix/node-hmr/runtime` is never imported outside development.
+
+It is `remix/node-hmr` that supervises the server, and the setup is the one
+from the [Remix bookstore demo](https://github.com/remix-run/remix/tree/main/demos/bookstore):
+an `hmr.ts` that runs the server and proxies to it, started with
+`NODE_ENV=development`.
+
+Edit a post and save. The collection it belongs to is discarded and the page
+reloads, so the next request re-reads the file. A collection whose files did
+not change keeps what it had.
+
+A post saved with frontmatter its schema rejects behaves like any other bad
+content: the page shows the error, naming the file and the field. Fix it and
+save again.
+
+:::: warning A new file needs a restart on this host
+`remix/node-hmr` reports a file change only for a path it was given. A file
+that does not exist yet was never given, so a post you have just created
+stays invisible until the server restarts. Editing an existing post reloads
+the page. So does deleting one.
+
+Touching any file the server imports restarts it, so in practice this is a
+save in an editor you already have open. Under `content()` there is no such
+gap.
+::::
 
 ## Highlighting code
 

@@ -1,4 +1,5 @@
 import { createContent } from "@pitlane/content";
+import { hotContent } from "@pitlane/content/hot";
 import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
@@ -18,3 +19,7 @@ export let content = await createContent(c => ({
         schema: s.object({ name: s.string(), bio: s.string() }),
     }),
 }));
+
+// A no-op unless `remix/node-hmr` is supervising: under `vp` the collections
+// are prebuilt and Vite watches them, and in production nothing watches at all.
+await hotContent(content);

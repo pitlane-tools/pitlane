@@ -8,6 +8,7 @@ export default defineConfig({
                 loaders: "src/loaders.ts",
                 satteri: "src/satteri.ts",
                 vite: "src/vite.ts",
+                hot: "src/hot.ts",
                 manifest: "src/manifest.ts",
             },
             dts: true,
