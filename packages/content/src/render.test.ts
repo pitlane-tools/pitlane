@@ -305,6 +305,44 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         );
     });
 
+    it("ignores a type-only import, which has nothing to bind at runtime", async () => {
+        // A bundler erases `import type`. Read as a value import it becomes a
+        // request for a default export named `type`, and the render fails on a
+        // line the author wrote correctly.
+        let { Content } = await post(
+            'import type { Handle } from "remix/ui";\n' +
+                'import { Badge } from "./badge.tsx";\n\n<Badge label="typed" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">typed</strong>',
+        );
+    });
+
+    it("never imports the module a type-only statement names", async () => {
+        // The module may hold nothing but types, or not exist at runtime at
+        // all. A bundler erases the statement, so importing it would be a
+        // requirement the prebuilt path does not have.
+        let { Content } = await post(
+            'import type { Gone } from "./types-only.ts";\n' +
+                'import { Badge } from "./badge.tsx";\n\n<Badge label="safe" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">safe</strong>',
+        );
+    });
+
+    it("ignores an inline type specifier beside a value one", async () => {
+        let { Content } = await post(
+            'import { type Handle, Badge } from "./badge.tsx";\n\n<Badge label="inline" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">inline</strong>',
+        );
+    });
+
     it("still renders a document with no imports", async () => {
         let { Content } = await post("# Plain\n\nNo imports here.\n");
 

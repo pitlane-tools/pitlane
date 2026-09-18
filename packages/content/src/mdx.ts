@@ -32,7 +32,8 @@ const SIDE_EFFECT_RE = /^[^\S\n]*import[^\S\n]*("[^"\n]*"|'[^'\n]*')[^\S\n]*;?$/
 export function readEsm(block: string, where: string) {
     let imports: Import[] = [];
     let remainder = block.replace(IMPORT_RE, statement => {
-        imports.push(readImport(statement.trim(), where));
+        let read = readImport(statement.trim(), where);
+        if (read) imports.push(read);
         // Blanked rather than deleted, so every offset after it still lines up
         // with the source the author wrote.
         return blankLike(statement);
@@ -47,16 +48,23 @@ function blankLike(statement: string) {
     return "\n".repeat((statement.match(/\n/g) ?? []).length);
 }
 
-function readImport(statement: string, where: string): Import {
+/** Reads one statement, or nothing when it is type-only. */
+function readImport(statement: string, where: string): Import | undefined {
     let sideEffect = SIDE_EFFECT_RE.exec(statement);
     if (sideEffect) return { specifier: unquote(sideEffect[1]!), bindings: new Map() };
 
     let matched = PARTS_RE.exec(statement);
     if (!matched) throw unreadable(statement, where);
 
+    let clause = matched[1]!.trim();
+    // A bundler erases `import type` before anything runs, and the module it
+    // names may hold nothing but types. Importing it would be a new
+    // requirement the bundled path does not have.
+    if (/^type\b/.test(clause)) return undefined;
+
     return {
         specifier: unquote(matched[2]!),
-        bindings: readBindings(matched[1]!.trim(), statement, where),
+        bindings: readBindings(clause, statement, where),
     };
 }
 
@@ -70,7 +78,7 @@ function readBindings(clause: string, statement: string, where: string) {
 
     for (let part of named?.[1]?.split(",") ?? []) {
         let entry = part.trim();
-        if (entry.length === 0) continue;
+        if (entry.length === 0 || /^type\b/.test(entry)) continue;
         let renamed = /^(\S+)\s+as\s+(\S+)$/.exec(entry);
         if (renamed) bindings.set(identifier(renamed[2]!, statement, where), renamed[1]!);
         else bindings.set(identifier(entry, statement, where), entry);
