@@ -1,5 +1,7 @@
 import type { PrebuiltCollections } from "./types.ts";
 
+import { PREBUILD_CHANNEL, PREBUILT_MANIFEST } from "./symbols.ts";
+
 // Imported for its side effect: `content()` replaces this module with one that
 // registers the manifest it emitted. See the note in `manifest.ts`.
 import "./manifest.ts";
@@ -10,12 +12,8 @@ import "./manifest.ts";
  * The plugin runs the application's content module through Vite's module
  * runner, which evaluates it in a realm of its own. A module-scoped variable
  * would therefore be a different variable on each side, so the handshake lives
- * on `globalThis` under a symbol nothing else can name.
+ * on globals whose names `symbols.ts` owns.
  */
-const CHANNEL = Symbol.for("pitlane.content.prebuild");
-// The module `content()` emits assigns this symbol. Its spelling is the
-// contract between the plugin and the runtime; see `vite.ts`.
-const MANIFEST = Symbol.for("pitlane.content.manifest");
 
 interface Channel {
     collections: Map<string, unknown[]>;
@@ -26,8 +24,8 @@ interface Channel {
 }
 
 interface Global {
-    [CHANNEL]?: Channel;
-    [MANIFEST]?: PrebuiltCollections;
+    [PREBUILD_CHANNEL]?: Channel;
+    [PREBUILT_MANIFEST]?: PrebuiltCollections;
 }
 
 /** Opens prebuild mode. Called by `content()` before it runs the entry. */
@@ -38,28 +36,28 @@ export function openPrebuild(root: string): Channel {
         configuredSatteri: new Set(),
         root,
     };
-    (globalThis as Global)[CHANNEL] = channel;
+    (globalThis as Global)[PREBUILD_CHANNEL] = channel;
     return channel;
 }
 
 /** Closes prebuild mode, so a later `createContent` in this process is normal. */
 export function closePrebuild(): void {
-    delete (globalThis as Global)[CHANNEL];
+    delete (globalThis as Global)[PREBUILD_CHANNEL];
 }
 
 /** Whether `createContent` should populate eagerly and record what it loaded. */
-export function prebuilding(): boolean {
-    return (globalThis as Global)[CHANNEL] !== undefined;
+export function isPrebuilding(): boolean {
+    return (globalThis as Global)[PREBUILD_CHANNEL] !== undefined;
 }
 
 /** The root loaders resolve relative paths against. */
 export function contentRoot(): string {
-    return (globalThis as Global)[CHANNEL]?.root ?? process.cwd();
+    return (globalThis as Global)[PREBUILD_CHANNEL]?.root ?? process.cwd();
 }
 
 /** Records one collection's entries for `content()` to read back. */
 export function recordPrebuilt(collection: string, entries: unknown[]): void {
-    (globalThis as Global)[CHANNEL]?.collections.set(collection, entries);
+    (globalThis as Global)[PREBUILD_CHANNEL]?.collections.set(collection, entries);
 }
 
 /**
@@ -70,7 +68,7 @@ export function recordPrebuilt(collection: string, entries: unknown[]): void {
  * and it is exactly the collection whose first file needs to be noticed.
  */
 export function recordWatched(paths: readonly string[]): void {
-    let channel = (globalThis as Global)[CHANNEL];
+    let channel = (globalThis as Global)[PREBUILD_CHANNEL];
     if (!channel) return;
     for (let path of paths) channel.watched.add(path);
 }
@@ -83,7 +81,7 @@ export function recordWatched(paths: readonly string[]): void {
  * some hosts and not others. `content()` warns rather than let that pass.
  */
 export function recordConfiguredSatteri(collection: string): void {
-    (globalThis as Global)[CHANNEL]?.configuredSatteri.add(collection);
+    (globalThis as Global)[PREBUILD_CHANNEL]?.configuredSatteri.add(collection);
 }
 
 /**
@@ -95,7 +93,7 @@ export function recordConfiguredSatteri(collection: string): void {
  * manifest, the loaders would look as though they had already run, and the
  * collection would be emitted empty.
  */
-export function prebuilt(): PrebuiltCollections | null {
-    if (prebuilding()) return null;
-    return (globalThis as Global)[MANIFEST] ?? null;
+export function prebuiltManifest(): PrebuiltCollections | null {
+    if (isPrebuilding()) return null;
+    return (globalThis as Global)[PREBUILT_MANIFEST] ?? null;
 }

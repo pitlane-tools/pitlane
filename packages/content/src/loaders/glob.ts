@@ -69,7 +69,7 @@ export function glob(options: {
                 if (!parse) continue;
 
                 let filePath = resolve(base, entry);
-                let document = parse(await fs.readFile(filePath, "utf8"));
+                let document = read(parse, await fs.readFile(filePath, "utf8"), filePath);
                 matches.push({ entry, extension, filePath, document });
             }
 
@@ -111,6 +111,23 @@ function identify(
             document,
         }))
         .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
+}
+
+/**
+ * Parses one file, naming it when the parse fails.
+ *
+ * Malformed frontmatter and malformed JSON are the two most likely authoring
+ * mistakes here, and the parsers report a line and column relative to the
+ * snippet they were handed. Without the path that is unactionable in a
+ * collection of any size.
+ */
+function read(parse: (text: string) => Document, text: string, filePath: string): Document {
+    try {
+        return parse(text);
+    } catch (error) {
+        let cause = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to parse "${filePath}": ${cause}`, { cause: error });
+    }
 }
 
 function markdown(format: "md" | "mdx", text: string): Document {

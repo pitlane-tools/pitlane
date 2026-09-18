@@ -10,11 +10,11 @@ import type {
     StandardSchemaV1,
 } from "./types.ts";
 
-import { parseEntryData } from "./parse.ts";
+import { ContentError, parseEntryData } from "./parse.ts";
 import {
     contentRoot,
-    prebuilding,
-    prebuilt,
+    isPrebuilding,
+    prebuiltManifest,
     recordConfiguredSatteri,
     recordPrebuilt,
     recordWatched,
@@ -57,13 +57,13 @@ export async function createContent<T extends Record<string, CollectionDefinitio
         }
     }
 
-    let manifest = prebuilt();
+    let manifest = prebuiltManifest();
     let content: Record<string, unknown> = {};
     for (let [name, definition] of Object.entries(definitions)) {
         content[name] = wire(name, definition, manifest?.[name]);
     }
 
-    if (prebuilding()) await populateEagerly(content, definitions);
+    if (isPrebuilding()) await populateEagerly(content, definitions);
     return content as Content<T>;
 }
 
@@ -100,7 +100,15 @@ function contentCollection(
     let populated: Promise<Map<string, StoredEntry>> | undefined;
 
     function entries() {
-        if (prebuiltEntries) return Promise.resolve(fromManifest(name, prebuiltEntries));
+        // Memoized on both paths. The manifest is immutable for the life of the
+        // module, so rebuilding its store per read would re-run the duplicate
+        // check, mint fresh entries, and defeat the render cache that keys off
+        // them — worst on a prerender, which reads every collection once per
+        // page.
+        if (prebuiltEntries) {
+            populated ??= Promise.resolve(fromManifest(name, prebuiltEntries));
+            return populated;
+        }
         populated ??= runLoader(name, schema, loader).catch((error: unknown) => {
             populated = undefined;
             throw error;
@@ -123,7 +131,7 @@ async function runLoader(name: string, schema: StandardSchemaV1, loader: Content
     } catch (error) {
         throw annotate(name, error);
     }
-    if (prebuilding()) {
+    if (isPrebuilding()) {
         recordPrebuilt(name, store.serializable());
         recordWatched(loader.watchedPaths?.() ?? []);
         if (store.configuredSatteri()) recordConfiguredSatteri(name);
@@ -207,11 +215,19 @@ function fromManifest(name: string, entries: PrebuiltEntry[]) {
     return store.entries;
 }
 
+/**
+ * Frames a loader failure with the collection, unless it already names one.
+ *
+ * Recognised by type rather than by a substring of the message: matching on
+ * wording would couple every thrower to this function's idea of what a framed
+ * message looks like, and rewording one of them would double-wrap or skip.
+ */
 function annotate(collection: string, error: unknown) {
-    if (error instanceof Error && error.message.includes(`collection "${collection}"`))
-        return error;
+    if (error instanceof ContentError) return error;
     let cause = error instanceof Error ? error.message : String(error);
-    return new Error(`Failed to load collection "${collection}": ${cause}`, { cause: error });
+    return new ContentError(collection, `Failed to load collection "${collection}": ${cause}`, {
+        cause: error,
+    });
 }
 
 /** Under `content()`, every `ContentLoader` collection loads before the build reads it. */

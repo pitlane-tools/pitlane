@@ -1,3 +1,5 @@
+import { ContentError } from "../parse.ts";
+
 /**
  * `node:fs/promises`, or a diagnostic for a host that has none.
  *
@@ -17,7 +19,8 @@ export async function filesystem(collection: string) {
     try {
         return await import("node:fs/promises");
     } catch (error) {
-        throw new Error(
+        throw new ContentError(
+            collection,
             `Collection "${collection}" has no prebuilt content and no filesystem to read.\n` +
                 `Add content() from "@pitlane/content/vite" to your Vite config.`,
             { cause: error },

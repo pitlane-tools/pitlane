@@ -154,6 +154,24 @@ describe("loaders.glob", () => {
     });
 });
 
+describe("loaders.glob parse failures", () => {
+    it("names the file whose frontmatter will not parse", async () => {
+        let loader = glob({ pattern: "bad-frontmatter.md", base: `${fixtures}/broken` });
+
+        await expect(collect(loader)).rejects.toThrow(
+            new RegExp(`Failed to parse "${fixtures}/broken/bad-frontmatter\\.md"`),
+        );
+    });
+
+    it("names the file whose JSON will not parse", async () => {
+        let loader = glob({ pattern: "bad.json", base: `${fixtures}/broken` });
+
+        await expect(collect(loader)).rejects.toThrow(
+            new RegExp(`Failed to parse "${fixtures}/broken/bad\\.json"`),
+        );
+    });
+});
+
 describe("loaders.glob options.satteri", () => {
     it("forwards the configured plugins to the runtime renderer", async () => {
         let seen: string[] = [];

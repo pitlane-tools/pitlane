@@ -9,6 +9,8 @@ import type { ContentLoader, LoadedEntry, PrebuiltCollections } from "./types.ts
 import { createContent } from "./content.ts";
 import { headings } from "./satteri.ts";
 
+// Spelled literally rather than imported: this pins the published contract,
+// so a rename in `symbols.ts` should fail here rather than pass quietly.
 const MANIFEST = Symbol.for("pitlane.content.manifest");
 
 /**

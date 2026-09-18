@@ -107,6 +107,36 @@ describe("content() in dev", () => {
         expect(await idsBecome(server, ["first"], entry)).toEqual(["first"]);
     });
 
+    it("surfaces a broken edit instead of serving stale content", async () => {
+        let { server, root } = await devServer();
+
+        await idsBecome(server, ["hello", "second"]);
+
+        // A schema violation makes the re-prebuild reject. The rejection used
+        // to escape into the watcher, which ignores the promise: invalidation
+        // was skipped, so the next read quietly returned the old entry and the
+        // author saw nothing wrong.
+        await writeFile(
+            join(root, "app/content/blog/hello.md"),
+            "---\ntitle: 7\npublishedOn: not-a-date\n---\n\n# Broken\n",
+        );
+
+        let outcome = await until(
+            async () => {
+                try {
+                    let module = await server.ssrLoadModule("/app/content.ts");
+                    let entry = await module.content.blog.getEntry("hello");
+                    return { titled: entry?.data.title as string };
+                } catch (error) {
+                    return { failed: error instanceof Error ? error.message : String(error) };
+                }
+            },
+            result => !("titled" in result) || result.titled !== "Hello",
+        );
+
+        expect(outcome).not.toHaveProperty("titled", "Hello");
+    });
+
     it("picks up a deleted post", async () => {
         let { server, root } = await devServer();
 

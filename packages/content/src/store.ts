@@ -1,5 +1,7 @@
 import type { EntryBody, LoadedEntry, PrebuiltBody, PrebuiltEntry } from "./types.ts";
 
+import { ContentError } from "./parse.ts";
+
 /** One entry as the runtime holds it: validated data plus whatever renders it. */
 export interface StoredEntry {
     id: string;
@@ -25,7 +27,10 @@ export function collectionStore(collection: string) {
 
     function set(entry: LoadedEntry | PrebuiltEntry) {
         if (entries.has(entry.id)) {
-            throw new Error(`Duplicate entry id "${entry.id}" in collection "${collection}".`);
+            throw new ContentError(
+                collection,
+                `Duplicate entry id "${entry.id}" in collection "${collection}".`,
+            );
         }
         entries.set(entry.id, stored(entry));
     }

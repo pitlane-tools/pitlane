@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContentLoader, LiveEntry, LiveLoader, LoadedEntry, Reference } from "./types.ts";
 
 import { createContent } from "./content.ts";
+import { prebuiltManifest } from "./prebuild.ts";
+import { PREBUILT_MANIFEST } from "./symbols.ts";
 
 /** A `ContentLoader` over entries held in memory, so a test never touches disk. */
 function memoryLoader(entries: LoadedEntry[], name = "memory"): ContentLoader {
@@ -82,6 +84,19 @@ describe("createContent", () => {
         ).rejects.toThrow(
             'Unknown collection "writers" referenced by createContent; known collections are blog, authors.',
         );
+    });
+});
+
+describe("the manifest handshake", () => {
+    it("registers under the symbol the runtime reads", async () => {
+        // `manifest.ts` spells the symbol literally, because anything it
+        // imports is hoisted into the chunk `content()` replaces. This is what
+        // keeps that literal and `symbols.ts` from drifting apart: importing
+        // the package has to leave the key `prebuiltManifest()` reads present.
+        await import("./manifest.ts");
+
+        expect(Object.getOwnPropertySymbols(globalThis)).toContain(PREBUILT_MANIFEST);
+        expect(prebuiltManifest()).toBeNull();
     });
 });
 

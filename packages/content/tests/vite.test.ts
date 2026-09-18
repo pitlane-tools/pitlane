@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, createLogger, type Logger } from "vite";
@@ -78,12 +78,16 @@ describe("content()", () => {
     });
 
     it("bundles the package, so a server build cannot externalize the manifest away", async () => {
-        // Nothing here asks for `noExternal`. A server build externalizes
-        // dependencies by default, which would leave the runtime reading the
-        // manifest the package ships rather than the one the build emitted.
-        let { result } = await buildAndQuery();
+        // Nothing here asks for `noExternal`. A server build externalizes its
+        // dependencies by default, which would leave the runtime importing the
+        // manifest the package ships — the one that registers nothing — rather
+        // than the one this build emitted.
+        let outDir = await buildFixture();
+        let bundle = await readFile(join(outDir, "entry.server.mjs"), "utf8");
 
-        expect(result.ids).not.toEqual([]);
+        expect(bundle).toContain('Symbol.for("pitlane.content.manifest")');
+        expect(bundle).toContain("Ada Lovelace");
+        expect(bundle).toMatch(/new Date\("2026-01-02/);
     });
 
     it("prebuilds a Date as a Date rather than the string it was written as", async () => {

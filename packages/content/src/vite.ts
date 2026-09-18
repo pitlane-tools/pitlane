@@ -9,21 +9,12 @@ import {
 
 import type { LoadedEntry } from "./types.ts";
 
+import { BODY_PREFIX, manifestModule } from "./codegen.ts";
 import { closePrebuild, openPrebuild } from "./prebuild.ts";
 
 const MANIFEST_OWNER = "@pitlane/content";
 const MANIFEST_SPECIFIER = `${MANIFEST_OWNER}/internal/manifest`;
 const VIRTUAL_MANIFEST = "\0pitlane-content/manifest";
-const BODY_PREFIX = "\0pitlane-content/entry/";
-/**
- * Where the runtime reads the manifest.
- *
- * The emitted module assigns this rather than exporting a value, and it
- * assigns it directly rather than calling into the package: the module it
- * replaces sits beside `prebuild.ts` in source and beside a hashed chunk in a
- * published build, so no relative specifier is right in both.
- */
-const MANIFEST_SYMBOL = "pitlane.content.manifest";
 
 /** The slice of resolution the prebuild server inherits. */
 type Resolution = NonNullable<UserConfig["resolve"]>;
@@ -127,7 +118,16 @@ export function content(options?: { entry?: string }): Plugin {
             created.watcher.on("all", async (_event, changed) => {
                 if (!isWatched(watched, changed)) return;
                 pending = undefined;
-                await ready(message => created.config.logger.warn(message));
+                // A rejection here would escape into chokidar, which ignores the
+                // promise: the reload would be skipped, the browser would keep
+                // serving stale content, and the editor would show nothing. Log
+                // it and reload anyway, so the next request surfaces it through
+                // Vite's own error overlay.
+                try {
+                    await ready(message => created.config.logger.warn(message));
+                } catch (error) {
+                    created.config.logger.error(String(error));
+                }
                 invalidate(created);
                 created.hot.send({ type: "full-reload" });
             });
@@ -158,8 +158,15 @@ export function content(options?: { entry?: string }): Plugin {
 }
 
 function isWatched(watched: string[], changed: string) {
-    let path = changed.replace(/\\/g, "/");
-    return watched.some(base => path === base || path.startsWith(`${base}/`));
+    let path = posix(changed);
+    // Both sides are normalized: `watched` comes from `resolve()`, which yields
+    // native separators, and a half-normalized comparison never matches on
+    // Windows, which would make dev reload silently dead there.
+    return watched.some(base => path === posix(base) || path.startsWith(`${posix(base)}/`));
+}
+
+function posix(path: string) {
+    return path.replace(/\\/g, "/");
 }
 
 /**
@@ -173,12 +180,12 @@ function isWatched(watched: string[], changed: string) {
  */
 const MANIFEST_PATHS = new Set(
     ["./manifest.ts", "./manifest.mjs"].map(name =>
-        fileURLToPath(new URL(name, import.meta.url)).replace(/\\/g, "/"),
+        posix(fileURLToPath(new URL(name, import.meta.url))),
     ),
 );
 
 function isManifestModule(id: string) {
-    return MANIFEST_PATHS.has(id.replace(/\\/g, "/").split("?")[0] ?? "");
+    return MANIFEST_PATHS.has(posix(id).split("?")[0] ?? "");
 }
 
 /**
@@ -260,67 +267,4 @@ async function execute(server: ViteDevServer, root: string, entry: string) {
         watched: [...recorded.watched],
         configuredSatteri: [...recorded.configuredSatteri],
     };
-}
-
-/**
- * The manifest module, as JavaScript source.
- *
- * Every value is a literal so the bundler can see it, and a `Date` is written
- * as `new Date("…")` so a `coerce.date()` schema finds a `Date` rather than the
- * string it was authored as. Each body is a static import of a virtual module,
- * which is the step no runtime cleverness replaces: a component is code, and
- * only the bundler turns source into code.
- */
-function manifestModule(collections: Record<string, LoadedEntry[]>, bodies: Map<string, string>) {
-    let imports: string[] = [];
-    bodies.clear();
-
-    let entries = Object.entries(collections).map(([name, loaded]) => {
-        let items = loaded.map(entry => {
-            let fields = [`id: ${literal(entry.id)}`, `data: ${literal(entry.data)}`];
-            if (entry.filePath) fields.push(`filePath: ${literal(entry.filePath)}`);
-            if (entry.body) {
-                let binding = `body${bodies.size}`;
-                let id = `${BODY_PREFIX}${name}/${entry.id}.${entry.body.format}`;
-                bodies.set(id, entry.body.source);
-                imports.push(`import * as ${binding} from ${literal(id)};`);
-                fields.push(`body: ${bodyExpression(entry.body.format, binding)}`);
-            }
-            return `{ ${fields.join(", ")} }`;
-        });
-        return `    ${literal(name)}: [${items.join(", ")}]`;
-    });
-
-    return [
-        ...imports,
-        `globalThis[Symbol.for(${literal(MANIFEST_SYMBOL)})] = {`,
-        entries.join(",\n"),
-        "};",
-        "",
-    ].join("\n");
-}
-
-/**
- * MDX compiles to a module carrying a component and a heading list. Markdown
- * compiles to an HTML string, which `vite-plugin-satteri` exports as `html`.
- */
-function bodyExpression(format: "md" | "mdx", binding: string) {
-    if (format === "mdx") return `{ format: "mdx", module: ${binding} }`;
-    return `{ format: "md", html: ${binding}.html ?? ${binding}.default }`;
-}
-
-/** Writes a value as JavaScript source, preserving what JSON would flatten. */
-function literal(value: unknown): string {
-    if (value instanceof Date) return `new Date(${JSON.stringify(value.toISOString())})`;
-    if (value === undefined) return "undefined";
-    if (value === null) return "null";
-    if (typeof value === "bigint") return `${value}n`;
-    if (Array.isArray(value)) return `[${value.map(literal).join(", ")}]`;
-    if (typeof value === "object") {
-        let fields = Object.entries(value).map(
-            ([key, nested]) => `${JSON.stringify(key)}: ${literal(nested)}`,
-        );
-        return `{ ${fields.join(", ")} }`;
-    }
-    return JSON.stringify(value) ?? "undefined";
 }
