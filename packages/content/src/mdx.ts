@@ -1,7 +1,7 @@
 /** One `import` statement an MDX document makes. */
 interface Import {
     specifier: string;
-    /** Local name to exported name; `default` and `*` name those two forms. */
+    /** Local name to exported name; `default` names the default import. */
     bindings: Map<string, string>;
 }
 
@@ -54,11 +54,8 @@ function readBindings(clause: string, line: string, where: string) {
     let named = /\{([\s\S]*)\}/.exec(clause);
     let head = (named ? clause.slice(0, named.index) : clause).replace(/,\s*$/, "").trim();
 
-    if (head.startsWith("* as ")) {
-        bindings.set(head.slice(5).trim(), "*");
-    } else if (head.length > 0) {
-        bindings.set(head, "default");
-    }
+    if (head.startsWith("* as ")) throw namespaceImport(head.slice(5).trim(), line, where);
+    if (head.length > 0) bindings.set(head, "default");
 
     for (let part of named?.[1]?.split(",") ?? []) {
         let entry = part.trim();
@@ -74,6 +71,22 @@ function readBindings(clause: string, line: string, where: string) {
 
 function unquote(quoted: string) {
     return quoted.slice(1, -1);
+}
+
+/**
+ * Sätteri compiles `import * as ui from "./x.tsx"` to `const {} = arguments[0]`
+ * in `function-body` mode: the local name is never bound, so the document
+ * throws `ReferenceError: ui is not defined` from inside compiled source the
+ * author never wrote. Refused here, where the file and the statement are both
+ * still in hand. A bundler compiles the same document to a module, where the
+ * namespace import is ordinary and works.
+ */
+function namespaceImport(local: string, line: string, where: string) {
+    return new Error(
+        `"${where}" imports \`* as ${local}\` in \`${line}\`, which cannot be resolved outside ` +
+            `a bundler. Import the components by name instead, or add content() from ` +
+            `@pitlane/content/vite so the build compiles this collection.`,
+    );
 }
 
 function unreadable(line: string, where: string) {

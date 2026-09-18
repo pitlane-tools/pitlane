@@ -55,35 +55,62 @@ async function fromSource(
     }
 
     let where = entry.filePath ?? entry.id;
-    let bindings = await importedBindings(satteri, body.source, where, options);
-    // Compiled and called here rather than through `satteri.evaluate`, which
-    // supplies only the JSX runtime: the document's own imports are read off the
-    // same object, so anything it imported would otherwise be `undefined` and
-    // render as nothing at all.
-    let compiled = await satteri.mdxToJs(body.source, {
+    let imported = await importedBindings(satteri, body.source, where, options);
+    // Sätteri's `function-body` output destructures each import off the same
+    // runtime object it destructures the JSX runtime from, and it does so by
+    // *exported* name: `import Def from` reads `default`, `{ A as B }` reads
+    // `A`, and two modules exporting one name read the same key, so one
+    // silently wins. The imports are compiled out of the source instead and
+    // supplied by local name, which is unique by construction.
+    let compiled = await satteri.mdxToJs(withoutImports(body.source, imported.statements), {
         ...options,
         jsxImportSource: "remix/ui",
         outputFormat: "function-body",
     });
+    // Both mechanisms, because which one Sätteri emits depends on the document:
+    // a file containing any Markdown element resolves `<Badge />` through
+    // `props.components`, and a file containing only JSX leaves it a free
+    // variable. One alone silently fails on half the documents.
+    let names = [...imported.bindings.keys()];
+    // The leading parameter is what Sätteri's own destructuring reads as
+    // `arguments[0]`, so the JSX runtime still arrives the way it expects.
+    //
     // `new Function` is what makes runtime `.mdx` Node, Bun, and Deno only, and
     // it is unavoidable on this path: a compiled MDX body is a function body by
     // construction. A host that forbids it prebuilds the collection instead.
     // oxlint-disable-next-line typescript/no-implied-eval
-    let module = new Function(compiled.code)({ ...jsxRuntime, ...bindings }) as Record<
-        string,
-        unknown
-    >;
-    return { Content: mdxComponent(module.default), headings: headingList(module.headings) };
+    let evaluate = new Function("__mdxRuntime", ...names, compiled.code);
+    let module = evaluate(
+        { ...jsxRuntime },
+        ...names.map(name => imported.bindings.get(name)),
+    ) as Record<string, unknown>;
+    return {
+        Content: mdxComponent(module.default, imported.bindings),
+        headings: headingList(module.headings),
+    };
 }
 
 /**
  * MDX compiles to a plain function of props; a Remix component is a factory
  * returning a render function. This is the bridge, and it is why props on
  * `<Content />` reach the content and `components` overrides work.
+ *
+ * A document's own imports are merged last, so a caller's `components` cannot
+ * replace one. Under a bundler an `import` is a real import and nothing can
+ * override it; the two paths have to agree.
  */
-function mdxComponent(exported: unknown): RenderedEntry["Content"] {
+function mdxComponent(
+    exported: unknown,
+    imported: ReadonlyMap<string, unknown> = new Map(),
+): RenderedEntry["Content"] {
     let component = exported as (props: Record<string, unknown>) => never;
-    return handle => () => component(handle?.props ?? {});
+    if (imported.size === 0) return handle => () => component(handle?.props ?? {});
+
+    return handle => () => {
+        let props = handle?.props ?? {};
+        let components = { ...(props.components as object), ...Object.fromEntries(imported) };
+        return component({ ...props, components });
+    };
 }
 
 /**
@@ -130,13 +157,11 @@ async function runtimeOptions(entry: StoredEntry) {
 }
 
 /**
- * The components an MDX document imported, keyed by the local name it used.
+ * The components an MDX document imported, keyed by the local name it used,
+ * along with the ESM statements they came from so they can be compiled out.
  *
- * Sätteri's `function-body` output destructures each binding off the object it
- * is called with, so resolving the imports and handing them over is the whole
- * of making `import` work without a bundler. Specifiers resolve relative to the
- * document, which is what makes the same file behave identically whether the
- * bundler compiled it or this did.
+ * Specifiers resolve relative to the document, which is what makes the same
+ * file behave identically whether the bundler compiled it or this did.
  */
 async function importedBindings(
     satteri: Satteri,
@@ -146,17 +171,40 @@ async function importedBindings(
 ) {
     let tree = satteri.mdxToMdast(source, { features: options.features });
     let statements = esmStatements(tree);
-    if (statements.length === 0) return {};
+    let bindings = new Map<string, unknown>();
+    if (statements.length === 0) return { statements, bindings };
 
-    let bindings: Record<string, unknown> = {};
     let from = pathToFileURL(where);
     for (let { specifier, bindings: names } of readImports(statements, where)) {
         let module = await importFrom(specifier, from, where);
         for (let [local, exported] of names) {
-            bindings[local] = exported === "*" ? module : module[exported];
+            if (!(exported in module)) throw missingExport(exported, specifier, where);
+            bindings.set(local, module[exported]);
         }
     }
-    return bindings;
+    return { statements, bindings };
+}
+
+/**
+ * Drops the document's import statements, whose bindings are supplied as
+ * parameters instead. Sätteri hands back each statement verbatim, so removing
+ * it is exact rather than a guess at what an import looks like.
+ */
+function withoutImports(source: string, statements: readonly string[]) {
+    let stripped = source;
+    for (let statement of statements) stripped = stripped.replace(statement, "");
+    return stripped;
+}
+
+/**
+ * An export the module does not have would otherwise arrive as `undefined` and
+ * render as nothing, which is the failure this whole path exists to remove.
+ */
+function missingExport(exported: string, specifier: string, where: string) {
+    let name = exported === "default" ? "a default export" : `\`${exported}\``;
+    return new Error(
+        `"${where}" imports ${name} from "${specifier}", which that module does not export.`,
+    );
 }
 
 /** The top-level `mdxjsEsm` node values, which hold the document's imports. */

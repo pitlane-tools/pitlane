@@ -185,7 +185,7 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         expect(html).toContain("count 3");
     });
 
-    it("renders several imported components, named and default", async () => {
+    it("renders several imported components", async () => {
         let { Content } = await post(
             'import { Badge } from "./badge.tsx";\n' +
                 'import { Counter } from "./counter.tsx";\n\n' +
@@ -198,10 +198,75 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         expect(html).toContain("count 1");
     });
 
+    it("renders a default import", async () => {
+        let { Content } = await post(
+            'import Heading from "./heading.tsx";\n\n<Heading label="titled" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<h2 class="heading">titled</h2>',
+        );
+    });
+
+    it("renders an import renamed with `as`", async () => {
+        let { Content } = await post(
+            'import { Badge as Chip } from "./badge.tsx";\n\n<Chip label="renamed" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">renamed</strong>',
+        );
+    });
+
+    it("renders an imported component in a document with no Markdown in it", async () => {
+        // Sätteri resolves `<Badge />` through `props.components` in a document
+        // that contains any Markdown element, and leaves it a free variable in
+        // one that does not. Both shapes have to work.
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\n\n<Badge label="bare" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">bare</strong>',
+        );
+    });
+
+    it("keeps two modules exporting the same name apart", async () => {
+        // A single bindings object keyed by exported name cannot hold both, so
+        // the second import would otherwise overwrite the first and the
+        // document would render the wrong component with no error at all.
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\n' +
+                'import { Badge as Chip } from "./chip.tsx";\n\n' +
+                '# Both\n\n<Badge label="first" />\n\n<Chip label="second" />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain('<strong class="badge">first</strong>');
+        expect(html).toContain('<em class="chip">second</em>');
+    });
+
+    it("fails naming the export when a module does not have it", async () => {
+        await expect(post('import { Gone } from "./badge.tsx";\n\n<Gone />\n')).rejects.toThrow(
+            /`Gone`.*\.\/badge\.tsx.*does not export/s,
+        );
+    });
+
     it("fails naming the file and the specifier when an import does not resolve", async () => {
         await expect(post('import { Gone } from "./missing.tsx";\n\n<Gone />\n')).rejects.toThrow(
             /post\.mdx.*\.\/missing\.tsx/s,
         );
+    });
+
+    it("refuses a namespace import rather than leaving it undefined at render", async () => {
+        // Sätteri's `function-body` output reads each binding off its runtime
+        // object, and for `import * as ns` it emits `const {} = arguments[0]`:
+        // the name is never bound, so the document throws a bare
+        // `ReferenceError` deep in the compiled source. Refused here instead.
+        await expect(
+            post('import * as ui from "./badge.tsx";\n\n<ui.Badge label="a" />\n'),
+        ).rejects.toThrow(/post\.mdx.*\*\s+as\s+ui.*\.\/badge\.tsx/s);
     });
 
     it("still renders a document with no imports", async () => {
