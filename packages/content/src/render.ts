@@ -1,11 +1,9 @@
-import { createRequire } from "node:module";
-import { pathToFileURL } from "node:url";
 import * as jsxRuntime from "remix/ui/jsx-runtime";
 
 import type { StoredEntry } from "./store.ts";
 import type { Heading, RenderedEntry } from "./types.ts";
 
-import { readImports } from "./mdx.ts";
+import { readEsm } from "./mdx.ts";
 
 let rendered = new WeakMap<StoredEntry, Promise<RenderedEntry>>();
 
@@ -62,7 +60,7 @@ async function fromSource(
     // `A`, and two modules exporting one name read the same key, so one
     // silently wins. The imports are compiled out of the source instead and
     // supplied by local name, which is unique by construction.
-    let compiled = await satteri.mdxToJs(withoutImports(body.source, imported.statements), {
+    let compiled = await satteri.mdxToJs(imported.body, {
         ...options,
         jsxImportSource: "remix/ui",
         outputFormat: "function-body",
@@ -158,7 +156,7 @@ async function runtimeOptions(entry: StoredEntry) {
 
 /**
  * The components an MDX document imported, keyed by the local name it used,
- * along with the ESM statements they came from so they can be compiled out.
+ * and the source with those import statements removed.
  *
  * Specifiers resolve relative to the document, which is what makes the same
  * file behave identically whether the bundler compiled it or this did.
@@ -170,30 +168,28 @@ async function importedBindings(
     options: { features?: Record<string, unknown> },
 ) {
     let tree = satteri.mdxToMdast(source, { features: options.features });
-    let statements = esmStatements(tree);
+    let blocks = esmBlocks(tree);
     let bindings = new Map<string, unknown>();
-    if (statements.length === 0) return { statements, bindings };
+    if (blocks.length === 0) return { body: source, bindings };
 
-    let from = pathToFileURL(where);
-    for (let { specifier, bindings: names } of readImports(statements, where)) {
-        let module = await importFrom(specifier, from, where);
-        for (let [local, exported] of names) {
-            if (!(exported in module)) throw missingExport(exported, specifier, where);
-            bindings.set(local, module[exported]);
+    let node = await nodeResolution();
+    let from = node.pathToFileURL(where);
+    let body = source;
+    // Last block first, so an earlier block's offsets are still the ones
+    // Sätteri measured.
+    for (let block of [...blocks].reverse()) {
+        let { imports, remainder } = readEsm(block.value, where);
+        body = body.slice(0, block.start) + remainder + body.slice(block.end);
+
+        for (let { specifier, bindings: names } of imports) {
+            let module = await importFrom(specifier, from, where, node);
+            for (let [local, exported] of names) {
+                if (!(exported in module)) throw missingExport(exported, specifier, where);
+                bindings.set(local, module[exported]);
+            }
         }
     }
-    return { statements, bindings };
-}
-
-/**
- * Drops the document's import statements, whose bindings are supplied as
- * parameters instead. Sätteri hands back each statement verbatim, so removing
- * it is exact rather than a guess at what an import looks like.
- */
-function withoutImports(source: string, statements: readonly string[]) {
-    let stripped = source;
-    for (let statement of statements) stripped = stripped.replace(statement, "");
-    return stripped;
+    return { body, bindings };
 }
 
 /**
@@ -207,21 +203,66 @@ function missingExport(exported: string, specifier: string, where: string) {
     );
 }
 
-/** The top-level `mdxjsEsm` node values, which hold the document's imports. */
-function esmStatements(tree: unknown): string[] {
-    let children = (tree as { children?: { type?: string; value?: string }[] }).children ?? [];
-    return children
-        .filter(node => node.type === "mdxjsEsm" && typeof node.value === "string")
-        .map(node => node.value!);
+interface EsmBlock {
+    value: string;
+    start: number;
+    end: number;
 }
 
-async function importFrom(specifier: string, from: URL, where: string) {
-    // `import.meta.resolve` handles a bare or subpath specifier the way Node
-    // would from the document's own directory, so `#/ui/public/counter.tsx`
-    // means what it means in a controller.
+/**
+ * The top-level ESM blocks, with the offsets Sätteri measured them at.
+ *
+ * Offsets rather than a text search: a page may quote its own import in a
+ * fenced code block, and removing the first textual match would strike the
+ * fence and leave the real statement behind.
+ *
+ * The end comes from the block's own text rather than its reported end, which
+ * runs to the start of the next node and so swallows the blank line between
+ * them. MDX needs that blank line to tell an ESM block from the body.
+ */
+function esmBlocks(tree: unknown): EsmBlock[] {
+    interface Node {
+        type?: string;
+        value?: string;
+        position?: { start?: { offset?: number } };
+    }
+    let children = (tree as { children?: Node[] }).children ?? [];
+    let blocks: EsmBlock[] = [];
+    for (let node of children) {
+        if (node.type !== "mdxjsEsm" || typeof node.value !== "string") continue;
+        let start = node.position?.start?.offset;
+        if (typeof start !== "number") continue;
+        blocks.push({ value: node.value, start, end: start + node.value.length });
+    }
+    return blocks;
+}
+
+/** The two Node resolution functions the runtime MDX path needs. */
+interface NodeResolution {
+    createRequire: (from: URL) => { resolve: (specifier: string) => string };
+    pathToFileURL: (path: string) => URL;
+}
+
+/**
+ * `node:module` and `node:url`, loaded on demand.
+ *
+ * A static import would put them in the chain `index.ts` pulls in, and the
+ * package documents itself as safe to import on any host. Only a runtime
+ * `.mdx` render reaches here, and that path is already Node, Bun, and Deno
+ * only because it needs `new Function`.
+ */
+async function nodeResolution(): Promise<NodeResolution> {
+    let [{ createRequire }, { pathToFileURL }] = await Promise.all([
+        import("node:module"),
+        import("node:url"),
+    ]);
+    return { createRequire, pathToFileURL };
+}
+
+async function importFrom(specifier: string, from: URL, where: string, node: NodeResolution) {
     let resolved = specifier.startsWith(".")
         ? new URL(specifier, from).href
-        : resolveBare(specifier, from, where);
+        : resolveBare(specifier, from, where, node);
     try {
         return (await import(resolved)) as Record<string, unknown>;
     } catch (error) {
@@ -237,11 +278,14 @@ async function importFrom(specifier: string, from: URL, where: string) {
  *
  * `createRequire` rather than `import.meta.resolve`, whose parent argument is
  * not part of the stable API: resolution has to start at the MDX file so that
- * `#/ui/counter.tsx` means what it means in a controller of the same app.
+ * `#/ui/counter.tsx` means what it means in a controller of the same app. The
+ * cost is that it resolves under `require` conditions, so a dependency that
+ * publishes only an `import` condition fails here — loudly, naming the file
+ * and the specifier.
  */
-function resolveBare(specifier: string, from: URL, where: string) {
+function resolveBare(specifier: string, from: URL, where: string, node: NodeResolution) {
     try {
-        return pathToFileURL(createRequire(from).resolve(specifier)).href;
+        return node.pathToFileURL(node.createRequire(from).resolve(specifier)).href;
     } catch (error) {
         let cause = error instanceof Error ? error.message : String(error);
         throw new Error(

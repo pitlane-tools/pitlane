@@ -35,7 +35,9 @@ export function manifestModule(
             }
             return `{ ${fields.join(", ")} }`;
         });
-        return `    ${literal(collection)}: [${items.join(", ")}]`;
+        // Computed, because a quoted `"__proto__"` key in an object literal is
+        // still the prototype setter. A collection may be named anything.
+        return `    [${literal(collection)}]: [${items.join(", ")}]`;
     });
 
     return [

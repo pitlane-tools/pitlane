@@ -269,6 +269,42 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         ).rejects.toThrow(/post\.mdx.*\*\s+as\s+ui.*\.\/badge\.tsx/s);
     });
 
+    it("keeps a document's own export, which it needs to render", async () => {
+        // Removing whole ESM blocks would take the export with the import, and
+        // `{year}` would throw `ReferenceError` at runtime while the same file
+        // renders under a bundler.
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\nexport const year = 2026;\n\n' +
+                '<Badge label="x" /> in {year}.\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("in 2026.");
+    });
+
+    it("leaves an import quoted in a fenced code block alone", async () => {
+        // Removing the first *textual* occurrence would strike the fence and
+        // leave the real statement, which then fails to compile.
+        let { Content } = await post(
+            'Shown first:\n\n```js\nimport { Badge } from "./badge.tsx";\n```\n\n' +
+                'import { Badge } from "./badge.tsx";\n\n<Badge label="real" />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain('<strong class="badge">real</strong>');
+        expect(html).toContain("import { Badge }");
+    });
+
+    it("reads an import statement written across several lines", async () => {
+        let { Content } = await post(
+            'import {\n    Badge,\n} from "./badge.tsx";\n\n<Badge label="multi" />\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            '<strong class="badge">multi</strong>',
+        );
+    });
+
     it("still renders a document with no imports", async () => {
         let { Content } = await post("# Plain\n\nNo imports here.\n");
 

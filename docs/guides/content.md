@@ -242,11 +242,18 @@ means in a controller of the same app.
 A specifier that does not resolve fails the render, naming the file and the
 specifier. So does an export the module does not have. Neither renders a hole.
 
+A document's own `export` is left alone, so `export const year = 2026` beside
+an import still reaches the body that uses it.
+
 One form is refused without a bundler: `import * as ui from "./badge.tsx"`.
 Sätteri compiles a namespace import to nothing in the mode this path uses, so
 it is rejected by name rather than left undefined. Import the components by
 name, or prebuild the collection with `content()`, where the document compiles
 to a module and the namespace import is ordinary.
+
+A bare specifier resolves under Node's `require` conditions. A dependency
+published with only an `import` condition fails at runtime, naming the file and
+the specifier. Prebuild the collection and the bundler resolves it.
 
 A component that hydrates in the browser is a `clientEntry` component, and the
 only thing it needs from you is a URL the browser can load:

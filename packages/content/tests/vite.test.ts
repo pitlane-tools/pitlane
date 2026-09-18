@@ -85,17 +85,40 @@ describe("the two paths agree", () => {
         let bundled = await import(pathToFileURL(join(outDir, "entry.server.mjs")).href);
         let prebuilt = await bundled.query();
 
-        let { content } = await import(
-            pathToFileURL(join(fixture, "app/content-passthrough.ts")).href
-        );
-        let entries = await content.settings.getCollection();
-        let runtime = entries.map((entry: { id: string; data: unknown; filePath?: string }) => ({
-            id: entry.id,
-            data: entry.data,
-            filePath: entry.filePath,
-        }));
+        // Both handshake globals are `Symbol.for`, so the build the line above
+        // ran leaks its manifest into this process. Without clearing them the
+        // read below answers from that manifest and this test compares it with
+        // itself, which is a comparison that cannot fail.
+        delete (globalThis as Record<symbol, unknown>)[Symbol.for("pitlane.content.manifest")];
+        delete (globalThis as Record<symbol, unknown>)[Symbol.for("pitlane.content.prebuild")];
+
+        // A loader with no manifest resolves its base against the working
+        // directory, which is this package rather than the fixture.
+        let cwd = process.cwd();
+        process.chdir(fixture);
+        let runtime: unknown;
+        try {
+            let { content } = await import(
+                `${pathToFileURL(join(fixture, "app/content-passthrough.ts")).href}?filesystem`
+            );
+            let entries = await content.settings.getCollection();
+            runtime = entries.map((entry: { id: string; data: unknown; filePath?: string }) => ({
+                id: entry.id,
+                data: entry.data,
+                filePath: entry.filePath,
+            }));
+        } finally {
+            process.chdir(cwd);
+        }
 
         expect(prebuilt).toStrictEqual(runtime);
+        // And the comparison has to be capable of failing: a value only a real
+        // filesystem read could produce has to reach `runtime`.
+        expect(runtime).toHaveLength(1);
+        expect((runtime as { data: Record<string, unknown> }[])[0]!.data).toHaveProperty(
+            "title",
+            "Settings",
+        );
     });
 });
 
@@ -117,6 +140,19 @@ describe("content()", () => {
         expect(bundle).toContain('Symbol.for("pitlane.content.manifest")');
         expect(bundle).toContain("Ada Lovelace");
         expect(bundle).toMatch(/new Date\("2026-01-02/);
+    });
+
+    it("leaves no filesystem or resolver builtin in a fully prebuilt bundle", async () => {
+        // The package documents itself as safe to import on any host, with
+        // Workers as the constrained case. A static import of these anywhere in
+        // the chain `index.ts` pulls in breaks that for every consumer, whether
+        // or not they ever render at runtime. `node:path` is deliberately not
+        // in the list: Workers provides it, and the loaders resolve a base with
+        // it before they know whether a collection was prebuilt.
+        let outDir = await buildFixture();
+        let bundle = await readFile(join(outDir, "entry.server.mjs"), "utf8");
+
+        expect(bundle).not.toMatch(/from\s*["']node:(module|url|fs|fs\/promises)["']/);
     });
 
     it("prebuilds a Date as a Date rather than the string it was written as", async () => {

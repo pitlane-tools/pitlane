@@ -134,7 +134,11 @@ describe("content() in dev", () => {
             result => !("titled" in result) || result.titled !== "Hello",
         );
 
-        expect(outcome).not.toHaveProperty("titled", "Hello");
+        // `until`'s own predicate already guarantees the title is not "Hello",
+        // so asserting that restates the loop. What matters is which way it
+        // stopped being "Hello": a surfaced error, not a quietly empty read.
+        expect(outcome).toHaveProperty("failed");
+        expect((outcome as { failed: string }).failed).toMatch(/hello|blog|title/i);
     });
 
     it("recovers from a first prebuild that failed", async () => {

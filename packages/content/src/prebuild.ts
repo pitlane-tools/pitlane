@@ -53,9 +53,18 @@ export function isPrebuilding(): boolean {
     return (globalThis as Global)[PREBUILD_CHANNEL] !== undefined;
 }
 
-/** The root loaders resolve relative paths against. */
+/**
+ * The root loaders resolve relative paths against.
+ *
+ * A prebuilt collection never asks, so the fallback only runs where a loader
+ * is about to read the filesystem anyway. `process` is reached defensively all
+ * the same: a host without it should hear about the missing filesystem from
+ * the loader, which names the collection, rather than about a missing global.
+ */
 export function contentRoot(): string {
-    return (globalThis as Global)[PREBUILD_CHANNEL]?.root ?? process.cwd();
+    let root = (globalThis as Global)[PREBUILD_CHANNEL]?.root;
+    if (root !== undefined) return root;
+    return typeof process === "undefined" ? "/" : process.cwd();
 }
 
 /**

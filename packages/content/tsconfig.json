@@ -15,5 +15,8 @@
         "skipLibCheck": true,
         "types": ["node"]
     },
-    "include": ["src", "tests/*.test.ts"]
+    "include": ["src", "tests/*.test.ts"],
+    // Components an MDX fixture imports at runtime. Nothing imports them as
+    // modules, and `clientEntry`'s inferred type cannot be named from here.
+    "exclude": ["src/fixtures"]
 }
