@@ -792,8 +792,13 @@ pointed. Removing the package means deleting the module that calls `createConten
   instead by `tests/reload.test.ts`, which drives a real Vite dev server through an add, a
   delete, an edit, and a broken edit. They are the proof the unification is real rather than
   described, and a diff of their `app/content.ts` files is the reviewable artifact.
-- `docs/guides/content.md`, covering both hosts, the Sätteri setup, code highlighting with
-  Expressive Code, and references.
+- Three guides, one per audience rather than one page that switches host every other section.
+  `docs/guides/content.md` is the bundled setup, modeled on Astro's content collections
+  documentation. `docs/guides/content-no-build.md` is the same material for an application that
+  runs from source, covering what differs: Sätteri per request, MDX import resolution, the asset
+  server, and `hotContent`. `docs/guides/content-loaders.md` is a development guide for writing
+  a `ContentLoader` and a `LiveLoader`. Each carries its own **Limitations** section naming
+  every constraint that applies to it.
 - A README and CHANGELOG for the package, and its TypeDoc config in `.typedoc/` plus its line in
   the `docs:api` task.
 

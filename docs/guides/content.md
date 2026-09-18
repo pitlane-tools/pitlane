@@ -1,9 +1,9 @@
 ---
-title: Content Collections
-description: "How @pitlane/content turns Markdown, MDX, and data files into schema-validated collections a Remix 3 controller can query, on a Node host and on Cloudflare Workers through the content() Vite plugin."
+title: Content
+description: "How @pitlane/content turns Markdown, MDX, and data files into schema-validated collections a Remix 3 controller can query, prebuilt into the bundle by the content() Vite plugin."
 ---
 
-# Content Collections
+# Content
 
 [`@pitlane/content`](/package/content/) reads a directory of Markdown, MDX, or
 data files and hands back collections you query like a database:
@@ -18,6 +18,39 @@ Frontmatter is validated against a schema, so a post that misspells a field
 fails where you can see it rather than rendering `undefined`. One entry can
 point at another. Types come from the schema, so nothing is generated and
 nothing can go stale.
+
+This page covers an application built with Vite and
+[`@pitlane/dev`](/guides/vite-plugin). For an application that runs from source
+with no bundler at all, read [Content (no build)](/guides/content-no-build)
+instead. The collections themselves are identical on both, and that is the
+point of the split: only the setup around them differs.
+
+## What a collection is
+
+A collection is a set of entries that share a shape. A directory of blog posts,
+one JSON file of authors, a feed of releases pulled from an API. Each entry has
+an `id`, some validated `data`, and optionally a body to render.
+
+What defines a collection:
+
+- A **loader**, which says where the bytes come from. Required.
+- A **schema**, which says what the data must look like. Required here, because
+  a collection whose data is unvalidated is a directory with extra steps.
+
+### When to create one
+
+- You have several files that share a structure, such as posts with the same
+  frontmatter fields.
+- You have content in a CMS or an API and want to query it the way you query
+  local files.
+- You want a field a typo cannot survive.
+
+### When not to create one
+
+- One page with some prose in it. Write the page.
+- Files you never parse, such as a directory of PDFs. Serve them as assets.
+- Data that belongs in a database, queried per request by a controller. A
+  collection is content, not state.
 
 ## Declaring collections
 
@@ -47,9 +80,8 @@ export let content = await createContent(c => ({
 }));
 ```
 
-The **loader** says where the bytes come from. The **schema** says what the
-data must look like. `coerce.date()` rather than `s.string()` turns
-`publishedOn: 2026-01-02` into a `Date`.
+`coerce.date()` rather than `s.string()` turns `publishedOn: 2026-01-02` into a
+`Date`.
 
 `createContent` does no I/O. It returns as soon as the collections are wired,
 so importing this module is free and safe on every host, Cloudflare Workers
@@ -57,7 +89,7 @@ included. Workers rejects asynchronous work at module scope.
 
 Controllers import `content` from the module and query it:
 
-```ts
+```tsx
 import { createController } from "remix/router";
 
 import { content } from "../content.ts";
@@ -69,32 +101,6 @@ export default createController({
     },
 });
 ```
-
-## Reading a collection
-
-`getCollection()` returns every entry, sorted by `id` ascending. The order does
-not depend on the filesystem, so a prerender is reproducible.
-
-```ts
-let all = await content.blog.getCollection();
-let published = await content.blog.getCollection(post => post.data.publishedOn < new Date());
-```
-
-`getEntry(id)` returns one entry, or `undefined` when nothing has that id:
-
-```ts
-let post = await content.blog.getEntry("hello-world");
-```
-
-Every entry carries the same five things:
-
-| Field        | What it is                                              |
-| ------------ | ------------------------------------------------------- |
-| `id`         | the file path relative to `base`, without the extension |
-| `collection` | the key this entry came from                            |
-| `data`       | the frontmatter, parsed and validated by the schema     |
-| `filePath`   | the file it was read from, when it came from one        |
-| `render()`   | resolves to the entry's component and headings          |
 
 ## The two built-in loaders
 
@@ -112,9 +118,10 @@ What each extension becomes:
 | `.yaml`, `.yml` | the same, parsed as YAML                                  |
 | anything else   | skipped                                                   |
 
-Frontmatter is the leading `---`-fenced block, parsed as YAML. `@pitlane/content`
-parses it in one place for both rendering paths, so a prebuilt collection and a
-collection read at runtime cannot disagree about an entry's data.
+Frontmatter is the leading `---`-fenced block, parsed as YAML.
+`@pitlane/content` parses it in one place for both rendering paths, so a
+prebuilt collection and a collection read at runtime cannot disagree about an
+entry's data.
 
 `loaders.file` reads one file holding many entries. An array wants a string
 `id` on each item, which is removed from the data because it becomes the
@@ -143,6 +150,9 @@ which is also how you read a format nothing here knows, such as JSONC or TOML:
 loaders.file("app/content/authors.jsonc", { parser: text => parseJsonc(text) });
 ```
 
+Anything that is not a local file wants a loader of your own. See
+[Creating a content loader](/guides/content-loaders).
+
 ## Ids
 
 An id is the matched path relative to `base`, with the extension stripped:
@@ -162,7 +172,32 @@ loaders.glob({
 });
 ```
 
-## References
+## The schema
+
+A schema is any [Standard Schema](https://standardschema.dev) validator, which
+in a Remix application means `remix/data-schema`:
+
+```ts
+import * as s from "remix/data-schema";
+import * as coerce from "remix/data-schema/coerce";
+
+schema: s.object({
+    title: s.string(),
+    draft: s.defaulted(s.boolean(), false),
+    publishedOn: coerce.date(),
+    updatedOn: s.optional(coerce.date()),
+    tags: s.array(s.string()),
+});
+```
+
+Frontmatter arrives as YAML, so `publishedOn: 2026-01-02` is already a `Date`
+and `tags: [a, b]` is already an array. `coerce` matters for the fields YAML
+leaves as strings, and for data from an API where everything is a string.
+
+The parsed shape is what `entry.data` is typed as. Nothing is generated, so
+there is no step that can disagree with what you wrote.
+
+### References
 
 `c.reference("authors")` is a schema that accepts a string and produces
 `{ collection, id }`. It composes wherever a schema goes:
@@ -189,6 +224,67 @@ name that does not exist at all is caught earlier, when `createContent` runs:
 
 ```text
 Unknown collection "wrtiers" referenced by createContent; known collections are blog, authors.
+```
+
+## Querying a collection
+
+`getCollection()` returns every entry, sorted by `id` ascending. The order does
+not depend on the filesystem, so a prerender is reproducible.
+
+```ts
+let all = await content.blog.getCollection();
+let published = await content.blog.getCollection(post => post.data.publishedOn < new Date());
+```
+
+`getEntry(id)` returns one entry, or `undefined` when nothing has that id:
+
+```ts
+let post = await content.blog.getEntry("hello-world");
+```
+
+Every entry carries the same five things:
+
+| Field        | What it is                                              |
+| ------------ | ------------------------------------------------------- |
+| `id`         | the file path relative to `base`, without the extension |
+| `collection` | the key this entry came from                            |
+| `data`       | the frontmatter, parsed and validated by the schema     |
+| `filePath`   | the file it was read from, when it came from one        |
+| `render()`   | resolves to the entry's component and headings          |
+
+A collection loads once, on first access, and is memoized for the life of the
+process. Failures are the exception: nothing caches them, so one timed-out
+fetch does not break a collection until you restart.
+
+## Generating routes from content
+
+An id is a path, so a route parameter is all it takes:
+
+```tsx
+// app/routes.ts
+export let routes = route({ post: get("/blog/:slug") });
+```
+
+```tsx
+// app/actions/controller.tsx
+export default createController(routes, {
+    async post({ params, render }) {
+        let post = await content.blog.getEntry(params.slug);
+        if (!post) return new Response("Not found", { status: 404 });
+
+        let { Content, headings } = await post.render();
+        return await render(<PostPage post={post} headings={headings} Content={Content} />);
+    },
+});
+```
+
+To publish the whole collection as static HTML, hand those paths to
+[prerendering](/guides/prerendering):
+
+```ts
+let posts = await content.blog.getCollection();
+
+remix({ prerender: posts.map(post => `/blog/${post.id}`) });
 ```
 
 ## Rendering Markdown and MDX
@@ -218,10 +314,55 @@ elements it renders:
 <Content components={{ h2: Heading, a: Link }} />
 ```
 
+### Setting up Sätteri
+
+Markdown is compiled by [Sätteri](https://satteri.bruits.org). Install it
+alongside its Vite plugin when a collection has `.md` or `.mdx` files:
+
+```sh
+npm install satteri vite-plugin-satteri
+```
+
+Register it in the Vite config, **before** `remix()`, with the `headings`
+plugin that produces the heading list:
+
+```ts
+// vite.config.ts
+import { content } from "@pitlane/content/vite";
+import { headings } from "@pitlane/content/satteri";
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+import satteri from "vite-plugin-satteri";
+
+export default defineConfig({
+    plugins: [
+        satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
+        content(),
+        remix(),
+    ],
+});
+```
+
+`jsxImportSource: "remix/ui"` is required. It is what makes a compiled MDX file
+a Remix component rather than a React one.
+
+`headings()` fills the `headings` array `render()` resolves to. An MDX file
+exports the list from its compiled module. Markdown compiles to an HTML string
+with no room for one, so `content()` measures that list itself during the
+build. A prebuilt `.md` page gets the same table of contents as the same file
+rendered at runtime.
+
+A collection of `.json` or `.yaml` files needs none of this. Calling `render()`
+on a data entry is an error rather than an empty component, because a blank
+page is the harder bug to find:
+
+```text
+Entry "authors/ada" has no renderable content.
+```
+
 ### Importing components into MDX
 
-An MDX file imports components the way any module does, and the same file works
-on both hosts:
+An MDX file imports components the way any module does:
 
 ```mdx
 import { Badge } from "#/ui/badge.tsx";
@@ -234,45 +375,10 @@ import { Counter } from "#/ui/public/counter.tsx";
 <Counter start={0} />
 ```
 
-With a bundler the imports are ordinary imports. Without one,
-`@pitlane/content` resolves them itself, starting from the MDX file's own
-location. A relative path means what it says, and `#/ui/badge.tsx` means what it
-means in a controller of the same app.
-
-A specifier that does not resolve fails the render, naming the file and the
-specifier. So does an export the module does not have. Neither renders a hole.
-
-A document's own `export` is left alone, so `export const year = 2026` beside
-an import still reaches the body that uses it.
-
-An attributes clause travels with the import, so
-`import data from "./data.json" with { type: "json" }` loads the same way on
-both hosts.
-
-One form is refused without a bundler: `import * as ui from "./badge.tsx"`.
-Sätteri compiles a namespace import to nothing in the mode this path uses, so
-it is rejected by name rather than left undefined. Import the components by
-name, or prebuild the collection with `content()`, where the document compiles
-to a module and the namespace import is ordinary.
-
-`import.meta` is refused the same way, and for the same reason: the document
-becomes a function body here rather than a module, so there is no `import.meta`
-to read.
-
-MDX decides two more things itself, the same way on every host. A block of
-`import`s and `export`s cannot begin with a comment. MDX reads the whole run as
-prose instead, and the components it names go undefined, so put the comment
-after the first statement. The block is also parsed as JavaScript with JSX
-rather than TypeScript, so a type annotation in it fails to parse.
-`export const Aside = handle => <aside>{handle.props.children}</aside>` is
-fine. Annotating `handle` is not.
-
-A bare specifier resolves under Node's `require` conditions. A dependency
-published with only an `import` condition fails at runtime, naming the file and
-the specifier. Prebuild the collection and the bundler resolves it.
-
-A component that hydrates in the browser is a `clientEntry` component, and the
-only thing it needs from you is a URL the browser can load:
+With a bundler these are ordinary imports, resolved by Vite, with all of Vite's
+resolution behind them. A component that hydrates in the browser is a
+`clientEntry` component whose entry id is `import.meta.url`, which the bundler
+rewrites to the built asset's URL:
 
 ```tsx
 // app/ui/public/counter.tsx
@@ -300,106 +406,15 @@ export const Counter = clientEntry(
 );
 ```
 
-Under `@pitlane/dev` the bundler rewrites that `import.meta.url` to the built
-asset's URL. With no bundler it stays a `file:` URL, and the renderer resolves
-it through the asset server you gave it:
+MDX itself imposes two rules, and they hold on every host. A block of `import`s
+and `export`s cannot begin with a comment, because MDX reads the whole run as
+prose instead and the components it names go undefined. Put the comment after
+the first statement. The block is also parsed as JavaScript with JSX rather
+than TypeScript, so a type annotation in it fails to parse.
+`export const Aside = handle => <aside>{handle.props.children}</aside>` is
+fine. Annotating `handle` is not.
 
-```ts
-// app/entry.server.tsx
-import { render } from "remix/middleware/render";
-
-createRouter({ middleware: [asyncContext(), loadAssetEntry(), render({ assets })] });
-```
-
-`render({ assets })` calls `assets.getScriptEntry()` for each `clientEntry` the
-page renders, and emits the URL the browser loads, its module preloads, and the
-import map that resolves the bare specifiers inside it. Whether the component
-arrived through a controller or through an MDX import makes no difference to
-hydration.
-
-A page can install more than one import map that way, which not every browser
-supports. Load modules through `remix/multiple-import-maps-polyfill` in the
-browser entry so the ones that do not still hydrate:
-
-```ts
-// app/public/entry.browser.ts
-import { importModule } from "remix/multiple-import-maps-polyfill";
-import { run } from "remix/ui";
-
-run({
-    async loadModule(moduleUrl, exportName) {
-        let module = await importModule(moduleUrl);
-        let Component = module[exportName];
-        if (typeof Component !== "function") {
-            throw new Error(`Unknown component: ${moduleUrl}#${exportName}`);
-        }
-        return Component;
-    },
-});
-```
-
-::: tip Runtime MDX is Node, Bun, and Deno only
-Compiling MDX per request needs `new Function`, which Cloudflare Workers
-forbids. A collection of `.mdx` files served from Workers goes through
-`content()`, where the bundler compiles it and its imports ahead of time.
-:::
-
-### Markdown needs Sätteri
-
-Rendering a Markdown body at runtime uses
-[Sätteri](https://satteri.bruits.org), an optional peer dependency. Install it
-when a collection has `.md` or `.mdx` files:
-
-```sh
-npm install satteri vite-plugin-satteri
-```
-
-Then register Sätteri in the Vite config, **before** `remix()`, along with the
-`headings` plugin that produces the heading list:
-
-```ts
-// vite.config.ts
-import { content } from "@pitlane/content/vite";
-import { headings } from "@pitlane/content/satteri";
-import { remix } from "@pitlane/dev";
-import { defineConfig } from "vite";
-import satteri from "vite-plugin-satteri";
-
-export default defineConfig({
-    plugins: [
-        satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
-        content(),
-        remix(),
-    ],
-});
-```
-
-`jsxImportSource: "remix/ui"` is required: it is what makes a compiled MDX file
-a Remix component rather than a React one.
-
-`headings()` is what fills the `headings` array `render()` resolves to. An MDX
-file exports the list from its compiled module. Markdown compiles to an HTML
-string with no room for one, so `content()` measures that list itself during the
-build. A prebuilt `.md` page gets the same table of contents as the same file
-rendered at runtime.
-
-::: warning
-`content()` measures a Markdown heading list with `headings()` alone. Another
-`mdastPlugin` that rewrites heading text or slugs changes the prebuilt HTML
-without changing that list, because `vite-plugin-satteri` does not publish the
-options it was given. Rewriting headings is a reason to use `.mdx`, which
-carries its own list.
-:::
-
-A collection of `.json` or `.yaml` files needs none of this. Calling `render()`
-on a data entry is an error rather than an empty component, because a blank page
-is the harder bug to find:
-
-```text
-Entry "authors/ada" has no renderable content.
-```
-
-## Running on a host with no filesystem
+## Prebuilding for a host with no filesystem
 
 `loaders.glob` and `loaders.file` read the filesystem. Cloudflare Workers does
 not have one, so add `content()` to the Vite config and the build resolves the
@@ -415,108 +430,60 @@ export default defineConfig({
 ```
 
 **Your collections do not change.** `app/content.ts` is identical either way,
-and so is every controller that queries it. Adding a host edits the Vite config.
+and so is every controller that queries it. Adding a host edits the Vite
+config.
 
 `content()` executes `app/content.ts` in Node during the build, so that module
-must import cleanly there. Keep it to collection declarations: no
-`cloudflare:workers` imports, and nothing that needs a live server. Point
+must import cleanly there. Keep it to collection declarations, with no
+`cloudflare:workers` imports and nothing that needs a live server. Point
 `entry` elsewhere if the module lives somewhere else:
 
 ```ts
 content({ entry: "app/collections.ts" });
 ```
 
-With `content()` installed, editing, adding, or deleting a content file
-rebuilds the affected collection and reloads the page. The section below is
-how a host without a bundler gets the same thing.
+Only a `ContentLoader` is prebuilt. A `LiveLoader` is untouched, because there
+is no single execution for the build to run, and it still runs per read
+wherever the app is deployed.
 
-If a bundled app reaches a collection with neither source, it says so instead of
-serving an empty list:
+If a bundled app reaches a collection with neither source, it says so instead
+of serving an empty list:
 
 ```text
 Collection "blog" has no prebuilt content and no filesystem to read.
 Add content() from "@pitlane/content/vite" to your Vite config.
 ```
 
-## Reloading a content file while the app runs
+## Reloading while you work
 
-With `content()`, this is already done. The plugin watches what the loaders
-read. Without a bundler, add one line beside `createContent`:
+`content()` watches every path the loaders report. Editing, adding, or deleting
+a content file rebuilds the affected collection and reloads the page, so
+nothing here needs a restart.
 
-```ts
-// app/content.ts
-import { createContent } from "@pitlane/content";
-import { hotContent } from "@pitlane/content/hot";
-import * as loaders from "@pitlane/content/loaders";
-import * as s from "remix/data-schema";
-
-export let content = await createContent(c => ({
-    blog: c.collection({
-        loader: loaders.glob({ pattern: "**/*.{md,mdx}", base: "app/content/blog" }),
-        schema: s.object({ title: s.string() }),
-    }),
-}));
-
-await hotContent(content);
-```
-
-Leave that line in for production. `hotContent` does nothing unless the
-process is supervised by `remix/node-hmr`, which is what the `dev` command
-below does. A production server, a Worker, and a prebuilt collection all skip
-it, so `remix/node-hmr/runtime` is never imported outside development.
-
-It is `remix/node-hmr` that supervises the server, and the setup is the one
-from the [Remix bookstore demo](https://github.com/remix-run/remix/tree/main/demos/bookstore):
-an `hmr.ts` that runs the server and proxies to it, started with
-`NODE_ENV=development`.
-
-Edit a post and save. The collection it belongs to is discarded and the page
-reloads, so the next request re-reads the file. A collection whose files did
-not change keeps what it had.
-
-A post saved with frontmatter its schema rejects behaves like any other bad
-content: the page shows the error, naming the file and the field. Fix it and
-save again.
-
-:::: warning A new file needs a restart on this host
-`remix/node-hmr` reports a file change only for a path it was given. A file
-that does not exist yet was never given, so a post you have just created
-stays invisible until the server restarts. Editing an existing post reloads
-the page. So does deleting one.
-
-Touching any file the server imports restarts it, so in practice this is a
-save in an editor you already have open. Under `content()` there is no such
-gap.
-::::
+That watching is the plugin's, so it covers the collections the plugin
+prebuilds. A `LiveLoader` re-reads on every request anyway and has nothing to
+watch.
 
 ## Highlighting code
 
 Highlighting is a Sätteri plugin rather than an option this package owns. Use
 [`satteri-expressive-code`](https://github.com/bruits/satteri/tree/main/packages/satteri-expressive-code),
-which gives [Expressive Code](https://expressive-code.com) frames, line markers,
-and a copy button over [Shiki](https://shiki.style) themes.
-
-Configure it once per rendering path you use: the Vite plugin for prebuilt
-content, the loader for content rendered at runtime.
+which gives [Expressive Code](https://expressive-code.com) frames, line
+markers, and a copy button over [Shiki](https://shiki.style) themes.
 
 ```ts
 import expressiveCode from "satteri-expressive-code";
 
 let code = expressiveCode({ themes: ["github-dark", "github-light"] });
 
-// prebuilt by content()
 satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()], hastPlugins: [code] });
-
-// rendered at runtime
-loaders.glob({ pattern: "**/*.md", base: "app/content/blog", satteri: { hastPlugins: [code] } });
 ```
 
 The plugin emits its own `<style>` element with the content, so it needs no
 stylesheet of yours.
 
-Use the one that matches how the collection renders. A loader's `satteri`
-option configures the runtime path only, so on a collection `content()`
-prebuilt it does nothing, and the build says so:
+A loader's `satteri` option configures the runtime rendering path only. On a
+collection `content()` prebuilt it does nothing, and the build says so:
 
 ```text
 Collection "blog" configures loader options.satteri, but content() prebuilt it,
@@ -524,70 +491,20 @@ so vite-plugin-satteri renders it and those options do nothing. Move the plugins
 into satteri() in your Vite config, or drop content() for this collection.
 ```
 
-## Which loader do I write?
+## Limitations
 
-The two built-in loaders cover local files. For anything else you write the
-loader, and the interface you satisfy is what tells `@pitlane/content` how to
-treat it.
-
-Write a **`ContentLoader`** when one execution can produce the whole
-collection. It is handed a store and fills it, which makes its output a value
-the build can resolve once and inline:
-
-```ts
-import type { ContentLoader } from "@pitlane/content";
-
-function releases(repository: string): ContentLoader {
-    return {
-        name: "releases",
-        async load(context) {
-            let response = await fetch(`https://api.github.com/repos/${repository}/releases`);
-            for (let release of await response.json()) {
-                context.store.set({
-                    id: release.tag_name,
-                    data: await context.parseData({ id: release.tag_name, data: release }),
-                    body: { format: "md", source: release.body },
-                });
-            }
-        },
-    };
-}
-```
-
-Write a **`LiveLoader`** when there is no such moment, such as a CMS whose
-editors expect to see a change without a deploy:
-
-```ts
-import type { LiveLoader } from "@pitlane/content";
-
-function cms(): LiveLoader {
-    return {
-        name: "cms",
-        async loadCollection() {
-            return await fetchEveryPost();
-        },
-        async loadEntry(id) {
-            return await fetchPost(id);
-        },
-    };
-}
-```
-
-Both are ordinary objects with no flag to set, and the choice is about what the
-data is rather than where the app runs:
-
-|                           | `ContentLoader`                            | `LiveLoader`                         |
-| ------------------------- | ------------------------------------------ | ------------------------------------ |
-| Interface                 | `load(context)`                            | `loadCollection()` / `loadEntry(id)` |
-| With `content()`          | resolved during the build, entries inlined | untouched; runs per read             |
-| Without a bundler         | runs on the first read, then memoized      | runs per read                        |
-| Sees data published later | no                                         | yes                                  |
-| Schema failures surface   | during the build, or on the first read     | on every read                        |
-
-Snapshotting a CMS at build time is a `ContentLoader` over `fetch`. That is how
-a fully static site works, so it is a choice rather than a mistake. A
-`LiveLoader` is never touched by `content()`, because there is no single
-execution for the build to run.
+- **A prebuilt Markdown heading list is measured with `headings()` alone.**
+  Another `mdastPlugin` that rewrites heading text or slugs changes the
+  prebuilt HTML without changing that list, because `vite-plugin-satteri` does
+  not publish the options it was given. Rewriting headings is a reason to use
+  `.mdx`, which carries its own list.
+- **A content change rebuilds the whole collection**, not the entry that
+  changed. Nothing here diffs entries or keeps a per-entry digest.
+- **A populated collection is a snapshot for the life of the process.** There
+  is no TTL and no background refresh. Content that must be fresh per request
+  wants a [`LiveLoader`](/guides/content-loaders#writing-a-liveloader).
+- **A reference is not checked for existence**, only for type. A pointer at a
+  missing entry surfaces as `getEntry` resolving to `undefined`.
 
 ## Errors you will see
 
@@ -605,10 +522,6 @@ An id claimed twice is a conflict rather than a merge:
 Duplicate entry id "hello" in collection "blog".
 ```
 
-A collection whose loader fails rejects the read that triggered it, and the
-failure is not cached. The next read tries again, so one timed-out fetch does
-not break a collection until the process restarts.
-
 Rendering Markdown with no renderer installed names the fix:
 
 ```text
@@ -618,6 +531,10 @@ install it, or add content() from @pitlane/content/vite so the build compiles th
 
 ## Reference
 
+- [Content (no build)](/guides/content-no-build): the same collections, served
+  from source with no bundler
+- [Creating a content loader](/guides/content-loaders): reading from anywhere
+  else
 - [`@pitlane/content`](/package/content/): `createContent` and the types
 - [`@pitlane/content/loaders`](/package/content/loaders): `glob` and `file`
 - [`@pitlane/content/satteri`](/package/content/satteri): the `headings` plugin

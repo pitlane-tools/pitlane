@@ -9,8 +9,8 @@ export interface FileEvent {
     filePath: string;
 }
 
-/** An event for the browser HMR client. Only a reload is meaningful for content. */
-interface BrowserEvent {
+/** An event for the browser HMR client. A reload is the only one content sends. */
+export interface BrowserEvent {
     type: "reload";
     files?: string[];
 }
@@ -20,8 +20,8 @@ interface BrowserEvent {
  *
  * Declared structurally rather than imported, because importing the module
  * that declares it would pull a Node-only dependency into every bundle this
- * package reaches. The import in {@link hotContent} is the only one, and it is
- * dynamic and guarded.
+ * package reaches. {@link hotContent} holds the only import of it, loaded on
+ * demand behind its guard.
  */
 export interface BrowserHmrChannel {
     readonly url: string;
@@ -43,9 +43,9 @@ interface HotCollection {
  * Call it once, beside `createContent`, and leave it in for production: it
  * does nothing unless `remix/node-hmr` is supervising the process, which is
  * what a `dev` command does and a production server does not. That is also why
- * the import below is dynamic — `remix/node-hmr/runtime` is Node-only and can
- * only be imported by a supervised child, so a static import would follow this
- * module into a Worker bundle.
+ * the import below is loaded on demand. `remix/node-hmr/runtime` is Node-only
+ * and can only be imported by a supervised child, so a static import would
+ * follow this module into a Worker bundle.
  *
  * @param content The object `createContent` returned.
  */

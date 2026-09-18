@@ -56,7 +56,9 @@ collection declarations do not change.
 
 ## Documentation
 
-- [Guide](https://pitlane.tools/guides/content)
+- [Content](https://pitlane.tools/guides/content)
+- [Content (no build)](https://pitlane.tools/guides/content-no-build)
+- [Creating a content loader](https://pitlane.tools/guides/content-loaders)
 - [API reference](https://pitlane.tools/package/content/)
 
 ## License

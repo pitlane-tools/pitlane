@@ -5,7 +5,8 @@
         "../packages/content/src/index.ts",
         "../packages/content/src/loaders.ts",
         "../packages/content/src/satteri.ts",
-        "../packages/content/src/vite.ts"
+        "../packages/content/src/vite.ts",
+        "../packages/content/src/hot.ts"
     ],
     "tsconfig": "../packages/content/tsconfig.json",
     "out": "../docs/package/content",
