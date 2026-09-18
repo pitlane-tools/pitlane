@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import {
     createRunnableDevEnvironment,
     createServer,
@@ -49,11 +50,19 @@ export function content(options?: { entry?: string }): Plugin {
     let pending: Promise<void> | undefined;
     let queue: Promise<void> = Promise.resolve();
 
-    async function prebuild() {
+    async function prebuild(warn: (message: string) => void) {
         let loaded = await inPrebuildServer(root, entry, resolution);
         collections = loaded.collections;
         watched = loaded.watched;
         for (let path of watched) server?.watcher.add(path);
+        for (let name of loaded.configuredSatteri) {
+            warn(
+                `Collection "${name}" configures loader options.satteri, but content() ` +
+                    "prebuilt it, so vite-plugin-satteri renders it and those options do " +
+                    "nothing. Move the plugins into satteri() in your Vite config, or drop " +
+                    "content() for this collection.",
+            );
+        }
     }
 
     /**
@@ -64,8 +73,9 @@ export function content(options?: { entry?: string }): Plugin {
      * the channel underneath it and leave the loaders resolving against the
      * wrong root.
      */
-    function ready() {
-        pending ??= queue = queue.then(prebuild, prebuild);
+    function ready(warn: (message: string) => void) {
+        let run = () => prebuild(warn);
+        pending ??= queue = queue.then(run, run);
         return pending;
     }
 
@@ -107,7 +117,9 @@ export function content(options?: { entry?: string }): Plugin {
             // manifest, so a loader failure fails the build. In dev the first
             // request is early enough, and prebuilding here would deadlock:
             // the module runner is not ready until the server is.
-            if (this.environment.config.command === "build") await ready();
+            if (this.environment.config.command === "build") {
+                await ready(message => this.warn(message));
+            }
         },
 
         configureServer(created) {
@@ -115,7 +127,7 @@ export function content(options?: { entry?: string }): Plugin {
             created.watcher.on("all", async (_event, changed) => {
                 if (!isWatched(watched, changed)) return;
                 pending = undefined;
-                await ready();
+                await ready(message => created.config.logger.warn(message));
                 invalidate(created);
                 created.hot.send({ type: "full-reload" });
             });
@@ -133,11 +145,11 @@ export function content(options?: { entry?: string }): Plugin {
 
         async load(id) {
             if (id === VIRTUAL_MANIFEST || isManifestModule(id)) {
-                await ready();
+                await ready(message => this.warn(message));
                 return manifestModule(collections, bodies);
             }
             if (id.startsWith(BODY_PREFIX)) {
-                await ready();
+                await ready(message => this.warn(message));
                 return bodies.get(id);
             }
             return undefined;
@@ -150,9 +162,23 @@ function isWatched(watched: string[], changed: string) {
     return watched.some(base => path === base || path.startsWith(`${base}/`));
 }
 
+/**
+ * Whether a resolved id is this package's manifest module.
+ *
+ * Located relative to this module rather than matched by name: the plugin and
+ * the manifest ship side by side, in `src` during development and in `dist`
+ * once packed, so one relative lookup identifies it exactly. A suffix match
+ * either misses the workspace link Vite resolves through or claims an
+ * application's own `content/src/manifest.ts`.
+ */
+const MANIFEST_PATHS = new Set(
+    ["./manifest.ts", "./manifest.mjs"].map(name =>
+        fileURLToPath(new URL(name, import.meta.url)).replace(/\\/g, "/"),
+    ),
+);
+
 function isManifestModule(id: string) {
-    let path = (id.replace(/\\/g, "/").split("?")[0] ?? "").toLowerCase();
-    return path.endsWith("/content/dist/manifest.mjs") || path.endsWith("/content/src/manifest.ts");
+    return MANIFEST_PATHS.has(id.replace(/\\/g, "/").split("?")[0] ?? "");
 }
 
 /**
@@ -226,20 +252,14 @@ async function execute(server: ViteDevServer, root: string, entry: string) {
     }
 
     let collections: Record<string, LoadedEntry[]> = {};
-    let watched = new Set<string>();
-    for (let [name, entries] of recorded) {
-        let loaded = entries as LoadedEntry[];
-        collections[name] = loaded;
-        for (let entry of loaded) {
-            if (entry.filePath) watched.add(directoryOf(entry.filePath));
-        }
+    for (let [name, entries] of recorded.collections) {
+        collections[name] = entries as LoadedEntry[];
     }
-    return { collections, watched: [...watched] };
-}
-
-function directoryOf(filePath: string) {
-    let path = filePath.replace(/\\/g, "/");
-    return path.slice(0, path.lastIndexOf("/"));
+    return {
+        collections,
+        watched: [...recorded.watched],
+        configuredSatteri: [...recorded.configuredSatteri],
+    };
 }
 
 /**

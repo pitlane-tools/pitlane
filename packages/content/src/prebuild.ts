@@ -19,6 +19,9 @@ const MANIFEST = Symbol.for("pitlane.content.manifest");
 
 interface Channel {
     collections: Map<string, unknown[]>;
+    watched: Set<string>;
+    /** Collections whose loader configured runtime rendering options. */
+    configuredSatteri: Set<string>;
     root: string;
 }
 
@@ -28,10 +31,15 @@ interface Global {
 }
 
 /** Opens prebuild mode. Called by `content()` before it runs the entry. */
-export function openPrebuild(root: string): Map<string, unknown[]> {
-    let channel: Channel = { collections: new Map(), root };
+export function openPrebuild(root: string): Channel {
+    let channel: Channel = {
+        collections: new Map(),
+        watched: new Set(),
+        configuredSatteri: new Set(),
+        root,
+    };
     (globalThis as Global)[CHANNEL] = channel;
-    return channel.collections;
+    return channel;
 }
 
 /** Closes prebuild mode, so a later `createContent` in this process is normal. */
@@ -52,6 +60,30 @@ export function contentRoot(): string {
 /** Records one collection's entries for `content()` to read back. */
 export function recordPrebuilt(collection: string, entries: unknown[]): void {
     (globalThis as Global)[CHANNEL]?.collections.set(collection, entries);
+}
+
+/**
+ * Records the paths a loader says it reads, so `content()` can watch them.
+ *
+ * This comes from the loader rather than from the entries it produced: a
+ * collection that currently matches nothing has no file paths to infer from,
+ * and it is exactly the collection whose first file needs to be noticed.
+ */
+export function recordWatched(paths: readonly string[]): void {
+    let channel = (globalThis as Global)[CHANNEL];
+    if (!channel) return;
+    for (let path of paths) channel.watched.add(path);
+}
+
+/**
+ * Records that a prebuilt collection's loader configured `options.satteri`.
+ *
+ * Those options only take effect when the collection renders at runtime, so a
+ * prebuilt collection carrying them has a plugin list that silently applies on
+ * some hosts and not others. `content()` warns rather than let that pass.
+ */
+export function recordConfiguredSatteri(collection: string): void {
+    (globalThis as Global)[CHANNEL]?.configuredSatteri.add(collection);
 }
 
 /**

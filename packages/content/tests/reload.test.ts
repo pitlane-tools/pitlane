@@ -25,7 +25,7 @@ afterEach(async () => {
  * the fixture imports `remix` and `@pitlane/content`, and resolution for those
  * only works from somewhere inside the workspace.
  */
-async function devServer() {
+async function devServer(options?: { entry?: string }) {
     let root = await mkdtemp(fileURLToPath(new URL("./.tmp-dev-", import.meta.url)));
     await cp(fixture, root, { recursive: true });
     let server = await createServer({
@@ -42,7 +42,7 @@ async function devServer() {
         },
         plugins: [
             satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
-            content(),
+            content(options),
         ],
     });
     open.push({ server, root });
@@ -66,15 +66,15 @@ async function until<T>(read: () => Promise<T>, holds: (value: T) => boolean) {
     }
 }
 
-async function blogIds(server: ViteDevServer) {
-    let module = await server.ssrLoadModule("/app/content.ts");
+async function blogIds(server: ViteDevServer, entry: string) {
+    let module = await server.ssrLoadModule(entry);
     let entries = await module.content.blog.getCollection();
-    return entries.map((entry: { id: string }) => entry.id) as string[];
+    return entries.map((loaded: { id: string }) => loaded.id) as string[];
 }
 
-function idsBecome(server: ViteDevServer, expected: string[]) {
+function idsBecome(server: ViteDevServer, expected: string[], entry = "/app/content.ts") {
     return until(
-        () => blogIds(server),
+        () => blogIds(server, entry),
         ids => ids.length === expected.length && ids.every((id, at) => id === expected[at]),
     );
 }
@@ -91,6 +91,20 @@ describe("content() in dev", () => {
         );
 
         expect(await idsBecome(server, ["hello", "second", "third"])).toContain("third");
+    });
+
+    it("picks up the first post in a collection that started empty", async () => {
+        // `app/later` holds no Markdown and no other collection points at it,
+        // so there is no file path to infer a watch from: the directory is
+        // watched only if the plugin asked the loader what it reads.
+        let { server, root } = await devServer({ entry: "app/content-empty.ts" });
+        let entry = "/app/content-empty.ts";
+
+        expect(await idsBecome(server, [], entry)).toEqual([]);
+
+        await writeFile(join(root, "app/later/first.md"), "---\ntitle: First\n---\n\n# First\n");
+
+        expect(await idsBecome(server, ["first"], entry)).toEqual(["first"]);
     });
 
     it("picks up a deleted post", async () => {

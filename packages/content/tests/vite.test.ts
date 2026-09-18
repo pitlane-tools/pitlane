@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "vite";
+import { build, createLogger, type Logger } from "vite";
 import satteri from "vite-plugin-satteri";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -9,6 +9,15 @@ import { headings } from "../src/satteri.ts";
 import { content } from "../src/vite.ts";
 
 let fixture = fileURLToPath(new URL("./fixtures/prebuild-app", import.meta.url));
+
+/** A logger that forwards warnings to the test and swallows everything else. */
+function warnCollector(onWarn: (warning: string) => void): Logger {
+    return {
+        ...createLogger("silent"),
+        warn: message => onWarn(message),
+        warnOnce: message => onWarn(message),
+    };
+}
 let outputs: string[] = [];
 
 afterEach(async () => {
@@ -20,10 +29,14 @@ afterEach(async () => {
  * returns what querying the built bundle produces. This is the whole claim of
  * the plugin: the same collection declarations answer without `node:fs`.
  */
-async function buildAndQuery(options?: Parameters<typeof content>[0]) {
+async function buildFixture(
+    options?: Parameters<typeof content>[0],
+    onWarn?: (warning: string) => void,
+) {
     let outDir = await mkdtemp(fileURLToPath(new URL("./.tmp-out-", import.meta.url)));
     outputs.push(outDir);
     await build({
+        customLogger: onWarn ? warnCollector(onWarn) : undefined,
         root: fixture,
         logLevel: "silent",
         // The fixture imports the package by name; point that at this source
@@ -47,6 +60,12 @@ async function buildAndQuery(options?: Parameters<typeof content>[0]) {
             rollupOptions: { output: { entryFileNames: "entry.server.mjs" } },
         },
     });
+    return outDir;
+}
+
+/** Builds the fixture, then asks the built bundle what it can see. */
+async function buildAndQuery(options?: Parameters<typeof content>[0]) {
+    let outDir = await buildFixture(options);
     let entry = await import(pathToFileURL(join(outDir, "entry.server.mjs")).href);
     return { outDir, result: await entry.query() };
 }
@@ -99,6 +118,26 @@ describe("content()", () => {
         await expect(buildAndQuery({ entry: "app/content-invalid.ts" })).rejects.toThrow(
             /Failed to parse entry "hello" in collection "blog"/,
         );
+    });
+
+    it("warns when a prebuilt collection configures options.satteri", async () => {
+        let warnings: string[] = [];
+
+        await buildFixture({ entry: "app/content-satteri.ts" }, warning => {
+            warnings.push(warning);
+        });
+
+        expect(warnings.join("\n")).toMatch(
+            /Collection "blog" configures loader options\.satteri, but content\(\) prebuilt it/,
+        );
+    });
+
+    it("stays quiet when a prebuilt collection configures nothing", async () => {
+        let warnings: string[] = [];
+
+        await buildFixture(undefined, warning => warnings.push(warning));
+
+        expect(warnings.filter(warning => warning.includes("options.satteri"))).toEqual([]);
     });
 
     it("names the module and the underlying error when the entry cannot be imported", async () => {

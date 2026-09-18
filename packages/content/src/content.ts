@@ -11,7 +11,14 @@ import type {
 } from "./types.ts";
 
 import { parseEntryData } from "./parse.ts";
-import { contentRoot, prebuilding, prebuilt, recordPrebuilt } from "./prebuild.ts";
+import {
+    contentRoot,
+    prebuilding,
+    prebuilt,
+    recordConfiguredSatteri,
+    recordPrebuilt,
+    recordWatched,
+} from "./prebuild.ts";
 import { reference } from "./reference.ts";
 import { renderedEntry } from "./render.ts";
 import { collectionStore, type StoredEntry } from "./store.ts";
@@ -116,7 +123,11 @@ async function runLoader(name: string, schema: StandardSchemaV1, loader: Content
     } catch (error) {
         throw annotate(name, error);
     }
-    if (prebuilding()) recordPrebuilt(name, store.serializable());
+    if (prebuilding()) {
+        recordPrebuilt(name, store.serializable());
+        recordWatched(loader.watchedPaths?.() ?? []);
+        if (store.configuredSatteri()) recordConfiguredSatteri(name);
+    }
     return store.entries;
 }
 

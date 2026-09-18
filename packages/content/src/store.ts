@@ -33,6 +33,10 @@ export function collectionStore(collection: string) {
     return {
         entries,
         set,
+        /** Whether any entry carried runtime rendering options. */
+        configuredSatteri(): boolean {
+            return [...entries.values()].some(entry => entry.satteri !== undefined);
+        },
         /** The entries `content()` reads back, before it compiles any body. */
         serializable(): LoadedEntry[] {
             return [...entries.values()].map(entry => ({
