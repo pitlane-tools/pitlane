@@ -1,0 +1,20 @@
+{
+    "name": "pitlane-content-vite-demo",
+    "private": true,
+    "type": "module",
+    "imports": {
+        "#/*": "./app/*"
+    },
+    "dependencies": {
+        "@hiogawa/vite-plugin-fullstack": "^0.0.11",
+        "@pitlane/content": "workspace:*",
+        "@pitlane/dev": "workspace:*",
+        "remix": "3.0.0-rc.2"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "vite": "^8.1.5",
+        "vite-plugin-satteri": "^0.3.5",
+        "vite-plus": "^0.2.6"
+    }
+}
