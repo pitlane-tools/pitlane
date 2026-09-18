@@ -2,7 +2,7 @@
 id: proposal.0002
 title: Typed Content Collections
 authors: [markmals, Claude]
-status: active-review
+status: returned-for-revisions
 pull-request: https://github.com/pitlane-tools/pitlane/pull/16
 issues: []
 supersedes: []
@@ -93,6 +93,10 @@ edits the Vite config; it never edits a collection.
 `satteri` package when a collection renders at runtime, `vite-plugin-satteri` when the build
 compiled it ahead of time.
 
+Both hosts watch the files the loaders report, so editing a post while the application is running
+reaches the browser without a restart: `content()` rebuilds the manifest, and `hotContent` from
+`@pitlane/content/hot` registers the files with the watcher `remix/node-hmr` is already running.
+
 ```text
 a .mdx file gains a heading → content.blog.getEntry(slug) → render() → { Content, headings }
 ```
@@ -101,7 +105,7 @@ a .mdx file gains a heading → content.blog.getEntry(slug) → render() → { C
 
 ### Package shape
 
-`@pitlane/content`, at `packages/content`, with four public entry points:
+`@pitlane/content`, at `packages/content`, with five public entry points:
 
 | Entry point                | Exports                                                                                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -109,6 +113,7 @@ a .mdx file gains a heading → content.blog.getEntry(slug) → render() → { C
 | `@pitlane/content/loaders` | `glob`, `file`                                                                                                                                           |
 | `@pitlane/content/satteri` | `headings`, a Sätteri MDAST plugin                                                                                                                       |
 | `@pitlane/content/vite`    | `content`, the build-time plugin                                                                                                                         |
+| `@pitlane/content/hot`     | `hotContent`, the development watcher for a host with no bundler                                                                                         |
 
 One internal entry point, `@pitlane/content/internal/manifest`, exists so the plugin has something
 to replace. It ships as `export default null`.
@@ -363,8 +368,9 @@ decides what to do with it. That is what lets one `ContentLoader` serve both the
 runtime: the build wants the source so the bundler can compile it, and the runtime wants it so
 Sätteri can. It is also why a `LiveLoader` can carry Markdown at all.
 
-`watchedPaths` is what `content()` watches in order to rebuild the manifest in dev. A loader that omits it is
-simply not watched.
+`watchedPaths` is what a development host watches in order to notice a content change: `content()`
+rebuilds the manifest from it, and `hotContent` registers it with the supervisor's watcher. A
+loader that omits it is simply not watched, on either host.
 
 `parseData` validates against the collection's schema and returns the parsed value. On failure it
 throws an `Error` whose message names the collection, the entry id, the file path when there is one,
@@ -603,14 +609,91 @@ to `undefined`.
 
 ### Reloading
 
-With `content()` installed, the plugin watches every path the loaders report through
-`watchedPaths()`. A change under one of them re-executes the entry module, rebuilds the manifest,
-invalidates it along with the affected body modules, and triggers a reload — so adding, editing, and
-deleting a post all take effect without a restart. That is a strict improvement over watching the
-module graph, which only ever sees files something already imported.
+A content file that changes while the application is running takes effect without a restart, on
+both hosts. The mechanism differs because the two hosts have different watchers; the observable
+behavior does not.
 
-Without `content()` a collection reads the filesystem once, when something first accesses it, and a
-later content change needs a restart. No cache invalidation and no digest tracking ships here.
+#### With `content()`
+
+The plugin watches every path the loaders report through `watchedPaths()`. A change under one of
+them re-executes the entry module, rebuilds the manifest, invalidates it along with the affected
+body modules, and sends Vite's `full-reload` — so adding, editing, and deleting a post all take
+effect. That is a strict improvement over watching the module graph, which only ever sees files
+something already imported.
+
+#### Without a bundler
+
+`@pitlane/content/hot` exports one function:
+
+```ts
+function hotContent(content: Content<Record<string, unknown>>): Promise<void>;
+```
+
+Called once, beside `createContent`:
+
+```ts
+// app/content.ts
+import { createContent } from "@pitlane/content";
+import { hotContent } from "@pitlane/content/hot";
+import * as loaders from "@pitlane/content/loaders";
+
+export let content = await createContent(c => ({ ... }));
+
+await hotContent(content);
+```
+
+That one line is correct in every environment, because `hotContent` decides for itself whether
+there is anything to do. It resolves immediately, having done nothing, unless **all** of the
+following hold: `process.env.REMIX_NODE_HMR` is set, meaning the process is supervised by
+`remix/node-hmr`; the collection is a `ContentLoader` reading files rather than a prebuilt one;
+and its loader implements `watchedPaths()`. A production `start`, a Worker, a prebuilt collection,
+and a `LiveLoader` all take the no-op path, so nothing about shipping changes and
+`remix/node-hmr/runtime` is never imported outside development. The import is dynamic for the same
+reason `satteri` is: a static one would follow the package into every bundle.
+
+When it does apply, `hotContent` opens its own `BrowserHmrChannel` through
+`createBrowserHmrChannel()` from `remix/node-hmr/runtime`, registers every file the collections
+loaded with `updateWatchedFiles()`, and handles the events the supervisor forwards:
+
+1. Discard the affected collection's memoized population, so the next read re-runs its loader.
+2. Re-register the collection's file set, because the reload may have changed it.
+3. Return `{ type: "reload" }`, which the browser HMR client turns into a page reload.
+
+The channel is the process's existing watcher rather than a second one. `updateWatchedFiles` adds
+the files to the parent's chokidar instance, which already watches the server's module graph, and
+the supervisor forwards their events to this channel's handler. No new dependency and no new
+watcher: a collection of a thousand files contributes a thousand paths to a watcher that is
+already running.
+
+Invalidation is per collection, not global. Two collections that share a directory both reload
+when a file under it changes; a collection whose files did not change keeps its population and its
+render cache.
+
+What `hotContent` reaches for is an internal handle, not a public method: each `ContentLoader`
+collection carries a symbol-keyed `{ invalidate(), files() }` beside its queries, named in
+`symbols.ts` alongside the two the prebuild channel already uses. The public `Collection` type
+does not grow an `invalidate()` — a collection that can be emptied by anyone holding it is a
+different contract from the one this proposal specifies, and nothing outside development should
+want it.
+
+A reload that fails behaves exactly as a first load that fails: the memoized population stays
+discarded, the error surfaces at the next read rather than at the watcher, and fixing the file
+reloads it again. An author who saves a post with broken frontmatter sees the error on the page,
+not in a terminal they were not watching.
+
+**Editing works. Adding a file does not, on this host.** The supervisor forwards a file event only
+when the path is one the channel registered, and a file that does not exist yet cannot be
+registered — so creating a post is invisible until the process restarts, while editing or deleting
+one is not. This is a property of `remix/node-hmr`, not a choice here: `add` and `unlink` events
+are filtered against the registered set exactly as `change` events are. The guide says so plainly
+rather than letting an author discover it, `content()` has no such gap, and **Future directions**
+records the upstream change that would close it.
+
+The page reloads rather than refreshing in place. A soft refresh — re-fetching the top frame and
+reconciling, the way a hot-accepted server module behaves — is not reachable: the browser HMR
+client dispatches exactly three payloads, and only `server:update`, which the supervisor emits
+after a restart it performed itself, reaches an application listener. A channel event can be
+`reload` or a module update, and content is not a module on this host.
 
 ## Compatibility
 
@@ -637,6 +720,10 @@ Markdown or MDX adds `satteri` and `vite-plugin-satteri`, plus
 `satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })` before `remix()`. A
 collection of `.json` or `.yaml` files needs none of that.
 
+An application served without a bundler adds `await hotContent(content)` beside `createContent`
+if it wants a content edit to reach the browser while it runs. It is one line, it is safe in
+production, and skipping it costs a restart per edit rather than an error.
+
 Any target without a filesystem — Cloudflare Workers above all — additionally needs `content()` in
 the Vite config, and its collections declared in a module that imports cleanly in Node. The
 collections themselves do not change.
@@ -650,7 +737,7 @@ pointed. Removing the package means deleting the module that calls `createConten
 
 ## Scope
 
-- A new `packages/content` with the four public entry points above, built and tested with Vite+ in
+- A new `packages/content` with the five public entry points above, built and tested with Vite+ in
   the same shape as `packages/crawler`.
 - `createContent`, the collection and entry surface, reference resolution, and schema validation
   with its error reporting.
@@ -668,14 +755,19 @@ pointed. Removing the package means deleting the module that calls `createConten
   the loud failure when neither source exists.
 - The `headings` Sätteri plugin, shared by both rendering paths, and the `satteri` pass-through that
   lets `satteri-expressive-code` configure the runtime one.
+- `hotContent`: the development watcher for a host with no bundler — the channel it opens, the
+  files it registers, per-collection invalidation through the internal handle, the reload it
+  returns, and the no-op path every other environment takes.
 - **Two demos, one application surface each, proving the API does not change with the
   environment.** `demos/content-vite` runs `@pitlane/dev` with `content()` and
   `vite-plugin-satteri`; `demos/content-runtime` runs no bundler at all, serving browser modules
   through `remix/assets` and rendering content with `satteri` at request time. Both declare the
   same collections with the same `loaders.glob` and `loaders.file` calls, and each must serve
   Markdown, MDX, and JSON. Each MDX entry imports two components — one server-only, one
-  `clientEntry` — so both demos prove component imports work on both hosts. They are the proof the unification is real rather than described, and
-  a diff of their `app/content.ts` files is the reviewable artifact.
+  `clientEntry` — so both demos prove component imports work on both hosts. Both must also pick up
+  an edit to a `.md`, `.mdx`, and `.json` entry while running, under each demo's own `dev`
+  command, without a restart. They are the proof the unification is real rather than described,
+  and a diff of their `app/content.ts` files is the reviewable artifact.
 - `docs/guides/content.md`, covering both hosts, the Sätteri setup, code highlighting with
   Expressive Code, and references.
 - A README and CHANGELOG for the package, and its TypeDoc config in `.typedoc/` plus its line in
@@ -706,6 +798,16 @@ pointed. Removing the package means deleting the module that calls `createConten
   **Future directions**. Nothing here forecloses it.
 - **A Pitlane-owned highlighting abstraction.** Expressive Code and Shiki are configured through
   the plugin pass-through. Wrapping them would add a name without adding a capability.
+- **A watcher this package owns.** `hotContent` contributes files to the watcher the host already
+  runs, and does nothing on a host that runs none. A `chokidar` dependency, or an `fs.watch` loop
+  of our own, would give `@pitlane/content` a second opinion about which files matter and a
+  lifecycle nobody asked it to manage.
+- **Refreshing a page in place on a content change.** Both hosts reload. Re-rendering without
+  losing browser state needs an application-level event, and on a host with no bundler the HMR
+  client has nowhere to deliver one. Reloading on both is the behavior that is the same on both.
+- **Reloading in production.** `hotContent` is a development affordance. A content change on a
+  running production server is revalidation, which is excluded above and belongs with
+  `@pitlane/cache`.
 
 ## Preview
 
@@ -720,6 +822,10 @@ pointed. Removing the package means deleting the module that calls `createConten
   design is built around. Run `demos/content-vite` and `demos/content-runtime` side by side, see
   Markdown, MDX, and JSON served by both, and diff their `app/content.ts`. If that diff is empty,
   the API does not change with the environment. If it is not, this proposal is wrong.
+- Reloading is exercised in the same pass, and it is the part worth doing by hand: with both `dev`
+  commands running, edit a post's frontmatter and its body, save, and watch both pages come back
+  with the change. Then create a new post and watch the bundled demo pick it up while the other
+  one does not, which is the limitation this proposal asks to ship.
 
 ## Policies and decisions checked
 
@@ -755,6 +861,11 @@ pointed. Removing the package means deleting the module that calls `createConten
   extra exports for Markdown. That is an upstream capability, not something this package can add
   from the outside, and it is the last output difference between the two rendering paths.
 - Per-entry digests, so a content change rebuilds only what changed.
+- A newly created content file reloading on a host with no bundler, once `remix/node-hmr` can
+  forward an `add` inside a directory it is already watching, or expose a way to publish an event
+  to browser clients directly. Either closes the gap from the outside; `hotContent` would register
+  the directories instead of the files and lose its special case. Worth raising upstream with the
+  demo as the reproduction.
 - Revalidation for a runtime collection — a TTL, a manual invalidate, or an integration with
   `@pitlane/cache` — so a CMS-backed collection refreshes without waiting for the process to be
   recycled. The lazy population this proposal specifies is the seam that would hang off.
@@ -882,10 +993,31 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   component in a post is not the capability VISION.md describes. It states plainly that it is not a
   complete CommonMark, GFM, or MDX implementation and spends its budget on determinism and size
   instead — the right trade for a streamed response, the wrong one for a blog archive.
+- **`hotContent` taking the channel as an argument.** `hotContent(content, channel)` would let the
+  application share the one its asset server already opened, saving a second EventSource
+  registration. Rejected because it puts `createBrowserHmrChannel` and its
+  `process.env.REMIX_NODE_HMR` guard in every application's content module, to save an object the
+  supervisor is designed to hand out per owner. Channels are independent by contract and are
+  closed by whoever opened them; the package opening its own is the shape that matches.
+- **Wiring the watcher inside `createContent` with no second call.** One fewer line for the
+  application, and the line it removes is the one that is easy to forget. Rejected because
+  `createContent` is the isomorphic entry point: giving it a branch that reaches for
+  `remix/node-hmr/runtime` puts a Node-only import behind a runtime condition in the module every
+  Worker bundle contains, and bundlers disagree about whether that is reachable. A separate entry
+  point is the only way the dependency is provably absent from a production bundle.
+- **A digest per entry, so a reload re-reads only the file that changed.** The same argument as
+  incremental prebuilding, and the same answer: a collection small enough to fit an editor's
+  attention re-reads in milliseconds, and the machinery costs more than it saves until a real
+  collection makes the latency visible.
 
 ## Open questions
 
-None.
+- [NEEDS CLARIFICATION: On a host with no bundler, creating a content file cannot reload the page —
+  `remix/node-hmr` forwards an event only for a path the channel registered, and a file that does
+  not exist yet cannot be registered. Editing and deleting both work, and `content()` has no such
+  gap. Is shipping that asymmetry acceptable, documented in the guide, with the upstream fix in
+  Future directions? The alternative is holding this feature until `remix/node-hmr` can forward
+  directory events, which leaves the no-bundler host needing a restart for every content edit.]
 
 ## Acknowledgments
 
