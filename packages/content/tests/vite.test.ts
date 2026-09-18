@@ -36,7 +36,6 @@ async function buildAndQuery(options?: Parameters<typeof content>[0]) {
                 "@pitlane/content": fileURLToPath(new URL("../src/index.ts", import.meta.url)),
             },
         },
-        ssr: { noExternal: ["@pitlane/content"] },
         plugins: [
             satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
             content(options),
@@ -57,6 +56,15 @@ describe("content()", () => {
         let { result } = await buildAndQuery();
 
         expect(result.ids).toEqual(["hello", "second"]);
+    });
+
+    it("bundles the package, so a server build cannot externalize the manifest away", async () => {
+        // Nothing here asks for `noExternal`. A server build externalizes
+        // dependencies by default, which would leave the runtime reading the
+        // manifest the package ships rather than the one the build emitted.
+        let { result } = await buildAndQuery();
+
+        expect(result.ids).not.toEqual([]);
     });
 
     it("prebuilds a Date as a Date rather than the string it was written as", async () => {

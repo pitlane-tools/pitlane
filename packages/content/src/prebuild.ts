@@ -1,6 +1,8 @@
 import type { PrebuiltCollections } from "./types.ts";
 
-import * as manifest from "./manifest.ts";
+// Imported for its side effect: `content()` replaces this module with one that
+// registers the manifest it emitted. See the note in `manifest.ts`.
+import "./manifest.ts";
 
 /**
  * The channel between `content()` and `createContent`.
@@ -11,6 +13,9 @@ import * as manifest from "./manifest.ts";
  * on `globalThis` under a symbol nothing else can name.
  */
 const CHANNEL = Symbol.for("pitlane.content.prebuild");
+// The module `content()` emits assigns this symbol. Its spelling is the
+// contract between the plugin and the runtime; see `vite.ts`.
+const MANIFEST = Symbol.for("pitlane.content.manifest");
 
 interface Channel {
     collections: Map<string, unknown[]>;
@@ -19,6 +24,7 @@ interface Channel {
 
 interface Global {
     [CHANNEL]?: Channel;
+    [MANIFEST]?: PrebuiltCollections;
 }
 
 /** Opens prebuild mode. Called by `content()` before it runs the entry. */
@@ -51,9 +57,13 @@ export function recordPrebuilt(collection: string, entries: unknown[]): void {
 /**
  * The manifest `content()` emitted, or `null` when nothing prebuilt anything.
  *
- * Read through the namespace rather than a default import so that replacing the
- * module in dev is observed by the next call instead of by the next restart.
+ * A prebuild reads no manifest, because it is producing one. Without that rule
+ * a process that has already imported a prebuilt bundle — two builds in one
+ * test run, a build after a preview — would hand the next prebuild the previous
+ * manifest, the loaders would look as though they had already run, and the
+ * collection would be emitted empty.
  */
 export function prebuilt(): PrebuiltCollections | null {
-    return manifest.default;
+    if (prebuilding()) return null;
+    return (globalThis as Global)[MANIFEST] ?? null;
 }

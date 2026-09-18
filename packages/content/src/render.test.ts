@@ -2,22 +2,27 @@ import * as s from "remix/data-schema";
 import * as jsxRuntime from "remix/ui/jsx-runtime";
 import { renderToString } from "remix/ui/server";
 import { evaluate, type EvaluateOptions } from "satteri";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ContentLoader, LoadedEntry, PrebuiltCollections } from "./types.ts";
 
 import { createContent } from "./content.ts";
 import { headings } from "./satteri.ts";
 
-// The manifest module is what `content()` replaces in a real build. Mocking it
-// is how a test stands in for that replacement; the getter is what lets each
-// test install its own manifest.
-let manifest: PrebuiltCollections | null = null;
-vi.mock("./manifest.ts", () => ({
-    get default() {
-        return manifest;
-    },
-}));
+const MANIFEST = Symbol.for("pitlane.content.manifest");
+
+/**
+ * Installs a manifest the way the module `content()` emits does: by assigning
+ * the symbol the runtime reads. Standing in for the emitted module rather than
+ * mocking one keeps the test on the same contract the plugin uses.
+ */
+function prebuild(collections: PrebuiltCollections | null) {
+    let global = globalThis as Record<symbol, unknown>;
+    if (collections) global[MANIFEST] = collections;
+    else delete global[MANIFEST];
+}
+
+afterEach(() => prebuild(null));
 
 let title = s.object({ title: s.string() });
 
@@ -142,7 +147,7 @@ describe("render, on a collection rendered at runtime", () => {
 
 describe("render, on a prebuilt collection", () => {
     it("renders the compiled MDX module the bundler produced", async () => {
-        manifest = {
+        prebuild({
             blog: [
                 {
                     id: "hello",
@@ -150,7 +155,7 @@ describe("render, on a prebuilt collection", () => {
                     body: await compiledMdx("# Greeting\n\nFrom the bundle.\n"),
                 },
             ],
-        };
+        });
         let content = await blogFrom([]);
         let entry = await content.blog.getEntry("hello");
         let { Content, headings: list } = await entry!.render();
@@ -160,7 +165,7 @@ describe("render, on a prebuilt collection", () => {
     });
 
     it("renders a prebuilt .md entry's HTML inside one wrapper element", async () => {
-        manifest = {
+        prebuild({
             blog: [
                 {
                     id: "hello",
@@ -168,7 +173,7 @@ describe("render, on a prebuilt collection", () => {
                     body: { format: "md", html: "<h1>Greeting</h1>" },
                 },
             ],
-        };
+        });
         let content = await blogFrom([]);
         let entry = await content.blog.getEntry("hello");
         let { Content, headings: list } = await entry!.render();
@@ -182,7 +187,7 @@ describe("render, on a prebuilt collection", () => {
 
     it("never calls the loader for a collection the manifest carries", async () => {
         let load = vi.fn();
-        manifest = { blog: [{ id: "hello", data: { title: "Hello" } }] };
+        prebuild({ blog: [{ id: "hello", data: { title: "Hello" } }] });
         let content = await createContent(c => ({
             blog: c.collection({ loader: { name: "spy", load }, schema: title }),
         }));
@@ -192,18 +197,18 @@ describe("render, on a prebuilt collection", () => {
     });
 
     it("runs the loader for a collection the manifest does not carry", async () => {
-        manifest = { authors: [] };
+        prebuild({ authors: [] });
         let content = await blogFrom([{ id: "hello", data: { title: "Hello" } }]);
 
         expect((await content.blog.getCollection()).map(entry => entry.id)).toEqual(["hello"]);
     });
 
     it("passes props to the compiled component, which is how components overrides work", async () => {
-        manifest = {
+        prebuild({
             blog: [
                 { id: "hello", data: { title: "Hello" }, body: await compiledMdx("# Greeting\n") },
             ],
-        };
+        });
         let content = await blogFrom([]);
         let entry = await content.blog.getEntry("hello");
         let { Content } = await entry!.render();
@@ -217,7 +222,7 @@ describe("render, on a prebuilt collection", () => {
 
 describe("render, on an entry that is not a document", () => {
     it("rejects rather than resolving to an empty component", async () => {
-        manifest = null;
+        prebuild(null);
         let content = await blogFrom([{ id: "authors", data: { title: "Authors" } }]);
         let entry = await content.blog.getEntry("authors");
 

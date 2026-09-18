@@ -10,9 +10,19 @@ import type { LoadedEntry } from "./types.ts";
 
 import { closePrebuild, openPrebuild } from "./prebuild.ts";
 
-const MANIFEST_SPECIFIER = "@pitlane/content/internal/manifest";
+const MANIFEST_OWNER = "@pitlane/content";
+const MANIFEST_SPECIFIER = `${MANIFEST_OWNER}/internal/manifest`;
 const VIRTUAL_MANIFEST = "\0pitlane-content/manifest";
 const BODY_PREFIX = "\0pitlane-content/entry/";
+/**
+ * Where the runtime reads the manifest.
+ *
+ * The emitted module assigns this rather than exporting a value, and it
+ * assigns it directly rather than calling into the package: the module it
+ * replaces sits beside `prebuild.ts` in source and beside a hashed chunk in a
+ * published build, so no relative specifier is right in both.
+ */
+const MANIFEST_SYMBOL = "pitlane.content.manifest";
 
 /** The slice of resolution the prebuild server inherits. */
 type Resolution = NonNullable<UserConfig["resolve"]>;
@@ -61,6 +71,21 @@ export function content(options?: { entry?: string }): Plugin {
 
     return {
         name: "pitlane-content",
+
+        /**
+         * A server build externalizes dependencies by default, which would
+         * leave `@pitlane/content` importing the manifest it ships — the one
+         * that exports `null` — rather than the one emitted below. The package
+         * has to be bundled for the replacement to reach the runtime at all.
+         */
+        config() {
+            return {
+                environments: {
+                    ssr: { resolve: { noExternal: [MANIFEST_OWNER] } },
+                },
+                ssr: { noExternal: [MANIFEST_OWNER] },
+            };
+        },
 
         configResolved(config) {
             root = config.root;
@@ -246,7 +271,13 @@ function manifestModule(collections: Record<string, LoadedEntry[]>, bodies: Map<
         return `    ${literal(name)}: [${items.join(", ")}]`;
     });
 
-    return `${imports.join("\n")}\nexport default {\n${entries.join(",\n")}\n};\n`;
+    return [
+        ...imports,
+        `globalThis[Symbol.for(${literal(MANIFEST_SYMBOL)})] = {`,
+        entries.join(",\n"),
+        "};",
+        "",
+    ].join("\n");
 }
 
 /**
