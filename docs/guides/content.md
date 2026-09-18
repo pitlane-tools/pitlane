@@ -330,6 +330,16 @@ loaders.glob({ pattern: "**/*.md", base: "app/content/blog", satteri: { hastPlug
 The plugin emits its own `<style>` element with the content, so it needs no
 stylesheet of yours.
 
+Use the one that matches how the collection renders. A loader's `satteri`
+option configures the runtime path only, so on a collection `content()`
+prebuilt it does nothing, and the build says so:
+
+```text
+Collection "blog" configures loader options.satteri, but content() prebuilt it,
+so vite-plugin-satteri renders it and those options do nothing. Move the plugins
+into satteri() in your Vite config, or drop content() for this collection.
+```
+
 ## Which loader do I write?
 
 The two built-in loaders cover local files. For anything else you write the
