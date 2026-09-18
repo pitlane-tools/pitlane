@@ -23,16 +23,53 @@ changes is the setup around it, and it changes in four places:
 | An MDX file's imports    | resolved by the bundler              | resolved by this package   |
 | Reloading a content file | the `content()` watcher              | `hotContent`, with one gap |
 
-## Installing
+## Install
 
-```sh
-npm install @pitlane/content satteri
+Both are runtime dependencies. Nothing is compiled ahead of time, so `satteri`
+is loaded by the server that renders the request:
+
+::: code-group
+
+```sh [npm]
+npm add @pitlane/content satteri
 ```
 
-`satteri` is an optional peer dependency, needed here because Markdown renders
-at request time. A collection of `.json` or `.yaml` files does not need it.
+```sh [yarn]
+yarn add @pitlane/content satteri
+```
 
-There is no `vite-plugin-satteri` on this path and no Vite config to put it in.
+```sh [pnpm]
+pnpm add @pitlane/content satteri
+```
+
+```sh [bun]
+bun add @pitlane/content satteri
+```
+
+```sh [deno]
+deno add npm:@pitlane/content npm:satteri
+```
+
+```sh [vp]
+vp add @pitlane/content satteri
+```
+
+```sh [vlt]
+vlt add @pitlane/content satteri
+```
+
+```sh [nub]
+nub add @pitlane/content satteri
+```
+
+:::
+
+`satteri` is an optional peer dependency of `@pitlane/content`, needed here
+because Markdown renders at request time. A collection of only `.json` or
+`.yaml` files does not need it.
+
+There is no `vite-plugin-satteri` on this path and no Vite config to put it
+in, which is the one dependency the bundled setup has that this one does not.
 
 ## Declaring collections
 
@@ -82,9 +119,48 @@ Sätteri parses the body when that call happens, and the result is cached with
 the entry, so a second render of the same post costs nothing.
 
 **You do not register the `headings` plugin here.** The bundled path needs it
-in the Vite config because the plugin compiles the file; this path adds it
-itself, so `headings` is filled on `.md` and `.mdx` alike with no
-configuration. Register extra Sätteri plugins through the loader instead:
+in the Vite config because the plugin compiles the file. This path adds it
+itself, so `headings` arrives filled on `.md` and `.mdx` alike with no
+configuration.
+
+Extra Sätteri plugins go through the loader. They run at request time, which
+makes them ordinary dependencies rather than dev ones:
+
+::: code-group
+
+```sh [npm]
+npm add satteri-expressive-code
+```
+
+```sh [yarn]
+yarn add satteri-expressive-code
+```
+
+```sh [pnpm]
+pnpm add satteri-expressive-code
+```
+
+```sh [bun]
+bun add satteri-expressive-code
+```
+
+```sh [deno]
+deno add npm:satteri-expressive-code
+```
+
+```sh [vp]
+vp add satteri-expressive-code
+```
+
+```sh [vlt]
+vlt add satteri-expressive-code
+```
+
+```sh [nub]
+nub add satteri-expressive-code
+```
+
+:::
 
 ```ts
 import expressiveCode from "satteri-expressive-code";

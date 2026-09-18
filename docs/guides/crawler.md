@@ -35,15 +35,35 @@ for the jobs the plugin does not do.
 ::: code-group
 
 ```sh [npm]
-npm install @pitlane/crawler
+npm add @pitlane/crawler
+```
+
+```sh [yarn]
+yarn add @pitlane/crawler
 ```
 
 ```sh [pnpm]
 pnpm add @pitlane/crawler
 ```
 
+```sh [bun]
+bun add @pitlane/crawler
+```
+
+```sh [deno]
+deno add npm:@pitlane/crawler
+```
+
 ```sh [vp]
 vp add @pitlane/crawler
+```
+
+```sh [vlt]
+vlt add @pitlane/crawler
+```
+
+```sh [nub]
+nub add @pitlane/crawler
 ```
 
 :::

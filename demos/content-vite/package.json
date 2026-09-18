@@ -13,6 +13,7 @@
     },
     "devDependencies": {
         "@types/node": "^25.5.0",
+        "satteri": "^0.10.5",
         "vite": "^8.1.5",
         "vite-plugin-satteri": "^0.3.5",
         "vite-plus": "^0.2.6"

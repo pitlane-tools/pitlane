@@ -19,9 +19,41 @@ That works, but every value is a loose string. Nothing stops `#111` here and `#1
 
 First, install the package. `remix` 3.0.0-rc.1 or later is a peer dependency:
 
-```bash
+::: code-group
+
+```sh [npm]
+npm add @pitlane/theme
+```
+
+```sh [yarn]
+yarn add @pitlane/theme
+```
+
+```sh [pnpm]
+pnpm add @pitlane/theme
+```
+
+```sh [bun]
+bun add @pitlane/theme
+```
+
+```sh [deno]
+deno add npm:@pitlane/theme
+```
+
+```sh [vp]
 vp add @pitlane/theme
 ```
+
+```sh [vlt]
+vlt add @pitlane/theme
+```
+
+```sh [nub]
+nub add @pitlane/theme
+```
+
+:::
 
 ## Define a theme
 

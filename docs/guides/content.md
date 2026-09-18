@@ -25,6 +25,70 @@ with no bundler at all, read [Content (no build)](/guides/content-no-build)
 instead. The collections themselves are identical on both, and that is the
 point of the split: only the setup around them differs.
 
+## Install
+
+`@pitlane/content` is a runtime dependency, because your controllers import
+it. Markdown and MDX add two more, and both are build-only here: the plugin
+compiles the bodies, and `content()` calls `satteri` directly to measure a
+Markdown file's heading list.
+
+::: code-group
+
+```sh [npm]
+npm add @pitlane/content
+npm add -D satteri vite-plugin-satteri
+```
+
+```sh [yarn]
+yarn add @pitlane/content
+yarn add -D satteri vite-plugin-satteri
+```
+
+```sh [pnpm]
+pnpm add @pitlane/content
+pnpm add -D satteri vite-plugin-satteri
+```
+
+```sh [bun]
+bun add @pitlane/content
+bun add -D satteri vite-plugin-satteri
+```
+
+```sh [deno]
+deno add npm:@pitlane/content
+deno add -D npm:satteri npm:vite-plugin-satteri
+```
+
+```sh [vp]
+vp add @pitlane/content
+vp add -D satteri vite-plugin-satteri
+```
+
+```sh [vlt]
+vlt add @pitlane/content
+vlt add -D satteri vite-plugin-satteri
+```
+
+```sh [nub]
+nub add @pitlane/content
+nub add -D satteri vite-plugin-satteri
+```
+
+:::
+
+`vite-plugin-satteri` declares `satteri` as a peer dependency, so installing
+it alone is not enough. A collection of only `.json` or `.yaml` files needs
+neither.
+
+One case moves `satteri` out of `devDependencies`: a
+[`LiveLoader`](/guides/content-loaders#writing-a-liveloader) that returns a
+Markdown body renders at request time even in a bundled application, because
+`content()` never touches it. That collection needs `satteri` at runtime, so
+install it with `add` rather than `add -D`.
+
+[`@pitlane/dev`](/guides/vite-plugin) is assumed here and installs itself the
+same way, as a dev dependency.
+
 ## What a collection is
 
 A collection is a set of entries that share a shape. A directory of blog posts,
@@ -316,12 +380,8 @@ elements it renders:
 
 ### Setting up Sätteri
 
-Markdown is compiled by [Sätteri](https://satteri.bruits.org). Install it
-alongside its Vite plugin when a collection has `.md` or `.mdx` files:
-
-```sh
-npm install satteri vite-plugin-satteri
-```
+Markdown is compiled by [Sätteri](https://satteri.bruits.org), installed
+[above](#install) alongside its Vite plugin.
 
 Register it in the Vite config, **before** `remix()`, with the `headings`
 plugin that produces the heading list:
@@ -469,7 +529,44 @@ watch.
 Highlighting is a Sätteri plugin rather than an option this package owns. Use
 [`satteri-expressive-code`](https://github.com/bruits/satteri/tree/main/packages/satteri-expressive-code),
 which gives [Expressive Code](https://expressive-code.com) frames, line
-markers, and a copy button over [Shiki](https://shiki.style) themes.
+markers, and a copy button over [Shiki](https://shiki.style) themes. It runs
+in the build here, so it is a dev dependency:
+
+::: code-group
+
+```sh [npm]
+npm add -D satteri-expressive-code
+```
+
+```sh [yarn]
+yarn add -D satteri-expressive-code
+```
+
+```sh [pnpm]
+pnpm add -D satteri-expressive-code
+```
+
+```sh [bun]
+bun add -D satteri-expressive-code
+```
+
+```sh [deno]
+deno add -D npm:satteri-expressive-code
+```
+
+```sh [vp]
+vp add -D satteri-expressive-code
+```
+
+```sh [vlt]
+vlt add -D satteri-expressive-code
+```
+
+```sh [nub]
+nub add -D satteri-expressive-code
+```
+
+:::
 
 ```ts
 import expressiveCode from "satteri-expressive-code";

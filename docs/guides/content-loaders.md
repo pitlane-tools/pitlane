@@ -395,9 +395,11 @@ the consumer can extend rather than one you impose.
   runs wants a `LiveLoader`.
 - **A `LiveLoader` re-validates on every read.** That is deliberate, and it
   means a schema that is expensive to run is a cost you pay per request.
-- **Rendering a Markdown body still needs a renderer.** A loader that returns
-  `body` on a host with no bundler needs `satteri` installed, and a `.mdx`
-  body needs `new Function`, so Workers requires prebuilding.
+- **Rendering a Markdown body still needs a renderer.** `satteri` has to be
+  installed wherever the rendering happens, which for a `LiveLoader` is the
+  running server even in a bundled application, because `content()` never
+  prebuilds one. A `.mdx` body also needs `new Function`, so Workers requires
+  prebuilding and a `LiveLoader` cannot serve `.mdx` there at all.
 
 ## Reference
 
