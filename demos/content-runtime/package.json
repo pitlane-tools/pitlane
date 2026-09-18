@@ -6,7 +6,9 @@
         "#/*": "./app/*"
     },
     "scripts": {
-        "dev": "node --import remix/node-tsx ./server.ts"
+        "dev": "NODE_ENV=development node --import remix/node-tsx ./hmr.ts",
+        "start": "NODE_ENV=production node --import remix/node-tsx ./server.ts",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@pitlane/content": "workspace:*",

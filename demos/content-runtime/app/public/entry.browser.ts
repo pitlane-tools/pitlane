@@ -32,6 +32,20 @@ let app = run({
     },
 });
 
+// A change the server could not accept restarts it, and the supervisor says so
+// once the new process is listening. Nothing was bundled, so re-fetching the
+// top frame is the whole update.
+if (import.meta.hot) {
+    import.meta.hot.on("server:update", async () => {
+        try {
+            await app.ready();
+            await app.frames.top.reload();
+        } catch (error) {
+            console.error("Error reloading top frame on server update", error);
+        }
+    });
+}
+
 app.ready().catch((error: unknown) => {
     console.error("Frame adoption failed:", error);
 });
