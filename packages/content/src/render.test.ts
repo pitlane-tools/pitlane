@@ -343,6 +343,71 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         );
     });
 
+    it("strips a comment beside an import instead of rendering it as prose", async () => {
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx"; // the component\n\n<Badge label="a" />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain('<strong class="badge">a</strong>');
+        expect(html).not.toContain("// the component");
+    });
+
+    it("keeps an export that a comment line sits above", async () => {
+        // A comment left in the block starts a paragraph the export cannot
+        // interrupt, so the export is swallowed and `{year}` throws.
+        let { Content } = await post(
+            'import { Badge } from "./badge.tsx";\n// helper\nexport const year = 2026;\n\n' +
+                '<Badge label="a" /> {year}\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("2026");
+    });
+
+    it("leaves an import quoted in a template literal alone", async () => {
+        // A line-anchored scan of the block would read this as a real import:
+        // the quoted text would vanish and `./badge.tsx` would be loaded even
+        // though the document never asked for it.
+        let { Content } = await post(
+            'export const example = `\nimport { Gone } from "./gone.tsx"\n`;\n\n' +
+                "<pre>{example}</pre>\n",
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            'import { Gone } from "./gone.tsx"',
+        );
+    });
+
+    it("keeps a comment marker that is really inside a string", async () => {
+        let { Content } = await post(
+            'export const url = "https://example.com/x";\n\n<a href={url}>link</a>\n',
+        );
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain(
+            'href="https://example.com/x"',
+        );
+    });
+
+    it("binds an export whose name really is `type`", async () => {
+        // `{ type }` is a value import; `{ type X }` is a type specifier. The
+        // difference is whether a second name follows.
+        let { Content } = await post('import { type } from "./named-type.ts";\n\n<p>{type}</p>\n');
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("a value named type");
+    });
+
+    it("renders a document whose source begins with a byte order mark", async () => {
+        let { Content } = await post(
+            '\uFEFFimport { Badge } from "./badge.tsx";\n\n# T\n\n<Badge label="a" />\n',
+        );
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain('<strong class="badge">a</strong>');
+        expect(html).not.toMatch(/<p>[;"]/);
+    });
+
     it("still renders a document with no imports", async () => {
         let { Content } = await post("# Plain\n\nNo imports here.\n");
 

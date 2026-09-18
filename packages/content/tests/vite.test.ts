@@ -74,11 +74,13 @@ async function buildAndQuery(options?: Parameters<typeof content>[0]) {
 }
 
 describe("the two paths agree", () => {
-    it("produces the same data prebuilt as it does from the filesystem", async () => {
+    it("produces the same data and the same rendered body on both paths", async () => {
         // The proposal's stated reason for parsing frontmatter in-package is
         // that "a prebuilt and a runtime-resolved collection cannot disagree
-        // about an entry's `data`". This is that claim, measured: one fixture,
-        // one schema, read once through the bundle and once through the loader.
+        // about an entry's `data`". This is that claim, measured, and extended
+        // to the body: the bundler compiles Markdown and MDX through
+        // `vite-plugin-satteri`, the runtime compiles it through
+        // `runtimeOptions`, and those are two pipelines that have to agree.
         let outDir = await buildFixture({ entry: "app/content-passthrough.ts" }, undefined, {
             ssr: "app/entry.passthrough.ts",
         });
@@ -96,28 +98,22 @@ describe("the two paths agree", () => {
         // directory, which is this package rather than the fixture.
         let cwd = process.cwd();
         process.chdir(fixture);
-        let runtime: unknown;
+        let runtime: { settings: unknown[]; rendered: { html: string }[] };
         try {
-            let { content } = await import(
-                `${pathToFileURL(join(fixture, "app/content-passthrough.ts")).href}?filesystem`
+            let source = await import(
+                `${pathToFileURL(join(fixture, "app/entry.passthrough.ts")).href}?filesystem`
             );
-            let entries = await content.settings.getCollection();
-            runtime = entries.map((entry: { id: string; data: unknown; filePath?: string }) => ({
-                id: entry.id,
-                data: entry.data,
-                filePath: entry.filePath,
-            }));
+            runtime = await source.query();
         } finally {
             process.chdir(cwd);
         }
 
-        expect(prebuilt).toStrictEqual(runtime);
-        // And the comparison has to be capable of failing: a value only a real
-        // filesystem read could produce has to reach `runtime`.
-        expect(runtime).toHaveLength(1);
-        expect((runtime as { data: Record<string, unknown> }[])[0]!.data).toHaveProperty(
-            "title",
-            "Settings",
+        expect(runtime).toStrictEqual(prebuilt);
+        // And the comparison has to be capable of failing: values only a real
+        // read and a real render produce have to reach `runtime`.
+        expect(runtime.settings).toHaveLength(1);
+        expect(runtime.rendered.map(page => page.html).join("")).toContain(
+            '<em class="note">from mdx</em>',
         );
     });
 });

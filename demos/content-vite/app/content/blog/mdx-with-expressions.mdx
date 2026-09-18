@@ -7,6 +7,7 @@ author: grace
 
 import { Badge } from "#/ui/badge.tsx";
 import { Counter } from "#/ui/public/counter.tsx";
+import { Footnote } from "./footnote.tsx";
 
 # MDX with components
 
@@ -23,3 +24,5 @@ browser.
 That button is a `clientEntry` component: it hydrates in the browser and keeps
 its own state. Both imports are ordinary `import` statements, and this file is
 byte-identical between the two demos.
+
+<Footnote text="Imported with a relative path, from the document's own directory." />

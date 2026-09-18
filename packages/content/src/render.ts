@@ -31,7 +31,7 @@ async function render(collection: string, entry: StoredEntry): Promise<RenderedE
 /** A body the build compiled: a module for MDX, an HTML string for Markdown. */
 function fromBundle(prebuilt: NonNullable<StoredEntry["prebuilt"]>): RenderedEntry {
     if (prebuilt.format === "md") {
-        return { Content: htmlComponent(prebuilt.html), headings: [] };
+        return { Content: htmlComponent(prebuilt.html), headings: headingList(prebuilt.headings) };
     }
     return {
         Content: mdxComponent(prebuilt.module.default),
@@ -163,10 +163,14 @@ async function runtimeOptions(entry: StoredEntry) {
  */
 async function importedBindings(
     satteri: Satteri,
-    source: string,
+    original: string,
     where: string,
     options: { features?: Record<string, unknown> },
 ) {
+    // Sätteri reports offsets against the source with any byte order mark
+    // already removed, so the mark has to go before it is asked: a one
+    // character difference makes every splice below land one character early.
+    let source = original.replace(/^\uFEFF/, "");
     let tree = satteri.mdxToMdast(source, { features: options.features });
     let blocks = esmBlocks(tree);
     let bindings = new Map<string, unknown>();

@@ -178,7 +178,11 @@ export type Content<T extends Record<string, CollectionDefinition>> = {
 
 /** How `content()` spells an entry's body in the manifest it emits. */
 export type PrebuiltBody =
-    | { format: "md"; html: string }
+    // Markdown compiles to HTML, which carries no heading list of its own, so
+    // the build writes the one it measured alongside it. Without that a
+    // prebuilt page's table of contents is empty while the same file renders
+    // one at runtime.
+    | { format: "md"; html: string; headings?: unknown }
     | { format: "mdx"; module: Record<string, unknown> };
 
 /** One entry in the manifest `content()` emits. */

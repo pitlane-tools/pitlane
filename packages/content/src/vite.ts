@@ -1,3 +1,4 @@
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
     createRunnableDevEnvironment,
@@ -9,7 +10,7 @@ import {
 
 import type { LoadedEntry } from "./types.ts";
 
-import { BODY_PREFIX, manifestModule } from "./codegen.ts";
+import { type Body, BODY_PREFIX, manifestModule } from "./codegen.ts";
 import { closePrebuild, openPrebuild, unfinishedContent } from "./prebuild.ts";
 
 const MANIFEST_OWNER = "@pitlane/content";
@@ -34,7 +35,7 @@ export function content(options?: { entry?: string }): Plugin {
     let entry = options?.entry ?? "app/content.ts";
     let root = process.cwd();
     let collections: Record<string, LoadedEntry[]> = {};
-    let bodies = new Map<string, string>();
+    let bodies = new Map<string, Body>();
     let watched: string[] = [];
     let resolution: Resolution = {};
     let server: ViteDevServer | undefined;
@@ -147,9 +148,28 @@ export function content(options?: { entry?: string }): Plugin {
         // handle, which is exactly the virtual body modules and the published
         // manifest specifier. The manifest's real path resolves natively, so
         // it is replaced in `load` rather than redirected here.
-        resolveId(source) {
+        //
+        // A body module also has to answer for what the document inside it
+        // imports. Its id is virtual, so `./note.tsx` has no directory to
+        // resolve against, and the build fails on a document the runtime path
+        // renders. Resolving from the entry's own file is what makes the same
+        // relative specifier mean the same thing on both paths.
+        async resolveId(source, importer) {
             if (source === MANIFEST_SPECIFIER) return VIRTUAL_MANIFEST;
             if (source.startsWith(BODY_PREFIX)) return source;
+
+            if (importer?.startsWith(BODY_PREFIX) && source.startsWith(".")) {
+                let filePath = bodies.get(importer)?.filePath;
+                if (filePath === undefined) return undefined;
+                // Vite's own root, not `contentRoot()`: the prebuild channel
+                // that answers for that is closed by the time the main build
+                // resolves anything, and it would fall back to the working
+                // directory.
+                let from = resolve(root, filePath);
+                return await this.resolve(resolve(dirname(from), source), from, {
+                    skipSelf: true,
+                });
+            }
             return undefined;
         },
 
@@ -164,7 +184,7 @@ export function content(options?: { entry?: string }): Plugin {
          * the documented adoption path, so it gets the same treatment.
          */
         transform(code, id) {
-            if (!id.startsWith(BODY_PREFIX) || code !== bodies.get(id)) return undefined;
+            if (!id.startsWith(BODY_PREFIX) || code !== bodies.get(id)?.source) return undefined;
             throw new Error(
                 `Nothing compiled the Markdown in "${id.slice(BODY_PREFIX.length)}". ` +
                     "Add vite-plugin-satteri to your Vite config, before remix():\n" +
@@ -176,15 +196,42 @@ export function content(options?: { entry?: string }): Plugin {
         async load(id) {
             if (id === VIRTUAL_MANIFEST || isManifestModule(id)) {
                 await ready(message => this.warn(message));
-                return manifestModule(collections, bodies);
+                return manifestModule(collections, bodies, await markdownHeadings(collections));
             }
             if (id.startsWith(BODY_PREFIX)) {
                 await ready(message => this.warn(message));
-                return bodies.get(id);
+                return bodies.get(id)?.source;
             }
             return undefined;
         },
     };
+}
+
+/**
+ * The heading list for every Markdown entry, measured the way the runtime
+ * measures it.
+ *
+ * `vite-plugin-satteri` compiles a `.md` body to an HTML string and exports
+ * nothing else, so the list has to be taken here or the prebuilt path has none
+ * at all. MDX needs no such help: it compiles to a module that exports its own.
+ */
+async function markdownHeadings(collections: Record<string, LoadedEntry[]>) {
+    let measured = new Map<string, unknown>();
+    let markdown = Object.entries(collections).flatMap(([collection, loaded]) =>
+        loaded.filter(entry => entry.body?.format === "md").map(entry => ({ collection, entry })),
+    );
+    if (markdown.length === 0) return measured;
+
+    let [satteri, { headings }] = await Promise.all([import("satteri"), import("./satteri.ts")]);
+    for (let { collection, entry } of markdown) {
+        let result = await satteri.markdownToHtml(entry.body!.source, {
+            features: { frontmatter: true },
+            mdastPlugins: [headings()],
+        });
+        let data = result.data as { headings?: unknown };
+        measured.set(`${BODY_PREFIX}${collection}/${entry.id}.md`, data.headings);
+    }
+    return measured;
 }
 
 function isWatched(watched: string[], changed: string) {

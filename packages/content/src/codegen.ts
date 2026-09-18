@@ -5,6 +5,14 @@ import { PREBUILT_MANIFEST_KEY } from "./symbols.ts";
 /** The prefix of the virtual modules that carry each entry's raw body. */
 export const BODY_PREFIX = "\0pitlane-content/entry/";
 
+/** One entry's raw body, and the file it was read from. */
+export interface Body {
+    source: string;
+    format: "md" | "mdx";
+    /** Absent for a loader that produced the body without a file. */
+    filePath?: string;
+}
+
 /**
  * The manifest module `content()` emits, as JavaScript source.
  *
@@ -12,11 +20,19 @@ export const BODY_PREFIX = "\0pitlane-content/entry/";
  * import of a virtual module, which is the step no runtime cleverness replaces:
  * a component is code, and only the bundler turns source into code.
  *
- * `bodies` is filled with the sources those virtual modules resolve to.
+ * `bodies` is filled with the sources those virtual modules resolve to, each
+ * with the path of the entry it came from. A body module has no directory of
+ * its own, so a relative import inside it can only be resolved against that.
+ *
+ * `headings` holds the list the build measured for each Markdown entry, keyed
+ * the way `bodies` is. Markdown compiles to an HTML string, which carries no
+ * heading list, so without this a prebuilt page's table of contents is empty
+ * while the same file renders one at runtime.
  */
 export function manifestModule(
     collections: Record<string, LoadedEntry[]>,
-    bodies: Map<string, string>,
+    bodies: Map<string, Body>,
+    headings: ReadonlyMap<string, unknown> = new Map(),
 ): string {
     let imports: string[] = [];
     bodies.clear();
@@ -29,9 +45,15 @@ export function manifestModule(
             if (entry.body) {
                 let binding = `body${bodies.size}`;
                 let id = `${BODY_PREFIX}${collection}/${entry.id}.${entry.body.format}`;
-                bodies.set(id, entry.body.source);
+                bodies.set(id, {
+                    source: entry.body.source,
+                    format: entry.body.format,
+                    filePath: entry.filePath,
+                });
                 imports.push(`import * as ${binding} from ${literal(id, where)};`);
-                fields.push(`body: ${bodyExpression(entry.body.format, binding)}`);
+                fields.push(
+                    `body: ${bodyExpression(entry.body.format, binding, headings.get(id), where)}`,
+                );
             }
             return `{ ${fields.join(", ")} }`;
         });
@@ -51,11 +73,13 @@ export function manifestModule(
 
 /**
  * MDX compiles to a module carrying a component and a heading list. Markdown
- * compiles to an HTML string, which `vite-plugin-satteri` exports as `html`.
+ * compiles to an HTML string, which `vite-plugin-satteri` exports as `html`,
+ * so its heading list is written beside it.
  */
-function bodyExpression(format: "md" | "mdx", binding: string) {
+function bodyExpression(format: "md" | "mdx", binding: string, headings: unknown, where: string) {
     if (format === "mdx") return `{ format: "mdx", module: ${binding} }`;
-    return `{ format: "md", html: ${binding}.html ?? ${binding}.default }`;
+    let measured = headings === undefined ? "" : `, headings: ${literal(headings, where)}`;
+    return `{ format: "md", html: ${binding}.html ?? ${binding}.default${measured} }`;
 }
 
 /**
