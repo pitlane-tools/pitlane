@@ -2,7 +2,7 @@
 id: proposal.0002
 title: Typed Content Collections
 authors: [markmals, Claude]
-status: awaiting-implementation
+status: active-review
 pull-request: https://github.com/pitlane-tools/pitlane/pull/16
 issues: []
 supersedes: []
