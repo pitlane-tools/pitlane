@@ -8,11 +8,12 @@
 # hooks, mise, readme, vision, treewide. Neither does a real
 # proposals/<NNNN>-<slug>.md filename, used as `0007-export-queue: ...`.
 
-# Published packages, packages/<name>
-dev
-theme
+# Implemented packages, packages/<name>
+content
 crawler
 data-table-d1
+dev
+theme
 
 # Reserved npm names with no implementation yet, packages/<name>
 pitlane

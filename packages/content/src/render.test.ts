@@ -1,0 +1,228 @@
+import * as s from "remix/data-schema";
+import * as jsxRuntime from "remix/ui/jsx-runtime";
+import { renderToString } from "remix/ui/server";
+import { evaluate, type EvaluateOptions } from "satteri";
+import { describe, expect, it, vi } from "vitest";
+
+import type { ContentLoader, LoadedEntry, PrebuiltCollections } from "./types.ts";
+
+import { createContent } from "./content.ts";
+import { headings } from "./satteri.ts";
+
+// The manifest module is what `content()` replaces in a real build. Mocking it
+// is how a test stands in for that replacement; the getter is what lets each
+// test install its own manifest.
+let manifest: PrebuiltCollections | null = null;
+vi.mock("./manifest.ts", () => ({
+    get default() {
+        return manifest;
+    },
+}));
+
+let title = s.object({ title: s.string() });
+
+function loaderFor(entries: LoadedEntry[]): ContentLoader {
+    return {
+        name: "memory",
+        async load(context) {
+            for (let entry of entries) {
+                context.store.set({
+                    ...entry,
+                    data: await context.parseData({ id: entry.id, data: entry.data }),
+                });
+            }
+        },
+    };
+}
+
+async function blogFrom(entries: LoadedEntry[]) {
+    return await createContent(c => ({
+        blog: c.collection({ loader: loaderFor(entries), schema: title }),
+    }));
+}
+
+/**
+ * Stands in for what `vite-plugin-satteri` puts in the bundle: an evaluated MDX
+ * module carrying a `default` component and a `headings` export.
+ */
+async function compiledMdx(source: string) {
+    // The runtime's JSX factories are typed for Remix elements; satteri types
+    // its own as `unknown`, and the two are the same functions.
+    let runtime = jsxRuntime as unknown as EvaluateOptions;
+    let module = await evaluate(source, {
+        ...runtime,
+        jsxImportSource: "remix/ui",
+        mdastPlugins: [headings()],
+    });
+    return { format: "mdx", module } as const;
+}
+
+describe("render, on a collection rendered at runtime", () => {
+    it("renders a .md body to markup", async () => {
+        let content = await blogFrom([
+            {
+                id: "hello",
+                data: { title: "Hello" },
+                body: { format: "md", source: "# Greeting\n\nSome *text*.\n" },
+            },
+        ]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content } = await entry!.render();
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("<h1");
+        expect(html).toContain("Greeting");
+        expect(html).toContain("<em>text</em>");
+    });
+
+    it("renders a .mdx body, evaluating its expressions", async () => {
+        let content = await blogFrom([
+            {
+                id: "hello",
+                data: { title: "Hello" },
+                body: { format: "mdx", source: "# Greeting\n\nInline {1 + 1} expression.\n" },
+            },
+        ]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content } = await entry!.render();
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("Greeting");
+        expect(html).toContain("2");
+    });
+
+    it("reports the same headings for both formats", async () => {
+        let content = await blogFrom([
+            {
+                id: "md",
+                data: { title: "Md" },
+                body: { format: "md", source: "# One\n\n## Two\n" },
+            },
+            {
+                id: "mdx",
+                data: { title: "Mdx" },
+                body: { format: "mdx", source: "# One\n\n## Two\n" },
+            },
+        ]);
+
+        for (let id of ["md", "mdx"]) {
+            let entry = await content.blog.getEntry(id);
+
+            expect((await entry!.render()).headings).toEqual([
+                { depth: 1, slug: "one", text: "One" },
+                { depth: 2, slug: "two", text: "Two" },
+            ]);
+        }
+    });
+
+    it("parses a body once and caches the result across renders", async () => {
+        let content = await blogFrom([
+            { id: "hello", data: { title: "Hello" }, body: { format: "md", source: "# Hi\n" } },
+        ]);
+        let entry = await content.blog.getEntry("hello");
+
+        expect(await entry!.render()).toBe(await entry!.render());
+    });
+
+    it("does not parse any body until an entry is rendered", async () => {
+        let content = await blogFrom([
+            {
+                id: "broken",
+                data: { title: "Broken" },
+                // Unparseable MDX. Listing the collection must not touch it.
+                body: { format: "mdx", source: "# Title\n\n<Unclosed>\n" },
+            },
+        ]);
+
+        await expect(content.blog.getCollection()).resolves.toHaveLength(1);
+    });
+});
+
+describe("render, on a prebuilt collection", () => {
+    it("renders the compiled MDX module the bundler produced", async () => {
+        manifest = {
+            blog: [
+                {
+                    id: "hello",
+                    data: { title: "Hello" },
+                    body: await compiledMdx("# Greeting\n\nFrom the bundle.\n"),
+                },
+            ],
+        };
+        let content = await blogFrom([]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content, headings: list } = await entry!.render();
+
+        expect(await renderToString(jsxRuntime.jsx(Content, {}))).toContain("Greeting");
+        expect(list).toEqual([{ depth: 1, slug: "greeting", text: "Greeting" }]);
+    });
+
+    it("renders a prebuilt .md entry's HTML inside one wrapper element", async () => {
+        manifest = {
+            blog: [
+                {
+                    id: "hello",
+                    data: { title: "Hello" },
+                    body: { format: "md", html: "<h1>Greeting</h1>" },
+                },
+            ],
+        };
+        let content = await blogFrom([]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content, headings: list } = await entry!.render();
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain("<h1>Greeting</h1>");
+        expect(html.startsWith("<div")).toBe(true);
+        expect(list).toEqual([]);
+    });
+
+    it("never calls the loader for a collection the manifest carries", async () => {
+        let load = vi.fn();
+        manifest = { blog: [{ id: "hello", data: { title: "Hello" } }] };
+        let content = await createContent(c => ({
+            blog: c.collection({ loader: { name: "spy", load }, schema: title }),
+        }));
+
+        expect((await content.blog.getCollection()).map(entry => entry.id)).toEqual(["hello"]);
+        expect(load).not.toHaveBeenCalled();
+    });
+
+    it("runs the loader for a collection the manifest does not carry", async () => {
+        manifest = { authors: [] };
+        let content = await blogFrom([{ id: "hello", data: { title: "Hello" } }]);
+
+        expect((await content.blog.getCollection()).map(entry => entry.id)).toEqual(["hello"]);
+    });
+
+    it("passes props to the compiled component, which is how components overrides work", async () => {
+        manifest = {
+            blog: [
+                { id: "hello", data: { title: "Hello" }, body: await compiledMdx("# Greeting\n") },
+            ],
+        };
+        let content = await blogFrom([]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content } = await entry!.render();
+
+        let html = await renderToString(jsxRuntime.jsx(Content, { components: { h1: "h2" } }));
+
+        expect(html).toContain("<h2");
+        expect(html).not.toContain("<h1");
+    });
+});
+
+describe("render, on an entry that is not a document", () => {
+    it("rejects rather than resolving to an empty component", async () => {
+        manifest = null;
+        let content = await blogFrom([{ id: "authors", data: { title: "Authors" } }]);
+        let entry = await content.blog.getEntry("authors");
+
+        await expect(entry!.render()).rejects.toThrow(
+            'Entry "blog/authors" has no renderable content.',
+        );
+    });
+});

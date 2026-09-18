@@ -1,0 +1,84 @@
+{
+    "name": "@pitlane/content",
+    "version": "0.1.0",
+    "description": "createContent() — schema-validated, cross-referenced Markdown, MDX, and data collections for Remix 3, queryable at runtime and prebuildable into the bundle.",
+    "keywords": [
+        "content",
+        "content-collections",
+        "markdown",
+        "mdx",
+        "pitlane",
+        "remix",
+        "satteri"
+    ],
+    "homepage": "https://pitlane.tools/package/content/",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/content"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        },
+        "./loaders": {
+            "types": "./dist/loaders.d.mts",
+            "import": "./dist/loaders.mjs"
+        },
+        "./satteri": {
+            "types": "./dist/satteri.d.mts",
+            "import": "./dist/satteri.mjs"
+        },
+        "./vite": {
+            "types": "./dist/vite.d.mts",
+            "import": "./dist/vite.mjs"
+        },
+        "./internal/manifest": {
+            "types": "./dist/manifest.d.mts",
+            "import": "./dist/manifest.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "dependencies": {
+        "yaml": "^2.8.1"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "remix": "3.0.0-rc.2",
+        "satteri": "^0.10.5",
+        "typescript": "^7.0.2",
+        "vite": "^8.1.5",
+        "vite-plugin-satteri": "^0.3.5",
+        "vite-plus": "^0.2.6"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0-rc.1",
+        "satteri": "^0.10.5",
+        "vite": ">=8.0.0"
+    },
+    "peerDependenciesMeta": {
+        "satteri": {
+            "optional": true
+        },
+        "vite": {
+            "optional": true
+        }
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
+}

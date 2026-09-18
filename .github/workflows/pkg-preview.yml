@@ -56,6 +56,10 @@ jobs:
             # rewrites a dependency whose package is part of the same
             # invocation. Publishing dev alone ships that specifier verbatim and
             # every install fails with EUNSUPPORTEDPROTOCOL, job still green.
+            - name: Build @pitlane/content
+              working-directory: packages/content
+              run: vp run build
+
             - name: Build @pitlane/crawler
               working-directory: packages/crawler
               run: vp run build
@@ -73,4 +77,4 @@ jobs:
               run: vp run build
 
             - name: Publish previews to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1'
+              run: npx pkg-pr-new publish './packages/content' './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1'

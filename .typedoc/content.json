@@ -1,0 +1,16 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "./base.json",
+    "entryPoints": [
+        "../packages/content/src/index.ts",
+        "../packages/content/src/loaders.ts",
+        "../packages/content/src/satteri.ts",
+        "../packages/content/src/vite.ts"
+    ],
+    "tsconfig": "../packages/content/tsconfig.json",
+    "out": "../docs/package/content",
+    "entryModule": "@pitlane/content",
+    // Standard Schema v1 is declared in types.ts rather than depended on, and
+    // it appears in every collection signature through inference.
+    "intentionallyNotExported": ["StandardSchemaResult", "StandardSchemaIssue", "InferSchema"]
+}

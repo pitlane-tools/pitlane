@@ -28,6 +28,7 @@ let guides: DefaultTheme.SidebarItem[] = [
             { text: "Vite Plugin", link: "/guides/vite-plugin" },
             { text: "Styling", link: "/guides/styling" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+            { text: "Content Collections", link: "/guides/content" },
             { text: "Prerendering", link: "/guides/prerendering" },
             { text: "Crawling", link: "/guides/crawler" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
@@ -112,6 +113,16 @@ let config = defineConfig({
                     {
                         text: "Packages",
                         items: [
+                            { text: "@pitlane/content", link: "/package/content/index" },
+                            {
+                                text: "@pitlane/content/loaders",
+                                link: "/package/content/loaders",
+                            },
+                            {
+                                text: "@pitlane/content/satteri",
+                                link: "/package/content/satteri",
+                            },
+                            { text: "@pitlane/content/vite", link: "/package/content/vite" },
                             { text: "@pitlane/crawler", link: "/package/crawler/index" },
                             {
                                 text: "@pitlane/data-table-d1",
@@ -143,6 +154,10 @@ let config = defineConfig({
         ],
         sidebar: {
             "/package/": [
+                { text: "@pitlane/content", link: "/package/content/" },
+                { text: "@pitlane/content/loaders", link: "/package/content/loaders" },
+                { text: "@pitlane/content/satteri", link: "/package/content/satteri" },
+                { text: "@pitlane/content/vite", link: "/package/content/vite" },
                 { text: "@pitlane/crawler", link: "/package/crawler/" },
                 { text: "@pitlane/data-table-d1", link: "/package/data-table-d1/" },
                 {
