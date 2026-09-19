@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build, createLogger, type Logger, type Plugin } from "vite";
+import { build, createLogger, type Logger, type Plugin, resolveConfig } from "vite";
 import satteri from "vite-plugin-satteri";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -142,6 +142,25 @@ describe("content()", () => {
         expect(bundle).toContain('Symbol.for("pitlane.content.manifest")');
         expect(bundle).toContain("Ada Lovelace");
         expect(bundle).toMatch(/new Date\("2026-01-02/);
+    });
+
+    it("keeps itself out of dev dependency optimization, so the manifest stays replaceable", async () => {
+        // The manifest reaches the runtime as a module this plugin replaces in
+        // `load`. Vite's dev optimizer pre-bundles a real node_modules
+        // dependency ahead of any plugin, inlining the shipped manifest — the
+        // one that registers nothing — and `load` never runs. A collection
+        // then falls through to its loader, which on a host with no
+        // filesystem answers with nothing at all.
+        //
+        // Invisible from the demos in this repository: a workspace link is
+        // never a candidate for optimization, so only an application that
+        // installed the package sees it.
+        let config = await resolveConfig(
+            { root: fixture, logLevel: "silent", plugins: [content()] },
+            "serve",
+        );
+
+        expect(config.environments.ssr.optimizeDeps.exclude).toContain("@pitlane/content");
     });
 
     it("leaves no filesystem or resolver builtin in a fully prebuilt bundle", async () => {

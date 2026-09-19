@@ -85,16 +85,25 @@ export function content(options?: { entry?: string }): Plugin {
         enforce: "post",
 
         /**
-         * A server build externalizes dependencies by default, which would
-         * leave `@pitlane/content` importing the manifest it ships — the one
-         * that exports `null` — rather than the one emitted below. The package
-         * has to be bundled for the replacement to reach the runtime at all.
+         * Two ways the runtime can end up with the manifest the package ships
+         * — the one that registers nothing — instead of the one emitted below.
+         *
+         * A server build externalizes its dependencies, so the package has to
+         * be bundled for the replacement to reach the runtime at all. In dev
+         * nothing is bundled, but the dependency optimizer pre-bundles an
+         * installed dependency before any plugin runs, inlining the shipped
+         * manifest where `load` can no longer replace it. Excluding the
+         * package is what keeps the two paths agreeing.
          */
         config() {
             return {
                 environments: {
-                    ssr: { resolve: { noExternal: [MANIFEST_OWNER] } },
+                    ssr: {
+                        optimizeDeps: { exclude: [MANIFEST_OWNER] },
+                        resolve: { noExternal: [MANIFEST_OWNER] },
+                    },
                 },
+                optimizeDeps: { exclude: [MANIFEST_OWNER] },
                 ssr: { noExternal: [MANIFEST_OWNER] },
             };
         },
