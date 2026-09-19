@@ -343,10 +343,18 @@ interface Satteri {
  * `satteri` is an optional peer dependency: an application whose content is
  * prebuilt never renders at runtime and so never needs it. The import has to be
  * dynamic for that to be true, and the failure has to name both ways out.
+ *
+ * The specifier is a variable because a literal one is not dynamic to a
+ * bundler — Rolldown resolves it at build time and pulls the whole compiler
+ * into the output. Sätteri is a native addon, so a Worker bundle that reaches
+ * it fails to build: workerd resolves under the `browser` condition, which
+ * sends `satteri` to its WASM binding and on to an optional package that is
+ * not installed on a native platform.
  */
 async function loadSatteri(where: string): Promise<Satteri> {
+    let specifier = "satteri";
     try {
-        return (await import("satteri")) as unknown as Satteri;
+        return (await import(/* @vite-ignore */ specifier)) as unknown as Satteri;
     } catch {
         throw new Error(
             `Rendering "${where}" needs the optional peer dependency "satteri"; install it, ` +

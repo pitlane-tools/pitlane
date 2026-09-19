@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build, createLogger, type Logger } from "vite";
+import { build, createLogger, type Logger, type Plugin } from "vite";
 import satteri from "vite-plugin-satteri";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -33,6 +33,10 @@ async function buildFixture(
     options?: Parameters<typeof content>[0],
     onWarn?: (warning: string) => void,
     output?: { ssr?: string; satteri?: boolean },
+    // A Worker build has no node_modules to import from at runtime, so it
+    // bundles every dependency. That is the shape in which what the graph
+    // reaches becomes a build failure rather than a runtime import.
+    bundling?: { noExternal?: boolean; plugins?: Plugin[] },
 ) {
     let outDir = await mkdtemp(fileURLToPath(new URL("./.tmp-out-", import.meta.url)));
     outputs.push(outDir);
@@ -50,11 +54,13 @@ async function buildFixture(
                 "@pitlane/content": fileURLToPath(new URL("../src/index.ts", import.meta.url)),
             },
         },
+        ssr: bundling?.noExternal ? { noExternal: true } : undefined,
         plugins: [
             ...(output?.satteri === false
                 ? []
                 : [satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })]),
             content(options),
+            ...(bundling?.plugins ?? []),
         ],
         build: {
             outDir,
@@ -149,6 +155,30 @@ describe("content()", () => {
         let bundle = await readFile(join(outDir, "entry.server.mjs"), "utf8");
 
         expect(bundle).not.toMatch(/from\s*["']node:(module|url|fs|fs\/promises)["']/);
+    });
+
+    it("leaves the Markdown compiler out of a fully prebuilt bundle", async () => {
+        // Sätteri is a native addon. A Worker cannot load one, and a prebuilt
+        // collection has nothing left to compile, so the compiler must not be
+        // in the graph at all. Reaching it is not a size regression but a
+        // build failure: workerd resolves under the `browser` condition, which
+        // sends `satteri` to its WASM binding and then to an optional package
+        // that is not installed on a native platform.
+        let modules: string[] = [];
+        await buildFixture(undefined, undefined, undefined, {
+            noExternal: true,
+            plugins: [
+                {
+                    name: "record-modules",
+                    transform: (_code, id) => {
+                        modules.push(id);
+                        return null;
+                    },
+                },
+            ],
+        });
+
+        expect(modules.filter(id => /[\\/]node_modules[\\/]satteri[\\/]/.test(id))).toEqual([]);
     });
 
     it("prebuilds a Date as a Date rather than the string it was written as", async () => {

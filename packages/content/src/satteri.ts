@@ -1,4 +1,4 @@
-import { defineMdastPlugin, type MdastPluginEntry } from "satteri";
+import type { MdastPluginDefinition, MdastPluginEntry } from "satteri";
 
 import type { Heading } from "./types.ts";
 
@@ -48,6 +48,12 @@ function uniqueSlug(text: string, taken: Map<string, number>): string {
  * factory once per compile: a single `headings()` shared by a whole build gets
  * fresh slug state per document, instead of the second document's `notes`
  * reading `notes-1`.
+ *
+ * The definition is written out rather than passed through Sätteri's
+ * `defineMdastPlugin`, whose entire body checks that `name` is set. Calling it
+ * would make this module import the `satteri` package, and `render.ts` imports
+ * this module: a Worker bundle whose collections `content()` already prebuilt
+ * would then have to resolve a native addon it can never load.
  */
 export function headings(): MdastPluginEntry {
     return factoryContext => {
@@ -56,7 +62,7 @@ export function headings(): MdastPluginEntry {
 
         factoryContext.data.headings = collected;
 
-        return defineMdastPlugin({
+        let definition: MdastPluginDefinition = {
             name: "pitlane-headings",
             heading(node, context) {
                 let text = context.textContent(node);
@@ -71,6 +77,7 @@ export function headings(): MdastPluginEntry {
                     value: `export const headings = ${JSON.stringify(collected)};`,
                 });
             },
-        });
+        };
+        return definition;
     };
 }
