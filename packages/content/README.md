@@ -54,6 +54,14 @@ collection declarations do not change.
 | `@pitlane/content/satteri` | `headings`, a Sätteri MDAST plugin       |
 | `@pitlane/content/vite`    | `content`, the build-time plugin         |
 
+## Without Remix
+
+Every peer dependency is optional. The data path, meaning the loaders, schema
+validation, and both query methods, has no static dependency on `remix` and
+works with any [Standard Schema](https://standardschema.dev) validator. Only
+`render()` needs Remix, because it resolves to a Remix component, and it says
+so if you call it without one.
+
 ## Documentation
 
 - [Content](https://pitlane.tools/guides/content)

@@ -10,7 +10,7 @@ import type {
     StandardSchemaV1,
 } from "./types.ts";
 
-import { ContentError, parseEntryData } from "./parse.ts";
+import { ContentError, missingRenderer, parseEntryData } from "./parse.ts";
 import {
     beginContent,
     contentRoot,
@@ -21,7 +21,6 @@ import {
     recordWatched,
 } from "./prebuild.ts";
 import { reference } from "./reference.ts";
-import { renderedEntry } from "./render.ts";
 import { collectionStore, type StoredEntry } from "./store.ts";
 import { HOT_COLLECTION } from "./symbols.ts";
 
@@ -251,7 +250,17 @@ function view(collection: string, entry: StoredEntry): CollectionEntry<unknown> 
         collection,
         data: entry.data,
         ...(entry.filePath === undefined ? {} : { filePath: entry.filePath }),
-        render: () => renderedEntry(collection, entry),
+        // Imported here rather than at module scope because `./render.ts`
+        // produces a Remix component and imports Remix's JSX runtime to do it.
+        // A static import would make reading a JSON file into a validated
+        // collection require the framework. `render()` is already async, so
+        // the load costs an application that renders nothing at all.
+        render: async () => {
+            let renderer = await import("./render.ts").catch((cause: unknown) => {
+                throw missingRenderer(`${collection}/${entry.id}`, cause) ?? cause;
+            });
+            return await renderer.renderedEntry(collection, entry);
+        },
     };
 }
 

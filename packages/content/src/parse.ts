@@ -59,3 +59,30 @@ function issuePath(issue: StandardSchemaIssue): string {
     );
     return `${segments.join(".")}: `;
 }
+
+/**
+ * Frames the one import failure `render()` can produce on its own.
+ *
+ * The renderer is loaded on demand so that reading a collection needs no
+ * framework, which means an application that never renders never installs
+ * one. When it does render, Node reports a resolver path and a specifier and
+ * nothing about content. Anything else that fails while the renderer loads is
+ * left alone, so a real error inside it is not disguised as a missing install.
+ *
+ * @param where The entry being rendered, for the message.
+ * @param cause The failure the dynamic import threw.
+ * @returns A framed error, or `undefined` when this was some other failure.
+ */
+export function missingRenderer(where: string, cause: unknown): Error | undefined {
+    let notFound =
+        cause instanceof Error &&
+        (cause as { code?: string }).code === "ERR_MODULE_NOT_FOUND" &&
+        /'remix(?:\/[^']*)?'/.test(cause.message);
+    if (!notFound) return undefined;
+
+    return new Error(
+        `Rendering "${where}" needs the peer dependency "remix"; install it, or read the ` +
+            "entry's data without calling render().",
+        { cause },
+    );
+}

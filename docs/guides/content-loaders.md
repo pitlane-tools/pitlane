@@ -355,6 +355,124 @@ it("reads every row", async () => {
 A `parseData` that returns its input keeps the test about reading. Add one real
 schema test on top, so a change to the shape you hand it is caught too.
 
+## Using collections without Remix
+
+A collection reads files and validates them. Answering `getCollection` and
+`getEntry` needs nothing from Remix, and `@pitlane/content` has no static
+dependency on it. Every peer it declares is optional, so this installs and
+runs:
+
+::: code-group
+
+```sh [npm]
+npm add @pitlane/content zod
+```
+
+```sh [yarn]
+yarn add @pitlane/content zod
+```
+
+```sh [pnpm]
+pnpm add @pitlane/content zod
+```
+
+```sh [bun]
+bun add @pitlane/content zod
+```
+
+```sh [deno]
+deno add npm:@pitlane/content npm:zod
+```
+
+```sh [vp]
+vp add @pitlane/content zod
+```
+
+```sh [vlt]
+vlt add @pitlane/content zod
+```
+
+```sh [nub]
+nub add @pitlane/content zod
+```
+
+:::
+
+```ts
+import { createContent } from "@pitlane/content";
+import * as loaders from "@pitlane/content/loaders";
+import { z } from "zod";
+
+let content = await createContent(c => ({
+    blog: c.collection({
+        loader: loaders.glob({ pattern: "**/*.md", base: "content" }),
+        schema: z.object({ title: z.string(), author: z.string() }),
+    }),
+    authors: c.collection({
+        loader: loaders.file("authors.json"),
+        schema: z.object({ name: z.string() }),
+    }),
+}));
+
+let post = await content.blog.getEntry("hello");
+let author = await content.authors.getEntry(post.data.author);
+```
+
+Any [Standard Schema](https://standardschema.dev) validator works, because that
+is the only thing a schema is asked for.
+
+Two parts of the package do want Remix, and both say so when reached:
+
+- **`render()`** resolves to a Remix component, so it loads `remix` when you
+  call it. Without it you get
+  `Rendering "blog/hello" needs the peer dependency "remix"`. Entry data is
+  unaffected: a collection of `.json` files never calls it.
+- **`c.reference()`** produces a schema in the shape `remix/data-schema`'s
+  combinators require, so it nests inside `s.object` and `s.array`. Zod only
+  nests Zod schemas and rejects it. Validate the id as a string instead and do
+  the lookup yourself, which is what a reference does anyway.
+
+The published types have a rough edge. `remix/ui` is still named by an
+`import type` for the component `render()` returns. So is `satteri`, by the
+one describing a loader option. Every TypeScript starter enables `skipLibCheck` and most
+projects keep it, which hides both. Turn it off and you get two `TS2307`s for
+packages you chose not to install.
+
+## Building a plugin for another bundler
+
+`content()` is a Vite plugin, and Vite appears in exactly one module of this
+package. The two pieces that are not about Vite are published so a plugin for
+Rsbuild, Turbopack, or esbuild does not have to copy them:
+
+| Import                               | What it does                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `@pitlane/content/internal/prebuild` | opens the channel the content entry records into while it runs, and reads back the collections, watched paths, and root        |
+| `@pitlane/content/internal/codegen`  | turns those recorded entries into the manifest module's source, and a Markdown or MDX body into the expression that imports it |
+| `@pitlane/content/internal/mdx`      | reads an MDX document's ESM block, returning each import's specifier and bindings with the block's remainder                   |
+
+The sequence is the same on any bundler. Open the channel,
+execute the application's content module however your bundler runs a module,
+close the channel, then serve the emitted manifest source in place of
+`@pitlane/content/internal/manifest`.
+
+```ts
+import { manifestModule } from "@pitlane/content/internal/codegen";
+import { closePrebuild, openPrebuild } from "@pitlane/content/internal/prebuild";
+
+let channel = openPrebuild(projectRoot);
+try {
+    await runModule("app/content.ts");
+} finally {
+    closePrebuild();
+}
+
+let source = manifestModule(collectionsFrom(channel), bodies, headings);
+```
+
+These are `internal` deliberately. Their shape follows this package's needs
+rather than a contract, and it can change in a minor release. That is a worse
+promise than the public API makes and a better one than copying the files.
+
 ## Publishing a loader
 
 A loader is a package that exports a factory. Keep `@pitlane/content` a

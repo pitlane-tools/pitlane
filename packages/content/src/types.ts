@@ -1,4 +1,3 @@
-import type { Schema } from "remix/data-schema";
 import type { Handle, RemixNode } from "remix/ui";
 
 /**
@@ -48,14 +47,52 @@ export interface Reference<C extends string> {
     id: string;
 }
 
+/** A reusable check, shaped as `remix/data-schema`'s `Check` is. */
+export interface SchemaCheck<Output> {
+    check: (value: Output) => boolean;
+    message?: string;
+    code?: string;
+    values?: Record<string, unknown>;
+}
+
+/** Where a value sits in the input being validated, and how it is being parsed. */
+export interface RunContext {
+    path: NonNullable<StandardSchemaIssue["path"]>;
+    options?: unknown;
+}
+
 /**
- * The schema `c.reference(collection)` returns.
+ * The surface `remix/data-schema`'s combinators require of a schema they hold.
  *
- * A `remix/data-schema` schema rather than a bare Standard Schema, because that
- * is what `s.object`, `s.array`, and `s.optional` accept: a reference has to
- * compose inside them to be worth having.
+ * `s.object`, `s.array`, and `s.optional` call `~run` rather than the Standard
+ * Schema `validate`, so a bare Standard Schema does not compose inside them and
+ * a reference that does not compose is not worth having. Declared here rather
+ * than imported: one type import would make Remix a requirement of reading a
+ * JSON file. Any schema satisfying it is accepted, whoever built it.
  */
-export type ReferenceSchema<C extends string> = Schema<string, Reference<C>>;
+export interface ChainableSchema<Input, Output> {
+    // Narrower than {@link StandardSchemaV1} in two ways the combinators
+    // require: `validate` resolves synchronously, and `types` carries the
+    // input as well as the output. It satisfies `StandardSchemaV1<Output>`
+    // structurally, so a reference is still an ordinary Standard Schema
+    // wherever one is accepted.
+    readonly "~standard": {
+        readonly version: 1;
+        readonly vendor: string;
+        readonly validate: (value: unknown) => StandardSchemaResult<Output>;
+        readonly types?: { readonly input: Input; readonly output: Output } | undefined;
+    };
+    "~run": (value: unknown, context: RunContext) => StandardSchemaResult<Output>;
+    pipe: (...checks: SchemaCheck<Output>[]) => ChainableSchema<Input, Output>;
+    refine: (
+        predicate: (value: Output) => boolean,
+        message?: string,
+    ) => ChainableSchema<Input, Output>;
+    transform: <Next>(transformer: (value: Output) => Next) => ChainableSchema<Input, Next>;
+}
+
+/** The schema `c.reference(collection)` returns. */
+export type ReferenceSchema<C extends string> = ChainableSchema<string, Reference<C>>;
 
 /** A heading collected from a Markdown or MDX document. */
 export interface Heading {
