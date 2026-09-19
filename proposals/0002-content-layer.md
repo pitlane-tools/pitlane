@@ -84,7 +84,7 @@ Types come from inference. `post.data.title` is a `string` because the schema sa
 is handed, and has no idea a bundler exists. That is enough for Node, Bun, Deno, container hosts,
 scripts, and the package's own tests.
 
-For a host with no filesystem, `content()` from `@pitlane/content/vite` **runs those same loaders in
+For a host with no filesystem, `contentLayer()` from `@pitlane/content/vite` **runs those same loaders in
 Node during the build and prebuilds the collection into the bundle** — entry data as plain values, Markdown
 bodies as modules the bundler compiles. Application code is identical either way. Adding a host
 edits the Vite config; it never edits a collection.
@@ -94,7 +94,7 @@ edits the Vite config; it never edits a collection.
 compiled it ahead of time.
 
 Both hosts watch the files the loaders report, so editing a post while the application is running
-reaches the browser without a restart: `content()` rebuilds the manifest, and `hotContent` from
+reaches the browser without a restart: `contentLayer()` rebuilds the manifest, and `hotContent` from
 `@pitlane/content/hot` registers the files with the watcher `remix/node-hmr` is already running.
 
 ```text
@@ -128,7 +128,7 @@ have to fork them:
 
 They are `internal` because their shape follows this package's needs rather than a contract, and
 they may change in a minor release. Unreachable is worse than unstable: `prebuild.ts` and
-`codegen.ts` between them are the whole of what `content()` does that is not Vite, and `mdx.ts`
+`codegen.ts` between them are the whole of what `contentLayer()` does that is not Vite, and `mdx.ts`
 is the import reader five review passes went into. A bundler plugin that cannot import them
 copies them.
 
@@ -187,19 +187,19 @@ interface ContentBuilder {
 
 ```ts
 interface Collection<Data> {
-    getCollection(
-        filter?: (entry: CollectionEntry<Data>) => unknown,
-    ): Promise<CollectionEntry<Data>[]>;
-    getEntry(id: string | Reference<string>): Promise<CollectionEntry<Data> | undefined>;
+    getCollection(filter?: (entry: Entry<Data>) => unknown): Promise<Entry<Data>[]>;
+    getEntry(id: string | Reference<string>): Promise<Entry<Data> | undefined>;
 }
 
-interface CollectionEntry<Data> {
+interface Entry<Data> {
     id: string;
     collection: string;
     data: Data;
     filePath?: string;
     render(): Promise<RenderedEntry>;
 }
+
+type CollectionEntry<C> = C extends Collection<string, infer Data> ? Entry<Data> : never;
 
 interface RenderedEntry {
     Content: (handle: Handle<Record<string, unknown>>) => () => RemixNode;
@@ -213,6 +213,14 @@ interface Heading {
 }
 ```
 
+- `Entry<Data>` is the entry itself, keyed by the shape of its data. It is what both query methods
+  resolve to and what a filter receives.
+- `CollectionEntry<C>` is that same entry named the way an application thinks of it:
+  `CollectionEntry<typeof content.blog>`. An application that passes entries between modules needs
+  to write their type down, and without this it has to extract the data shape from the collection
+  itself — which is a conditional type every consumer would otherwise reimplement. The prior art
+  published `DataEntry`, `InferSchemaOutput`, and `ResolveSchema` for the same reason; this is one
+  name instead of three, because the collection already carries its data type.
 - `getCollection()` returns every entry sorted by `id`, ascending, using `Array.prototype.sort`'s
   default string comparison. The order is stable across runs so prerendered output and tests do not
   depend on filesystem or glob ordering, and it does not depend on whether the collection was prebuilt.
@@ -247,12 +255,20 @@ for bodies it does not show.
   calling `render()` on a data entry is a mistake, and hiding it produces a blank page instead of
   an error.
 
+**A `.md` body is prose, not a document with components in it.** Both Markdown paths end in an HTML
+string, so `<Levels />` written in a `.md` file is markup a Markdown parser does not recognize as a
+component: it is dropped or passed through as an unknown tag, and no error says so. This is a
+migration hazard rather than a design question, because `@mdx-js/rollup` compiles `.md` and `.mdx`
+alike as MDX and an application moving off it can silently lose every component in a `.md` body.
+The answer is to author such a file as `.mdx`, and the guides say so. **Future directions** records
+the change that would remove the distinction.
+
 #### Components imported by an MDX entry
 
 An MDX file imports components. That is most of why an application chooses `.mdx` over `.md`, and
 it has to work on both hosts or the format is only half supported.
 
-With `content()` the bundler does it: the body is a real module, its imports are ordinary imports,
+With `contentLayer()` the bundler does it: the body is a real module, its imports are ordinary imports,
 and `@pitlane/dev`'s `clientEntry` transform gives a browser component its asset URL. Nothing there
 is new.
 
@@ -329,14 +345,14 @@ This is
 loader's `load()` and a live loader's `loadCollection()` / `loadEntry()`, and it is the right answer
 to a question this proposal previously answered with a boolean.
 
-|                   | `ContentLoader`                            | `LiveLoader`                                        |
-| ----------------- | ------------------------------------------ | --------------------------------------------------- |
-| Shape             | `load(context)` fills a store              | `loadCollection()` / `loadEntry(id)` return entries |
-| With `content()`  | executed during the build, entries inlined | untouched; runs per request                         |
-| Without a bundler | executed on first access                   | runs per request                                    |
-| Markdown bodies   | rendered ahead of time when prebuilt       | rendered at runtime, so no MDX on Workers           |
-| Data freshness    | fixed at build, or at first access         | every query                                         |
-| Ships here        | `glob`, `file`                             | none; the interface is public                       |
+|                       | `ContentLoader`                            | `LiveLoader`                                        |
+| --------------------- | ------------------------------------------ | --------------------------------------------------- |
+| Shape                 | `load(context)` fills a store              | `loadCollection()` / `loadEntry(id)` return entries |
+| With `contentLayer()` | executed during the build, entries inlined | untouched; runs per request                         |
+| Without a bundler     | executed on first access                   | runs per request                                    |
+| Markdown bodies       | rendered ahead of time when prebuilt       | rendered at runtime, so no MDX on Workers           |
+| Data freshness        | fixed at build, or at first access         | every query                                         |
+| Ships here            | `glob`, `file`                             | none; the interface is public                       |
 
 Choosing between them is choosing what the data _is_, which is the decision an author is actually
 qualified to make. A directory of Markdown is a `ContentLoader`. A CMS whose editors expect to see a
@@ -344,7 +360,7 @@ change without a deploy is a `LiveLoader`. A CMS an application is content to sn
 is a `ContentLoader` over `fetch` — and that is a legitimate choice rather than a mistake, which is
 exactly why it should not be inferred from the environment.
 
-**Terminology.** A collection whose entries `content()` resolved during the build and inlined into
+**Terminology.** A collection whose entries `contentLayer()` resolved during the build and inlined into
 the bundle is **prebuilt**. One whose loader runs in the serving process is **runtime-resolved**.
 Both are `ContentLoader` collections; the difference is only who ran the loader. A `LiveLoader`
 collection is **live** and is neither.
@@ -384,7 +400,7 @@ decides what to do with it. That is what lets one `ContentLoader` serve both the
 runtime: the build wants the source so the bundler can compile it, and the runtime wants it so
 Sätteri can. It is also why a `LiveLoader` can carry Markdown at all.
 
-`watchedPaths` is what `content()` watches in order to rebuild the manifest in dev; it reports
+`watchedPaths` is what `contentLayer()` watches in order to rebuild the manifest in dev; it reports
 directories, which is what Vite's watcher expands, and a loader that omits it is simply not
 watched there. The host with no bundler watches the entries' own file paths instead, for the
 reason given under **Reloading**.
@@ -439,20 +455,20 @@ result uses its keys as ids.
 point the format selects. `@pitlane/content/satteri`'s `headings` plugin is prepended to
 `options.satteri.mdastPlugins` and `features.frontmatter` is forced on; everything else is the
 application's. A prebuilt entry was compiled by `vite-plugin-satteri` instead, so `options.satteri`
-does not apply to it — `content()` warns when both are configured, because a plugin list that only
+does not apply to it — `contentLayer()` warns when both are configured, because a plugin list that only
 takes effect on some hosts is a trap.
 
 Rendering a runtime-resolved Markdown entry without `satteri` installed throws
-`Rendering "<path>" needs the optional peer dependency "satteri"; install it, or add content() from @pitlane/content/vite so the build compiles this collection.`
+`Rendering "<path>" needs the optional peer dependency "satteri"; install it, or add contentLayer() from @pitlane/content/vite so the build compiles this collection.`
 
 `.mdx` rendered at runtime is Node-only by construction: the compile produces a function
 body and runs it through `new Function`, which Cloudflare Workers forbids. That is not a new
 restriction, because a collection reaching that path already needed `node:fs`.
 
-### `@pitlane/content/vite` — the `content()` plugin
+### `@pitlane/content/vite` — the `contentLayer()` plugin
 
 ```ts
-function content(options?: { entry?: string }): Plugin;
+function contentLayer(options?: { entry?: string }): Plugin;
 ```
 
 `entry` names the module that declares the collections, defaulting to `app/content.ts`. It is an
@@ -486,7 +502,7 @@ The plugin prebuilds in four steps:
 #### A live loader still runs at runtime
 
 A `LiveLoader` an application writes itself — over a CMS, an API, a `remix/data-table` database —
-is untouched by `content()`, because there is no `load` for the build to call. It behaves
+is untouched by `contentLayer()`, because there is no `load` for the build to call. It behaves
 identically on every host: `getCollection` calls `loadCollection`, `getEntry` calls `loadEntry`,
 inside whichever request asked.
 
@@ -519,29 +535,56 @@ its live collections, and the third is the one people are surprised by.
 declarations only: no `cloudflare:workers` imports, no request-scoped state, no side effects that
 need a live server. A module-level import of a CMS client is fine — what is not fine is calling it
 before a request exists, which the lazy population above already rules out. This is the design's
-one real constraint, it is the same constraint the prior art's config file carries, and `content()`
+one real constraint, it is the same constraint the prior art's config file carries, and `contentLayer()`
 reports the module and the underlying error when the import fails rather than continuing with an
 empty manifest.
 
 #### Reaching a runtime with neither source
 
-A bundled build without `content()` leaves the manifest empty, so a `ContentLoader` collection falls
+A bundled build without `contentLayer()` leaves the manifest empty, so a `ContentLoader` collection falls
 through to its loader and finds no `node:fs`. That surfaces from the first access, loudly, naming
 the fix:
 
 ```text
 Collection "blog" has no prebuilt content and no filesystem to read.
-Add content() from "@pitlane/content/vite" to your Vite config.
+Add contentLayer() from "@pitlane/content/vite" to your Vite config.
 ```
 
 An empty collection is the one outcome this design refuses. It renders as a blog with no posts,
 which looks like a content problem and is a configuration problem.
 
-### `@pitlane/content/satteri` — the shared `headings` plugin
+### `@pitlane/content/satteri` — the shared plugins
 
 ```ts
 function headings(): MdastPluginEntry;
+function rawStyles(): HastPluginEntry;
 ```
+
+Both serve both rendering paths, which is what makes the two agree:
+
+```ts
+// vite.config.ts
+import { headings, rawStyles } from "@pitlane/content/satteri";
+import { contentLayer } from "@pitlane/content/vite";
+import { remix } from "@pitlane/dev";
+import satteri from "vite-plugin-satteri";
+
+export default defineConfig({
+    plugins: [
+        satteri({
+            mdx: { jsxImportSource: "remix/ui" },
+            mdastPlugins: [headings()],
+            hastPlugins: [rawStyles()],
+        }),
+        contentLayer(),
+        remix(),
+    ],
+});
+```
+
+`jsxImportSource: "remix/ui"` is required, and `satteri()` must precede `remix()`.
+
+#### `headings`
 
 A Sätteri MDAST plugin factory. For each document it collects every heading as
 `{ depth, slug, text }`, where `text` is `ctx.textContent(node)` and `slug` is that text lowercased,
@@ -549,26 +592,6 @@ with non-alphanumerics collapsed to `-`, trimmed of leading and trailing `-`, an
 `-2`, … on collision within the document. It sets each heading's `id` to the slug so anchors work,
 and in its `after` hook, on an MDX document, appends an `mdxjsEsm` node carrying
 `export const headings = [...]`.
-
-One plugin serves both rendering paths, which is what makes them agree:
-
-```ts
-// vite.config.ts
-import { content } from "@pitlane/content/vite";
-import { headings } from "@pitlane/content/satteri";
-import { remix } from "@pitlane/dev";
-import satteri from "vite-plugin-satteri";
-
-export default defineConfig({
-    plugins: [
-        satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
-        content(),
-        remix(),
-    ],
-});
-```
-
-`jsxImportSource: "remix/ui"` is required, and `satteri()` must precede `remix()`.
 
 **Known limitation.** A prebuilt `.md` entry has `headings: []`. `vite-plugin-satteri` emits only
 `frontmatter` and an HTML string for Markdown, and the plugin has nowhere to put a heading list that
@@ -578,6 +601,25 @@ runtime, `.mdx` prebuilt — all produce headings.
 
 This is the one place the two rendering paths differ in output, and it is the strongest argument for
 `.mdx` as the default authoring format.
+
+#### `rawStyles`
+
+A Sätteri HAST plugin factory that moves a `<style>` element's text content into an `innerHTML`
+property and empties its children. On a Markdown document it resolves to `false` and does nothing:
+that path serializes to an HTML string, where `<style>` is already raw text.
+
+It exists because of how `@remix-run/ui` serializes an element. `escapeTextContent` replaces `&`,
+`<`, and `>` in the text children of every element except `<script>`, and emits a `props.innerHTML`
+verbatim. `<style>` is a raw-text element, so a browser never decodes the entity it receives: a
+stylesheet containing `pre > code` arrives as `pre &gt; code` and that rule is dead. The failure is
+silent — the page renders, some of it unstyled.
+
+Any `<style>` an MDX document produces hits this, which is why the plugin is named for the element
+rather than for Expressive Code, its most common source. It is a workaround: the correct fix is
+`@remix-run/ui` treating `<style>` as the raw-text element it is, the way it already special-cases
+`<script>`. `<script>` is deliberately left alone here — routing it through `innerHTML` would skip
+`escapeScriptTextContent`, which exists to stop a `</script>` inside a string from ending the
+element early.
 
 ### Code highlighting
 
@@ -593,16 +635,24 @@ import expressiveCode from "satteri-expressive-code";
 
 let code = expressiveCode({ themes: ["github-dark", "github-light"] });
 
-// prebuilt by content()
-satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()], hastPlugins: [code] });
+// prebuilt by contentLayer()
+satteri({
+    mdx: { jsxImportSource: "remix/ui" },
+    mdastPlugins: [headings()],
+    hastPlugins: [code, rawStyles()],
+});
 
 // rendered at runtime
 loaders.glob({ pattern: "**/*.md", base: "app/content/blog", satteri: { hastPlugins: [code] } });
 ```
 
 Expressive Code's plugins are async, which makes Sätteri's entry points return a promise. Every
-call site in this package already awaits them, so nothing changes. The plugin emits its own
-`<style>`; placing that is the application's concern and the guide covers it.
+call site in this package already awaits them, so nothing changes.
+
+The plugin emits its own `<style>`, which is what makes `rawStyles` load-bearing here rather than
+incidental: it must run after `code`, and without it two Expressive Code rules containing a child
+combinator are dead on every page. The runtime path does not list it because `render` forces it on,
+the same way it forces `headings`.
 
 Adding a Pitlane-owned highlighting option in front of this would buy nothing — it would forward
 the same plugin list through one more name, and go stale whenever Expressive Code or Shiki gains an
@@ -661,7 +711,7 @@ A content file that changes while the application is running takes effect withou
 both hosts. The mechanism differs because the two hosts have different watchers; the observable
 behavior does not.
 
-#### With `content()`
+#### With `contentLayer()`
 
 The plugin watches every path the loaders report through `watchedPaths()`. A change under one of
 them re-executes the entry module, rebuilds the manifest, invalidates it along with the affected
@@ -712,7 +762,7 @@ puts its files under the watcher, and every reload refreshes them.
 
 The file set is the entries' own `filePath`s, resolved against the content root, not the
 directories `watchedPaths()` reports. The supervisor matches a file event against the exact paths
-a channel registered, so a directory registers nothing that can ever match: `content()` watches
+a channel registered, so a directory registers nothing that can ever match: `contentLayer()` watches
 directories because Vite's watcher expands them, and this host cannot. The consequence is the
 limitation below — a file that no entry came from is not watched, and a file that does not exist
 yet came from no entry.
@@ -754,7 +804,7 @@ when the path is one the channel registered, and a file that does not exist yet 
 registered — so creating a post is invisible until the process restarts, while editing or deleting
 one is not. This is a property of `remix/node-hmr`, not a choice here: `add` and `unlink` events
 are filtered against the registered set exactly as `change` events are. The guide says so plainly
-rather than letting an author discover it, `content()` has no such gap, and **Future directions**
+rather than letting an author discover it, `contentLayer()` has no such gap, and **Future directions**
 records the upstream change that would close it.
 
 The page reloads rather than refreshing in place. A soft refresh — re-fetching the top frame and
@@ -779,7 +829,7 @@ VISION.md is corrected in phase 5.
 | `loaders.glob({ pattern: "app/content/**/*.{md,mdx}", base: "blog" })` | `base` is the directory patterns resolve against, as in the prior art  | `base: "blog"` alongside a full-path pattern reads as a collection prefix, which nothing implements. One meaning for `base` is enough.            |
 | `loaders.file("app/content/authors.jsonc")`                            | `.json`, `.yaml`, and `.yml` built in; `.jsonc` needs `options.parser` | JSONC needs a third parser for comments YAML already allows. The sample becomes `authors.json`.                                                   |
 | `import { createContent } from "pitlane/content"`                      | `@pitlane/content`                                                     | The umbrella vends no subpaths yet — VISION.md's own [Reserved names](../VISION.md#reserved-names) says a package that exists is imported scoped. |
-| Nothing about how content reaches a Worker                             | `content()` prebuilds the collections at build time                    | The published sample only shows filesystem loaders, which cannot run on Cloudflare Workers, the flagship target.                                  |
+| Nothing about how content reaches a Worker                             | `contentLayer()` prebuilds the collections at build time               | The published sample only shows filesystem loaders, which cannot run on Cloudflare Workers, the flagship target.                                  |
 
 ## Implications on adoption
 
@@ -792,11 +842,11 @@ An application served without a bundler adds `await hotContent(content)` beside 
 if it wants a content edit to reach the browser while it runs. It is one line, it is safe in
 production, and skipping it costs a restart per edit rather than an error.
 
-Any target without a filesystem — Cloudflare Workers above all — additionally needs `content()` in
+Any target without a filesystem — Cloudflare Workers above all — additionally needs `contentLayer()` in
 the Vite config, and its collections declared in a module that imports cleanly in Node. The
 collections themselves do not change.
 
-Version floors: `remix@^3.0.0-rc.1`, `vite@^8` for `content()`, and `satteri@^0.9.4` when Markdown
+Version floors: `remix@^3.0.0-rc.1`, `vite@^8` for `contentLayer()`, and `satteri@^0.9.4` when Markdown
 renders at runtime.
 
 Adoption is reversible. Nothing is generated into the repository, no file is written outside
@@ -818,7 +868,7 @@ pointed. Removing the package means deleting the module that calls `createConten
 - Resolution of an MDX entry's own `import`s on the runtime path, so a component an MDX file imports
   renders on a host with no bundler, and a `clientEntry` component among them hydrates through the
   application's asset server.
-- `content()`: executing the entry through Vite's module runner in prebuild mode, prebuilding only
+- `contentLayer()`: executing the entry through Vite's module runner in prebuild mode, prebuilding only
   `ContentLoader` collections, the manifest and body virtual modules, the watch-and-rebuild path, and
   the loud failure when neither source exists.
 - The `headings` Sätteri plugin, shared by both rendering paths, and the `satteri` pass-through that
@@ -831,7 +881,7 @@ pointed. Removing the package means deleting the module that calls `createConten
 - **The three neutral internals published**, so a plugin for another bundler reuses the prebuild
   channel, the module emitter, and the MDX import reader rather than copying them.
 - **Two demos, one application surface each, proving the API does not change with the
-  environment.** `demos/content-vite` runs `@pitlane/dev` with `content()` and
+  environment.** `demos/content-vite` runs `@pitlane/dev` with `contentLayer()` and
   `vite-plugin-satteri`; `demos/content-runtime` runs no bundler at all, serving browser modules
   through `remix/assets` and rendering content with `satteri` at request time. Both declare the
   same collections with the same `loaders.glob` and `loaders.file` calls, and each must serve
@@ -839,7 +889,7 @@ pointed. Removing the package means deleting the module that calls `createConten
   `clientEntry` — so both demos prove component imports work on both hosts. `demos/content-runtime`
   must also pick up an edit to a `.md`, `.mdx`, and `.json` entry under its own `dev` command,
   without a restart. The bundled demo cannot demonstrate the same thing, because `vp dev` fails
-  for it on a pre-existing plugin defect filed as issue #19; `content()`'s watch path is covered
+  for it on a pre-existing plugin defect filed as issue #19; `contentLayer()`'s watch path is covered
   instead by `tests/reload.test.ts`, which drives a real Vite dev server through an add, a
   delete, an edit, and a broken edit. They are the proof the unification is real rather than
   described, and a diff of their `app/content.ts` files is the reviewable artifact.
@@ -866,7 +916,7 @@ pointed. Removing the package means deleting the module that calls `createConten
 - **A published standalone quickstart.** The guides document the package as a Remix application
   uses it. That the data path also runs under Zod with no Remix installed is stated where it is
   relevant rather than given its own tutorial, because no consumer has asked for one yet.
-- **A `content.config.ts` format, a public virtual module, or generated types.** `content()` names
+- **A `content.config.ts` format, a public virtual module, or generated types.** `contentLayer()` names
   an ordinary application module and replaces one internal specifier. The public API is the object
   `createContent` returns, and its types are inferred — which is the whole reason the prior art's
   `.d.ts` generation is not carried over with its loading mechanism.
@@ -925,13 +975,13 @@ pointed. Removing the package means deleting the module that calls `createConten
 - `VISION.md`, Development principle 3, **Runtime When Possible** — honored, and this is the
   principle the design bends furthest, so it is worth being precise. `createContent`, every query,
   and both loaders are plain runtime code that works with no bundler, and the package's core tests
-  exercise all of it on the filesystem. `content()` is the "static integration added later as an
+  exercise all of it on the filesystem. `contentLayer()` is the "static integration added later as an
   optional optimization" the principle explicitly allows. What it is not is optional _for a
   filesystem-less target_, and the proposal says so rather than calling it optional everywhere.
 - `VISION.md`, Development principle 4, **Avoid Dependencies** — one runtime dependency, `yaml`,
   for frontmatter and `.yaml` files. Sätteri is optional and composed rather than wrapped, so it is
   the application's dependency and version choice. The slugger the prior art took from
-  `github-slugger` is implemented here instead, because it is a dozen lines, and `content()` takes
+  `github-slugger` is implemented here instead, because it is a dozen lines, and `contentLayer()` takes
   no dependency at all beyond Vite.
 - `VISION.md`, Development principle 5, **Demand Composition** — the loader interface is the seam,
   and the package is useful installed alone. It depends on `remix` and, optionally, on `satteri`;
@@ -944,10 +994,15 @@ pointed. Removing the package means deleting the module that calls `createConten
 
 ## Future directions
 
-- A Markdown entry rendering without its `<div>` wrapper, by walking Sätteri's HAST into Remix nodes
-  instead of passing an HTML string to `innerHTML`. It would also make element overrides work
-  uniformly across `.md` and `.mdx`. It is not here because a prebuilt `.md` entry arrives as a string
-  from `vite-plugin-satteri`, so the two paths could not agree on it.
+- **Compiling `.md` to JSX the way `.mdx` is compiled**, rather than to an HTML string. This is one
+  change that settles three things at once: the `<div>` wrapper disappears, because there is no
+  string needing an element to land on; element overrides through `<Content components={…} />`
+  start working uniformly across both formats; and a component written in a `.md` body renders
+  instead of vanishing, which is the behavior `@mdx-js/rollup` had and the one thing this package
+  takes away from an application migrating off it. It is not here because a prebuilt `.md` entry
+  arrives from `vite-plugin-satteri` as a string, so the two rendering paths could not agree on it
+  — closing that needs the upstream plugin to emit a module for Markdown, the same capability the
+  next bullet needs.
 - Headings for a prebuilt `.md` entry, once `vite-plugin-satteri` can surface a compile's data bag or
   extra exports for Markdown. That is an upstream capability, not something this package can add
   from the outside, and it is the last output difference between the two rendering paths.
@@ -1066,7 +1121,7 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
   builds with no error, no warning, and emits `Object.assign({})` — every collection silently
   empty. This is why the build executes the loaders instead of trying to translate them, and why a
   loader with no source throws rather than returning `[]`.
-- **Discovering the entry module instead of naming it.** `content()` could find modules that import
+- **Discovering the entry module instead of naming it.** `contentLayer()` could find modules that import
   `@pitlane/content` and call `createContent`, removing its one option. Rejected as fragile for
   what it saves: the manifest has to exist before the graph is walked, a re-export or a dynamic
   import defeats the scan, and two content modules would silently produce one manifest. One option
