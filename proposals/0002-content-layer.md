@@ -813,6 +813,59 @@ client dispatches exactly three payloads, and only `server:update`, which the su
 after a restart it performed itself, reaches an application listener. A channel event can be
 `reload` or a module update, and content is not a module on this host.
 
+### Documenting both hosts
+
+The two hosts differ in their setup and in a handful of later sections. They do not differ in the
+API, which is the claim this whole proposal is built on — so a reader should not have to pick a
+page before they know which page they are in, and a shared paragraph should not exist twice where
+two copies can disagree.
+
+One authored source, two rendered pages:
+
+- `docs/guides/_content-layer.md` holds the text. It is not a page of its own: `srcExclude` keeps
+  every `_`-prefixed Markdown file off the site and out of `llms.txt`.
+- `docs/guides/content.md` and `docs/guides/content-no-build.md` each carry the frontmatter naming
+  their mode and one `<!--@include: ./_content-layer.md-->`. Both URLs are the ones that already
+  exist, so nothing that links to either guide breaks.
+
+A passage that belongs to one host is a container:
+
+```md
+::: vite
+Register `contentLayer()` in the Vite config and the build resolves the collections.
+:::
+
+::: no-build
+There is no config file to register anything in; the loaders read the filesystem per process.
+:::
+```
+
+`docs/.vitepress/build-modes.ts` registers both containers and one `markdown-it` core rule that
+**deletes** the tokens of the mode the page did not declare. Deleting rather than hiding is the
+whole design: the other host's text is absent from the HTML, so the page outline, the local search
+index, the Markdown twin `vitepress-plugin-llms` emits, and a reader with JavaScript disabled all
+describe one host instead of two. A container naming a mode the page does not offer fails the
+build rather than rendering, because silently dropping a section is the failure mode a docs build
+cannot afford.
+
+The control is `BuildModeToggle.vue`, rendered by the theme into VitePress's `doc-before` slot so
+that no guide places it by hand. It reads three frontmatter fields:
+
+| Field                | Meaning                                                               |
+| -------------------- | --------------------------------------------------------------------- |
+| `build`              | `vite` or `no-build`, which mode this page is. Absent means no toggle |
+| `buildAlternate`     | the path to the other mode's page                                     |
+| `buildAlternateNote` | why there is no other page, when `buildAlternate` is absent           |
+
+Each option is an ordinary link. That is what makes both modes addressable, bookmarkable,
+crawlable, and switchable before hydration — the requirement that every option have its own URL,
+met by having each option _be_ a URL rather than by writing one into the address bar afterwards.
+
+A guide whose subject only exists under a bundler — `@pitlane/dev`'s plugin, prerendering, HMR,
+single-page apps — sets `build: vite` with a `buildAlternateNote` in place of the link. The other
+option renders disabled and carries that note as its reason, so what the reader is told is the
+author's sentence about that guide rather than a generic claim the component invented.
+
 ## Compatibility
 
 No compatibility impact. `@pitlane/content` is a new package at `0.1.0` with no dependents, and
@@ -893,13 +946,13 @@ pointed. Removing the package means deleting the module that calls `createConten
   instead by `tests/reload.test.ts`, which drives a real Vite dev server through an add, a
   delete, an edit, and a broken edit. They are the proof the unification is real rather than
   described, and a diff of their `app/content.ts` files is the reviewable artifact.
-- Three guides, one per audience rather than one page that switches host every other section.
-  `docs/guides/content.md` is the bundled setup, modeled on Astro's content collections
-  documentation. `docs/guides/content-no-build.md` is the same material for an application that
-  runs from source, covering what differs: Sätteri per request, MDX import resolution, the asset
-  server, and `hotContent`. `docs/guides/content-loaders.md` is a development guide for writing
-  a `ContentLoader` and a `LiveLoader`. Each carries its own **Limitations** section naming
-  every constraint that applies to it.
+- Two guide sources, not three pages. `docs/guides/_content-layer.md` is the content guide,
+  modeled on Astro's content collections documentation, rendered as two pages that a toggle at
+  the top switches between: `/guides/content` for an application built with Vite and
+  `/guides/content-no-build` for one that runs from source. `docs/guides/content-loaders.md` is a
+  development guide for writing a `ContentLoader` and a `LiveLoader`, and addresses both hosts in
+  one text. Each carries its own **Limitations** section naming every constraint that applies to
+  it. See [Documenting both hosts](#documenting-both-hosts) for the mechanism.
 - A README and CHANGELOG for the package, and its TypeDoc config in `.typedoc/` plus its line in
   the `docs:api` task.
 
@@ -1067,6 +1120,16 @@ for, and it is cheaper to do in a proposal of its own than to bolt onto this one
 
 ## Alternatives considered
 
+- **Switching hosts on one page, client-side.** One URL, both hosts in the HTML, and CSS hiding the
+  inactive one — the shape `pm-tabs.ts` already uses for package-manager tabs, with the mode in a
+  query parameter so a link can still name it. Rejected because a docs page is mostly not pixels:
+  the outline is derived from the headings in the DOM, the local search index and the Markdown
+  twin for `llms.txt` are built from the page's text, and all three would carry both hosts. A
+  reader searching for "Setting up Sätteri" would land on the build-free page with the section
+  hidden, which is worse than landing on the wrong page and knowing it. Two rendered pages cost a
+  `markdown-it` core rule and buy correctness in every one of those surfaces. The query parameter
+  is also strictly weaker than a path: it needs JavaScript to do anything, and the first paint is
+  always the default mode.
 - **Populating every collection eagerly in `createContent`.** What this proposal specified until a
   custom remote loader was considered, and simpler to reason about: one `await` at module scope and
   every collection is ready. Rejected because Cloudflare Workers forbids asynchronous I/O in global
