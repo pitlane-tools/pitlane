@@ -115,17 +115,33 @@ a .mdx file gains a heading → content.blog.getEntry(slug) → render() → { C
 | `@pitlane/content/vite`    | `content`, the build-time plugin                                                                                                                         |
 | `@pitlane/content/hot`     | `hotContent`, the development watcher for a host with no bundler                                                                                         |
 
-One internal entry point, `@pitlane/content/internal/manifest`, exists so the plugin has something
-to replace. It ships as `export default null`.
+Three internal entry points sit beside them. `@pitlane/content/internal/manifest` exists so the
+plugin has something to replace, and ships as `export default null`. The other two are the
+framework-neutral halves of the build, published so that a plugin for another bundler does not
+have to fork them:
 
-`dependencies` is `{ "yaml": "^2" }` — YAML frontmatter and `.yaml` data files need a parser, and
-neither Remix nor the platform provides one. `@pitlane/content/vite` adds `vite` as a peer and
-nothing else; serializing prebuilt values is a few dozen lines and does not want a dependency.
+| Internal entry point                 | Exports                                                               |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| `@pitlane/content/internal/prebuild` | the prebuild channel: `openPrebuild`, `closePrebuild`, and its record |
+| `@pitlane/content/internal/codegen`  | `manifestModule` and `bodyExpression`, which emit the module source   |
+| `@pitlane/content/internal/mdx`      | `readEsm`, the import reader an MDX document's ESM block needs        |
 
-`remix` is a peer dependency. `satteri` is an **optional** peer dependency (`^0.9.4`, caret-pinned
-because Sätteri is pre-1.0 and breaks on minor bumps). Only `render()` on a runtime-resolved Markdown entry
-and `@pitlane/content/satteri` import it, so an application whose content is prebuilt never installs
-it.
+They are `internal` because their shape follows this package's needs rather than a contract, and
+they may change in a minor release. Unreachable is worse than unstable: `prebuild.ts` and
+`codegen.ts` between them are the whole of what `content()` does that is not Vite, and `mdx.ts`
+is the import reader five review passes went into. A bundler plugin that cannot import them
+copies them.
+
+`dependencies` is `{ "yaml": "^2", "es-module-lexer": "^2" }`. YAML frontmatter and `.yaml` data
+files need a parser, and reading an MDX document's imports needs a lexer; neither Remix nor the
+platform provides either. `@pitlane/content/vite` adds `vite` as a peer and nothing else;
+serializing prebuilt values is a few dozen lines and does not want a dependency.
+
+**Every peer dependency is optional, `remix` included.** `satteri` is needed by `render()` on a
+runtime-resolved Markdown entry and by `@pitlane/content/satteri`. `vite` is needed by
+`@pitlane/content/vite`. `remix` is needed by `render()`, whose output is a Remix component, and
+by nothing else. Declaring `remix` as required would install a framework for an application that
+wanted a loader and a schema, and would say something untrue about what the package needs.
 
 ### `createContent`
 
@@ -599,14 +615,45 @@ type Reference<C extends string> = { collection: C; id: string };
 function reference<C extends string>(collection: C): ReferenceSchema<C>;
 ```
 
-`c.reference` is built with `remix/data-schema`'s `createSchema`, so it is a Standard Schema v1
-schema that composes inside `s.object`, `s.array`, and `s.optional` like any other. It accepts a
-string and outputs `{ collection, id }`; a non-string input fails with
+`c.reference` accepts a string and outputs `{ collection, id }`; a non-string input fails with
 `Expected a reference id for collection "<name>"`. It does **not** check that the target entry
-exists, and under lazy population it could not: the referenced collection may be unpopulated at the
-moment the reference is validated, and populating it to check would turn reading one entry into
-loading every collection it points at. An unresolvable reference surfaces as `getEntry` resolving
-to `undefined`.
+exists, and under lazy population it could not: the referenced collection may be unpopulated at
+the moment the reference is validated, and populating it to check would turn reading one entry
+into loading every collection it points at. An unresolvable reference surfaces as `getEntry`
+resolving to `undefined`.
+
+It has to compose inside `s.object`, `s.array`, and `s.optional`, and those call `~run` on each
+schema they hold rather than the Standard Schema `validate`. A bare Standard Schema is therefore
+not enough, and `remix/data-schema`'s `createSchema` is the obvious way to get the rest. **It is
+built by hand instead**, implementing `~standard`, `~run`, `pipe`, `refine`, and `transform`
+directly, which is about eighty lines and is the shape
+[`@withsprinkles/content-layer`](https://github.com/withsprinkles/content-layer) already proved.
+The reason is the invariant below: importing `remix/data-schema` for one schema factory would
+make Remix mandatory for every collection, including the ones that never render anything.
+
+### Composition
+
+**Nothing on the path from a loader to `entry.data` may require Remix.** Reading files,
+validating frontmatter, resolving ids, and answering `getCollection` and `getEntry` are
+framework-neutral work, and an application that wants only those should not install a framework
+to get them. The schema can be any Standard Schema validator, Zod included, and the package's own
+tests keep proving that with `remix/data-schema` only because a Remix application is the
+first consumer.
+
+Two things enforce it. `reference.ts` builds its schema by hand, as above. And `content.ts`
+imports the renderer through `await import("./render.ts")` inside `entry.render()`, which is
+already async, so the module that produces a Remix component is loaded when something asks for a
+Remix component and never before.
+
+The invariant is a test rather than a convention: the static import graph of `index.ts` and
+`loaders.ts` is walked and asserted to contain no `remix` specifier, and the graph of the three
+neutral internals to contain no `remix`, `vite`, or `satteri` either. A static import added
+anywhere in that reachable set fails it.
+
+What stays Remix-shaped is `render()`, deliberately. It resolves to a component, a component
+belongs to a framework, and `RenderedEntry` names Remix's. Making that swappable is a framework
+adapter, which this proposal does not specify and which the type-level work below is not a
+substitute for.
 
 ### Reloading
 
@@ -779,6 +826,10 @@ pointed. Removing the package means deleting the module that calls `createConten
 - `hotContent`: the development watcher for a host with no bundler — the channel it opens, the
   files it registers, per-collection invalidation through the internal handle, the reload it
   returns, and the no-op path every other environment takes.
+- **A data path that runs without Remix**, enforced by an import-graph test: the hand-built
+  reference schema, the renderer loaded on demand, and every peer dependency optional.
+- **The three neutral internals published**, so a plugin for another bundler reuses the prebuild
+  channel, the module emitter, and the MDX import reader rather than copying them.
 - **Two demos, one application surface each, proving the API does not change with the
   environment.** `demos/content-vite` runs `@pitlane/dev` with `content()` and
   `vite-plugin-satteri`; `demos/content-runtime` runs no bundler at all, serving browser modules
@@ -804,6 +855,17 @@ pointed. Removing the package means deleting the module that calls `createConten
 
 ### Out of scope
 
+- **A framework adapter for the render path.** `render()` resolves to a Remix component, and the
+  prior art's three-field `FrameworkAdapter` is the shape that would make it a React or Solid one
+  instead. Publishing `internal/mdx` means a port reuses the import reader rather than copying
+  it, which is most of the hard part, but the adapter itself is a separate change with its own
+  design questions about how a heading list and a `components` prop cross the seam.
+- **A plugin for another bundler.** The neutral internals are published so somebody can write
+  one. Pitlane writing an Rsbuild or esbuild plugin before an application needs one is an
+  interface built for nobody, and the same argument that keeps a CMS loader out of this package.
+- **A published standalone quickstart.** The guides document the package as a Remix application
+  uses it. That the data path also runs under Zod with no Remix installed is stated where it is
+  relevant rather than given its own tutorial, because no consumer has asked for one yet.
 - **A `content.config.ts` format, a public virtual module, or generated types.** `content()` names
   an ordinary application module and replaces one internal specifier. The public API is the object
   `createContent` returns, and its types are inferred — which is the whole reason the prior art's
