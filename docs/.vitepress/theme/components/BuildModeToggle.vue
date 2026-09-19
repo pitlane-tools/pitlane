@@ -2,40 +2,37 @@
 import { useData, withBase } from "vitepress";
 import { computed } from "vue";
 
-import { BUILD_MODE_LABELS, BUILD_MODES, type BuildMode } from "../../build-modes.ts";
+import { BUILD_MODE_LABELS, BUILD_MODES, counterpart } from "../../build-modes.ts";
 
-interface BuildModeFrontmatter {
-    build?: unknown;
-    buildAlternate?: unknown;
-}
+let { frontmatter, page } = useData<{ build?: unknown }>();
 
-let { frontmatter } = useData<BuildModeFrontmatter>();
-
-function asMode(value: unknown): BuildMode | undefined {
-    return BUILD_MODES.find(mode => mode === value);
-}
-
-let current = computed(() => asMode(frontmatter.value.build));
-let alternate = computed(() => {
-    let link = frontmatter.value.buildAlternate;
-    return typeof link === "string" && link.length > 0 ? link : undefined;
-});
+let current = computed(() => BUILD_MODES.find(mode => mode === frontmatter.value.build));
 
 /**
  * Both modes, in a fixed order, so the control does not rearrange itself
  * between the two pages of one guide.
  *
- * Every option is a real `href`, which is what gives each mode its own
- * address and lets the switch work before hydration.
+ * The pair comes from `BUILD_MODE_GUIDES` rather than from frontmatter: the
+ * inline head script needs the same pairs to apply a stored choice, and one
+ * registry that both read beats a `buildAlternate` on every page which can
+ * disagree with it.
+ *
+ * Every option is a real `href`, which is what gives each mode its own address
+ * and lets the switch work before hydration. `data-build-mode` is what the
+ * head script records on a click, and what exempts these links from the
+ * rewriting it does to every other link into a two-mode guide.
  */
 let options = computed(() =>
     BUILD_MODES.map(mode => ({
         mode,
         label: BUILD_MODE_LABELS[mode],
         current: mode === current.value,
-        href: mode === current.value ? undefined : alternate.value,
+        href: mode === current.value ? undefined : counterpart(page.value.relativePath, mode),
     })),
 );
+
+/** Only a guide the registry knows in both setups shows the control. */
+let available = computed(() => Boolean(current.value && options.value.some(o => o.href)));
 </script>
 
 <template>
@@ -45,16 +42,26 @@ let options = computed(() =>
         is noise that also has to explain itself.
     -->
     <div
-        v-if="current && alternate"
+        v-if="available"
         class="build-modes"
         role="group"
         aria-label="The setup this guide describes"
     >
         <template v-for="option in options" :key="option.mode">
-            <a v-if="option.href" class="build-mode" :href="withBase(option.href)">
+            <a
+                v-if="option.href"
+                class="build-mode"
+                :data-build-mode="option.mode"
+                :href="withBase(option.href)"
+            >
                 {{ option.label }}
             </a>
-            <span v-else class="build-mode is-current" aria-current="page">
+            <span
+                v-else
+                class="build-mode is-current"
+                :data-build-mode="option.mode"
+                aria-current="page"
+            >
                 {{ option.label }}
             </span>
         </template>

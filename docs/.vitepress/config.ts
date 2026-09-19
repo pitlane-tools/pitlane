@@ -8,7 +8,9 @@ import {
 } from "vitepress-plugin-group-icons";
 import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
+import { buildModeTabsInlineScript } from "./build-mode-tabs.ts";
 import { buildModes } from "./build-modes-plugin.ts";
+import { BUILD_MODE_GUIDES } from "./build-modes.ts";
 import { pmTabsInlineScript } from "./pm-tabs.ts";
 
 const SITE_URL = "https://pitlane.tools";
@@ -28,7 +30,10 @@ const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 // has to name the mode being read or the highlight disappears on the other
 // one. `current` maps each such guide to the URL of the mode in view.
 /** The mode each two-mode guide shows unless the page in view says otherwise. */
-const DEFAULT_MODES = { content: "/guides/content", prerendering: "/guides/prerendering" };
+const DEFAULT_MODES = {
+    content: BUILD_MODE_GUIDES.content.vite,
+    prerendering: BUILD_MODE_GUIDES.prerendering.vite,
+};
 
 let guides = (current: { content: string; prerendering: string }): DefaultTheme.SidebarItem[] => [
     {
@@ -197,13 +202,13 @@ let config = defineConfig({
             // no-build page gets its own copy whose row points at itself.
             // `/guides` rather than `/guides/` keeps that ordering unambiguous:
             // the specific keys have one more segment.
-            "/guides/content-no-build": guides({
+            [BUILD_MODE_GUIDES.content["no-build"]]: guides({
                 ...DEFAULT_MODES,
-                content: "/guides/content-no-build",
+                content: BUILD_MODE_GUIDES.content["no-build"],
             }),
-            "/guides/prerendering-no-build": guides({
+            [BUILD_MODE_GUIDES.prerendering["no-build"]]: guides({
                 ...DEFAULT_MODES,
-                prerendering: "/guides/prerendering-no-build",
+                prerendering: BUILD_MODE_GUIDES.prerendering["no-build"],
             }),
             "/guides": guides(DEFAULT_MODES),
             "/deploy": guides(DEFAULT_MODES),
@@ -216,6 +221,10 @@ let config = defineConfig({
         // Runs before the body streams in so stored package-manager tabs
         // apply before first paint - no flash of the default tab.
         ["script", {}, pmTabsInlineScript],
+        // Same reason, one page earlier: a build mode is a URL, so a stored
+        // choice has to redirect before anything renders rather than restyle
+        // after it.
+        ["script", {}, buildModeTabsInlineScript],
         ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
         ["meta", { property: "og:site_name", content: SITE_NAME }],
         ["meta", { property: "og:type", content: "website" }],

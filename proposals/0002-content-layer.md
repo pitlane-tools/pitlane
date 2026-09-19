@@ -856,23 +856,55 @@ anything that module imports goes with it.
 A container naming a mode its page does not declare fails the build rather than rendering, because
 silently dropping a section is the failure a docs build cannot afford.
 
+The pairs live once, in `BUILD_MODE_GUIDES` in `build-modes.ts`, keyed by guide:
+
+```ts
+content: { vite: "/guides/content", "no-build": "/guides/content-no-build" },
+prerendering: { vite: "/guides/prerendering", "no-build": "/guides/prerendering-no-build" },
+```
+
+Three readers need them — the sidebar, to keep a row pointing at the mode in view; the control, to
+find its counterpart; the inline script below, to apply a stored choice — and a copy per reader is
+three chances to disagree. A page's frontmatter therefore carries only `build`, naming which mode
+it is, which the source-level plugin needs anyway.
+
 The control is `BuildModeToggle.vue`, rendered by the theme into VitePress's `doc-before` slot so
-that no guide places it by hand. It reads two frontmatter fields:
+that no guide places it by hand. Each option is an ordinary link, which is what makes both modes
+addressable, bookmarkable, crawlable, and switchable before hydration — the requirement that every
+option have its own URL, met by having each option _be_ a URL rather than by writing one into the
+address bar afterwards.
 
-| Field            | Meaning                                       |
-| ---------------- | --------------------------------------------- |
-| `build`          | `vite` or `no-build`, which mode this page is |
-| `buildAlternate` | the path to the other mode's page             |
+**Only a guide the registry knows in both setups carries the control.** A guide whose subject only
+exists under a bundler — `@pitlane/dev`'s plugin, HMR, single-page apps — is not in it and shows
+nothing. A switch with one working half is not a switch: it has to explain its own dead option, and
+an explanation of why a control does nothing is worse than the absence of the control.
 
-Each option is an ordinary link. That is what makes both modes addressable, bookmarkable,
-crawlable, and switchable before hydration — the requirement that every option have its own URL,
-met by having each option _be_ a URL rather than by writing one into the address bar afterwards.
+#### Carrying the choice
 
-**Both fields are required, so only a guide written in both setups carries the control.** A guide
-whose subject only exists under a bundler — `@pitlane/dev`'s plugin, prerendering, HMR, single-page
-apps — declares neither and shows nothing. A switch with one working half is not a switch: it has
-to explain its own dead option, and an explanation of why a control does nothing is worse than the
-absence of the control.
+A reader who picks one setup means it for the whole site, so `build-mode-tabs.ts` persists the
+choice the way `pm-tabs.ts` persists a package manager: one `localStorage` key, one inline `<head>`
+script, dependency-free because it runs outside the app bundle.
+
+A build mode is a URL rather than a tab inside a page, so applying a stored choice takes three
+things rather than one:
+
+1. **On arrival**, a two-mode page showing the other mode calls `location.replace` for the stored
+   one. The script is parser-blocking and sits ahead of every stylesheet, so the wrong mode never
+   paints, and `replace` rather than an assignment keeps Back out of the loop between two halves of
+   one guide.
+2. **On every link** into a two-mode guide, the href is rewritten to the stored mode, which is what
+   makes a client-side navigation land on the right page — the redirect above only runs on a full
+   load.
+3. **On a click** in the control, the new choice is recorded before the navigation runs, which
+   `localStorage` being synchronous makes safe.
+
+Two kinds of link are deliberately exempt. The control's own options, or choosing a mode could
+never disagree with the stored one and the toggle would do nothing. And any link carrying a
+fragment: a section is not guaranteed to exist in both modes —
+`#reloading-a-content-file-while-the-app-runs` is on one page only — and a deep link that lands on
+a page without its anchor is a worse outcome than one that shows the other setup.
+
+A `storage` listener follows a choice made in another tab, so two open tabs do not disagree.
 
 ## Compatibility
 
