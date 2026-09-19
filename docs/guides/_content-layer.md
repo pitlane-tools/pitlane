@@ -1,4 +1,4 @@
-# Content Layer
+# Content
 
 [`@pitlane/content`](/package/content/) reads a directory of Markdown, MDX, or
 data files and hands back collections you query like a database:

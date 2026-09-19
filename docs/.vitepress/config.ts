@@ -37,14 +37,6 @@ const DEFAULT_MODES = {
 
 let guides = (current: { content: string; prerendering: string }): DefaultTheme.SidebarItem[] => [
     {
-        text: "Guides",
-        items: [
-            { text: "Styling", link: "/guides/styling" },
-            { text: "Prerendering", link: current.prerendering },
-            { text: "Crawling", link: "/guides/crawler" },
-        ],
-    },
-    {
         text: "Vite Plugin",
         items: [
             { text: "Overview", link: "/guides/vite-plugin" },
@@ -53,14 +45,28 @@ let guides = (current: { content: string; prerendering: string }): DefaultTheme.
         ],
     },
     {
-        text: "Content Layer",
+        text: "Styling",
+        items: [
+            //
+            { text: "Overview", link: "/guides/styling" },
+        ],
+    },
+    {
+        text: "Crawling",
+        items: [
+            { text: "Overview", link: "/guides/crawler" },
+            { text: "Prerendering", link: current.prerendering },
+        ],
+    },
+    {
+        text: "Content",
         items: [
             { text: "Overview", link: current.content },
             { text: "Creating a Content Loader", link: "/guides/content-loaders" },
         ],
     },
     {
-        text: "Adapters",
+        text: "Data",
         items: [
             //
             { text: "Cloudflare D1", link: "/guides/cloudflare-d1" },
