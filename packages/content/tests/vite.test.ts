@@ -6,7 +6,7 @@ import satteri from "vite-plugin-satteri";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { headings } from "../src/satteri.ts";
-import { content } from "../src/vite.ts";
+import { contentLayer } from "../src/vite.ts";
 
 let fixture = fileURLToPath(new URL("./fixtures/prebuild-app", import.meta.url));
 
@@ -30,7 +30,7 @@ afterEach(async () => {
  * the plugin: the same collection declarations answer without `node:fs`.
  */
 async function buildFixture(
-    options?: Parameters<typeof content>[0],
+    options?: Parameters<typeof contentLayer>[0],
     onWarn?: (warning: string) => void,
     output?: { ssr?: string; satteri?: boolean },
     // A Worker build has no node_modules to import from at runtime, so it
@@ -59,7 +59,7 @@ async function buildFixture(
             ...(output?.satteri === false
                 ? []
                 : [satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })]),
-            content(options),
+            contentLayer(options),
             ...(bundling?.plugins ?? []),
         ],
         build: {
@@ -73,7 +73,7 @@ async function buildFixture(
 }
 
 /** Builds the fixture, then asks the built bundle what it can see. */
-async function buildAndQuery(options?: Parameters<typeof content>[0]) {
+async function buildAndQuery(options?: Parameters<typeof contentLayer>[0]) {
     let outDir = await buildFixture(options);
     let entry = await import(pathToFileURL(join(outDir, "entry.server.mjs")).href);
     return { outDir, result: await entry.query() };
@@ -124,7 +124,7 @@ describe("the two paths agree", () => {
     });
 });
 
-describe("content()", () => {
+describe("contentLayer()", () => {
     it("answers from the bundle, with no filesystem read at runtime", async () => {
         let { result } = await buildAndQuery();
 
@@ -156,7 +156,7 @@ describe("content()", () => {
         // never a candidate for optimization, so only an application that
         // installed the package sees it.
         let config = await resolveConfig(
-            { root: fixture, logLevel: "silent", plugins: [content()] },
+            { root: fixture, logLevel: "silent", plugins: [contentLayer()] },
             "serve",
         );
 
@@ -242,7 +242,7 @@ describe("content()", () => {
         });
 
         expect(warnings.join("\n")).toMatch(
-            /Collection "blog" configures loader options\.satteri, but content\(\) prebuilt it/,
+            /Collection "blog" configures loader options\.satteri, but contentLayer\(\) prebuilt it/,
         );
     });
 

@@ -3,6 +3,7 @@ export type {
     Collection,
     CollectionDefinition,
     CollectionEntry,
+    Entry,
     ContentBuilder,
     ContentLoader,
     EntryBody,

@@ -29,7 +29,7 @@ content an editor expects to see without a deploy.
 |                           | `ContentLoader`                            | `LiveLoader`                         |
 | ------------------------- | ------------------------------------------ | ------------------------------------ |
 | Interface                 | `load(context)`                            | `loadCollection()` / `loadEntry(id)` |
-| With `content()`          | resolved during the build, entries inlined | untouched, runs per read             |
+| With `contentLayer()`     | resolved during the build, entries inlined | untouched, runs per read             |
 | Without a bundler         | runs on the first read, then memoized      | runs per read                        |
 | Sees data published later | no                                         | yes                                  |
 | Schema failures surface   | during the build, or on the first read     | on every read                        |
@@ -167,7 +167,7 @@ export function feed(options: { url: string }): ContentLoader {
 }
 ```
 
-Throw when the source is unreachable. Under `content()`
+Throw when the source is unreachable. Under `contentLayer()`
 it fails the build, which is the moment you want to hear about a broken feed.
 Without a bundler it rejects the read that triggered it, and the failure is not
 memoized, so the next request tries again.
@@ -440,7 +440,7 @@ packages you chose not to install.
 
 ## Building a plugin for another bundler
 
-`content()` is a Vite plugin, and Vite appears in exactly one module of this
+`contentLayer()` is a Vite plugin, and Vite appears in exactly one module of this
 package. The two pieces that are not about Vite are published so a plugin for
 Rsbuild, Turbopack, or esbuild does not have to copy them:
 
@@ -495,7 +495,7 @@ the consumer can extend rather than one you impose.
 
 ## Limitations
 
-- **`content()` only prebuilds a `ContentLoader`.** A `LiveLoader` is never
+- **`contentLayer()` only prebuilds a `ContentLoader`.** A `LiveLoader` is never
   inlined, so a collection using one still needs its source reachable from
   wherever the app is deployed, Workers included.
 - **A `ContentLoader` runs during the build**, in Node, so it cannot use
@@ -503,7 +503,7 @@ the consumer can extend rather than one you impose.
   `process.env` inside the loader breaks on a host without one. Take it as an
   option instead.
 - **`watchedPaths` reports paths, and how they are used differs by host.**
-  `content()` watches the directories it reports. A host with no bundler
+  `contentLayer()` watches the directories it reports. A host with no bundler
   watches the files its entries came from, so a loader that reports only
   directories is still watched correctly there, but a file created after the
   load is not seen until a restart. See
@@ -515,7 +515,7 @@ the consumer can extend rather than one you impose.
   means a schema that is expensive to run is a cost you pay per request.
 - **Rendering a Markdown body still needs a renderer.** `satteri` has to be
   installed wherever the rendering happens, which for a `LiveLoader` is the
-  running server even in a bundled application, because `content()` never
+  running server even in a bundled application, because `contentLayer()` never
   prebuilds one. A `.mdx` body also needs `new Function`, so Workers requires
   prebuilding and a `LiveLoader` cannot serve `.mdx` there at all.
 

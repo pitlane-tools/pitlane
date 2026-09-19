@@ -34,7 +34,7 @@ describe("rendering Markdown without satteri installed", () => {
 
         await expect(entry!.render()).rejects.toThrow(
             'Rendering "app/content/blog/hello.md" needs the optional peer dependency "satteri"; ' +
-                "install it, or add content() from @pitlane/content/vite so the build compiles " +
+                "install it, or add contentLayer() from @pitlane/content/vite so the build compiles " +
                 "this collection.",
         );
     });

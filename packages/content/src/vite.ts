@@ -31,7 +31,7 @@ type Resolution = NonNullable<UserConfig["resolve"]>;
  * The result is a host with no filesystem serving the collections the
  * application declared, with no change to the declarations.
  */
-export function content(options?: { entry?: string }): Plugin {
+export function contentLayer(options?: { entry?: string }): Plugin {
     let entry = options?.entry ?? "app/content.ts";
     let root = process.cwd();
     let collections: Record<string, LoadedEntry[]> = {};
@@ -56,10 +56,10 @@ export function content(options?: { entry?: string }): Plugin {
         for (let path of watched) server?.watcher.add(path);
         for (let name of loaded.configuredSatteri) {
             warn(
-                `Collection "${name}" configures loader options.satteri, but content() ` +
+                `Collection "${name}" configures loader options.satteri, but contentLayer() ` +
                     "prebuilt it, so vite-plugin-satteri renders it and those options do " +
                     "nothing. Move the plugins into satteri() in your Vite config, or drop " +
-                    "content() for this collection.",
+                    "contentLayer() for this collection.",
             );
         }
     }

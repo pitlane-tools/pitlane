@@ -4,7 +4,7 @@ import { createContent } from "../content.ts";
 import { file } from "./file.ts";
 import { glob } from "./glob.ts";
 
-// A bundle built without `content()` reaches the loader on a host that has no
+// A bundle built without `contentLayer()` reaches the loader on a host that has no
 // `node:fs` to import — Cloudflare Workers above all. Refusing the module is
 // the only way to reproduce that from Node.
 vi.mock("node:fs/promises", () => {
@@ -15,7 +15,7 @@ vi.mock("node:fs/promises", () => {
 
 let expected =
     'Collection "blog" has no prebuilt content and no filesystem to read.\n' +
-    'Add content() from "@pitlane/content/vite" to your Vite config.';
+    'Add contentLayer() from "@pitlane/content/vite" to your Vite config.';
 
 describe("a filesystem loader with no filesystem", () => {
     it("says what to install rather than producing an empty collection", async () => {

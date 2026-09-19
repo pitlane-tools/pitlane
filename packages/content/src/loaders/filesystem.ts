@@ -22,7 +22,7 @@ export async function filesystem(collection: string) {
         throw new ContentError(
             collection,
             `Collection "${collection}" has no prebuilt content and no filesystem to read.\n` +
-                `Add content() from "@pitlane/content/vite" to your Vite config.`,
+                `Add contentLayer() from "@pitlane/content/vite" to your Vite config.`,
             { cause: error },
         );
     }

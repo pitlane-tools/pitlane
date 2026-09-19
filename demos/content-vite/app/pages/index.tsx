@@ -1,10 +1,9 @@
-import type { CollectionEntry } from "@pitlane/content";
 import type { Handle } from "remix/ui";
 
-import type { Post } from "#/types.ts";
+import type { PostEntry } from "#/types.ts";
 
 export interface IndexProps {
-    posts: CollectionEntry<Post>[];
+    posts: PostEntry[];
 }
 
 export function Index(handle: Handle<IndexProps>) {
@@ -16,8 +15,8 @@ export function Index(handle: Handle<IndexProps>) {
                 <h1>Content collections</h1>
                 <p>
                     Both demos declare these collections with the same <code>app/content.ts</code>.
-                    One is built by Vite with <code>content()</code>; the other runs with no bundler
-                    at all.
+                    One is built by Vite with <code>contentLayer()</code>; the other runs with no
+                    bundler at all.
                 </p>
 
                 <ul>

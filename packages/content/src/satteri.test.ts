@@ -1,9 +1,11 @@
+import type { HastPluginEntry } from "satteri";
+
 import { markdownToHtml, mdxToJs } from "satteri";
 import { describe, expect, it } from "vitest";
 
 import type { Heading } from "./types.ts";
 
-import { headings } from "./satteri.ts";
+import { headings, rawStyles } from "./satteri.ts";
 
 function plugins() {
     return { mdastPlugins: [headings()] };
@@ -95,5 +97,63 @@ describe("headings", () => {
 
         expect(code).toContain("export const headings");
         expect(code).toContain("section");
+    });
+});
+
+let css = ".expressive-code pre > code{color:red}";
+
+/**
+ * Stands in for `satteri-expressive-code`, which appends its theme as a
+ * `<style>` element holding one text node. Written as a plugin rather than as
+ * MDX source because `{` opens an expression in JSX, so a stylesheet cannot
+ * be authored as a text child in the first place.
+ */
+let injectStyle: HastPluginEntry = {
+    name: "test-inject-style",
+    element: {
+        filter: ["h1"],
+        visit: () => ({
+            type: "element",
+            tagName: "style",
+            properties: {},
+            children: [{ type: "text", value: css }],
+        }),
+    },
+};
+
+describe("rawStyles", () => {
+    it("hands a compiled style element its CSS as innerHTML, not as a text child", async () => {
+        // @remix-run/ui escapes `>` in the text children of every element but
+        // <script>, and <style> is a raw-text element, so a browser never
+        // decodes what it receives and the rule is dead. Only an innerHTML
+        // prop reaches the page verbatim.
+        let { code } = await mdxToJs("# Title\n", {
+            hastPlugins: [injectStyle, rawStyles()],
+            jsxImportSource: "remix/ui",
+        });
+
+        expect(code).toContain("innerHTML");
+        expect(code).toContain("pre > code");
+    });
+
+    it("leaves the CSS as a text child when the plugin is absent", async () => {
+        // The escaping this works around is Remix's, not Sätteri's, so the
+        // defect is invisible in the compiler's own output. This is what makes
+        // the assertion above a measurement rather than a tautology.
+        let { code } = await mdxToJs("# Title\n", {
+            hastPlugins: [injectStyle],
+            jsxImportSource: "remix/ui",
+        });
+
+        expect(code).not.toContain("innerHTML");
+    });
+
+    it("leaves a Markdown document alone, where a style element is already raw text", async () => {
+        let { html } = await markdownToHtml(`<style>${css}</style>\n`, {
+            hastPlugins: [rawStyles()],
+        });
+
+        expect(html).toContain(css);
+        expect(html).not.toContain("innerhtml");
     });
 });

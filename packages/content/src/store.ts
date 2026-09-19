@@ -42,7 +42,7 @@ export function collectionStore(collection: string, root = "") {
         configuredSatteri(): boolean {
             return [...entries.values()].some(entry => entry.satteri !== undefined);
         },
-        /** The entries `content()` reads back, before it compiles any body. */
+        /** The entries `contentLayer()` reads back, before it compiles any body. */
         serializable(): LoadedEntry[] {
             return [...entries.values()].map(entry => ({
                 id: entry.id,

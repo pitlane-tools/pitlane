@@ -1,6 +1,6 @@
 ---
 title: Content
-description: "How @pitlane/content turns Markdown, MDX, and data files into schema-validated collections a Remix 3 controller can query, prebuilt into the bundle by the content() Vite plugin."
+description: "How @pitlane/content turns Markdown, MDX, and data files into schema-validated collections a Remix 3 controller can query, prebuilt into the bundle by the contentLayer() Vite plugin."
 ---
 
 # Content
@@ -29,7 +29,7 @@ point of the split: only the setup around them differs.
 
 `@pitlane/content` is a runtime dependency, because your controllers import
 it. Markdown and MDX add two more, and both are build-only here: the plugin
-compiles the bodies, and `content()` calls `satteri` directly to measure a
+compiles the bodies, and `contentLayer()` calls `satteri` directly to measure a
 Markdown file's heading list.
 
 ::: code-group
@@ -83,7 +83,7 @@ neither.
 One case moves `satteri` out of `devDependencies`: a
 [`LiveLoader`](/guides/content-loaders#writing-a-liveloader) that returns a
 Markdown body renders at request time even in a bundled application, because
-`content()` never touches it. That collection needs `satteri` at runtime, so
+`contentLayer()` never touches it. That collection needs `satteri` at runtime, so
 install it with `add` rather than `add -D`.
 
 [`@pitlane/dev`](/guides/vite-plugin) is assumed here and installs itself the
@@ -320,6 +320,22 @@ A collection loads once, on first access, and is memoized for the life of the
 process. Failures are the exception: nothing caches them, so one timed-out
 fetch does not break a collection until you restart.
 
+To pass an entry to a component, name its type with `CollectionEntry`, which
+takes the collection rather than its data:
+
+```tsx
+import type { CollectionEntry } from "@pitlane/content";
+
+import { content } from "#app/content.ts";
+
+export function PostCard(handle: Handle<{ post: CollectionEntry<typeof content.blog> }>) {
+    return () => <h2>{handle.props.post.data.title}</h2>;
+}
+```
+
+Nothing is generated, so this cannot go stale: change the schema and the
+component stops type-checking.
+
 ## Generating routes from content
 
 An id is a path, so a route parameter is all it takes:
@@ -383,21 +399,25 @@ elements it renders:
 Markdown is compiled by [Sätteri](https://satteri.bruits.org), installed
 [above](#install) alongside its Vite plugin.
 
-Register it in the Vite config, **before** `remix()`, with the `headings`
-plugin that produces the heading list:
+Register it in the Vite config, **before** `remix()`, with the two plugins
+`@pitlane/content` ships:
 
 ```ts
 // vite.config.ts
-import { content } from "@pitlane/content/vite";
-import { headings } from "@pitlane/content/satteri";
+import { headings, rawStyles } from "@pitlane/content/satteri";
+import { contentLayer } from "@pitlane/content/vite";
 import { remix } from "@pitlane/dev";
 import { defineConfig } from "vite";
 import satteri from "vite-plugin-satteri";
 
 export default defineConfig({
     plugins: [
-        satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
-        content(),
+        satteri({
+            mdx: { jsxImportSource: "remix/ui" },
+            mdastPlugins: [headings()],
+            hastPlugins: [rawStyles()],
+        }),
+        contentLayer(),
         remix(),
     ],
 });
@@ -408,9 +428,17 @@ a Remix component rather than a React one.
 
 `headings()` fills the `headings` array `render()` resolves to. An MDX file
 exports the list from its compiled module. Markdown compiles to an HTML string
-with no room for one, so `content()` measures that list itself during the
+with no room for one, so `contentLayer()` measures that list itself during the
 build. A prebuilt `.md` page gets the same table of contents as the same file
 rendered at runtime.
+
+`rawStyles()` keeps a `<style>` element's CSS intact. Remix escapes `>` in the
+text of an element, and a browser never undoes that inside `<style>`, so a
+rule written `pre > code` would arrive as `pre &gt; code` and do nothing. The
+plugin hands the CSS over as raw markup instead. Add it whenever your content
+can produce a `<style>` — which includes every page with a highlighted code
+block, because that is how [Expressive Code](#highlighting-code) ships its
+theme.
 
 A collection of `.json` or `.yaml` files needs none of this. Calling `render()`
 on a data entry is an error rather than an empty component, because a blank
@@ -477,15 +505,15 @@ fine. Annotating `handle` is not.
 ## Prebuilding for a host with no filesystem
 
 `loaders.glob` and `loaders.file` read the filesystem. Cloudflare Workers does
-not have one, so add `content()` to the Vite config and the build resolves the
+not have one, so add `contentLayer()` to the Vite config and the build resolves the
 collections ahead of time. Entry data becomes plain values in the bundle, and
 Markdown bodies become modules the bundler compiles.
 
 ```ts
-import { content } from "@pitlane/content/vite";
+import { contentLayer } from "@pitlane/content/vite";
 
 export default defineConfig({
-    plugins: [content(), remix()],
+    plugins: [contentLayer(), remix()],
 });
 ```
 
@@ -493,13 +521,13 @@ export default defineConfig({
 and so is every controller that queries it. Adding a host edits the Vite
 config.
 
-`content()` executes `app/content.ts` in Node during the build, so that module
+`contentLayer()` executes `app/content.ts` in Node during the build, so that module
 must import cleanly there. Keep it to collection declarations, with no
 `cloudflare:workers` imports and nothing that needs a live server. Point
 `entry` elsewhere if the module lives somewhere else:
 
 ```ts
-content({ entry: "app/collections.ts" });
+contentLayer({ entry: "app/collections.ts" });
 ```
 
 Only a `ContentLoader` is prebuilt. A `LiveLoader` is untouched, because there
@@ -511,12 +539,12 @@ of serving an empty list:
 
 ```text
 Collection "blog" has no prebuilt content and no filesystem to read.
-Add content() from "@pitlane/content/vite" to your Vite config.
+Add contentLayer() from "@pitlane/content/vite" to your Vite config.
 ```
 
 ## Reloading while you work
 
-`content()` watches every path the loaders report. Editing, adding, or deleting
+`contentLayer()` watches every path the loaders report. Editing, adding, or deleting
 a content file rebuilds the affected collection and reloads the page, so
 nothing here needs a restart.
 
@@ -573,23 +601,37 @@ import expressiveCode from "satteri-expressive-code";
 
 let code = expressiveCode({ themes: ["github-dark", "github-light"] });
 
-satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()], hastPlugins: [code] });
+satteri({
+    mdx: { jsxImportSource: "remix/ui" },
+    mdastPlugins: [headings()],
+    hastPlugins: [code, rawStyles()],
+});
 ```
 
 The plugin emits its own `<style>` element with the content, so it needs no
-stylesheet of yours.
+stylesheet of yours. That is why `rawStyles()` is in the list and why it comes
+after `code`: without it Expressive Code's own rules lose their `>` and your
+code blocks render with the theme half applied.
 
 A loader's `satteri` option configures the runtime rendering path only. On a
-collection `content()` prebuilt it does nothing, and the build says so:
+collection `contentLayer()` prebuilt it does nothing, and the build says so:
 
 ```text
-Collection "blog" configures loader options.satteri, but content() prebuilt it,
+Collection "blog" configures loader options.satteri, but contentLayer() prebuilt it,
 so vite-plugin-satteri renders it and those options do nothing. Move the plugins
-into satteri() in your Vite config, or drop content() for this collection.
+into satteri() in your Vite config, or drop contentLayer() for this collection.
 ```
 
 ## Limitations
 
+- **A component written in a `.md` file does not render.** Markdown compiles
+  to an HTML string, so `<Callout />` in a `.md` body is an unknown tag rather
+  than your component, and nothing says so. Author that file as `.mdx`. This
+  catches people moving off `@mdx-js/rollup`, which compiled both extensions
+  as MDX; we intend to close the gap by compiling Markdown to components too,
+  which would also drop the wrapper `<div>` below.
+- **A rendered Markdown body is wrapped in a `<div>`.** `innerHTML` is an
+  element prop, so the markup needs an element to land on. MDX has no wrapper.
 - **A prebuilt Markdown heading list is measured with `headings()` alone.**
   Another `mdastPlugin` that rewrites heading text or slugs changes the
   prebuilt HTML without changing that list, because `vite-plugin-satteri` does
@@ -623,7 +665,7 @@ Rendering Markdown with no renderer installed names the fix:
 
 ```text
 Rendering "app/content/blog/hello.md" needs the optional peer dependency "satteri";
-install it, or add content() from @pitlane/content/vite so the build compiles this collection.
+install it, or add contentLayer() from @pitlane/content/vite so the build compiles this collection.
 ```
 
 ## Reference
@@ -634,5 +676,5 @@ install it, or add content() from @pitlane/content/vite so the build compiles th
   else
 - [`@pitlane/content`](/package/content/): `createContent` and the types
 - [`@pitlane/content/loaders`](/package/content/loaders): `glob` and `file`
-- [`@pitlane/content/satteri`](/package/content/satteri): the `headings` plugin
-- [`@pitlane/content/vite`](/package/content/vite): the `content()` plugin
+- [`@pitlane/content/satteri`](/package/content/satteri): the `headings` and `rawStyles` plugins
+- [`@pitlane/content/vite`](/package/content/vite): the `contentLayer()` plugin

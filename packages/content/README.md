@@ -40,19 +40,19 @@ let author = await content.authors.getEntry(post.data.author);
 ```
 
 The loaders are ordinary runtime code, which covers Node, Bun, Deno, and
-container hosts. For a host with no filesystem, add `content()` from
+container hosts. For a host with no filesystem, add `contentLayer()` from
 `@pitlane/content/vite` and the build resolves the collections ahead of time,
 inlining entry data and compiling Markdown bodies into the bundle. The
 collection declarations do not change.
 
 ## Entry points
 
-| Entry point                | Exports                                  |
-| -------------------------- | ---------------------------------------- |
-| `@pitlane/content`         | `createContent` and the collection types |
-| `@pitlane/content/loaders` | `glob`, `file`                           |
-| `@pitlane/content/satteri` | `headings`, a Sätteri MDAST plugin       |
-| `@pitlane/content/vite`    | `content`, the build-time plugin         |
+| Entry point                | Exports                                     |
+| -------------------------- | ------------------------------------------- |
+| `@pitlane/content`         | `createContent` and the collection types    |
+| `@pitlane/content/loaders` | `glob`, `file`                              |
+| `@pitlane/content/satteri` | `headings` and `rawStyles`, Sätteri plugins |
+| `@pitlane/content/vite`    | `contentLayer`, the build-time plugin       |
 
 ## Without Remix
 

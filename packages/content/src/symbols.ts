@@ -1,5 +1,5 @@
 /**
- * The two globals `content()` and the runtime use to find each other.
+ * The two globals `contentLayer()` and the runtime use to find each other.
  *
  * They are named here rather than at each site because a drifted spelling fails
  * in the quietest possible way: the emitted manifest assigns one symbol,
@@ -11,10 +11,10 @@
  * back for its side effect, so this module holds nothing but the names.
  */
 
-/** Set by `content()` before it runs the content entry; read to decide whether to prebuild. */
+/** Set by `contentLayer()` before it runs the content entry; read to decide whether to prebuild. */
 export const PREBUILD_CHANNEL = Symbol.for("pitlane.content.prebuild");
 
-/** Assigned by the module `content()` emits in place of `manifest.ts`. */
+/** Assigned by the module `contentLayer()` emits in place of `manifest.ts`. */
 export const PREBUILT_MANIFEST = Symbol.for("pitlane.content.manifest");
 
 /** The spelling the emitted module writes, which has to match {@link PREBUILT_MANIFEST}. */

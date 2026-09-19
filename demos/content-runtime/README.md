@@ -9,7 +9,7 @@ pnpm --filter pitlane-content-runtime-demo run dev     # http://localhost:1613
 pnpm --filter pitlane-content-runtime-demo run start   # production
 ```
 
-No build step, no `content()`, no `vite-plugin-satteri`, no Vite. The server runs
+No build step, no `contentLayer()`, no `vite-plugin-satteri`, no Vite. The server runs
 through `remix/node-tsx`, which is what lets `.tsx` load in plain Node.
 
 `start` is that server and nothing else: the asset server minifies and

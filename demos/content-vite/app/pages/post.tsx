@@ -1,11 +1,11 @@
-import type { CollectionEntry, Heading, RenderedEntry } from "@pitlane/content";
+import type { Heading, RenderedEntry } from "@pitlane/content";
 import type { Handle } from "remix/ui";
 
-import type { Author, Post } from "#/types.ts";
+import type { AuthorEntry, PostEntry } from "#/types.ts";
 
 export interface PostPageProps {
-    post: CollectionEntry<Post>;
-    author: CollectionEntry<Author> | undefined;
+    post: PostEntry;
+    author: AuthorEntry | undefined;
     headings: Heading[];
     Content: RenderedEntry["Content"];
 }

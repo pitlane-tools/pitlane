@@ -2,14 +2,10 @@ import type { CollectionEntry } from "@pitlane/content";
 
 import type { content } from "#/content.ts";
 
-type Collections = Awaited<typeof content>;
-type EntryOf<C extends keyof Collections> = Awaited<
-    ReturnType<Collections[C]["getCollection"]>
->[number];
+/** One entry of each collection, named from the collection rather than its schema. */
+export type PostEntry = CollectionEntry<(typeof content)["blog"]>;
+export type AuthorEntry = CollectionEntry<(typeof content)["authors"]>;
 
 /** The entry data each collection produces, inferred from its schema. */
-export type Post = EntryOf<"blog">["data"];
-export type Author = EntryOf<"authors">["data"];
-
-export type PostEntry = CollectionEntry<Post>;
-export type AuthorEntry = CollectionEntry<Author>;
+export type Post = PostEntry["data"];
+export type Author = AuthorEntry["data"];

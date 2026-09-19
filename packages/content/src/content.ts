@@ -1,6 +1,6 @@
 import type {
     CollectionDefinition,
-    CollectionEntry,
+    Entry,
     Content,
     ContentBuilder,
     ContentLoader,
@@ -32,7 +32,7 @@ import { HOT_COLLECTION } from "./symbols.ts";
  * Cloudflare Workers forbids asynchronous I/O in global scope, and this is
  * called at module scope. Each collection populates on its first read instead.
  *
- * The exception is a build running under `content()`, where every
+ * The exception is a build running under `contentLayer()`, where every
  * `ContentLoader` collection is populated eagerly so the result can be inlined
  * into the bundle.
  */
@@ -200,7 +200,7 @@ function liveCollection(name: string, schema: StandardSchemaV1, loader: LiveLoad
     }
 
     return {
-        async getCollection(filter?: (entry: CollectionEntry<unknown>) => unknown) {
+        async getCollection(filter?: (entry: Entry<unknown>) => unknown) {
             let live = await loader.loadCollection().catch((error: unknown) => {
                 throw annotate(name, error);
             });
@@ -220,7 +220,7 @@ function liveCollection(name: string, schema: StandardSchemaV1, loader: LiveLoad
 
 function queries(name: string, entries: () => Promise<Map<string, StoredEntry>>) {
     return {
-        async getCollection(filter?: (entry: CollectionEntry<unknown>) => unknown) {
+        async getCollection(filter?: (entry: Entry<unknown>) => unknown) {
             return present(name, [...(await entries()).values()], filter);
         },
         async getEntry(id: string | { id: string }) {
@@ -235,7 +235,7 @@ function queries(name: string, entries: () => Promise<Map<string, StoredEntry>>)
 function present(
     name: string,
     entries: StoredEntry[],
-    filter?: (entry: CollectionEntry<unknown>) => unknown,
+    filter?: (entry: Entry<unknown>) => unknown,
 ) {
     let views = entries
         .slice()
@@ -244,7 +244,7 @@ function present(
     return filter ? views.filter(entry => filter(entry)) : views;
 }
 
-function view(collection: string, entry: StoredEntry): CollectionEntry<unknown> {
+function view(collection: string, entry: StoredEntry): Entry<unknown> {
     return {
         id: entry.id,
         collection,
@@ -285,7 +285,7 @@ function annotate(collection: string, error: unknown) {
     });
 }
 
-/** Under `content()`, every `ContentLoader` collection loads before the build reads it. */
+/** Under `contentLayer()`, every `ContentLoader` collection loads before the build reads it. */
 async function populateEagerly(
     content: Record<string, unknown>,
     definitions: Record<string, CollectionDefinition>,

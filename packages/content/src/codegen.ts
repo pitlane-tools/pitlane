@@ -14,7 +14,7 @@ export interface Body {
 }
 
 /**
- * The manifest module `content()` emits, as JavaScript source.
+ * The manifest module `contentLayer()` emits, as JavaScript source.
  *
  * Every value is a literal so the bundler can see it, and each body is a static
  * import of a virtual module, which is the step no runtime cleverness replaces:

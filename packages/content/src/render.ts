@@ -105,7 +105,7 @@ function compile(names: readonly string[], code: string, where: string) {
         let cause = error instanceof Error ? error.message : String(error);
         throw new Error(
             `"${where}" has a body that cannot be compiled outside a bundler: ${cause}. The ` +
-                `document becomes a function body here rather than a module. Add content() from ` +
+                `document becomes a function body here rather than a module. Add contentLayer() from ` +
                 `@pitlane/content/vite so the build compiles this collection.`,
             { cause: error },
         );
@@ -153,28 +153,30 @@ function dataHeadings(data: unknown): Heading[] {
 }
 
 /**
- * The runtime rendering options: the application's, with the two things both
+ * The runtime rendering options: the application's, with the three things both
  * paths must agree on forced on.
  *
- * `headings` is the same plugin `vite-plugin-satteri` runs on the prebuilt
- * path, which is what makes the two produce the same list. Frontmatter parsing
- * stays on because a `LiveLoader` may hand back a body that still carries a
- * fence, and rendering that as a horizontal rule would be worse than parsing
- * it away.
+ * `headings` and `rawStyles` are the same plugins `vite-plugin-satteri` runs
+ * on the prebuilt path, which is what makes the two produce the same list and
+ * the same working CSS. `rawStyles` goes last so it sees the `<style>` a
+ * highlighter appended. Frontmatter parsing stays on because a `LiveLoader`
+ * may hand back a body that still carries a fence, and rendering that as a
+ * horizontal rule would be worse than parsing it away.
  */
 async function runtimeOptions(entry: StoredEntry) {
-    // Imported here rather than at module scope because `./satteri.ts` imports
-    // `satteri` itself: a static import would make the optional peer dependency
-    // mandatory for every consumer, including one whose content is all prebuilt.
-    let { headings } = await import("./satteri.ts");
+    // Imported here rather than at module scope so a bundled application whose
+    // collections are all prebuilt never carries the rendering path at all.
+    let { headings, rawStyles } = await import("./satteri.ts");
     let configured = (entry.satteri ?? {}) as {
         mdastPlugins?: unknown[];
+        hastPlugins?: unknown[];
         features?: Record<string, unknown>;
     };
     return {
         ...configured,
         features: { ...configured.features, frontmatter: true },
         mdastPlugins: [headings(), ...(configured.mdastPlugins ?? [])],
+        hastPlugins: [...(configured.hastPlugins ?? []), rawStyles()],
     };
 }
 
@@ -358,7 +360,7 @@ async function loadSatteri(where: string): Promise<Satteri> {
     } catch {
         throw new Error(
             `Rendering "${where}" needs the optional peer dependency "satteri"; install it, ` +
-                "or add content() from @pitlane/content/vite so the build compiles this collection.",
+                "or add contentLayer() from @pitlane/content/vite so the build compiles this collection.",
         );
     }
 }

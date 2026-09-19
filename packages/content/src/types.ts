@@ -108,7 +108,7 @@ export interface RenderedEntry {
 }
 
 /** One entry of a collection, as a caller sees it. */
-export interface CollectionEntry<Data> {
+export interface Entry<Data> {
     id: string;
     collection: string;
     data: Data;
@@ -116,12 +116,21 @@ export interface CollectionEntry<Data> {
     render(): Promise<RenderedEntry>;
 }
 
+/**
+ * One entry of `collection`, named the way an application thinks of it:
+ * `CollectionEntry<typeof content.blog>`.
+ *
+ * {@link Entry} is keyed by the shape of the data, which is what the query
+ * methods resolve to and all this package needs internally. An application
+ * has the collection rather than the shape, and pulling one out of the other
+ * is a conditional type every consumer would otherwise write for itself.
+ */
+export type CollectionEntry<C> = C extends Collection<string, infer Data> ? Entry<Data> : never;
+
 /** The query surface of one collection. */
 export interface Collection<Name extends string, Data> {
-    getCollection(
-        filter?: (entry: CollectionEntry<Data>) => unknown,
-    ): Promise<CollectionEntry<Data>[]>;
-    getEntry(id: string | Reference<Name>): Promise<CollectionEntry<Data> | undefined>;
+    getCollection(filter?: (entry: Entry<Data>) => unknown): Promise<Entry<Data>[]>;
+    getEntry(id: string | Reference<Name>): Promise<Entry<Data> | undefined>;
 }
 
 /** The raw source of an entry's document, before anything renders it. */
@@ -151,7 +160,7 @@ export interface LoaderContext {
     /**
      * The project root a relative path resolves against.
      *
-     * `process.cwd()` at runtime, and the Vite root under `content()`, which is
+     * `process.cwd()` at runtime, and the Vite root under `contentLayer()`, which is
      * what keeps a collection pointing at the same files when the build runs
      * from somewhere else.
      */
@@ -164,7 +173,7 @@ export interface LoaderContext {
  * A loader that resolves a whole collection by filling a store.
  *
  * Its shape is the claim that one execution produces the complete answer, which
- * is what lets `content()` run it during the build and inline the result.
+ * is what lets `contentLayer()` run it during the build and inline the result.
  */
 export interface ContentLoader {
     name: string;
@@ -213,7 +222,7 @@ export type Content<T extends Record<string, CollectionDefinition>> = {
     [K in keyof T]: Collection<K & string, InferSchema<T[K]["schema"]>>;
 };
 
-/** How `content()` spells an entry's body in the manifest it emits. */
+/** How `contentLayer()` spells an entry's body in the manifest it emits. */
 export type PrebuiltBody =
     // Markdown compiles to HTML, which carries no heading list of its own, so
     // the build writes the one it measured alongside it. Without that a
@@ -222,7 +231,7 @@ export type PrebuiltBody =
     | { format: "md"; html: string; headings?: unknown }
     | { format: "mdx"; module: Record<string, unknown> };
 
-/** One entry in the manifest `content()` emits. */
+/** One entry in the manifest `contentLayer()` emits. */
 export interface PrebuiltEntry {
     id: string;
     data: unknown;
@@ -231,7 +240,7 @@ export interface PrebuiltEntry {
 }
 
 /**
- * The manifest `content()` emits, keyed by collection name.
+ * The manifest `contentLayer()` emits, keyed by collection name.
  *
  * A collection missing from it was not prebuilt, and its absence is what tells
  * the runtime to use the loader.

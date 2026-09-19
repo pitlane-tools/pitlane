@@ -2,7 +2,14 @@ import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ContentLoader, LiveEntry, LiveLoader, LoadedEntry, Reference } from "./types.ts";
+import type {
+    CollectionEntry,
+    ContentLoader,
+    LiveEntry,
+    LiveLoader,
+    LoadedEntry,
+    Reference,
+} from "./types.ts";
 
 import { createContent } from "./content.ts";
 import { prebuiltManifest } from "./prebuild.ts";
@@ -90,7 +97,7 @@ describe("createContent", () => {
 describe("the manifest handshake", () => {
     it("registers under the symbol the runtime reads", async () => {
         // `manifest.ts` spells the symbol literally, because anything it
-        // imports is hoisted into the chunk `content()` replaces. This is what
+        // imports is hoisted into the chunk `contentLayer()` replaces. This is what
         // keeps that literal and `symbols.ts` from drifting apart: importing
         // the package has to leave the key `prebuiltManifest()` reads present.
         await import("./manifest.ts");
@@ -282,6 +289,18 @@ describe("reading a collection", () => {
         let entries = await content.blog.getCollection(entry => entry.id !== "b");
 
         expect(entries.map(entry => entry.id)).toEqual(["a", "c"]);
+    });
+
+    it("names an entry by its collection, so an application can write the type down", async () => {
+        // An application passing entries between modules has to name their
+        // type. Without this it extracts the data shape out of the collection
+        // with a conditional type of its own, which every consumer would
+        // otherwise write for itself.
+        let content = await blog();
+        let entry: CollectionEntry<typeof content.blog> | undefined =
+            await content.blog.getEntry("a");
+
+        expect(entry?.data.title).toBe("A");
     });
 
     it("carries the id, the collection name, and the parsed data on each entry", async () => {

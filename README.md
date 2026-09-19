@@ -66,7 +66,7 @@ Because every template is the same app, diffing any two shows exactly what a pla
 
 ```
 packages/
-├── content/          # @pitlane/content — createContent() and the content() Vite plugin
+├── content/          # @pitlane/content — createContent() and the contentLayer() Vite plugin
 ├── crawler/          # @pitlane/crawler — crawl() and staticPaths()
 ├── create-pitlane/   # create-pitlane — reserved name, the future scaffolder
 ├── data-table-d1/    # @pitlane/data-table-d1 — Cloudflare D1 driver

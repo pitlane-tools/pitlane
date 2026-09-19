@@ -15,7 +15,7 @@ import { headings } from "./satteri.ts";
 const MANIFEST = Symbol.for("pitlane.content.manifest");
 
 /**
- * Installs a manifest the way the module `content()` emits does: by assigning
+ * Installs a manifest the way the module `contentLayer()` emits does: by assigning
  * the symbol the runtime reads. Standing in for the emitted module rather than
  * mocking one keeps the test on the same contract the plugin uses.
  */
@@ -145,6 +145,45 @@ describe("render, on a collection rendered at runtime", () => {
         ]);
 
         await expect(content.blog.getCollection()).resolves.toHaveLength(1);
+    });
+
+    it("emits a style element's CSS unescaped, so the runtime path ships working rules", async () => {
+        // Remix escapes `>` in an element's text children and a browser never
+        // undoes that inside `<style>`, which is a raw-text element. The
+        // prebuilt path asks the application for `rawStyles`; this path has
+        // no config to ask, so `render` applies it after the loader's own
+        // plugins — where Expressive Code's stylesheet already is.
+        let css = ".expressive-code pre > code{color:red}";
+        let content = await blogFrom([
+            {
+                id: "hello",
+                data: { title: "Hello" },
+                body: { format: "mdx", source: "# Greeting\n" },
+                satteri: {
+                    hastPlugins: [
+                        {
+                            name: "test-inject-style",
+                            element: {
+                                filter: ["h1"],
+                                visit: () => ({
+                                    type: "element",
+                                    tagName: "style",
+                                    properties: {},
+                                    children: [{ type: "text", value: css }],
+                                }),
+                            },
+                        },
+                    ],
+                },
+            } as LoadedEntry,
+        ]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content } = await entry!.render();
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toContain(css);
+        expect(html).not.toContain("&gt;");
     });
 });
 

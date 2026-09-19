@@ -297,6 +297,10 @@ A collection reads its files once, on first access, and keeps them for the life
 of the process. Failures are the exception: nothing caches them, so one
 unreadable file does not break a collection until you restart.
 
+To name an entry's type when you pass it to a component, use
+`CollectionEntry<typeof content.blog>`, described under
+[Querying a collection](/guides/content#querying-a-collection).
+
 ## Generating routes from content
 
 An id is a path, so a route parameter is all it takes:
@@ -621,10 +625,18 @@ loaders.glob({
 ```
 
 The plugin emits its own `<style>` element with the content, so it needs no
-stylesheet of yours.
+stylesheet of yours. `render()` keeps that CSS intact for you: Remix escapes
+`>` in the text of an element and a browser never undoes that inside
+`<style>`, so the runtime path always applies `rawStyles` from
+`@pitlane/content/satteri`. Nothing here needs configuring.
 
 ## Limitations
 
+- **A component written in a `.md` file does not render.** Markdown compiles
+  to an HTML string, so `<Callout />` in a `.md` body is an unknown tag rather
+  than your component, and nothing says so. Author that file as `.mdx`.
+- **A rendered Markdown body is wrapped in a `<div>`.** `innerHTML` is an
+  element prop, so the markup needs an element to land on. MDX has no wrapper.
 - **A newly created content file does not reload.** Edits and deletions do.
   The cause is upstream, in how `remix/node-hmr` filters watcher events.
 - **MDX needs a host that allows `new Function`.** Node, Bun, and Deno qualify.

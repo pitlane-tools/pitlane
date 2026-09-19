@@ -2,12 +2,12 @@ import type { PrebuiltCollections } from "./types.ts";
 
 import { PREBUILD_CHANNEL, PREBUILT_MANIFEST } from "./symbols.ts";
 
-// Imported for its side effect: `content()` replaces this module with one that
+// Imported for its side effect: `contentLayer()` replaces this module with one that
 // registers the manifest it emitted. See the note in `manifest.ts`.
 import "./manifest.ts";
 
 /**
- * The channel between `content()` and `createContent`.
+ * The channel between `contentLayer()` and `createContent`.
  *
  * The plugin runs the application's content module through Vite's module
  * runner, which evaluates it in a realm of its own. A module-scoped variable
@@ -30,7 +30,7 @@ interface Global {
     [PREBUILT_MANIFEST]?: PrebuiltCollections;
 }
 
-/** Opens prebuild mode. Called by `content()` before it runs the entry. */
+/** Opens prebuild mode. Called by `contentLayer()` before it runs the entry. */
 export function openPrebuild(root: string): Channel {
     let channel: Channel = {
         collections: new Map(),
@@ -70,7 +70,7 @@ export function contentRoot(): string {
 /**
  * Marks a `createContent` call as started, and returns its completion callback.
  *
- * `content()` uses this to notice an entry module that declares collections
+ * `contentLayer()` uses this to notice an entry module that declares collections
  * without awaiting them. `ssrLoadModule` resolves as soon as the module body
  * does, so every later `recordPrebuilt` would no-op into a closed channel and
  * the build would emit an empty manifest — working on Node and failing only on
@@ -91,13 +91,13 @@ export function unfinishedContent(): boolean {
     return ((globalThis as Global)[PREBUILD_CHANNEL]?.inFlight ?? 0) > 0;
 }
 
-/** Records one collection's entries for `content()` to read back. */
+/** Records one collection's entries for `contentLayer()` to read back. */
 export function recordPrebuilt(collection: string, entries: unknown[]): void {
     (globalThis as Global)[PREBUILD_CHANNEL]?.collections.set(collection, entries);
 }
 
 /**
- * Records the paths a loader says it reads, so `content()` can watch them.
+ * Records the paths a loader says it reads, so `contentLayer()` can watch them.
  *
  * This comes from the loader rather than from the entries it produced: a
  * collection that currently matches nothing has no file paths to infer from,
@@ -114,14 +114,14 @@ export function recordWatched(paths: readonly string[]): void {
  *
  * Those options only take effect when the collection renders at runtime, so a
  * prebuilt collection carrying them has a plugin list that silently applies on
- * some hosts and not others. `content()` warns rather than let that pass.
+ * some hosts and not others. `contentLayer()` warns rather than let that pass.
  */
 export function recordConfiguredSatteri(collection: string): void {
     (globalThis as Global)[PREBUILD_CHANNEL]?.configuredSatteri.add(collection);
 }
 
 /**
- * The manifest `content()` emitted, or `null` when nothing prebuilt anything.
+ * The manifest `contentLayer()` emitted, or `null` when nothing prebuilt anything.
  *
  * A prebuild reads no manifest, because it is producing one. Without that rule
  * a process that has already imported a prebuilt bundle — two builds in one

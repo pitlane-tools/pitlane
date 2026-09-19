@@ -1,4 +1,9 @@
-import type { MdastPluginDefinition, MdastPluginEntry } from "satteri";
+import type {
+    HastPluginDefinition,
+    HastPluginEntry,
+    MdastPluginDefinition,
+    MdastPluginEntry,
+} from "satteri";
 
 import type { Heading } from "./types.ts";
 
@@ -52,7 +57,7 @@ function uniqueSlug(text: string, taken: Map<string, number>): string {
  * The definition is written out rather than passed through Sätteri's
  * `defineMdastPlugin`, whose entire body checks that `name` is set. Calling it
  * would make this module import the `satteri` package, and `render.ts` imports
- * this module: a Worker bundle whose collections `content()` already prebuilt
+ * this module: a Worker bundle whose collections `contentLayer()` already prebuilt
  * would then have to resolve a native addon it can never load.
  */
 export function headings(): MdastPluginEntry {
@@ -76,6 +81,57 @@ export function headings(): MdastPluginEntry {
                     type: "mdxjsEsm",
                     value: `export const headings = ${JSON.stringify(collected)};`,
                 });
+            },
+        };
+        return definition;
+    };
+}
+
+/**
+ * Hands a `<style>` element's CSS to Remix as markup rather than as text, so
+ * the stylesheet survives being rendered.
+ *
+ * `@remix-run/ui` escapes `&`, `<`, and `>` in the text children of every
+ * element except `<script>`, and emits an `innerHTML` prop verbatim. `<style>`
+ * is a raw-text element, which is exactly the case where a browser does not
+ * undo that escaping: a rule written `pre > code` reaches the page as
+ * `pre &gt; code`, matches nothing, and says nothing. Expressive Code is how
+ * most applications meet this, because it ships its theme as one such element.
+ *
+ * A workaround, not a design. The fix belongs in `@remix-run/ui`, which
+ * already special-cases `<script>` and should treat `<style>` the same way.
+ * `<script>` is deliberately not touched here: routing it through `innerHTML`
+ * would skip `escapeScriptTextContent`, which keeps a `</script>` inside a
+ * string from ending the element early.
+ */
+export function rawStyles(): HastPluginEntry {
+    return factoryContext => {
+        // Markdown serializes to an HTML string, where `<style>` is already
+        // raw text. Only MDX becomes JSX that Remix renders, and an
+        // `innerHTML` property on the string path would leak as an attribute.
+        if (factoryContext.sourceFormat !== "mdx") return false;
+
+        let definition: HastPluginDefinition = {
+            name: "pitlane-raw-styles",
+            element: {
+                filter: ["style"],
+                visit(node) {
+                    let css = "";
+                    for (let child of node.children) {
+                        // An expression or a nested element is not text to
+                        // hand over, and guessing at it would lose content.
+                        if (child.type !== "text") return;
+                        css += child.value;
+                    }
+                    if (!css) return;
+
+                    return {
+                        type: "element",
+                        tagName: "style",
+                        properties: { ...node.properties, innerHTML: css },
+                        children: [],
+                    };
+                },
             },
         };
         return definition;

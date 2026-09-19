@@ -21,7 +21,7 @@ export function Document(handle: Handle<DocumentProps>) {
                 <head>
                     <meta charSet="utf-8" />
                     <meta content="width=device-width, initial-scale=1" name="viewport" />
-                    <title>{title} · prebuilt by content()</title>
+                    <title>{title} · prebuilt by contentLayer()</title>
                     <link href={styles} rel="stylesheet" />
                     {assets.css.map(attrs => (
                         <link key={attrs.href} {...attrs} rel="stylesheet" />

@@ -1,6 +1,6 @@
 # content-vite
 
-`@pitlane/content` with a bundler: `content()` resolves the collections during
+`@pitlane/content` with a bundler: `contentLayer()` resolves the collections during
 the build and inlines them, and `vite-plugin-satteri` compiles the Markdown
 bodies into the bundle.
 

@@ -86,7 +86,7 @@ function readable(block: string, parse: Parse, where: string) {
 
     throw new Error(
         `Could not read the imports of "${where}": its \`import\` and \`export\` block is not ` +
-            `valid JavaScript. Add content() from @pitlane/content/vite so the build compiles ` +
+            `valid JavaScript. Add contentLayer() from @pitlane/content/vite so the build compiles ` +
             `this collection.`,
     );
 }
@@ -448,7 +448,7 @@ function isWordPart(char: string) {
 function importMeta(where: string) {
     return new Error(
         `"${where}" uses \`import.meta\`, which cannot be evaluated outside a bundler: the ` +
-            `document is compiled to a function body rather than a module. Add content() from ` +
+            `document is compiled to a function body rather than a module. Add contentLayer() from ` +
             `@pitlane/content/vite so the build compiles this collection.`,
     );
 }
@@ -474,7 +474,7 @@ function identifier(name: string, statement: string, where: string) {
 function namespaceImport(local: string, statement: string, where: string) {
     return new Error(
         `"${where}" imports \`* as ${local}\` in \`${statement}\`, which cannot be resolved ` +
-            `outside a bundler. Import the components by name instead, or add content() from ` +
+            `outside a bundler. Import the components by name instead, or add contentLayer() from ` +
             `@pitlane/content/vite so the build compiles this collection.`,
     );
 }

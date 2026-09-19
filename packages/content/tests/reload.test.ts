@@ -6,7 +6,7 @@ import satteri from "vite-plugin-satteri";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { headings } from "../src/satteri.ts";
-import { content } from "../src/vite.ts";
+import { contentLayer } from "../src/vite.ts";
 
 let fixture = fileURLToPath(new URL("./fixtures/prebuild-app", import.meta.url));
 let open: { server: ViteDevServer; root: string }[] = [];
@@ -42,7 +42,7 @@ async function devServer(options?: { entry?: string }) {
         },
         plugins: [
             satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
-            content(options),
+            contentLayer(options),
         ],
     });
     open.push({ server, root });
@@ -79,7 +79,7 @@ function idsBecome(server: ViteDevServer, expected: string[], entry = "/app/cont
     );
 }
 
-describe("content() in dev", () => {
+describe("contentLayer() in dev", () => {
     it("picks up a post added after the server started", async () => {
         let { server, root } = await devServer();
 

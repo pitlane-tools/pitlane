@@ -1,10 +1,9 @@
-import type { CollectionEntry } from "@pitlane/content";
 import type { Handle } from "remix/ui";
 
-import type { Author } from "#/types.ts";
+import type { AuthorEntry } from "#/types.ts";
 
 export interface AuthorsProps {
-    authors: CollectionEntry<Author>[];
+    authors: AuthorEntry[];
 }
 
 export function Authors(handle: Handle<AuthorsProps>) {
