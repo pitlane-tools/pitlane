@@ -6,7 +6,16 @@ import type { ContentLoader } from "../types.ts";
 import { filesystem } from "./filesystem.ts";
 import { read } from "./read.ts";
 
-type Parser = (text: string) => Record<string, unknown> | unknown[];
+/**
+ * Turns a file's text into whatever it holds.
+ *
+ * The return type is `unknown` rather than the object-or-array this loader
+ * actually needs, because every parser worth passing here — `@std/jsonc`, a
+ * TOML reader — is typed as returning a JSON-value union, which a narrower
+ * type rejects. `entriesOf` refuses an unusable result by name, so demanding
+ * the caller narrow first would buy a wrapper and no safety.
+ */
+type Parser = (text: string) => unknown;
 
 /**
  * Reads one file holding many entries.

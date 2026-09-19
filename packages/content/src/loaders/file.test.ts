@@ -117,6 +117,28 @@ describe("loaders.file", () => {
             },
         ]);
     });
+
+    it("accepts a parser that answers with a JSON value, which is what a real one does", async () => {
+        // Every off-the-shelf parser worth reaching for — `@std/jsonc`, a TOML
+        // reader, `JSON.parse` under a stricter lib — is typed as returning
+        // some JSON-value union rather than an object or an array, because
+        // that is what a document can legally hold. Narrowing it is this
+        // loader's job, and it does it below with an error that names the
+        // file; demanding the caller narrow first only buys them a wrapper.
+        type JsonValue =
+            | string
+            | number
+            | boolean
+            | null
+            | JsonValue[]
+            | { [key: string]: JsonValue };
+        let parseJsonc = (text: string): JsonValue =>
+            JSON.parse(text.replace(/^\s*\/\/.*$/gm, "")) as JsonValue;
+
+        let entries = await collect(file(`${fixtures}/authors.jsonc`, { parser: parseJsonc }));
+
+        expect(entries.map(entry => entry.id)).toEqual(["ada", "grace"]);
+    });
 });
 
 describe("loaders.file parse failures", () => {
