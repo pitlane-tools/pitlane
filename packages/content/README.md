@@ -64,8 +64,8 @@ so if you call it without one.
 
 ## Documentation
 
-- [Content](https://pitlane.tools/guides/content)
-- [Content (no build)](https://pitlane.tools/guides/content-no-build)
+- [Content](https://pitlane.tools/guides/content), whose toggle also serves
+  [an application that runs without a build](https://pitlane.tools/guides/content-no-build)
 - [Creating a content loader](https://pitlane.tools/guides/content-loaders)
 - [API reference](https://pitlane.tools/package/content/)
 

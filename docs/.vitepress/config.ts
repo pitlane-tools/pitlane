@@ -8,6 +8,7 @@ import {
 } from "vitepress-plugin-group-icons";
 import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
+import { buildModes } from "./build-modes-plugin.ts";
 import { pmTabsInlineScript } from "./pm-tabs.ts";
 
 const SITE_URL = "https://pitlane.tools";
@@ -28,8 +29,10 @@ let guides: DefaultTheme.SidebarItem[] = [
             { text: "Vite Plugin", link: "/guides/vite-plugin" },
             { text: "Styling", link: "/guides/styling" },
             { text: "Single-Page Apps", link: "/guides/spa" },
+            // One entry, not two: /guides/content-no-build is the same guide
+            // with the other setup selected, and the toggle at the top of the
+            // page is how a reader gets there.
             { text: "Content", link: "/guides/content" },
-            { text: "Content (no build)", link: "/guides/content-no-build" },
             { text: "Creating a Content Loader", link: "/guides/content-loaders" },
             { text: "Prerendering", link: "/guides/prerendering" },
             { text: "Crawling", link: "/guides/crawler" },
@@ -60,7 +63,8 @@ let config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
-    srcExclude: ["superpowers/**", "internal/**"],
+    // `_`-prefixed files are partials a page includes, not pages of their own.
+    srcExclude: ["superpowers/**", "internal/**", "**/_*.md"],
     cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
@@ -93,6 +97,10 @@ let config = defineConfig({
     },
     vite: {
         plugins: [
+            // Before llmstxt(): it resolves includes itself and emits a Markdown
+            // twin of every page, so the mode has to be resolved in the source
+            // both of them read.
+            buildModes(),
             groupIconVitePlugin({
                 customIcon: {
                     vp: localIconLoader(import.meta.url, "../public/icons/vp.svg"),

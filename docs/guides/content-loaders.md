@@ -521,8 +521,7 @@ the consumer can extend rather than one you impose.
 
 ## Reference
 
-- [Content](/guides/content): collections prebuilt by a bundler
-- [Content (no build)](/guides/content-no-build): collections served from
-  source
+- [Content](/guides/content): declaring, querying, and rendering collections,
+  on either host
 - [`@pitlane/content`](/package/content/): `ContentLoader`, `LiveLoader`,
   `LoaderContext`, `LoadedEntry`, `LiveEntry`

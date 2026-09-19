@@ -1,6 +1,8 @@
 ---
 title: Prerendering
 description: "How remix({ prerender }) renders paths to static HTML at build time, and where the paths come from."
+build: vite
+buildAlternateNote: "Prerendering happens during the build."
 ---
 
 # Prerendering

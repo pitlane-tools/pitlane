@@ -3,6 +3,7 @@ import type { Theme } from "vitepress";
 import { themeContextKey, VoidZeroTheme } from "@voidzero-dev/vitepress-theme";
 import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
 
+import Guide from "./layouts/Guide.vue";
 import Home from "./layouts/Home.vue";
 import "./custom.css";
 import "virtual:group-icons.css";
@@ -14,6 +15,7 @@ const monoIcon = "/favicon.svg";
 
 export default {
     ...VoidZeroTheme,
+    Layout: Guide,
     enhanceApp(ctx) {
         ctx.app.provide(themeContextKey, {
             logoDark,
