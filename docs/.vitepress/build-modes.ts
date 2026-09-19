@@ -17,8 +17,8 @@ export type BuildMode = (typeof BUILD_MODES)[number];
 
 /** How each mode names itself to a reader. */
 export const BUILD_MODE_LABELS: Record<BuildMode, string> = {
-    "no-build": "Without build tools",
-    vite: "With Vite",
+    "no-build": "No Build",
+    vite: "Vite",
 };
 
 /** Whether `value` names one of the modes. */
