@@ -7,7 +7,6 @@ import { BUILD_MODE_LABELS, BUILD_MODES, type BuildMode } from "../../build-mode
 interface BuildModeFrontmatter {
     build?: unknown;
     buildAlternate?: unknown;
-    buildAlternateNote?: unknown;
 }
 
 let { frontmatter } = useData<BuildModeFrontmatter>();
@@ -16,69 +15,57 @@ function asMode(value: unknown): BuildMode | undefined {
     return BUILD_MODES.find(mode => mode === value);
 }
 
-function asText(value: unknown): string | undefined {
-    return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
 let current = computed(() => asMode(frontmatter.value.build));
-let alternateLink = computed(() => asText(frontmatter.value.buildAlternate));
-let note = computed(() => asText(frontmatter.value.buildAlternateNote));
+let alternate = computed(() => {
+    let link = frontmatter.value.buildAlternate;
+    return typeof link === "string" && link.length > 0 ? link : undefined;
+});
 
 /**
  * Both modes, in a fixed order, so the control does not rearrange itself
- * between two pages of the same guide.
+ * between the two pages of one guide.
  *
- * The mode a page did not declare is a link when that page exists and inert
- * when it does not. Making each option a real `href` is what gives both modes
- * their own address and lets the switch work before hydration.
+ * Every option is a real `href`, which is what gives each mode its own
+ * address and lets the switch work before hydration.
  */
 let options = computed(() =>
     BUILD_MODES.map(mode => ({
         mode,
         label: BUILD_MODE_LABELS[mode],
         current: mode === current.value,
-        href: mode === current.value ? undefined : alternateLink.value,
+        href: mode === current.value ? undefined : alternate.value,
     })),
 );
 </script>
 
 <template>
-    <div v-if="current" class="build-modes">
-        <div class="build-modes-group" role="group" aria-label="The setup this guide describes">
-            <template v-for="option in options" :key="option.mode">
-                <a v-if="option.href" class="build-mode" :href="withBase(option.href)">
-                    {{ option.label }}
-                </a>
-                <span
-                    v-else
-                    class="build-mode"
-                    :class="{ 'is-current': option.current, 'is-unavailable': !option.current }"
-                    :aria-current="option.current ? 'page' : undefined"
-                    :aria-disabled="option.current ? undefined : true"
-                    :aria-describedby="!option.current && note ? 'build-mode-note' : undefined"
-                >
-                    {{ option.label }}
-                </span>
-            </template>
-        </div>
-        <span v-if="note && !alternateLink" id="build-mode-note" class="build-modes-note">
-            {{ note }}
-        </span>
+    <!--
+        Only a guide written in both setups shows this. A page with one setup
+        has nothing to switch to, and a control whose other half never moves
+        is noise that also has to explain itself.
+    -->
+    <div
+        v-if="current && alternate"
+        class="build-modes"
+        role="group"
+        aria-label="The setup this guide describes"
+    >
+        <template v-for="option in options" :key="option.mode">
+            <a v-if="option.href" class="build-mode" :href="withBase(option.href)">
+                {{ option.label }}
+            </a>
+            <span v-else class="build-mode is-current" aria-current="page">
+                {{ option.label }}
+            </span>
+        </template>
     </div>
 </template>
 
 <style scoped>
 .build-modes {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.375rem 0.625rem;
-    margin-bottom: 2rem;
-}
-
-.build-modes-group {
     display: inline-flex;
     padding: 3px;
+    margin-bottom: 2rem;
     border: 1px solid var(--vp-c-divider);
     border-radius: 8px;
     background-color: var(--vp-c-bg-alt);
@@ -111,31 +98,11 @@ a.build-mode:focus-visible {
 /* The selected mode is the one surface that sits above the group's own, which
    is what makes the pair read as a switch rather than as two labels. */
 .build-mode.is-current {
-    color: var(--vp-c-text-1);
-    background-color: var(--vp-c-bg);
-    border: 1px solid var(--vp-c-divider);
     padding: calc(0.25rem - 1px) calc(0.7rem - 1px);
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 6px;
+    background-color: var(--vp-c-bg);
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
-}
-
-/*
- * Dimmed rather than removed: that this guide has one setup and not two is
- * itself worth saying, and the note beside it says why.
- *
- * This lands near 2.9:1 in light and 3.5:1 in dark, under the 4.5:1 the rest
- * of this component holds to. WCAG 1.4.3 exempts text that is part of an
- * inactive control, and dimming is the only visual difference between this
- * and the other mode's link — at rest they are otherwise the same element.
- * The reason a reader actually needs is in the note, which is not dimmed.
- */
-.build-mode.is-unavailable {
-    color: var(--vp-c-text-3);
-    cursor: not-allowed;
-}
-
-.build-modes-note {
-    color: var(--vp-c-text-2);
-    font-size: 0.8125rem;
-    line-height: 1.4;
+    color: var(--vp-c-text-1);
 }
 </style>

@@ -1,8 +1,6 @@
 ---
 title: Hot module replacement
 description: How @pitlane/dev hot-updates a Remix 3 app during vite dev, covering which component edits swap in place, which remount, how server-only edits revalidate through the frame runtime, and the requirements and limits of both halves.
-build: vite
-buildAlternateNote: "Hot module replacement is vite dev's."
 ---
 
 # Hot module replacement

@@ -1,8 +1,6 @@
 ---
 title: Single-page apps
 description: "How remix({ server: false }) sets up a client-rendered Remix 3 app, and what the plugin still contributes once there is no server."
-build: vite
-buildAlternateNote: "A single-page app comes out of the build."
 ---
 
 # Single-page apps

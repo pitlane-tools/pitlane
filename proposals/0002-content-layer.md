@@ -840,31 +840,39 @@ There is no config file to register anything in; the loaders read the filesystem
 :::
 ```
 
-`docs/.vitepress/build-modes.ts` registers both containers and one `markdown-it` core rule that
-**deletes** the tokens of the mode the page did not declare. Deleting rather than hiding is the
-whole design: the other host's text is absent from the HTML, so the page outline, the local search
-index, the Markdown twin `vitepress-plugin-llms` emits, and a reader with JavaScript disabled all
-describe one host instead of two. A container naming a mode the page does not offer fails the
-build rather than rendering, because silently dropping a section is the failure mode a docs build
-cannot afford.
+`docs/.vitepress/build-modes-plugin.ts` is a Vite plugin that resolves the include and then
+**deletes** the sections belonging to the mode the page did not declare, in the source text,
+before anything reads it. Deleting rather than hiding is the whole design, and the source rather
+than `markdown-it` is the other half of it: a docs page is not only its HTML. The outline is built
+from the headings in the DOM, the local search index from the page's text, and
+`vitepress-plugin-llms` resolves includes itself and emits a Markdown twin of every page without
+going through `markdown-it` at all. Resolving in the one place all of them read from is what keeps
+every surface describing one host, and keeps the rule in one place rather than one per surface.
+
+`build-modes.ts` holds the vocabulary both halves share — the two mode names and their labels —
+and imports nothing, because the component that renders the control ships to the browser and
+anything that module imports goes with it.
+
+A container naming a mode its page does not declare fails the build rather than rendering, because
+silently dropping a section is the failure a docs build cannot afford.
 
 The control is `BuildModeToggle.vue`, rendered by the theme into VitePress's `doc-before` slot so
-that no guide places it by hand. It reads three frontmatter fields:
+that no guide places it by hand. It reads two frontmatter fields:
 
-| Field                | Meaning                                                               |
-| -------------------- | --------------------------------------------------------------------- |
-| `build`              | `vite` or `no-build`, which mode this page is. Absent means no toggle |
-| `buildAlternate`     | the path to the other mode's page                                     |
-| `buildAlternateNote` | why there is no other page, when `buildAlternate` is absent           |
+| Field            | Meaning                                       |
+| ---------------- | --------------------------------------------- |
+| `build`          | `vite` or `no-build`, which mode this page is |
+| `buildAlternate` | the path to the other mode's page             |
 
 Each option is an ordinary link. That is what makes both modes addressable, bookmarkable,
 crawlable, and switchable before hydration — the requirement that every option have its own URL,
 met by having each option _be_ a URL rather than by writing one into the address bar afterwards.
 
-A guide whose subject only exists under a bundler — `@pitlane/dev`'s plugin, prerendering, HMR,
-single-page apps — sets `build: vite` with a `buildAlternateNote` in place of the link. The other
-option renders disabled and carries that note as its reason, so what the reader is told is the
-author's sentence about that guide rather than a generic claim the component invented.
+**Both fields are required, so only a guide written in both setups carries the control.** A guide
+whose subject only exists under a bundler — `@pitlane/dev`'s plugin, prerendering, HMR, single-page
+apps — declares neither and shows nothing. A switch with one working half is not a switch: it has
+to explain its own dead option, and an explanation of why a control does nothing is worse than the
+absence of the control.
 
 ## Compatibility
 

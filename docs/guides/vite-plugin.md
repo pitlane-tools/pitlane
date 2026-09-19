@@ -1,8 +1,6 @@
 ---
 title: Using the Vite plugin
 description: How @pitlane/dev's remix() plugin behaves in your app day to day, across the asset runtime, the clientEntry() transform and its footguns, dev-server semantics, preview, and the build.
-build: vite
-buildAlternateNote: "@pitlane/dev is a Vite plugin."
 ---
 
 # Using the Vite plugin
