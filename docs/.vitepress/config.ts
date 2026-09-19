@@ -20,23 +20,38 @@ const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 // as their packages ship. The published site documents released surface only.
 // (The pre-release Cloudflare-era guides sit in docs/internal/legacy-guides.)
 
-// Shared by /guides/ and /deploy/ so both prefixes present one "Guides"
+// Shared by /guides and /deploy so both prefixes present one "Guides"
 // section: general usage guides first, deployment guides under Deploy.
-let guides: DefaultTheme.SidebarItem[] = [
+//
+// A two-mode guide is one guide rendered at two URLs, and a sidebar row is
+// highlighted by matching its own link against the current page — so the row
+// has to name the mode being read or the highlight disappears on the other
+// one. `current` maps each such guide to the URL of the mode in view.
+/** The mode each two-mode guide shows unless the page in view says otherwise. */
+const DEFAULT_MODES = { content: "/guides/content", prerendering: "/guides/prerendering" };
+
+let guides = (current: { content: string; prerendering: string }): DefaultTheme.SidebarItem[] => [
     {
         text: "Guides",
         items: [
-            { text: "Vite Plugin", link: "/guides/vite-plugin" },
             { text: "Styling", link: "/guides/styling" },
-            { text: "Single-Page Apps", link: "/guides/spa" },
-            // One entry, not two: /guides/content-no-build is the same guide
-            // with the other setup selected, and the toggle at the top of the
-            // page is how a reader gets there.
-            { text: "Content", link: "/guides/content" },
-            { text: "Creating a Content Loader", link: "/guides/content-loaders" },
-            { text: "Prerendering", link: "/guides/prerendering" },
+            { text: "Prerendering", link: current.prerendering },
             { text: "Crawling", link: "/guides/crawler" },
+        ],
+    },
+    {
+        text: "Vite Plugin",
+        items: [
+            { text: "Overview", link: "/guides/vite-plugin" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
+            { text: "Single-Page Apps", link: "/guides/spa" },
+        ],
+    },
+    {
+        text: "Content Layer",
+        items: [
+            { text: "Overview", link: current.content },
+            { text: "Creating a Content Loader", link: "/guides/content-loaders" },
         ],
     },
     {
@@ -113,13 +128,13 @@ let config = defineConfig({
             // those pages are not on the site, so LLMs don't get them either.
             llmstxt({
                 ignoreFiles: ["superpowers/**", "internal/**"],
-                // The theme sidebar maps two prefixes ("/guides/", "/deploy/")
+                // The theme sidebar maps two prefixes ("/guides", "/deploy")
                 // to the same `guides` array; the llms.txt TOC builder flattens
                 // sidebar values and would list every section twice. Hand it
                 // one deduped sidebar, with the API pages as a named section
                 // instead of the fallback "Other" bucket.
                 sidebar: [
-                    ...guides,
+                    ...guides(DEFAULT_MODES),
                     {
                         text: "Packages",
                         items: [
@@ -178,8 +193,20 @@ let config = defineConfig({
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
                 { text: "@pitlane/theme", link: "/package/theme/" },
             ],
-            "/guides/": guides,
-            "/deploy/": guides,
+            // `getSidebar` prefers the key with the most path segments, so a
+            // no-build page gets its own copy whose row points at itself.
+            // `/guides` rather than `/guides/` keeps that ordering unambiguous:
+            // the specific keys have one more segment.
+            "/guides/content-no-build": guides({
+                ...DEFAULT_MODES,
+                content: "/guides/content-no-build",
+            }),
+            "/guides/prerendering-no-build": guides({
+                ...DEFAULT_MODES,
+                prerendering: "/guides/prerendering-no-build",
+            }),
+            "/guides": guides(DEFAULT_MODES),
+            "/deploy": guides(DEFAULT_MODES),
         },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
