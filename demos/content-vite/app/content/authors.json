@@ -1,0 +1,12 @@
+[
+    {
+        "id": "ada",
+        "name": "Ada Lovelace",
+        "bio": "Wrote the first algorithm intended for a machine."
+    },
+    {
+        "id": "grace",
+        "name": "Grace Hopper",
+        "bio": "Built the first compiler and found the first bug."
+    }
+]

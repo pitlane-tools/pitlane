@@ -1,0 +1,31 @@
+---
+title: MDX with components
+summary: A .mdx post importing a server component and a browser component.
+publishedOn: 2026-04-05
+author: grace
+---
+
+import { Badge } from "#/ui/badge.tsx";
+import { Counter } from "#/ui/public/counter.tsx";
+import { Footnote } from "./footnote.tsx";
+export const Aside = handle => () => <aside class="aside">{handle.props.children}</aside>;
+
+# MDX with components
+
+This file is `.mdx`, so `{2 ** 10}` evaluates to {2 ** 10} rather than
+printing as text.
+
+## Importing components
+
+<Badge label="server-only" /> renders during the response and never reaches the
+browser.
+
+<Counter start={0} />
+
+That button is a `clientEntry` component: it hydrates in the browser and keeps
+its own state. Both imports are ordinary `import` statements, and this file is
+byte-identical between the two demos.
+
+<Footnote text="Imported with a relative path, from the document's own directory." />
+
+<Aside>Defined in this document's own block.</Aside>

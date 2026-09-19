@@ -53,6 +53,7 @@ run = "node --test tools/*.test.mjs"
 [tasks."docs:api"]
 dir = "{{config_root}}/.typedoc"
 run = [
+    "./node_modules/.bin/typedoc --options content.json",
     "./node_modules/.bin/typedoc --options crawler.json",
     "./node_modules/.bin/typedoc --options data-table-d1.json",
     "./node_modules/.bin/typedoc --options dev.json",

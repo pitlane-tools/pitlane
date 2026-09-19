@@ -8,6 +8,9 @@ import {
 } from "vitepress-plugin-group-icons";
 import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
+import { buildModeTabsInlineScript } from "./build-mode-tabs.ts";
+import { buildModes } from "./build-modes-plugin.ts";
+import { BUILD_MODE_GUIDES } from "./build-modes.ts";
 import { pmTabsInlineScript } from "./pm-tabs.ts";
 
 const SITE_URL = "https://pitlane.tools";
@@ -19,22 +22,51 @@ const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 // as their packages ship. The published site documents released surface only.
 // (The pre-release Cloudflare-era guides sit in docs/internal/legacy-guides.)
 
-// Shared by /guides/ and /deploy/ so both prefixes present one "Guides"
+// Shared by /guides and /deploy so both prefixes present one "Guides"
 // section: general usage guides first, deployment guides under Deploy.
-let guides: DefaultTheme.SidebarItem[] = [
+//
+// A two-mode guide is one guide rendered at two URLs, and a sidebar row is
+// highlighted by matching its own link against the current page — so the row
+// has to name the mode being read or the highlight disappears on the other
+// one. `current` maps each such guide to the URL of the mode in view.
+/** The mode each two-mode guide shows unless the page in view says otherwise. */
+const DEFAULT_MODES = {
+    content: BUILD_MODE_GUIDES.content.vite,
+    prerendering: BUILD_MODE_GUIDES.prerendering.vite,
+};
+
+let guides = (current: { content: string; prerendering: string }): DefaultTheme.SidebarItem[] => [
     {
-        text: "Guides",
+        text: "Vite Plugin",
         items: [
-            { text: "Vite Plugin", link: "/guides/vite-plugin" },
-            { text: "Styling", link: "/guides/styling" },
-            { text: "Single-Page Apps", link: "/guides/spa" },
-            { text: "Prerendering", link: "/guides/prerendering" },
-            { text: "Crawling", link: "/guides/crawler" },
+            { text: "Overview", link: "/guides/vite-plugin" },
             { text: "Hot Module Replacement", link: "/guides/hmr" },
+            { text: "Single-Page Apps", link: "/guides/spa" },
         ],
     },
     {
-        text: "Adapters",
+        text: "Styling",
+        items: [
+            //
+            { text: "Overview", link: "/guides/styling" },
+        ],
+    },
+    {
+        text: "Crawling",
+        items: [
+            { text: "Overview", link: "/guides/crawler" },
+            { text: "Prerendering", link: current.prerendering },
+        ],
+    },
+    {
+        text: "Content",
+        items: [
+            { text: "Overview", link: current.content },
+            { text: "Creating a Content Loader", link: "/guides/content-loaders" },
+        ],
+    },
+    {
+        text: "Data",
         items: [
             //
             { text: "Cloudflare D1", link: "/guides/cloudflare-d1" },
@@ -57,7 +89,8 @@ let config = defineConfig({
     title: SITE_NAME,
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
-    srcExclude: ["superpowers/**", "internal/**"],
+    // `_`-prefixed files are partials a page includes, not pages of their own.
+    srcExclude: ["superpowers/**", "internal/**", "**/_*.md"],
     cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
@@ -90,6 +123,10 @@ let config = defineConfig({
     },
     vite: {
         plugins: [
+            // Before llmstxt(): it resolves includes itself and emits a Markdown
+            // twin of every page, so the mode has to be resolved in the source
+            // both of them read.
+            buildModes(),
             groupIconVitePlugin({
                 customIcon: {
                     vp: localIconLoader(import.meta.url, "../public/icons/vp.svg"),
@@ -102,16 +139,26 @@ let config = defineConfig({
             // those pages are not on the site, so LLMs don't get them either.
             llmstxt({
                 ignoreFiles: ["superpowers/**", "internal/**"],
-                // The theme sidebar maps two prefixes ("/guides/", "/deploy/")
+                // The theme sidebar maps two prefixes ("/guides", "/deploy")
                 // to the same `guides` array; the llms.txt TOC builder flattens
                 // sidebar values and would list every section twice. Hand it
                 // one deduped sidebar, with the API pages as a named section
                 // instead of the fallback "Other" bucket.
                 sidebar: [
-                    ...guides,
+                    ...guides(DEFAULT_MODES),
                     {
                         text: "Packages",
                         items: [
+                            { text: "@pitlane/content", link: "/package/content/index" },
+                            {
+                                text: "@pitlane/content/loaders",
+                                link: "/package/content/loaders",
+                            },
+                            {
+                                text: "@pitlane/content/satteri",
+                                link: "/package/content/satteri",
+                            },
+                            { text: "@pitlane/content/vite", link: "/package/content/vite" },
                             { text: "@pitlane/crawler", link: "/package/crawler/index" },
                             {
                                 text: "@pitlane/data-table-d1",
@@ -143,6 +190,10 @@ let config = defineConfig({
         ],
         sidebar: {
             "/package/": [
+                { text: "@pitlane/content", link: "/package/content/" },
+                { text: "@pitlane/content/loaders", link: "/package/content/loaders" },
+                { text: "@pitlane/content/satteri", link: "/package/content/satteri" },
+                { text: "@pitlane/content/vite", link: "/package/content/vite" },
                 { text: "@pitlane/crawler", link: "/package/crawler/" },
                 { text: "@pitlane/data-table-d1", link: "/package/data-table-d1/" },
                 {
@@ -153,8 +204,20 @@ let config = defineConfig({
                 { text: "@pitlane/dev/runtime", link: "/package/dev/runtime" },
                 { text: "@pitlane/theme", link: "/package/theme/" },
             ],
-            "/guides/": guides,
-            "/deploy/": guides,
+            // `getSidebar` prefers the key with the most path segments, so a
+            // no-build page gets its own copy whose row points at itself.
+            // `/guides` rather than `/guides/` keeps that ordering unambiguous:
+            // the specific keys have one more segment.
+            [BUILD_MODE_GUIDES.content["no-build"]]: guides({
+                ...DEFAULT_MODES,
+                content: BUILD_MODE_GUIDES.content["no-build"],
+            }),
+            [BUILD_MODE_GUIDES.prerendering["no-build"]]: guides({
+                ...DEFAULT_MODES,
+                prerendering: BUILD_MODE_GUIDES.prerendering["no-build"],
+            }),
+            "/guides": guides(DEFAULT_MODES),
+            "/deploy": guides(DEFAULT_MODES),
         },
         footer: {
             copyright: `© ${new Date().getFullYear()} Pitlane contributors.`,
@@ -164,6 +227,10 @@ let config = defineConfig({
         // Runs before the body streams in so stored package-manager tabs
         // apply before first paint - no flash of the default tab.
         ["script", {}, pmTabsInlineScript],
+        // Same reason, one page earlier: a build mode is a URL, so a stored
+        // choice has to redirect before anything renders rather than restyle
+        // after it.
+        ["script", {}, buildModeTabsInlineScript],
         ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
         ["meta", { property: "og:site_name", content: SITE_NAME }],
         ["meta", { property: "og:type", content: "website" }],

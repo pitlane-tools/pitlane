@@ -17,13 +17,13 @@
     "[typescript]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
     },
-    "[tsx]": {
+    "[typescriptreact]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[javascript]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
     },
-    "[jsx]": {
+    "[javascriptreact]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[css]": {

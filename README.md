@@ -10,8 +10,11 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`@pitlane/dev`](packages/dev)                     | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fdev?color=blue)](https://www.npmjs.com/package/@pitlane/dev)                     | `remix()` — the Remix 3 Vite plugin: build orchestration, the `clientEntry()` hydration transform, a dev server with component and server-data HMR, SPA mode, build-time prerendering, and preview. |
 | [`@pitlane/theme`](packages/theme)                 | [![npm](https://img.shields.io/npm/v/%40pitlane%2Ftheme?color=blue)](https://www.npmjs.com/package/@pitlane/theme)                 | Type-safe styling. A schema tree and the CSS values it describes compile to a typed token accessor and a `<Theme />` component.                                                                     |
+| [`@pitlane/content`](packages/content)             | unreleased                                                                                                                         | `createContent()` — Markdown, MDX, JSON, and YAML read into schema-validated collections a controller queries like a database. A Vite plugin prebuilds them for hosts with no filesystem.           |
 | [`@pitlane/crawler`](packages/crawler)             | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fcrawler?color=blue)](https://www.npmjs.com/package/@pitlane/crawler)             | `crawl()` — walks a Remix router in memory. What `remix({ prerender })` runs, and what a sitemap, link check, or static export builds on.                                                           |
 | [`@pitlane/data-table-d1`](packages/data-table-d1) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fdata-table-d1?color=blue)](https://www.npmjs.com/package/@pitlane/data-table-d1) | A Cloudflare D1 driver for `remix/data-table`: SQLite SQL over D1's async prepared-statement binding.                                                                                               |
+
+`@pitlane/content` is implemented and documented but is not on npm yet; its first version follows shortly. Until it lands, every push to a branch builds an installable preview: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/content@<sha>`.
 
 [`pitlane`](packages/pitlane) and [`create-pitlane`](packages/create-pitlane) are published at `0.0.0` to hold their names. The umbrella will vend the scoped packages as `pitlane/<name>` subpaths, and the CLI will replace the `giget` command below. Neither ships working code yet, and every package installs and is documented on its own without them.
 
@@ -55,14 +58,15 @@ Because every template is the same app, diffing any two shows exactly what a pla
 
 [pitlane.tools](https://pitlane.tools) hosts everything:
 
-- Guides: [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Styling](https://pitlane.tools/guides/styling) · [Single-page apps](https://pitlane.tools/guides/spa) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
-- API reference, generated from source: [`@pitlane/dev`](https://pitlane.tools/package/dev/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
+- Guides: [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Styling](https://pitlane.tools/guides/styling) · [Single-page apps](https://pitlane.tools/guides/spa) · [Content](https://pitlane.tools/guides/content) · [Creating a content loader](https://pitlane.tools/guides/content-loaders) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
+- API reference, generated from source: [`@pitlane/dev`](https://pitlane.tools/package/dev/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/content`](https://pitlane.tools/package/content/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
 - Deploy guides: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare) · [Netlify](https://pitlane.tools/deploy/netlify) · [Vercel](https://pitlane.tools/deploy/vercel) · [Railway](https://pitlane.tools/deploy/railway) · [Deno Deploy](https://pitlane.tools/deploy/deno-deploy) · [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 
 ## Repository
 
 ```
 packages/
+├── content/          # @pitlane/content — createContent() and the contentLayer() Vite plugin
 ├── crawler/          # @pitlane/crawler — crawl() and staticPaths()
 ├── create-pitlane/   # create-pitlane — reserved name, the future scaffolder
 ├── data-table-d1/    # @pitlane/data-table-d1 — Cloudflare D1 driver
@@ -70,6 +74,7 @@ packages/
 ├── pitlane/          # pitlane — reserved name, the future umbrella
 └── theme/            # @pitlane/theme — type-safe styling
 docs/                 # pitlane.tools — VitePress + TypeDoc, deployed to Cloudflare Workers
+demos/                # example apps run by hand: content-vite, content-runtime, theme, tui
 ```
 
 ### Development

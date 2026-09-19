@@ -1,6 +1,6 @@
 ---
 title: Crawling
-description: "How @pitlane/crawler walks a Remix 3 fetch router in memory, and the jobs that walk is good for: static exports, sitemaps, link checks, and render smoke tests."
+description: "How @pitlane/crawler walks a Remix 3 fetch router in memory, and the jobs that walk is good for: sitemaps, link checks, and render smoke tests."
 ---
 
 # Crawling
@@ -24,10 +24,12 @@ and sees what a real request sees, at the cost of a function call per page.
 Every page it fetches is scanned for links, and those are fetched too, so one
 call reaches everything reachable from `/`.
 
-::: tip Already using `remix({ prerender })`?
-Then you are already running this, and you do not need the package directly.
-The [prerendering guide](/guides/prerendering) covers that path. This guide is
-for the jobs the plugin does not do.
+::: tip Prerendering a site?
+Writing an app's pages to disk has its own guide in two halves.
+[Prerendering](/guides/prerendering) is the one for an app built with Vite,
+where `remix({ prerender })` runs this package for you.
+[Prerendering without a build](/guides/prerendering-no-build) is the one for
+an app with no bundler. This guide is for the other jobs a walk is good for.
 :::
 
 ## Install
@@ -35,15 +37,35 @@ for the jobs the plugin does not do.
 ::: code-group
 
 ```sh [npm]
-npm install @pitlane/crawler
+npm add @pitlane/crawler
+```
+
+```sh [yarn]
+yarn add @pitlane/crawler
 ```
 
 ```sh [pnpm]
 pnpm add @pitlane/crawler
 ```
 
+```sh [bun]
+bun add @pitlane/crawler
+```
+
+```sh [deno]
+deno add npm:@pitlane/crawler
+```
+
 ```sh [vp]
 vp add @pitlane/crawler
+```
+
+```sh [vlt]
+vlt add @pitlane/crawler
+```
+
+```sh [nub]
+nub add @pitlane/crawler
 ```
 
 :::
@@ -54,28 +76,9 @@ does a built bundle's default export or a hand-written `{ fetch }` object.
 
 ## Exporting a static site
 
-The whole job is a `for await` loop and two filesystem calls. `filepath` is
-where the response belongs on disk: HTML gets `<pathname>/index.html` so a
-static host serves it back for the original URL, and everything else keeps its
-own path.
-
-```ts
-import { crawl } from "@pitlane/crawler";
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
-
-import router from "./app/entry.server.ts";
-
-for await (let { filepath, response } of crawl(router)) {
-    let outputPath = path.join("dist", filepath);
-    await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, new Uint8Array(await response.arrayBuffer()));
-}
-```
-
-Starting from `/` with spidering on, that writes every page the site links to.
-Assets come along too, which is right for a site with no bundler and wrong for
-one where Vite already emitted them. Pass `assets: false` for the second case.
+Writing every response to disk has moved to its own guide:
+[prerendering without a build](/guides/prerendering-no-build) covers the loop,
+where each response belongs on disk, and what to do about assets.
 
 ## Generating a sitemap
 
@@ -127,7 +130,7 @@ it("answers every page it links to", async () => {
 });
 ```
 
-This catches the class of bug a type checker cannot see: an `href` typed by
+This catches the class of bug a type checker cannot see. An `href` typed by
 hand, a post that was renamed, a route deleted while a nav item survived it.
 Leave `assets: true` on and it checks stylesheet and script URLs too.
 
@@ -210,7 +213,7 @@ live outside the route map. Results are deduplicated and sorted.
 
 This is the Remix 3 answer to React Router's `getStaticPaths`. A Remix router
 exposes no route table, but the route map it was built from is an ordinary
-object, and that is the thing worth reading.
+object. That is the thing worth reading.
 
 Pair it with the paths only the app knows:
 

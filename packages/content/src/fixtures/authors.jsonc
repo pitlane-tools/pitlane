@@ -1,0 +1,6 @@
+// JSONC: a comment no JSON parser accepts, which is the whole reason a
+// collection reaches for options.parser.
+[
+    { "id": "ada", "name": "Ada Lovelace" },
+    { "id": "grace", "name": "Grace Hopper" }
+]

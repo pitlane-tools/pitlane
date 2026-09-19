@@ -1,0 +1,21 @@
+{
+    "name": "pitlane-content-runtime-demo",
+    "private": true,
+    "type": "module",
+    "imports": {
+        "#/*": "./app/*"
+    },
+    "scripts": {
+        "dev": "NODE_ENV=development node --import remix/node-tsx ./hmr.ts",
+        "start": "NODE_ENV=production node --import remix/node-tsx ./server.ts",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@pitlane/content": "workspace:*",
+        "remix": "3.0.0-rc.2",
+        "satteri": "^0.10.5"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0"
+    }
+}
