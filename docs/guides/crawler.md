@@ -1,9 +1,9 @@
 ---
-title: Crawling
+title: Crawler
 description: "How @pitlane/crawler walks a Remix 3 fetch router in memory, and the jobs that walk is good for: sitemaps, link checks, and render smoke tests."
 ---
 
-# Crawling
+# Crawler
 
 [`@pitlane/crawler`](/package/crawler/) walks an app by dispatching requests
 straight into its router:

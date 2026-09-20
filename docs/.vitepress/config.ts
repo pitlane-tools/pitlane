@@ -45,17 +45,28 @@ let guides = (current: { content: string; prerendering: string }): DefaultTheme.
         ],
     },
     {
-        text: "Styling",
+        text: "Deployment",
         items: [
-            //
-            { text: "Overview", link: "/guides/styling" },
+            { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
+            { text: "Netlify", link: "/deploy/netlify" },
+            { text: "Vercel", link: "/deploy/vercel" },
+            { text: "Railway", link: "/deploy/railway" },
+            { text: "Deno Deploy", link: "/deploy/deno-deploy" },
+            { text: "GitHub Pages", link: "/deploy/github-pages" },
         ],
     },
     {
-        text: "Crawling",
+        text: "Crawler",
         items: [
             { text: "Overview", link: "/guides/crawler" },
             { text: "Prerendering", link: current.prerendering },
+        ],
+    },
+    {
+        text: "Theme",
+        items: [
+            //
+            { text: "Overview", link: "/guides/theme" },
         ],
     },
     {
@@ -70,17 +81,6 @@ let guides = (current: { content: string; prerendering: string }): DefaultTheme.
         items: [
             //
             { text: "Cloudflare D1", link: "/guides/cloudflare-d1" },
-        ],
-    },
-    {
-        text: "Deployment",
-        items: [
-            { text: "Cloudflare Workers", link: "/deploy/cloudflare" },
-            { text: "Netlify", link: "/deploy/netlify" },
-            { text: "Vercel", link: "/deploy/vercel" },
-            { text: "Railway", link: "/deploy/railway" },
-            { text: "Deno Deploy", link: "/deploy/deno-deploy" },
-            { text: "GitHub Pages", link: "/deploy/github-pages" },
         ],
     },
 ];
