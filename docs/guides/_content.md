@@ -2,7 +2,7 @@
 
 **`@pitlane/content`** is the best way to manage Markdown, MDX, JSON, YAML, or any other kind of content for your Remix project, including blog posts, product descriptions, character profiles, recipes, or any structured content. Collections help you organize, validate, and query your documents.
 
-The content package enables you to render content from anywhere: locally in your repo, hosted remotely, or fetched live.
+The content package enables you to render content from anywhere, whether it lives in your repo or behind a remote API, fetched once or on every request.
 
 ## Install
 
@@ -102,7 +102,7 @@ nub add @pitlane/content satteri
 
 :::: vite
 
-When writing a custom [`LiveLoader`](/guides/content-loaders#writing-a-liveloader) that returns a Markdown body which renders at request time even in a bundled application, make sure to declare `satteri` as a runtime dependency instead of a dev dependency.
+When writing a custom `LiveLoader` that returns a Markdown body which renders at request time even in a bundled application, make sure to declare `satteri` as a runtime dependency instead of a dev dependency.
 
 [`@pitlane/dev`](/guides/vite-plugin) is assumed here and installs itself the same way, as a dev dependency.
 
@@ -143,13 +143,13 @@ export default defineConfig({
 contentLayer({ entry: "app/collections.ts" });
 ```
 
-A collection of only `.json` or `.yaml` files needs `contentLayer()` and nothing else.
+A collection of only `.json` or `.yaml` files needs none of the Sätteri setup. `contentLayer()` alone covers it.
 
 :::::
 
-## What is Content?
+## What Is Content?
 
-Pitlane's content package encompasses a few different dimensions: structured and validated data, consumed as a plain JavaScript object, renderable body content that can be consumed as a JSX component, and a source from which the data is loaded. Content can be simple static data, such as JSON or YAML files, it can be more complex data with a renderable body such as Markdown or MDX, which still contain structured data in their frontmatter, or it could be any arbitrary API call, populating a local store or being refetched on every call. For instance:
+Pitlane's content package covers a few different dimensions. There is structured data, validated by a schema and consumed as a plain JavaScript object, and there is a renderable body, consumed as a JSX component. Behind both is a source the data is loaded from. Content can be as simple as static JSON or YAML files. Markdown or MDX adds a renderable body while keeping structured data in its frontmatter. Or it could be any arbitrary API call, populating a local store or being refetched on every call. A typical layout:
 
 - `app/`
     - `content.ts` (_the content schema_)
@@ -160,7 +160,7 @@ Pitlane's content package encompasses a few different dimensions: structured and
             - `week-3.md` (_a collection entry_)
         - `authors.json` (_a single file containing all collection entries for the "authors" collection_)
 
-Collections are defined in the schema file (`app/content.ts`, by convention) which is where you to create validations for your content's data and initialize the client for retrieving your content.
+Collections are defined in the schema file (`app/content.ts`, by convention) which is where you create validations for your content's data and initialize the client for retrieving your content.
 
 ```ts
 // app/content.ts
@@ -186,26 +186,26 @@ export let content = await createContent(c => ({
 }));
 ```
 
-Two types of content collections are available to allow you to work with data fetched either at build time or at request time. Both build-time collections and live updating collections use:
+Two types of content collections are available. A `ContentLoader` collection loads its data once, and a live collection fetches it on every request. Both use:
 
 - A required `loader` to retrieve your content and data from wherever it is stored and make it available to your project through content-focused APIs.
 - A required `schema` that allows you to define the expected shape of each entry for type safety and validation.
 
-Collections stored locally in your repo or on your filesystem can use one of the provided build-time loaders (from `@pitlane/content/loaders`) to fetch data from Markdown, MDX, YAML, or JSON files. Point the content client to the location of your content, define your data schema, and you're good to go with a blog or similarly content-heavy, mostly static site in no time!
+Collections stored locally in your repo or on your filesystem can use one of the two provided loaders (from `@pitlane/content/loaders`) to fetch data from Markdown, MDX, YAML, or JSON files. Point the content client to the location of your content, define your data schema, and you're good to go with a blog or another content-heavy, mostly static site in no time!
 
-By building a custom build-time content loader or live loader yourself, you can fetch remote data from any external source, such as a CMS, database, or headless payment system, either at build time or live on demand.
+By writing a `ContentLoader` or a `LiveLoader` yourself, you can fetch remote data from any external source, such as a CMS, database, or headless payment system, once or live on demand.
 
 ## Defining Content Collections
 
 :::: no-build
 
-All of your content collections are defined using the `createContent()` function from `@pitlane/content`. There is no special location your collections must be defined, though we use `app/content.ts` in our demos, by convention.
+All of your content collections are defined using the `createContent()` function from `@pitlane/content`. There is no special location your collections must be defined in. Our demos use `app/content.ts` by convention.
 
 ::::
 
 :::: vite
 
-All of your content collections are defined using the `createContent()` function from `@pitlane/content`. There is no special location your collections must be defined, though the `contentLayer()` plugin from `@pitlane/content` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
+All of your content collections are defined using the `createContent()` function from `@pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `@pitlane/content` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
 
 ::::
 
@@ -241,7 +241,7 @@ export let content = await createContent(c => ({
 }));
 ```
 
-You can then use the `getCollection()` and `getEntry()` methods on each content collection to query your content collections data and render your content.
+You can then use the `getCollection()` and `getEntry()` methods on each content collection to query your content collections' data and render your content.
 
 ## Defining the Collection Schema
 
@@ -292,7 +292,7 @@ Frontmatter is parsed as YAML, so `pubDate: 2026-01-02` is already a `Date` and 
 
 ### Defining Datatypes
 
-`remix/data-schema` is one [Standard Schema](https://standardschema.dev) validator, and any other one works, because that is all a schema is asked for. [Using collections without Remix](/guides/content-loaders#using-collections-without-remix) shows the same collections declared with Zod.
+`remix/data-schema` is one [Standard Schema](https://standardschema.dev) validator. Any other works too, because that is all a schema is asked for, with one catch: `c.reference()` has to nest inside a combinator that accepts a foreign schema, which `s.object()` does and Zod's `z.object()` does not.
 
 ### Defining Collection References
 
@@ -353,13 +353,13 @@ Pointing at an entry that does not exist is only discovered on lookup, where `ge
 
 ## Included Loaders
 
-Pitlane provides two built-in loaders (`glob()` and `file()`) for fetching your local content at build time. Pass the location of your data in your project or on your filesystem, and these loaders will automatically handle your data and update the persistent data store content layer.
+Pitlane provides two built-in loaders (`glob()` and `file()`) for reading your local content. Pass the location of your data in your project or on your filesystem, and these loaders read the files and parse them into entries.
 
 ### The `glob()` Loader
 
 The `glob()` loader fetches entries from directories of Markdown, MDX, JSON, or YAML files from anywhere on the filesystem. If you store your content entries locally as separate files, such as a directory of blog posts, then the `glob()` loader is all you need to access your content.
 
-This loader requires a `pattern` of entry files to match <!-- using glob patterns supported by [micromatch](https://github.com/micromatch/micromatch#matching-features), --> and a `base` file path of where your files are located. A unique `id` for each entry will be automatically generated from its file name, but you can define custom IDs if needed.
+This loader requires a `pattern` of entry files to match, using the glob syntax Node's [`fs.glob`](https://nodejs.org/api/fs.html#fspromisesglobpattern-options) supports, and takes an optional `base` directory the pattern resolves against, which defaults to the project root. A unique `id` for each entry is generated from its path relative to `base`, but you can define custom IDs if needed.
 
 ```ts
 // app/content.ts
@@ -368,13 +368,13 @@ import { glob } from "@pitlane/content/loaders";
 
 export let content = await createContent(c => ({
     blog: c.collection({
-        loader: glob({ pattern: "**/*.md", base: "./app/data/blog" }),
+        loader: glob({ pattern: "**/*.md", base: "app/data/blog" }),
         // ...
     }),
 }));
 ```
 
-#### Defining custom IDs
+#### Defining Custom IDs
 
 When using the `glob()` loader, every entry `id` is the matched file path relative to `base`, with the extension removed. `app/content/blog/2026/hello.mdx` under `base: "app/content/blog"` becomes `2026/hello`. Nothing is slugified or lowercased. The `id` is exactly what you named the file, and it is what you pass to `getEntry()` to query the entry directly from your collection. Because it is a path, a nested directory gives you a nested URL when [creating pages from your content](#generating-routes-from-content).
 
@@ -448,15 +448,14 @@ You can provide your entries as an array of objects with an `id` property, or in
 }
 ```
 
-#### Parsing other data formats
+#### Parsing Other Data Formats
 
-Support for parsing single JSON, YAML, and TOML files into collection entries with the `file()` loader is built-in (unless you have a nested JSON document). To load your collection from unsupported file types, such as `.csv`, you will need to create a parser function. This function can be made async if required (e.g. to fetch files from the web, or if your parser is asynchronous).
+Support for parsing single JSON and YAML files into collection entries with the `file()` loader is built-in (unless you have a nested JSON document). To load your collection from unsupported file types, such as `.csv`, you will need to create a parser function. It receives the file's text and must return the parsed entries synchronously.
 
 The following example shows importing a third-party CSV parser then passing a custom `parser` function to the `file()` loader:
 
 ```ts
 // app/content.ts
-
 import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
 import { parse as parseCsv } from "csv-parse/sync";
@@ -471,16 +470,16 @@ export let content = await createContent(c => ({
 }));
 ```
 
-#### Nested `.json` documents
+#### Nested `.json` Documents
 
-The `parser()` argument can be used to load a single collection from a nested JSON document. For example, this JSON file contains multiple collections:
+The `parser()` argument can be used to load a single collection from a nested JSON document. This JSON file holds two collections:
 
 ```jsonc
 // app/data/pets.json
 { "dogs": [{}], "cats": [{}] }
 ```
 
-You can separate these collections by passing a custom `parser()` function to the `file()` loader for each collection, using Pitlane's built-in JSON parsing:
+You can separate these collections by passing a custom `parser()` function to the `file()` loader for each collection, which parses the file with `JSON.parse` and picks one key:
 
 ```ts
 // app/content.ts
@@ -528,7 +527,7 @@ export let content = await createContent(c => ({
 }));
 ```
 
-A custom loader gets everything a built-in one gets: schema validation, `getCollection()` and `getEntry()`, and `render()` when its entries carry a Markdown or MDX body. [Creating a Content Loader](/guides/content-loaders) covers both interfaces, with worked loaders for CSV files, RSS feeds, the GitHub API, and a headless CMS.
+A custom loader gets everything a built-in one gets: schema validation, `getCollection()` and `getEntry()`, and `render()` when its entries carry a Markdown or MDX body. Both interfaces are documented in the [`@pitlane/content`](/package/content/) reference.
 
 ## Querying Collections
 
@@ -567,7 +566,7 @@ let posts = (await content.blog.getCollection()).sort(
 
 :::: vite
 
-With `contentLayer()` in the Vite config, every build-time collection is resolved during the build and its entries are inlined into the bundle. A query at request time reads nothing from disk. A [live collection](#live-collections) is the exception and runs its loader per read.
+With `contentLayer()` in the Vite config, every `ContentLoader` collection is resolved during the build and its entries are inlined into the bundle. A query at request time reads nothing from disk. A [live collection](#live-collections) is the exception and runs its loader per read.
 
 ::::
 
@@ -663,9 +662,9 @@ loaders.glob({
 });
 ```
 
-:::: warning
+:::: warning MDX needs a host that allows `new Function`
 
-MDX needs a host that allows `new Function` in order to compile MDX for a request evaluates the compiled body at request time. Node, Bun, and Deno all allow this.
+Compiling MDX for a request evaluates the compiled body, so the host has to allow it. Node, Bun, and Deno all do.
 
 Markdown has no such requirement and renders anywhere Sätteri runs.
 
@@ -673,7 +672,7 @@ Markdown has no such requirement and renders anywhere Sätteri runs.
 
 :::::
 
-#### Passing content as props
+#### Passing Content as Props
 
 A component can also take an entire collection entry as a prop.
 
@@ -843,7 +842,7 @@ remix({
 
 :::: no-build
 
-The [prerendering guide](/guides/prerendering-no-build) covers how to use `@pitlane/crawler` to walk the app from a script and writes each response to disk, and a collection's `id`s are the paths to hand it.
+The [prerendering guide](/guides/prerendering-no-build) covers how to use `@pitlane/crawler` to walk the app from a script and write each response to disk, and a collection's `id`s are the paths to hand it.
 
 ::::
 
@@ -851,7 +850,7 @@ The [prerendering guide](/guides/prerendering-no-build) covers how to use `@pitl
 
 A live collection fetches its data at request time rather than once. That is the choice for data that changes while the server runs, such as inventory, prices, or draft content an editor expects to see without a deploy, and it costs a fetch per request in exchange.
 
-Live collections use the same `createContent()` and the same `c.collection()`, and are queried with the same `getCollection()` and `getEntry()`. What makes a collection live is its loader. A [`LiveLoader`](/guides/content-loaders#writing-a-liveloader) has `loadCollection()` and `loadEntry(id)` methods in place of `load()`, and each one returns its entries directly. There are no built-in live loaders, so every live collection uses one you write for your data source:
+Live collections use the same `createContent()` and the same `c.collection()`, and are queried with the same `getCollection()` and `getEntry()`. What makes a collection live is its loader. A `LiveLoader` has `loadCollection()` and `loadEntry(id)` methods in place of `load()`, and each one returns its entries directly. There are no built-in live loaders, so every live collection uses one you write for your data source:
 
 ```ts
 // app/content.ts
@@ -874,7 +873,7 @@ export let content = await createContent(c => ({
 
 The `schema` is validated on every read, because a live source can change its mind between one request and the next.
 
-Errors reach your action the same way a build-time collection's do. A loader that throws rejects the query, with the collection named in the error, and `getEntry()` resolves to `undefined` when `loadEntry()` does:
+Errors reach your action the same way a `ContentLoader` collection's do. A loader that throws rejects the query, with the collection named in the error, and `getEntry()` resolves to `undefined` when `loadEntry()` does:
 
 ```tsx
 async article({ params, render }) {
@@ -906,7 +905,7 @@ Both kinds of collection can exist in the same `createContent()` call, so each d
 
 :::: no-build
 
-- **Nothing is memoized.** A build-time collection reads its source on the first query and keeps the result. A live one asks its loader every time.
+- **Nothing is memoized.** A `ContentLoader` collection reads its source on the first query and keeps the result. A live one asks its loader every time.
 - **Schema failures surface on every read** rather than once, so a schema that is expensive to run is a cost paid per request.
 
 ::::
@@ -932,11 +931,11 @@ export let content = await createContent(c => ({ ... }));
 await hotContent(content);
 ```
 
-This modifier is safe to leave in place for production. `hotContent()` does nothing unless the process is supervised by `remix/node-hmr`: `hmr.ts` supervises `server.ts` and proxies requests to it, started with `NODE_ENV=development`. Save an edited post and the collection it belongs to is discarded, then the page reloads. A collection whose files did not change keeps what it had.
+This call is safe to leave in place for production. `hotContent()` does nothing unless the process is supervised by [`remix/node-hmr`](https://github.com/remix-run/remix/tree/main/packages/node-hmr), whose `run()` starts `server.ts` as a child process and watches its source. A development script that calls it, started with `NODE_ENV=development`, is the whole setup. Save an edited post and the collection it belongs to is discarded, then the page reloads. A collection whose files did not change keeps what it had.
 
-::: warning
+::: warning A new content file needs a restart
 
-A new content file needs a restart `remix/node-hmr` reports a file change only for a path it was given, so a post you have just created stays invisible until the server restarts. Edits and deletions to an existing post reload the page as part of HMR.
+`remix/node-hmr` reports a file change only for a path it was given, so a post you have just created stays invisible until the server restarts. Edits and deletions to an existing post reload the page as part of HMR.
 
 :::
 
