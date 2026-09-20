@@ -4,4 +4,4 @@ description: "How @pitlane/content turns Markdown, MDX, and data files into sche
 build: vite
 ---
 
-<!--@include: ./_content-layer.md-->
+<!--@include: ./_content.md-->
