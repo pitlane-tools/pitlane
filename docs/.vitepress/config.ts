@@ -73,7 +73,7 @@ let guides = (current: { content: string; prerendering: string }): DefaultTheme.
         text: "Content",
         items: [
             { text: "Overview", link: current.content },
-            { text: "Creating a Content Loader", link: "/guides/content-loaders" },
+            // { text: "Creating a Content Loader", link: "/guides/content-loaders" },
         ],
     },
     {
