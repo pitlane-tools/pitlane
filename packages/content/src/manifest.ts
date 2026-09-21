@@ -24,8 +24,7 @@ import type { PrebuiltCollections } from "./types.ts";
  * replaces the whole chunk: importing the constant made a published build fail
  * with `"t" is not exported by manifest.mjs`, because the reader's own import
  * of the symbols had been hoisted into the module that just disappeared. This
- * module therefore imports nothing but a type. `content.test.ts` pins the two
- * spellings together.
+ * module therefore imports nothing but a type.
  */
 let manifest: PrebuiltCollections | null = null;
 
