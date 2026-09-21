@@ -2,6 +2,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import { existsSync, readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { chromium } from "playwright";
 import { createBuilder, preview } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -90,7 +91,7 @@ describe("preview server (workerd)", () => {
 });
 
 describe("prerender (workerd)", () => {
-    it("renders through the platform preview server and writes real workerd HTML", async () => {
+    beforeAll(async () => {
         await rm(join(FIXTURE, "dist"), { recursive: true, force: true });
 
         // The fixture's own config leaves prerendering off, so the other cases
@@ -106,10 +107,9 @@ describe("prerender (workerd)", () => {
             ],
         });
         await builder.buildApp();
+    });
 
-        // "/" is the only static path in the fixture's route map, and the
-        // route map came from source: the bundle it lives in imports
-        // `cloudflare:workers` and does not load in this process.
+    it("renders through the platform preview server and writes real workerd HTML", () => {
         let html = readFileSync(join(FIXTURE, "dist/client/index.html"), "utf8");
 
         // Rendered by workerd, with its bindings, against the built assets.
@@ -117,4 +117,106 @@ describe("prerender (workerd)", () => {
         expect(html).toContain(`data-env="true"`);
         expect(html).toMatch(/"moduleUrl":"\/assets\/[^"]+\.js"/);
     });
+
+    it("routes frame requests around prerendered documents and asset redirects", async () => {
+        let server = await preview({
+            root: FIXTURE,
+            logLevel: "error",
+            preview: { host: "127.0.0.1", port: PREVIEW_PORT, strictPort: true },
+        });
+
+        try {
+            for (let path of ["/", "/page", "/page/"]) {
+                for (let headers of [
+                    new Headers({ "x-remix-frame": "true" }),
+                    new Headers({ "x-remix-target": "main" }),
+                    new Headers({ "x-remix-frame": "true", "x-remix-target": "main" }),
+                ]) {
+                    let response = await fetch(`http://127.0.0.1:${PREVIEW_PORT}${path}`, {
+                        headers,
+                        redirect: "manual",
+                    });
+                    expect(response.status, path).toBe(200);
+                    let html = await response.text();
+                    expect(html).toContain(`data-page="${path}"`);
+                    expect(html).not.toMatch(/<(?:html|head|body|header|footer|main)(?:\s|>)/i);
+                }
+            }
+        } finally {
+            await server.close();
+        }
+    });
+
+    it("keeps static documents and assets while falling back to runtime routes", async () => {
+        let server = await preview({
+            root: FIXTURE,
+            logLevel: "error",
+            preview: { host: "127.0.0.1", port: PREVIEW_PORT, strictPort: true },
+        });
+        let origin = `http://127.0.0.1:${PREVIEW_PORT}`;
+
+        try {
+            let html = readFileSync(join(FIXTURE, "dist/client/page/index.html"), "utf8");
+            let redirect = await fetch(`${origin}/page`, { redirect: "manual" });
+            expect(redirect.status).toBe(307);
+            expect(new URL(redirect.headers.get("location")!, origin).pathname).toBe("/page/");
+            let document = await fetch(`${origin}/page/`);
+            expect(document.status).toBe(200);
+            // A fresh render generates new frame/island IDs; static output preserves them.
+            expect(await document.text()).toBe(html);
+            let head = await fetch(`${origin}/page/`, { method: "HEAD" });
+            expect(head.status).toBe(200);
+            expect(head.headers.get("content-type")).toContain("text/html");
+            expect(await head.text()).toBe("");
+
+            let assetPath = /"moduleUrl":"([^"]+\.js)"/.exec(html)![1]!;
+            let asset = await fetch(`${origin}${assetPath}`);
+            expect(asset.status).toBe(200);
+            expect(await asset.text()).toBe(
+                readFileSync(join(FIXTURE, "dist/client", assetPath), "utf8"),
+            );
+
+            let live = await fetch(`${origin}/live/example`);
+            expect(live.status).toBe(200);
+            expect(await live.text()).toContain('data-page="/live/example"');
+            let submission = await fetch(`${origin}/page`, { method: "POST", redirect: "manual" });
+            expect(submission.status).toBe(201);
+            expect(await submission.text()).toBe("submitted");
+            expect((await fetch(`${origin}/missing`)).status).toBe(404);
+        } finally {
+            await server.close();
+        }
+    });
+
+    it.skipIf(!existsSync(chromium.executablePath()))(
+        "soft-navigates prerendered pages without duplicating the document shell",
+        async () => {
+            let server = await preview({
+                root: FIXTURE,
+                logLevel: "error",
+                preview: { host: "127.0.0.1", port: PREVIEW_PORT, strictPort: true },
+            });
+            let browser = await chromium.launch({ headless: true });
+
+            try {
+                let page = await browser.newPage();
+                await page.goto(`http://127.0.0.1:${PREVIEW_PORT}/`, { waitUntil: "networkidle" });
+                await page.click("button");
+                for (let path of ["/page", "/"]) {
+                    await page.click(`header a[href="${path}"]`);
+                    await page.waitForSelector(
+                        `main [data-page="${path}"], main [data-page="${path}/"]`,
+                    );
+                    expect(await page.locator("header").count()).toBe(1);
+                    expect(await page.locator("footer").count()).toBe(1);
+                    expect(await page.locator("main").count()).toBe(1);
+                    expect(await page.locator("main footer, main main, main head").count()).toBe(0);
+                    expect(await page.locator("[data-count]").textContent()).toBe("1");
+                }
+            } finally {
+                await browser.close();
+                await server.close();
+            }
+        },
+    );
 });

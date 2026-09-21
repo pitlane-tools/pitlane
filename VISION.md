@@ -218,7 +218,7 @@ The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as h
 
 **4. Abort error suppression** — Swallows `"aborted"` errors from client disconnects (search-as-you-type) so they don't trigger Vite's error overlay.
 
-**5. Build-time prerendering** — `remix({ prerender })` renders paths to static HTML during `vite build` and writes them into the client output, so a host answers those URLs and the server never sees them. There is no second rendering path: the build sends a `Request` through the built server entry, the same handler production runs. `@pitlane/crawler` does the walking.
+**5. Build-time prerendering** — `remix({ prerender })` renders paths to static HTML during `vite build` and writes them into the client output. The recommended frame-navigation workaround uses separate document and frame URLs, prerenders both, and uses Remix's `data-rmx-src` to select the frame response while retaining the document URL. Deploying only the client output preserves fully static navigation without runtime SSR. The app supplies the frame routes and link attributes; the plugin does not generate them automatically. Hybrid rendering remains optional for dynamic content. There is no second rendering path: the build sends a `Request` through the built server entry. `@pitlane/crawler` does the walking.
 
 **API:**
 

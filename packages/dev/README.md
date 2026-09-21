@@ -134,7 +134,7 @@ remix({
 
 ## Prerendering
 
-`prerender` renders paths to static HTML during `vite build` and writes them into the client output, so a CDN answers those URLs and the server never sees them. There is no second rendering path: the build sends a `Request` through the same fetch handler production runs.
+`prerender` writes responses to static HTML during `vite build`. For page routes, those are full documents. It does not automatically emit separate responses for frame targets at the same URL. There is no second rendering path: the build sends a `Request` through the same fetch handler production runs.
 
 ```ts
 remix({ prerender: ["/", "/blog", "/blog/hello-world"] });
@@ -167,7 +167,9 @@ remix({ prerender: { paths: ["/"], spider: true, concurrency: 4 } });
 
 Each path lands at `<path>/index.html` under the client output. Rendering runs after both builds and the assets manifest, so the HTML names real hashed chunks. Unsupported with `server: false`, which builds no server to render with.
 
-A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and friends already contribute a preview server, so when the import fails the build starts that server and renders through it, inside the runtime that will serve the pages. Nothing extra to configure.
+For fully static frame navigation, [prerender separate document and frame URLs](https://pitlane.tools/guides/prerendering#fully-static-frame-navigation). Use the frame URL in `<Frame src>` and link `data-rmx-src`, while `href` keeps the document URL for navigation and reloads. List both kinds of route in `prerender`, then deploy only the client output. This preserves 100% prerendering without frame headers, a custom resolver, or runtime SSR. The app supplies the frame routes and link attributes; the plugin does not generate them automatically. Cloudflare can serve the result with an [assets-only configuration](https://pitlane.tools/deploy/cloudflare#fully-static-frame-navigation). Hybrid Worker-first rendering is an explicit alternative for dynamic content.
+
+A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and friends already contribute a preview server, so when the import fails the build starts that server and renders through it, inside the runtime that will serve the pages. Selecting that runtime needs no extra configuration; serving the output still needs the routing described above.
 
 Full details in the [prerendering guide](https://pitlane.tools/guides/prerendering); the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/), and the [crawling guide](https://pitlane.tools/guides/crawler) covers using it on its own.
 
