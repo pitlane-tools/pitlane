@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-09-20
+updated: 2026-09-21
 ---
 
 # Pitlane Vision
@@ -126,7 +126,7 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 ### Reserved names
 
-`pitlane` and `create-pitlane` are published at `0.0.0` to hold their names, and neither ships working code. The umbrella's entry throws and points at `@pitlane/dev`; `create-pitlane` prints the `giget` command from the distribution list above and exits non-zero. Both were published by hand: they have no build, no tests, and no job in `publish.yml`.
+`pitlane` and `create-pitlane` first published at `0.0.0` to hold their names. Their `0.0.1` releases update npm metadata and READMEs; neither implements the planned API. The umbrella's entry still throws and points at `@pitlane/dev`, and `create-pitlane` still prints the `giget` command and exits non-zero. The initial versions were published by hand. Later releases use `publish.yml` with npm Trusted Publishing; these packages have no build or test suite.
 
 The umbrella vends no subpaths yet, `pitlane/theme` included. An umbrella over five packages is a second specifier for something a reader can already install; the namespace earns its place once the set is large enough to be worth learning as a whole. Code samples in this document follow the same line — a package that exists is imported as `@pitlane/<name>`, and a planned one keeps the `pitlane/<name>` specifier it will have once the umbrella ships.
 
@@ -160,7 +160,7 @@ Five packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite p
 Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
 
 1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
-2. `@pitlane/content` — shipped at 0.1.0.
+2. `@pitlane/content` — shipped at 0.1.1.
 3. `@pitlane/meta`
 4. `@pitlane/sprites`
 5. `@pitlane/image`
@@ -175,9 +175,9 @@ Implementation follows this order. Within a capability family, the neutral packa
     1. `@pitlane/cache-cloudflare`
     2. `@pitlane/cache-netlify`
     3. `@pitlane/cache-vercel`
-8. `@pitlane/crawler` — shipped at 0.2.1. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, which runs the crawler, so there is no separate `@pitlane/prerender` package.
+8. `@pitlane/crawler` — shipped at 0.2.2. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, which runs the crawler, so there is no separate `@pitlane/prerender` package.
 9. Remix capability adapters
-    1. `@pitlane/data-table-d1` — shipped at 0.2.1.
+    1. `@pitlane/data-table-d1` — shipped at 0.2.2.
     2. `@pitlane/data-table-netlify-database`
     3. `@pitlane/file-storage-cloudflare-r2`
     4. `@pitlane/file-storage-netlify-blobs`
@@ -533,7 +533,7 @@ export default createController(routes.shop, {
 
 ### Content layer — `@pitlane/content`
 
-`@pitlane/content@0.1.0` declares schema-validated collections with `createContent` and loaders from `@pitlane/content/loaders`. Construction is synchronous and performs no loading. Reads and rendering remain asynchronous, and collections support typed references to one another.
+`@pitlane/content@0.1.1` declares schema-validated collections with `createContent` and loaders from `@pitlane/content/loaders`. Construction is synchronous and performs no loading. Reads and rendering remain asynchronous, and collections support typed references to one another.
 
 ```ts
 import { createContent } from "@pitlane/content";

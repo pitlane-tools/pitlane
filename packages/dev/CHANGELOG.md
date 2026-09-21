@@ -1,5 +1,14 @@
 # @pitlane/dev
 
+## 0.6.2
+
+Documentation only. `remix()`, its options, `@pitlane/dev/runtime`, and the `?assets=` protocol are unchanged.
+
+- The npm description is now "Vite plugin for Remix development and production builds."
+- The compatibility table claimed Node "24 LTS, 26" and now records Node 24, the version CI runs. The supported range is `^20.19.0 || >=22.12.0`, which the install section states beside the `remix` and `vite` peers.
+- The README opens with what the plugin builds and serves instead of how it is positioned, and a Documentation section collects the four guides, the six deploy guides, and the API reference.
+- The published manifest names `@pitlane/crawler@^0.2.2`, its documentation release. The manifest here carries `workspace:^` and the release workflow packs with pnpm, which rewrites it to the version the monorepo resolved, so crawler publishes first.
+
 ## 0.6.1
 
 Target Remix `3.0.0-rc.2`.

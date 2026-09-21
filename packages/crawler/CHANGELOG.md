@@ -1,5 +1,14 @@
 # @pitlane/crawler
 
+## 0.2.2
+
+Documentation only. No crawler code changed.
+
+- The npm description is now "In-memory route crawling and static path discovery for Remix.", short enough to read in a registry listing.
+- Three things the README described loosely now match what the code does. Under `spider`, a redirect queues a relative `Location` rather than any same-origin target. The `Crawl failed` message drops `statusText` when the response carries none. An absolute or protocol-relative href is skipped because requests are dispatched under a placeholder origin, which is a firmer reason than "belongs to another origin".
+- `staticPaths` leaves out a route pinned to a protocol or a hostname, since its href is not a path. That exclusion was never written down.
+- The options table says `none` where a default does not exist, and a Documentation section links the crawling guide, the prerendering guide, and the API reference.
+
 ## 0.2.1
 
 Target Remix `3.0.0-rc.2`.

@@ -1,5 +1,12 @@
 # @pitlane/theme
 
+## 0.4.2
+
+Documentation only. `createTheme`, `extend`, `select`, `<Theme />`, and the `css`/`tva`/`combine`/`cx` helpers are unchanged.
+
+- The README's guide link pointed at `/guides/styling`, which stopped existing when that guide was renamed. It points at the [theme guide](https://pitlane.tools/guides/theme) now, under a Documentation heading rather than Links.
+- The npm description is now "Design tokens and type-safe styling for Remix.", and both it and the README opening say Remix rather than Remix 3. The version this package supports is in its peer range, which still reads `^3.0.0-rc.1`.
+
 ## 0.4.1
 
 Target Remix `3.0.0-rc.2`.

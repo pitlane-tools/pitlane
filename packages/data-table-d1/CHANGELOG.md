@@ -1,5 +1,16 @@
 # @pitlane/data-table-d1
 
+## 0.2.2
+
+Documentation only. `createD1Database`, `D1Database`, and `D1DatabaseDriver` behave as they did in 0.2.1.
+
+- The npm description is now "Cloudflare D1 database driver for Remix."
+- The README's opening said every query, persistence, and migration method behaves exactly as it does on SQLite or Postgres. `transaction()` does not, and the same paragraph now says so and links the section covering the opt-in.
+- `ROLLBACK` joins `BEGIN`, `COMMIT`, and `SAVEPOINT` in the list of statements D1 rejects. The `createD1Database` entry names its `transactions` option, and `D1Database` is introduced as the subclass that adds `batch(statements)`.
+- The isolate-reuse snippet imports `createD1Database` and the `D1Database` type it annotates, so it compiles as written.
+- What the driver cannot do is listed rather than implied: savepoints, transactional DDL, and migration locks are unsupported. `returning`, upserts, bulk inserts, counts, migrations, and schema inspection work.
+- A Documentation section links the Cloudflare D1 guide, the API reference, and the reference for the `migrations` entry point.
+
 ## 0.2.1
 
 Target Remix `3.0.0-rc.2`.

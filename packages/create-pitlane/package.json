@@ -1,6 +1,6 @@
 {
     "name": "create-pitlane",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "description": "Project generator for Pitlane applications.",
     "keywords": [
         "create",

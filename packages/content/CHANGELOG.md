@@ -1,5 +1,14 @@
 # @pitlane/content
 
+## 0.1.1
+
+Documentation only. No code changed.
+
+- The npm description is one line now: "Schema-validated content collections for Remix." The old one led with `createContent()` and ran well past what a registry listing shows.
+- The README quick start guards the entry it reads. `getEntry()` answers `undefined` when no entry has the requested id, and the sample called `render()` on the result regardless, so a route copied out of it threw on the first unknown slug.
+- The install section states the supported Node range and what each optional peer is for: `remix` for `render()`, `satteri` for compiling Markdown and MDX bodies, `vite` 8 or newer for `contentLayer()`. A collection of JSON or YAML files alone needs no Sätteri setup.
+- Link the content guide, the no-build guide, and the custom-loaders section separately. Replace the unpublished `/guides/content-loaders` URL with `/guides/content#custom-loaders`.
+
 ## 0.1.0
 
 Initial release.
