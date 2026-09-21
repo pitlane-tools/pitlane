@@ -126,7 +126,7 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 ### Reserved names
 
-`pitlane` and `create-pitlane` published at `0.0.0` to hold their names, and npm still serves that version of each. Neither implements the planned API: the umbrella's entry throws and points at `@pitlane/dev`, and `create-pitlane` prints the `giget` command and exits non-zero. Version `0.0.1`, which refreshes their npm metadata and READMEs, is staged in the repository and waits on a trusted publisher for each name. The `0.0.0` versions were published by hand; `publish.yml` now carries a job for each, and these packages have no build or test suite.
+`pitlane` and `create-pitlane` remain placeholders. Neither implements the planned API: the umbrella's entry throws and points at `@pitlane/dev`, and `create-pitlane` prints the `giget` command and exits non-zero. Version `0.0.1` updates their npm metadata and READMEs without changing that behavior. The initial `0.0.0` versions were published by hand; subsequent releases use `publish.yml` with npm Trusted Publishing. These packages have no build or test suite.
 
 The umbrella vends no subpaths yet, `pitlane/theme` included. An umbrella over five packages is a second specifier for something a reader can already install; the namespace earns its place once the set is large enough to be worth learning as a whole. Code samples in this document follow the same line — a package that exists is imported as `@pitlane/<name>`, and a planned one keeps the `pitlane/<name>` specifier it will have once the umbrella ships.
 
