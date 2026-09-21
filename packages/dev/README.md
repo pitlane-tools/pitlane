@@ -1,8 +1,8 @@
 # @pitlane/dev
 
-The `remix()` Vite plugin for [Remix 3](https://remix.run). One plugin wires a Remix app into any Vite or [Vite+](https://viteplus.dev) project: multi-environment build orchestration, the `clientEntry()` hydration transform, dev serving through your app's fetch handler, and a preview server for the production build.
+A Vite plugin for [Remix 3](https://remix.run). It builds client and server bundles, serves development requests through your app's fetch handler, and previews the production build. It works with Vite and [Vite+](https://viteplus.dev).
 
-`@pitlane/dev` is deliberately platform-agnostic. Your server entry default-exports a standard fetch handler, and hosting composes around it — platform plugins (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`, `nitro/vite`) in the same plugin array, or plain runtimes (Node, Bun, Deno) running the built output directly. Composable hosting, not a hosting engine.
+Your server entry exports a standard fetch handler. Use platform plugins such as `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` in the same Vite config, or run the built application on Node, Bun, or Deno.
 
 ## Install
 
@@ -12,7 +12,7 @@ npm install --save-dev @pitlane/dev
 vp add -D @pitlane/dev
 ```
 
-Requires `remix@^3.0.0-rc.1` and `vite@>=7` as peers. Tested against **Vite 8.1** (Rolldown), **Vite+ 0.2** (`vp`), and `remix@3.0.0-rc.2` — the [templates](https://github.com/pitlane-tools/templates) are the continuously tested reference.
+Requires `remix@^3.0.0-rc.1` and `vite@>=7` as peers, on Node `^20.19.0 || >=22.12.0`. [Compatibility](#compatibility) lists the versions this release was tested against, and the [starter templates](https://github.com/pitlane-tools/templates) are complete example projects.
 
 ## Quick start
 
@@ -256,7 +256,7 @@ export default {
 };
 ```
 
-## Asset references — `?assets=`
+## Asset references with `?assets=`
 
 Server-rendered documents need the hashed URLs of client assets. Import any module with the `?assets=` query to get its resolved assets for an environment:
 
@@ -343,7 +343,7 @@ let server = http.createServer(createRequestListener(request => ssr.fetch(reques
 server.listen(process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000);
 ```
 
-Static assets are served by the `staticFiles("./dist/client")` middleware inside your router, so `server.ts` stays a one-liner and preview/production share one code path.
+Static assets are served by the `staticFiles("./dist/client")` middleware inside your router, so `server.ts` only starts a listener, and preview and production share one code path.
 
 ### Bun
 
@@ -389,11 +389,11 @@ export default defineConfig({
 }
 ```
 
-`vite dev` runs your server code inside workerd (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and `wrangler deploy` ships it.
+`vite dev` runs your server code inside workerd with your real bindings, `vite preview` serves the production build through Miniflare, and `wrangler deploy` ships it.
 
 ### Netlify
 
-Keep the defaults — Netlify's plugin emulates the platform in dev while your fetch handler serves SSR. A three-line Netlify Function (`netlify/functions/server.mjs`) wraps the built entry; see the [Netlify guide](https://pitlane.tools/deploy/netlify).
+Keep the defaults: Netlify's plugin emulates the platform in dev while your fetch handler serves SSR. One Netlify Function (`netlify/functions/server.mjs`) imports the built entry and answers every request with it; see the [Netlify guide](https://pitlane.tools/deploy/netlify).
 
 ```ts
 export default defineConfig({
@@ -430,9 +430,9 @@ dist/
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
 | `remix`     | 3.0.0-rc.2     |
-| Node        | 24 LTS, 26     |
+| Node        | 24 (CI)        |
 
-Remix 3 is in prerelease; each `@pitlane/dev` release records the exact prerelease it was verified against. Rolldown is not required — the transform runs identically on generic Vite and Vite+.
+Remix 3 is in prerelease, and each `@pitlane/dev` release records the exact prerelease it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. Rolldown is not required: the transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 
@@ -447,6 +447,15 @@ Remix 3 is in prerelease; each `@pitlane/dev` release records the exact prerelea
 ```
 
 Generic-Vite projects have one vite by construction and are unaffected.
+
+## Documentation
+
+- [Vite plugin overview](https://pitlane.tools/guides/vite-plugin)
+- [Hot module replacement](https://pitlane.tools/guides/hmr)
+- [Single-page apps](https://pitlane.tools/guides/spa)
+- [Prerendering](https://pitlane.tools/guides/prerendering)
+- Deployment: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare), [Netlify](https://pitlane.tools/deploy/netlify), [Vercel](https://pitlane.tools/deploy/vercel), [Railway](https://pitlane.tools/deploy/railway), [Deno Deploy](https://pitlane.tools/deploy/deno-deploy), [GitHub Pages](https://pitlane.tools/deploy/github-pages)
+- [API reference](https://pitlane.tools/package/dev/)
 
 ## License
 

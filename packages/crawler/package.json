@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/crawler",
     "version": "0.2.1",
-    "description": "crawl() — spider a Remix 3 fetch router in memory to prerender it, plus static-path discovery from a route map.",
+    "description": "In-memory route crawling and static path discovery for Remix 3.",
     "keywords": [
         "crawl",
         "fetch-router",

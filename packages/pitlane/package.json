@@ -1,7 +1,7 @@
 {
     "name": "pitlane",
     "version": "0.0.0",
-    "description": "Reserved for the Pitlane umbrella package — portable platform integration for Remix 3. Not yet released; use @pitlane/dev in the meantime.",
+    "description": "Reserved package for Pitlane's Remix 3 platform integration.",
     "keywords": [
         "pitlane",
         "remix",

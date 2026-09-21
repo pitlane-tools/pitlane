@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/content",
     "version": "0.1.0",
-    "description": "createContent() — schema-validated, cross-referenced Markdown, MDX, and data collections for Remix 3, queryable at runtime and prebuildable into the bundle.",
+    "description": "Schema-validated content collections for Remix 3.",
     "keywords": [
         "content",
         "content-collections",

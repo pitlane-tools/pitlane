@@ -1,7 +1,7 @@
 {
     "name": "create-pitlane",
     "version": "0.0.0",
-    "description": "Reserved for the Pitlane scaffolding CLI (`npm create pitlane`). Not yet released — scaffold from pitlane-tools/templates with giget in the meantime.",
+    "description": "Reserved package for the Pitlane project generator.",
     "keywords": [
         "create",
         "pitlane",

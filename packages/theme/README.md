@@ -123,9 +123,9 @@ A layer's declarations follow the ones they reference, which moves them later in
 - `@pitlane/theme/dtcg` is the DTCG interchange: `fromDTCG(document)` reads a W3C DTCG document into a `createTheme` init, and `toDTCG(theme)` exports a theme as a document plus per-mode overrides.
 - Types include `ThemeInit`, `ThemeMode`, `ThemeResult`, `ThemeComponent`, `ThemeProps`, `TokenTree`, `ScaleFn`, `Tokens`, `TokenValue`, `ThemedCSSProps`, `ThemedCSSMixin`, TVA types, and per-type token brands.
 
-## Links
+## Documentation
 
-- [Styling guide](https://pitlane.tools/guides/styling)
+- [Theme guide](https://pitlane.tools/guides/theme)
 - [API reference](https://pitlane.tools/package/theme/)
 
 ## License
