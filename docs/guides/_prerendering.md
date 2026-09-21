@@ -135,7 +135,7 @@ crawl(router, {
 
 ::::
 
-`concurrency` sets how many paths render at once. Rendering is CPU-bound in process, so the gain depends on how much of a render waits on I/O; start at the default of 1 and measure.
+`concurrency` sets how many paths render at once. Rendering is CPU-bound in process, so the gain depends on how much of a render waits on I/O. Start at the default of 1 and measure.
 
 ## Spidering
 
@@ -254,7 +254,7 @@ A listed path that 404s is a stale prerender list, and a spidered one is a dead 
 
 :::: vite
 
-With `server: true`, which is the default, prerendering is an optimization rather than a deployment mode. The server is still there. Put the client output in front of it and requests for a prerendered path never reach the handler; every other path renders as usual. A `staticFiles()` middleware in the server entry does this in one line, and most CDNs do it in front of the origin.
+With `server: true`, which is the default, prerendering is an optimization rather than a deployment mode. The server is still there. Serve the client output for document requests to prerendered paths. Every other path renders as usual.
 
 Hydration is unaffected. The HTML carries the same island markers a runtime render produces, and the same client entry picks them up.
 
@@ -262,9 +262,17 @@ Hydration is unaffected. The HTML carries the same island markers a runtime rend
 
 :::: no-build
 
-That output directory is the whole site, documents and assets both. Point a static host at it.
+For an app that only uses document navigation, that output directory is the whole site, documents and assets both. Point a static host at it.
 
 ::::
+
+### Frame requests still need the server
+
+A prerendered file is a full HTML document. A Remix frame request can use the same URL but needs frame content from the controller. Serving the document into that frame duplicates the page shell.
+
+Route requests carrying `x-remix-frame` or `x-remix-target` to the app before checking for static files. A CDN or `staticFiles()` middleware placed ahead of that check can serve the wrong response, even when the controller handles frames correctly. Hydration working on the first load does not prove soft navigation works.
+
+On Cloudflare Workers, assets are served before the Worker by default. Use the [Worker-first prerendering configuration](/deploy/cloudflare#prerendering-and-frame-navigation) so the Worker can distinguish documents from frames. If you cannot control that routing, leave frame-resolved paths out of the prerender list, including paths discovered by `spider`. An app that needs runtime frame responses cannot run on a static-only host.
 
 ## Data that goes stale
 

@@ -111,6 +111,61 @@ Importing `cloudflare:workers` makes the SSR bundle resolvable only inside worke
 
 A D1 binding gets you a `remix/data-table` database through [`@pitlane/data-table-d1`](/guides/cloudflare-d1), which supplies the async driver D1 needs in place of the synchronous SQLite one.
 
+## Prerendering and frame navigation
+
+When you enable [`prerender`](/guides/prerendering), Cloudflare's default asset-first routing serves the generated HTML before your Worker runs. It does not distinguish a document request from a request carrying `x-remix-frame` or `x-remix-target`. A request for `/page` can redirect to `/page/` and receive `page/index.html`, putting a full document inside a frame during soft navigation.
+
+This recipe assumes your browser's `run({ resolveFrame })` sends `x-remix-frame` or `x-remix-target` and your controller recognizes those headers. Remix rc.2's default frame resolver sends only `Accept: text/html`, so check your app's resolver rather than assuming those headers are present.
+
+Run the Worker first and give it an asset binding:
+
+```jsonc
+// wrangler.jsonc
+{
+    "name": "my-remix-app",
+    "main": "app/entry.server.tsx",
+    "assets": {
+        "directory": "dist/client",
+        "binding": "ASSETS",
+        "run_worker_first": true,
+    },
+    "compatibility_date": "2026-04-02",
+    "compatibility_flags": ["nodejs_compat"],
+}
+```
+
+Wrap the router at the server entry. Keep any `routes` export needed by `prerender: true`:
+
+```ts
+// app/entry.server.tsx
+import { env } from "cloudflare:workers";
+import { router } from "./router.ts";
+
+export { routes } from "./routes.ts";
+
+export default {
+    async fetch(request: Request) {
+        if (
+            (request.method === "GET" || request.method === "HEAD") &&
+            !request.headers.has("x-remix-frame") &&
+            !request.headers.has("x-remix-target")
+        ) {
+            let asset = await env.ASSETS.fetch(request);
+            if (asset.status !== 404) return asset;
+        }
+        return router.fetch(request);
+    },
+};
+```
+
+Generate binding types with `vpx wrangler types` after adding `ASSETS`. Frame requests and mutations go straight to the router. Ordinary GET/HEAD requests can use the prerendered document or another static asset; a missing asset falls through to the router. The controller still decides which content belongs in each frame.
+
+Both changes are required. `run_worker_first` without the wrapper stops serving assets, and the wrapper without `run_worker_first` never sees a request that matches an asset. Worker-first routing also incurs a Worker invocation for asset requests. Cloudflare supports [selective Worker-first paths](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/#run-worker-first-for-selective-paths), but every frame-resolved prerendered path must be included, with and without its trailing slash. Excluding it restores the asset-first behavior that causes this bug.
+
+Keep the Vite plugins composed as above, with `prerender` added to `remix({ serverHandler: false, prerender: true })`. `@pitlane/dev` does not change your Wrangler routing settings.
+
+Check the production build with `vp preview`: a request to a frame-resolved route carrying the frame headers must return frame content without an asset redirect or a document shell. The wrapper forwards the URL unchanged, so the controller must handle the trailing-slash forms used by your links and frame sources. An ordinary document request should still serve the prerendered HTML. Click between frame-targeted links and confirm that the page retains one header and footer.
+
 ## Local development and preview
 
 ```sh

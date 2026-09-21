@@ -1,5 +1,9 @@
 # @pitlane/dev
 
+## Unreleased
+
+- Document the Cloudflare Worker-first configuration required to keep prerendered documents out of frame responses. The recipe preserves static document and asset serving while routing frame requests and mutations to the app. The plugin API and generated output are unchanged.
+
 ## 0.6.2
 
 Documentation only. `remix()`, its options, `@pitlane/dev/runtime`, and the `?assets=` protocol are unchanged.

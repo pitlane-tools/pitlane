@@ -5,4 +5,9 @@ run({
         let mod = await import(/* @vite-ignore */ moduleUrl);
         return mod[exportName];
     },
+    resolveFrame(src, options) {
+        let headers = new Headers({ accept: "text/html", "x-remix-frame": "true" });
+        if (options?.target) headers.set("x-remix-target", options.target);
+        return fetch(src, { headers, signal: options?.signal });
+    },
 });

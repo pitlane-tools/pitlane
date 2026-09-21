@@ -134,7 +134,7 @@ remix({
 
 ## Prerendering
 
-`prerender` renders paths to static HTML during `vite build` and writes them into the client output, so a CDN answers those URLs and the server never sees them. There is no second rendering path: the build sends a `Request` through the same fetch handler production runs.
+`prerender` renders paths to static HTML during `vite build` and writes them into the client output. A host can serve those files for document requests; frame requests still need the app's handler. There is no second rendering path: the build sends a `Request` through the same fetch handler production runs.
 
 ```ts
 remix({ prerender: ["/", "/blog", "/blog/hello-world"] });
@@ -167,7 +167,9 @@ remix({ prerender: { paths: ["/"], spider: true, concurrency: 4 } });
 
 Each path lands at `<path>/index.html` under the client output. Rendering runs after both builds and the assets manifest, so the HTML names real hashed chunks. Unsupported with `server: false`, which builds no server to render with.
 
-A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and friends already contribute a preview server, so when the import fails the build starts that server and renders through it, inside the runtime that will serve the pages. Nothing extra to configure.
+Static hosting must distinguish document requests from requests carrying `x-remix-frame` or `x-remix-target`; serving a prerendered document into a frame duplicates the page shell. On Cloudflare Workers, use the [Worker-first routing recipe](https://pitlane.tools/deploy/cloudflare#prerendering-and-frame-navigation). The plugin does not change Wrangler's asset routing.
+
+A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and friends already contribute a preview server, so when the import fails the build starts that server and renders through it, inside the runtime that will serve the pages. Selecting that runtime needs no extra configuration; serving the output still needs the routing described above.
 
 Full details in the [prerendering guide](https://pitlane.tools/guides/prerendering); the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/), and the [crawling guide](https://pitlane.tools/guides/crawler) covers using it on its own.
 
