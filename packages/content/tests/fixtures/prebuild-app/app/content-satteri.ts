@@ -4,7 +4,7 @@ import * as s from "remix/data-schema";
 
 // `options.satteri` configures the runtime rendering path, so prebuilding this
 // collection makes the plugin list a no-op. The build must say so.
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({
             pattern: "**/*.md",

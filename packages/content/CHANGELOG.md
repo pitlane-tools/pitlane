@@ -4,8 +4,9 @@
 
 Initial release.
 
-- `createContent` declares collections at runtime, validated by any Standard
-  Schema, with types inferred rather than generated.
+- `createContent` returns typed collection handles synchronously without loading
+  entries. Reads and rendering remain asynchronous; declaration errors throw
+  synchronously.
 - `getCollection`, `getCollection(filter)`, and `getEntry` over entries sorted
   by id; `c.reference(collection)` for typed pointers between collections.
 - `render()` resolves an entry's Markdown or MDX to a Remix component and its
@@ -13,8 +14,9 @@ Initial release.
 - Two loader interfaces: `ContentLoader` resolves a whole collection in one
   execution and can be prebuilt, `LiveLoader` answers one query at a time and
   runs on every read. `loaders.glob` and `loaders.file` implement the first.
-- `content()` from `@pitlane/content/vite` resolves `ContentLoader` collections
-  during the build and inlines them, so a host with no filesystem serves the
-  same collections, and watches the loaders' sources in dev.
+- `contentLayer()` from `@pitlane/content/vite` loads `ContentLoader` collections
+  after evaluating their declarations and inlines them into the bundle. It waits
+  for loading and validation before emitting, and watches the loaders' sources
+  in dev.
 - `headings()` from `@pitlane/content/satteri` produces the heading list on both
   rendering paths.

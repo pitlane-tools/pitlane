@@ -84,7 +84,7 @@ describe("watchCollections", () => {
         let blog = editableLoader([
             { id: "one", data: { title: "One" }, filePath: "content/one.md" },
         ]);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
         }));
         let hmr = fakeChannel();
@@ -102,7 +102,7 @@ describe("watchCollections", () => {
         let blog = editableLoader([
             { id: "one", data: { title: "One" }, filePath: "content/one.md" },
         ]);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
         }));
         let hmr = fakeChannel();
@@ -130,7 +130,7 @@ describe("watchCollections", () => {
             [{ id: "two", data: { title: "Two" }, filePath: "content/notes/two.md" }],
             "notes",
         );
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
             notes: c.collection({ loader: notes.loader, schema: post }),
         }));
@@ -155,7 +155,7 @@ describe("watchCollections", () => {
             { id: "one", data: { title: "One" }, filePath: "content/one.md" },
             { id: "two", data: { title: "Two" }, filePath: "content/two.md" },
         ]);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
         }));
         let hmr = fakeChannel();
@@ -176,7 +176,7 @@ describe("watchCollections", () => {
         let blog = editableLoader([
             { id: "one", data: { title: "One" }, filePath: "content/one.md" },
         ]);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
         }));
         let hmr = fakeChannel();
@@ -202,7 +202,7 @@ describe("watchCollections", () => {
         let blog = editableLoader([
             { id: "one", data: { title: "One" }, filePath: "content/one.md" },
         ]);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
         }));
         let hmr = fakeChannel();
@@ -221,7 +221,7 @@ describe("watchCollections", () => {
 
     it("watches an entry without a file path by not watching it", async () => {
         let remote = editableLoader([{ id: "one", data: { title: "One" } }]);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: remote.loader, schema: post }),
         }));
         let hmr = fakeChannel();
@@ -241,7 +241,7 @@ describe("watchCollections", () => {
             [{ id: "two", data: { title: "Two" }, filePath: "content/notes/two.md" }],
             "notes",
         );
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: blog.loader, schema: post }),
             notes: c.collection({ loader: notes.loader, schema: post }),
         }));

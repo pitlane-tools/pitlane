@@ -12,8 +12,7 @@ import type {
 } from "./types.ts";
 
 import { createContent } from "./content.ts";
-import { prebuiltManifest } from "./prebuild.ts";
-import { PREBUILT_MANIFEST } from "./symbols.ts";
+import { closePrebuild, openPrebuild } from "./prebuild.ts";
 
 /** A `ContentLoader` over entries held in memory, so a test never touches disk. */
 function memoryLoader(entries: LoadedEntry[], name = "memory"): ContentLoader {
@@ -58,29 +57,28 @@ async function failure(work: Promise<unknown>) {
 }
 
 describe("createContent", () => {
-    it("returns one collection per key in the builder's return value", async () => {
-        let content = await createContent(c => ({
+    it("returns collections synchronously without waiting for their loaders", async () => {
+        let content = createContent(c => ({
             blog: c.collection({ loader: memoryLoader([]), schema: title }),
             authors: c.collection({ loader: memoryLoader([]), schema: title }),
         }));
 
-        expect(Object.keys(content)).toEqual(["blog", "authors"]);
-        expect(typeof content.blog.getCollection).toBe("function");
-        expect(typeof content.blog.getEntry).toBe("function");
+        expect(await content.blog.getCollection()).toEqual([]);
+        expect(await content.authors.getCollection()).toEqual([]);
     });
 
     it("performs no I/O, so a loader is untouched until something is read", async () => {
         let load = vi.fn();
 
-        await createContent(c => ({
+        createContent(c => ({
             blog: c.collection({ loader: { name: "spy", load }, schema: title }),
         }));
 
         expect(load).not.toHaveBeenCalled();
     });
 
-    it("throws when a reference names a collection the builder did not return", async () => {
-        await expect(
+    it("throws synchronously when a reference names an unknown collection", () => {
+        expect(() =>
             createContent(c => ({
                 blog: c.collection({
                     loader: memoryLoader([]),
@@ -88,29 +86,38 @@ describe("createContent", () => {
                 }),
                 authors: c.collection({ loader: memoryLoader([]), schema: title }),
             })),
-        ).rejects.toThrow(
-            'Unknown collection "writers" referenced by createContent; known collections are blog, authors.',
-        );
+        ).toThrow(/Unknown collection "writers".*blog, authors/);
+    });
+
+    it("propagates a builder error synchronously", () => {
+        let cause = new Error("cannot declare collections");
+        expect(() =>
+            createContent(() => {
+                throw cause;
+            }),
+        ).toThrow(cause);
     });
 });
 
-describe("the manifest handshake", () => {
-    it("registers under the symbol the runtime reads", async () => {
-        // `manifest.ts` spells the symbol literally, because anything it
-        // imports is hoisted into the chunk `contentLayer()` replaces. This is what
-        // keeps that literal and `symbols.ts` from drifting apart: importing
-        // the package has to leave the key `prebuiltManifest()` reads present.
-        await import("./manifest.ts");
-
-        expect(Object.getOwnPropertySymbols(globalThis)).toContain(PREBUILT_MANIFEST);
-        expect(prebuiltManifest()).toBeNull();
+describe("prebuild construction", () => {
+    it("does not start loading while declarations are being evaluated", () => {
+        let load = vi.fn();
+        openPrebuild("/");
+        try {
+            createContent(c => ({
+                blog: c.collection({ loader: { name: "spy", load }, schema: title }),
+            }));
+            expect(load).not.toHaveBeenCalled();
+        } finally {
+            closePrebuild();
+        }
     });
 });
 
 describe("a ContentLoader collection", () => {
     it("runs its loader on the first read and memoizes the result", async () => {
         let load = vi.fn(memoryLoader([{ id: "a", data: { title: "A" } }]).load);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: { name: "spy", load }, schema: title }),
         }));
 
@@ -126,7 +133,7 @@ describe("a ContentLoader collection", () => {
         // assertion is about deduplication rather than about timing.
         let inFlight = Promise.withResolvers<void>();
         let load = vi.fn(() => inFlight.promise);
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: { name: "spy", load }, schema: title }),
         }));
 
@@ -142,7 +149,7 @@ describe("a ContentLoader collection", () => {
     });
 
     it("rejects the read that triggered a failing load, naming the collection", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: {
                     name: "broken",
@@ -161,7 +168,7 @@ describe("a ContentLoader collection", () => {
 
     it("does not memoize a failure, so the next read retries", async () => {
         let attempts = 0;
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: {
                     name: "flaky",
@@ -186,7 +193,7 @@ describe("a ContentLoader collection", () => {
     });
 
     it("never exposes a half-populated collection", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: {
                     name: "half",
@@ -212,7 +219,7 @@ describe("a LiveLoader collection", () => {
         let entries: LiveEntry<Record<string, unknown>>[] = [{ id: "a", data: { title: "A" } }];
         let loadCollection = vi.fn(async () => entries);
         let loadEntry = vi.fn(async (id: string) => entries.find(entry => entry.id === id));
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: { name: "live", loadCollection, loadEntry },
                 schema: title,
@@ -230,7 +237,7 @@ describe("a LiveLoader collection", () => {
 
     it("sees data published after the first read", async () => {
         let entries: LiveEntry<Record<string, unknown>>[] = [{ id: "a", data: { title: "A" } }];
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: liveLoader(entries), schema: title }),
         }));
 
@@ -241,7 +248,7 @@ describe("a LiveLoader collection", () => {
     });
 
     it("validates every entry it returns, on every read", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: liveLoader([{ id: "a", data: { title: 7 } }]),
                 schema: title,
@@ -253,7 +260,7 @@ describe("a LiveLoader collection", () => {
     });
 
     it("resolves to undefined for an id its loader does not know", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: liveLoader([]), schema: title }),
         }));
 
@@ -268,14 +275,14 @@ describe("reading a collection", () => {
         { id: "b", data: { title: "B" } },
     ];
 
-    async function blog() {
-        return await createContent(c => ({
+    function blog() {
+        return createContent(c => ({
             blog: c.collection({ loader: memoryLoader(posts), schema: title }),
         }));
     }
 
     it("returns every entry sorted by id, ascending", async () => {
-        let content = await blog();
+        let content = blog();
 
         expect((await content.blog.getCollection()).map(entry => entry.id)).toEqual([
             "a",
@@ -285,7 +292,7 @@ describe("reading a collection", () => {
     });
 
     it("keeps that order when a filter is applied", async () => {
-        let content = await blog();
+        let content = blog();
         let entries = await content.blog.getCollection(entry => entry.id !== "b");
 
         expect(entries.map(entry => entry.id)).toEqual(["a", "c"]);
@@ -296,7 +303,7 @@ describe("reading a collection", () => {
         // type. Without this it extracts the data shape out of the collection
         // with a conditional type of its own, which every consumer would
         // otherwise write for itself.
-        let content = await blog();
+        let content = blog();
         let entry: CollectionEntry<typeof content.blog> | undefined =
             await content.blog.getEntry("a");
 
@@ -304,7 +311,7 @@ describe("reading a collection", () => {
     });
 
     it("carries the id, the collection name, and the parsed data on each entry", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: memoryLoader([
                     { id: "hello", data: { title: "Hello" }, filePath: "app/content/hello.md" },
@@ -323,13 +330,13 @@ describe("reading a collection", () => {
     });
 
     it("resolves to undefined for an unknown id", async () => {
-        let content = await blog();
+        let content = blog();
 
         expect(await content.blog.getEntry("nope")).toBeUndefined();
     });
 
     it("accepts a reference object, reading only its id", async () => {
-        let content = await blog();
+        let content = blog();
         // The receiver already fixes the collection, so the field is not read.
         // Typed as a foreign reference on purpose: only a cast can get one here,
         // which is what the type parameter is for.
@@ -341,7 +348,7 @@ describe("reading a collection", () => {
 
 describe("schema validation", () => {
     it("parses frontmatter into the schema's output type", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: memoryLoader([{ id: "a", data: { publishedOn: "2026-09-17" } }]),
                 schema: s.object({ publishedOn: coerce.date() }),
@@ -354,7 +361,7 @@ describe("schema validation", () => {
     });
 
     it("names the collection, the entry, the file, and every issue when it fails", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: memoryLoader([
                     { id: "broken", data: { title: 7 }, filePath: "app/content/broken.md" },
@@ -373,7 +380,7 @@ describe("schema validation", () => {
     });
 
     it("omits the file path from the message when an entry has none", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: memoryLoader([{ id: "broken", data: { title: 7 } }]),
                 schema: title,
@@ -388,7 +395,7 @@ describe("schema validation", () => {
     });
 
     it("rejects a second entry with an id the collection already has", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: {
                     name: "duplicating",

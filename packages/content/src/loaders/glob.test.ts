@@ -234,7 +234,7 @@ describe("loaders.glob options.satteri", () => {
                 ],
             },
         });
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader, schema: passthrough }),
         }));
         let entry = await content.blog.getEntry("hello");

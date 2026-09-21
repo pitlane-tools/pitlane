@@ -12,13 +12,13 @@ import type {
 
 import { ContentError, missingRenderer, parseEntryData } from "./parse.ts";
 import {
-    beginContent,
     contentRoot,
     isPrebuilding,
     prebuiltManifest,
     recordConfiguredSatteri,
     recordPrebuilt,
     recordWatched,
+    registerPrebuild,
 } from "./prebuild.ts";
 import { reference } from "./reference.ts";
 import { collectionStore, type StoredEntry } from "./store.ts";
@@ -27,19 +27,15 @@ import { HOT_COLLECTION } from "./symbols.ts";
 /**
  * Declares a set of content collections.
  *
- * Calls `build` once and performs no I/O, so a module that declares content
- * does nothing asynchronous at import time. That is not an optimization:
- * Cloudflare Workers forbids asynchronous I/O in global scope, and this is
- * called at module scope. Each collection populates on its first read instead.
+ * Returns the collection object synchronously without loading entries.
+ * Reads and rendering remain asynchronous. Declaration errors throw here.
  *
- * The exception is a build running under `contentLayer()`, where every
- * `ContentLoader` collection is populated eagerly so the result can be inlined
- * into the bundle.
+ * Under `contentLayer()`, registers deferred population work. The plugin
+ * awaits it after evaluating the declarations and before emitting the bundle.
  */
-export async function createContent<T extends Record<string, CollectionDefinition>>(
+export function createContent<T extends Record<string, CollectionDefinition>>(
     build: (c: ContentBuilder) => T,
-): Promise<Content<T>> {
-    let finished = beginContent();
+): Content<T> {
     let referenced: string[] = [];
     let definitions = build({
         collection: input => input,
@@ -65,8 +61,7 @@ export async function createContent<T extends Record<string, CollectionDefinitio
         content[name] = wire(name, definition, manifest?.[name]);
     }
 
-    if (isPrebuilding()) await populateEagerly(content, definitions);
-    finished();
+    if (isPrebuilding()) registerPrebuild(() => populateEagerly(content, definitions));
     return content as Content<T>;
 }
 

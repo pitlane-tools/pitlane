@@ -10,7 +10,7 @@ let anything = {
     },
 };
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     settings: c.collection({
         loader: loaders.glob({ pattern: "*.json", base: "app/content/data" }),
         schema: anything,

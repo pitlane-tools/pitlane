@@ -41,7 +41,7 @@ describe("reference", () => {
     });
 
     it("types an entry's reference to the collection it names", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: { name: "empty", load() {} },
                 schema: s.object({ author: c.reference("authors") }),
@@ -63,7 +63,7 @@ describe("reference", () => {
     });
 
     it("does not verify that the target entry exists", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: {
                     name: "memory",

@@ -254,13 +254,13 @@ describe("contentLayer()", () => {
         expect(warnings.filter(warning => warning.includes("options.satteri"))).toEqual([]);
     });
 
-    it("fails the build when the entry does not await createContent", async () => {
-        // The collections are declared but the promise is never awaited, so the
-        // build sees nothing. An empty manifest is the one outcome this design
-        // refuses: it works on Node and fails only on a host with no filesystem.
-        await expect(buildFixture({ entry: "app/content-unawaited.ts" })).rejects.toThrow(
-            /app\/content-unawaited\.ts.*await/s,
-        );
+    it("prebuilds every declaration after module evaluation without a particular export shape", async () => {
+        let outDir = await buildFixture({ entry: "app/content-declarations.ts" }, undefined, {
+            ssr: "app/content-declarations.ts",
+        });
+        let built = await import(pathToFileURL(join(outDir, "entry.server.mjs")).href);
+
+        expect(await built.query()).toEqual({ first: "First", second: "Second" });
     });
 
     it("names vite-plugin-satteri when nothing can compile a Markdown body", async () => {

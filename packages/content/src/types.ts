@@ -217,7 +217,7 @@ export interface ContentBuilder {
     reference<C extends string>(collection: C): ReferenceSchema<C>;
 }
 
-/** The object `createContent` resolves to: one {@link Collection} per key. */
+/** The object `createContent` returns: one {@link Collection} per key. */
 export type Content<T extends Record<string, CollectionDefinition>> = {
     [K in keyof T]: Collection<K & string, InferSchema<T[K]["schema"]>>;
 };

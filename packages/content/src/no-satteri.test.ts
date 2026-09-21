@@ -14,7 +14,7 @@ describe("rendering Markdown without satteri installed", () => {
         });
         let { createContent } = await import("./content.ts");
 
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: {
                     name: "memory",

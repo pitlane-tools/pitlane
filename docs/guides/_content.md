@@ -169,7 +169,7 @@ import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     newsletters: c.collection({
         loader: loaders.glob({ base: "app/content/newsletters", pattern: "**/*.{md,mdx}" }),
         schema: s.object({
@@ -209,6 +209,15 @@ All of your content collections are defined using the `createContent()` function
 
 ::::
 
+`createContent()` returns the content client synchronously. Export it directly and import it
+where you need it. Construction does no loading. Keep `await` on `getCollection()`, `getEntry()`,
+and `entry.render()`.
+
+With Vite, `contentLayer()` waits for the declarations to finish, then loads the prebuildable
+collections before emitting the bundle. Without a bundler, a `ContentLoader` collection loads
+on its first read. Live collections load on every read in either setup. Neither setup needs an
+initialization call.
+
 Each individual collection configures:
 
 - a `loader` for a data source (required)
@@ -227,7 +236,7 @@ import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
 // 4. Export a single `content` client to use in your controllers
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     // 5. Define a `loader` and `schema` for each collection
     blog: c.collection({
         loader: loaders.glob({ base: "app/content/blog", pattern: "**/*.{md,mdx}" }),
@@ -264,7 +273,7 @@ import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({ pattern: "**/*.md", base: "app/data/blog" }),
         schema: s.object({
@@ -308,7 +317,7 @@ import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({ base: "app/content/blog", pattern: "**/*.{md,mdx}" }),
         schema: s.object({
@@ -343,7 +352,7 @@ relatedPosts:
 
 These references are transformed into objects containing a `collection` key and an `id` key, which you hand straight to the referenced collection to [query the related data](#accessing-referenced-data).
 
-A reference is checked for its collection, not for its entry. Naming a collection that does not exist fails when `createContent()` runs:
+A reference is checked for its collection, not for its entry. Naming a collection that does not exist throws synchronously when `createContent()` runs. Errors thrown by the declaration callback also propagate synchronously; loading and rendering errors reject the read or render call:
 
 ```text
 Unknown collection "wrtiers" referenced by createContent; known collections are blog, authors.
@@ -366,7 +375,7 @@ This loader requires a `pattern` of entry files to match, using the glob syntax 
 import { createContent } from "@pitlane/content";
 import { glob } from "@pitlane/content/loaders";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: glob({ pattern: "**/*.md", base: "app/data/blog" }),
         // ...
@@ -394,7 +403,7 @@ Your blog post content here.
 import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({
             pattern: "**/*.{md,mdx}",
@@ -418,7 +427,7 @@ The `file()` loader fetches multiple entries from a single local file defined in
 import { createContent } from "@pitlane/content";
 import { file } from "@pitlane/content/loaders";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     dogs: c.collection({
         loader: file("app/data/dogs.json"),
         // ...
@@ -460,7 +469,7 @@ import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
 import { parse as parseCsv } from "csv-parse/sync";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     cats: c.collection({
         loader: loaders.file("app/data/cats.csv", {
             parser: text => parseCsv(text, { columns: true, skipEmptyLines: true }),
@@ -486,7 +495,7 @@ You can separate these collections by passing a custom `parser()` function to th
 import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     dogs: c.collection({
         loader: loaders.file("app/data/pets.json", {
             parser: text => JSON.parse(text).dogs,
@@ -514,7 +523,7 @@ import * as coerce from "remix/data-schema/coerce";
 
 import { releases } from "./loaders/releases.ts";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     releases: c.collection({
         loader: releases({ repository: "pitlane-tools/pitlane" }),
         schema: s.object({
@@ -860,7 +869,7 @@ import * as coerce from "remix/data-schema/coerce";
 
 import { cms } from "./loaders/cms.ts";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     articles: c.collection({
         loader: cms({ endpoint: "https://cms.example.com/api", token: process.env.CMS_TOKEN }),
         schema: s.object({
@@ -888,7 +897,7 @@ async article({ params, render }) {
 `loadCollection()` takes no arguments. Filter with the callback `getCollection()` accepts, and when the filtering has to happen at the source, put it in the loader's options and declare a second collection:
 
 ```ts
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     articles: c.collection({ loader: cms({ endpoint, token }), schema: article }),
     drafts: c.collection({ loader: cms({ endpoint, token, status: "draft" }), schema: article }),
 }));
@@ -926,7 +935,7 @@ Add one line beside `createContent()`:
 // app/content.ts
 import { hotContent } from "@pitlane/content/hot";
 
-export let content = await createContent(c => ({ ... }));
+export let content = createContent(c => ({ ... }));
 
 await hotContent(content);
 ```

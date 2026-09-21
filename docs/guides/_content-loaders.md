@@ -321,7 +321,7 @@ When the filtering has to happen at the source, put it in the loader's
 options and declare a second collection:
 
 ```ts
-let content = await createContent(c => ({
+let content = createContent(c => ({
     news: c.collection({ loader: cms({ endpoint, token }), schema: article }),
     drafts: c.collection({ loader: cms({ endpoint, token, status: "draft" }), schema: article }),
 }));
@@ -403,7 +403,7 @@ import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
 import { z } from "zod";
 
-let content = await createContent(c => ({
+let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({ pattern: "**/*.md", base: "content" }),
         schema: z.object({ title: z.string(), author: z.string() }),

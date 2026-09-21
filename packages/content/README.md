@@ -16,7 +16,7 @@ import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({ pattern: "**/*.mdx", base: "app/content/blog" }),
         schema: s.object({
@@ -38,6 +38,9 @@ let post = await content.blog.getEntry(params.slug);
 let { Content, headings } = await post.render();
 let author = await content.authors.getEntry(post.data.author);
 ```
+
+`createContent()` returns synchronously without loading entries. Import the
+returned object wherever you need it; reads and rendering stay asynchronous.
 
 The loaders are ordinary runtime code, which covers Node, Bun, Deno, and
 container hosts. For a host with no filesystem, add `contentLayer()` from

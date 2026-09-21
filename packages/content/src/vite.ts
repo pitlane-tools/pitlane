@@ -11,7 +11,7 @@ import {
 import type { LoadedEntry } from "./types.ts";
 
 import { type Body, BODY_PREFIX, manifestModule } from "./codegen.ts";
-import { closePrebuild, openPrebuild, unfinishedContent } from "./prebuild.ts";
+import { closePrebuild, openPrebuild } from "./prebuild.ts";
 
 const MANIFEST_OWNER = "@pitlane/content";
 const MANIFEST_SPECIFIER = `${MANIFEST_OWNER}/internal/manifest`;
@@ -312,10 +312,9 @@ function isEmitted(id: string) {
  * Runs the content entry through Vite's own module runner, so TypeScript,
  * aliases, and `vite.config.ts` resolution all apply.
  *
- * `createContent` sees prebuild mode and populates every `ContentLoader`
- * collection eagerly, with the filesystem available. A `LiveLoader` has no
- * `load` to call, so the build cannot execute one even in principle, which is
- * why it makes no network calls on a live collection's behalf.
+ * Declarations register deferred work. The plugin awaits it after module
+ * evaluation, with the filesystem available, before reading the manifest.
+ * Live loaders register no population work and stay untouched.
  */
 async function inPrebuildServer(
     root: string,
@@ -351,26 +350,17 @@ async function execute(
     onWatched: (paths: string[]) => void,
 ) {
     let recorded = openPrebuild(root);
-    let unfinished = false;
     try {
         await server.ssrLoadModule(entry.startsWith("/") ? entry : `/${entry}`);
+        for (let populate of recorded.tasks) await populate();
     } catch (error) {
         let cause = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to load the content entry "${entry}" in ${root}: ${cause}`, {
             cause: error,
         });
     } finally {
-        unfinished = unfinishedContent();
         onWatched([...recorded.watched]);
         closePrebuild();
-    }
-
-    if (unfinished) {
-        throw new Error(
-            `The content entry "${entry}" declares collections without awaiting ` +
-                "createContent, so the build cannot see them. Add `await`: " +
-                "`export let content = await createContent(...)`.",
-        );
     }
 
     let collections: Record<string, LoadedEntry[]> = {};

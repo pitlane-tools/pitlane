@@ -43,8 +43,8 @@ function loaderFor(entries: LoadedEntry[]): ContentLoader {
     };
 }
 
-async function blogFrom(entries: LoadedEntry[]) {
-    return await createContent(c => ({
+function blogFrom(entries: LoadedEntry[]) {
+    return createContent(c => ({
         blog: c.collection({ loader: loaderFor(entries), schema: title }),
     }));
 }
@@ -67,7 +67,7 @@ async function compiledMdx(source: string) {
 
 describe("render, on a collection rendered at runtime", () => {
     it("renders a .md body to markup", async () => {
-        let content = await blogFrom([
+        let content = blogFrom([
             {
                 id: "hello",
                 data: { title: "Hello" },
@@ -85,7 +85,7 @@ describe("render, on a collection rendered at runtime", () => {
     });
 
     it("renders a .mdx body, evaluating its expressions", async () => {
-        let content = await blogFrom([
+        let content = blogFrom([
             {
                 id: "hello",
                 data: { title: "Hello" },
@@ -102,7 +102,7 @@ describe("render, on a collection rendered at runtime", () => {
     });
 
     it("reports the same headings for both formats", async () => {
-        let content = await blogFrom([
+        let content = blogFrom([
             {
                 id: "md",
                 data: { title: "Md" },
@@ -126,7 +126,7 @@ describe("render, on a collection rendered at runtime", () => {
     });
 
     it("parses a body once and caches the result across renders", async () => {
-        let content = await blogFrom([
+        let content = blogFrom([
             { id: "hello", data: { title: "Hello" }, body: { format: "md", source: "# Hi\n" } },
         ]);
         let entry = await content.blog.getEntry("hello");
@@ -135,7 +135,7 @@ describe("render, on a collection rendered at runtime", () => {
     });
 
     it("does not parse any body until an entry is rendered", async () => {
-        let content = await blogFrom([
+        let content = blogFrom([
             {
                 id: "broken",
                 data: { title: "Broken" },
@@ -154,7 +154,7 @@ describe("render, on a collection rendered at runtime", () => {
         // no config to ask, so `render` applies it after the loader's own
         // plugins — where Expressive Code's stylesheet already is.
         let css = ".expressive-code pre > code{color:red}";
-        let content = await blogFrom([
+        let content = blogFrom([
             {
                 id: "hello",
                 data: { title: "Hello" },
@@ -191,7 +191,7 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
     let components = fileURLToPath(new URL("./fixtures/components", import.meta.url));
 
     async function post(source: string) {
-        let content = await blogFrom([
+        let content = blogFrom([
             {
                 id: "hello",
                 data: { title: "Hello" },
@@ -566,7 +566,7 @@ describe("render, on a prebuilt collection", () => {
                 },
             ],
         });
-        let content = await blogFrom([]);
+        let content = blogFrom([]);
         let entry = await content.blog.getEntry("hello");
         let { Content, headings: list } = await entry!.render();
 
@@ -584,7 +584,7 @@ describe("render, on a prebuilt collection", () => {
                 },
             ],
         });
-        let content = await blogFrom([]);
+        let content = blogFrom([]);
         let entry = await content.blog.getEntry("hello");
         let { Content, headings: list } = await entry!.render();
 
@@ -598,7 +598,7 @@ describe("render, on a prebuilt collection", () => {
     it("never calls the loader for a collection the manifest carries", async () => {
         let load = vi.fn();
         prebuild({ blog: [{ id: "hello", data: { title: "Hello" } }] });
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({ loader: { name: "spy", load }, schema: title }),
         }));
 
@@ -608,7 +608,7 @@ describe("render, on a prebuilt collection", () => {
 
     it("runs the loader for a collection the manifest does not carry", async () => {
         prebuild({ authors: [] });
-        let content = await blogFrom([{ id: "hello", data: { title: "Hello" } }]);
+        let content = blogFrom([{ id: "hello", data: { title: "Hello" } }]);
 
         expect((await content.blog.getCollection()).map(entry => entry.id)).toEqual(["hello"]);
     });
@@ -619,7 +619,7 @@ describe("render, on a prebuilt collection", () => {
                 { id: "hello", data: { title: "Hello" }, body: await compiledMdx("# Greeting\n") },
             ],
         });
-        let content = await blogFrom([]);
+        let content = blogFrom([]);
         let entry = await content.blog.getEntry("hello");
         let { Content } = await entry!.render();
 
@@ -633,7 +633,7 @@ describe("render, on a prebuilt collection", () => {
 describe("render, on an entry that is not a document", () => {
     it("rejects rather than resolving to an empty component", async () => {
         prebuild(null);
-        let content = await blogFrom([{ id: "authors", data: { title: "Authors" } }]);
+        let content = blogFrom([{ id: "authors", data: { title: "Authors" } }]);
         let entry = await content.blog.getEntry("authors");
 
         await expect(entry!.render()).rejects.toThrow(

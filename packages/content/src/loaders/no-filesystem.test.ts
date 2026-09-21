@@ -19,7 +19,7 @@ let expected =
 
 describe("a filesystem loader with no filesystem", () => {
     it("says what to install rather than producing an empty collection", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: glob({ pattern: "**/*.md", base: "app/content/blog" }),
                 schema: {
@@ -32,7 +32,7 @@ describe("a filesystem loader with no filesystem", () => {
     });
 
     it("says the same for loaders.file, which reads the filesystem too", async () => {
-        let content = await createContent(c => ({
+        let content = createContent(c => ({
             blog: c.collection({
                 loader: file("app/content/authors.json"),
                 schema: {

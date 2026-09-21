@@ -20,8 +20,7 @@ interface Channel {
     watched: Set<string>;
     /** Collections whose loader configured runtime rendering options. */
     configuredSatteri: Set<string>;
-    /** `createContent` calls that started and have not finished. */
-    inFlight: number;
+    tasks: (() => Promise<void>)[];
     root: string;
 }
 
@@ -36,7 +35,7 @@ export function openPrebuild(root: string): Channel {
         collections: new Map(),
         watched: new Set(),
         configuredSatteri: new Set(),
-        inFlight: 0,
+        tasks: [],
         root,
     };
     (globalThis as Global)[PREBUILD_CHANNEL] = channel;
@@ -48,7 +47,7 @@ export function closePrebuild(): void {
     delete (globalThis as Global)[PREBUILD_CHANNEL];
 }
 
-/** Whether `createContent` should populate eagerly and record what it loaded. */
+/** Whether a build is collecting declarations and prebuilding their entries. */
 export function isPrebuilding(): boolean {
     return (globalThis as Global)[PREBUILD_CHANNEL] !== undefined;
 }
@@ -67,28 +66,9 @@ export function contentRoot(): string {
     return typeof process === "undefined" ? "/" : process.cwd();
 }
 
-/**
- * Marks a `createContent` call as started, and returns its completion callback.
- *
- * `contentLayer()` uses this to notice an entry module that declares collections
- * without awaiting them. `ssrLoadModule` resolves as soon as the module body
- * does, so every later `recordPrebuilt` would no-op into a closed channel and
- * the build would emit an empty manifest — working on Node and failing only on
- * a host with no filesystem. An unfinished call is what distinguishes "this
- * app has no prebuildable collections" from "nobody waited for them".
- */
-export function beginContent(): () => void {
-    let channel = (globalThis as Global)[PREBUILD_CHANNEL];
-    if (!channel) return () => {};
-    channel.inFlight += 1;
-    return () => {
-        channel.inFlight -= 1;
-    };
-}
-
-/** Whether any `createContent` call started and never finished. */
-export function unfinishedContent(): boolean {
-    return ((globalThis as Global)[PREBUILD_CHANNEL]?.inFlight ?? 0) > 0;
+/** Defers loading until the plugin finishes evaluating the declaration module. */
+export function registerPrebuild(populate: () => Promise<void>): void {
+    (globalThis as Global)[PREBUILD_CHANNEL]?.tasks.push(populate);
 }
 
 /** Records one collection's entries for `contentLayer()` to read back. */
