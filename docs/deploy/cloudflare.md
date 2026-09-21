@@ -115,6 +115,19 @@ A D1 binding gets you a `remix/data-table` database through [`@pitlane/data-tabl
 
 When you enable [`prerender`](/guides/prerendering), Cloudflare's default asset-first routing serves the generated HTML before your Worker runs. It does not distinguish a document request from a request carrying `x-remix-frame` or `x-remix-target`. A request for `/page` can redirect to `/page/` and receive `page/index.html`, putting a full document inside a frame during soft navigation.
 
+### Hybrid workaround: render frames at runtime
+
+The Worker-first recipe below keeps document responses prerendered but renders frame responses through the app at request time. Frame navigation still depends on a running SSR app. A fully static deployment cannot use this recipe.
+
+| Request                                    | Response source       |
+| ------------------------------------------ | --------------------- |
+| Document request for a prerendered path    | Static HTML           |
+| Frame request                              | Runtime app rendering |
+| JavaScript, CSS, or another existing asset | Static file           |
+| Non-prerendered route or mutation          | Runtime app           |
+
+With `run_worker_first: true`, every request invokes the Worker, including requests that return static HTML or assets. Those static responses do not require SSR, but they still incur Worker invocations.
+
 This recipe assumes your browser's `run({ resolveFrame })` sends `x-remix-frame` or `x-remix-target` and your controller recognizes those headers. Remix rc.2's default frame resolver sends only `Accept: text/html`, so check your app's resolver rather than assuming those headers are present.
 
 In an existing `resolveFrame(src, options)`, build the request headers like this and pass them to its `fetch` call:
@@ -171,7 +184,7 @@ Generate binding types with `vpx wrangler types` after adding `ASSETS`. Frame re
 
 Keep `assets.not_found_handling` unset (its default is `"none"`). A `"single-page-application"` fallback answers missing assets with a 200 shell, preventing the 404 fallthrough to dynamic routes.
 
-Both changes are required. `run_worker_first` without the wrapper stops serving assets, and the wrapper without `run_worker_first` never sees a request that matches an asset. Worker-first routing also incurs a Worker invocation for asset requests. Cloudflare supports [selective Worker-first paths](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/#run-worker-first-for-selective-paths), but every frame-resolved prerendered path must be included, with and without its trailing slash. Excluding it restores the asset-first behavior that causes this bug.
+Both changes are required. `run_worker_first` without the wrapper stops serving assets, and the wrapper without `run_worker_first` never sees a request that matches an asset. Cloudflare supports [selective Worker-first paths](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/#run-worker-first-for-selective-paths), but every frame-resolved prerendered path must be included, with and without its trailing slash. Excluding it restores the asset-first behavior that causes this bug.
 
 Keep the Vite plugins composed as above, with `prerender` added to `remix({ serverHandler: false, prerender: true })`. `@pitlane/dev` does not change your Wrangler routing settings.
 

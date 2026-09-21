@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Document the Cloudflare Worker-first configuration required to keep prerendered documents out of frame responses. The recipe preserves static document and asset serving while routing frame requests and mutations to the app. The plugin API and generated output are unchanged.
+- Document a hybrid Cloudflare Worker-first workaround for prerendered documents being served into frames. Documents and assets remain static, while frame requests render through the app at runtime. Every request invokes the Worker with the shown configuration. The plugin does not generate static frame variants automatically. Its API and generated output are unchanged.
 
 ## 0.6.2
 

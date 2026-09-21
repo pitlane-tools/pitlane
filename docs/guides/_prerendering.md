@@ -266,9 +266,9 @@ For an app that only uses document navigation, that output directory is the whol
 
 ::::
 
-### Frame requests still need the server
+### Current output and frame navigation
 
-A prerendered file is a full HTML document. A Remix frame request can use the same URL but needs frame content from the controller. Serving the document into that frame duplicates the page shell.
+Prerendering writes the response for each requested URL. For a page route, that response is a full HTML document. It does not automatically write a separate response for each frame target at the same URL. Serving the document into a frame duplicates the page shell.
 
 Route requests carrying `x-remix-frame` or `x-remix-target` to the app before checking for static files.
 
@@ -278,7 +278,15 @@ If you keep the default resolver, omit frame-resolved paths from prerendering in
 
 A CDN or `staticFiles()` middleware placed ahead of the header check can serve the wrong response, even when the controller handles frames correctly. Hydration working on the first load does not prove soft navigation works.
 
-On Cloudflare Workers, assets are served before the Worker by default. Use the [Worker-first prerendering configuration](/deploy/cloudflare#prerendering-and-frame-navigation) so the Worker can distinguish documents from frames. If you cannot control that routing, leave frame-resolved paths out of the prerender list, including paths discovered by `spider`. An app that needs runtime frame responses cannot run on a static-only host.
+On Cloudflare Workers, the [Worker-first recipe](/deploy/cloudflare#prerendering-and-frame-navigation) is a hybrid-rendering workaround. Document responses stay prerendered, but each frame request renders through the app at runtime. With `run_worker_first: true`, even static documents and assets invoke the Worker. This requires a running SSR app.
+
+Leaving frame-resolved paths out of prerendering also leaves those paths rendered at runtime. That avoids the response mismatch without making frame navigation static.
+
+For a fully static deployment using the current document output, use full-document navigation instead of frame navigation. Any frame that loads or reloads independently still needs a suitable response of its own.
+
+Separately prerendered frame responses can support fully static navigation, with the browser fetching those files while keeping the document URL in its address bar.
+
+The plugin does not automatically generate frame variants or map their URLs for the browser.
 
 ## Data that goes stale
 

@@ -218,7 +218,7 @@ The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as h
 
 **4. Abort error suppression** — Swallows `"aborted"` errors from client disconnects (search-as-you-type) so they don't trigger Vite's error overlay.
 
-**5. Build-time prerendering** — `remix({ prerender })` renders paths to static HTML during `vite build` and writes them into the client output. A host can serve those files for document requests; frame requests still need the app's handler. Provider-native routing must preserve that distinction, as the Cloudflare Worker-first configuration does. There is no second rendering path: the build sends a `Request` through the built server entry, the same handler production runs. `@pitlane/crawler` does the walking.
+**5. Build-time prerendering** — `remix({ prerender })` renders paths to static HTML during `vite build` and writes them into the client output. For page routes, these are full documents. The plugin does not automatically generate separate frame variants. The documented Cloudflare Worker-first workaround keeps documents static but renders frames at runtime, requiring a running SSR app. There is no second rendering path: the build sends a `Request` through the built server entry, the same handler production runs. `@pitlane/crawler` does the walking.
 
 **API:**
 
