@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/data-table-d1",
-    "version": "0.2.1",
-    "description": "A Cloudflare D1 driver for Remix 3's data-table: SQLite SQL over D1's async prepared-statement binding.",
+    "version": "0.2.2",
+    "description": "Cloudflare D1 database driver for Remix.",
     "keywords": [
         "cloudflare",
         "d1",

@@ -104,23 +104,23 @@ Token values are the CSS they become. Each schema decides its leaf shape. It can
 
 The schema names the type for each token or group. Import the factories as `s` to keep those declarations separate from the token values.
 
-| Factory                   | Token type            | Accepted authored value                                                                                                                                                                                                                            |
-| ------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `s.color()`               | `color`               | CSS color text, including `light-dark()`, `color-mix()`, and `currentColor`                                                                                                                                                                        |
-| `s.dimension()`           | `dimension`           | CSS length text, including `clamp()`, `calc()`, `em`, and `%`                                                                                                                                                                                      |
-| `s.duration()`            | `duration`            | CSS time text, including `ms`, `s`, and `calc()`                                                                                                                                                                                                   |
-| `s.number()`              | `number`              | A finite number                                                                                                                                                                                                                                    |
-| `s.easing()`              | `cubicBezier`         | `cubic-bezier(...)` text or a four-number tuple                                                                                                                                                                                                    |
-| `s.shadow()`              | `shadow`              | CSS shadow text, including `inset`                                                                                                                                                                                                                 |
-| `s.border()`              | `border`              | CSS border shorthand text                                                                                                                                                                                                                          |
-| `s.transition()`          | `transition`          | CSS transition shorthand text                                                                                                                                                                                                                      |
-| `s.gradient()`            | `gradient`            | CSS gradient function text                                                                                                                                                                                                                         |
-| `s.stroke()`              | `strokeStyle`         | `solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`, `outset`, or `inset`                                                                                                                                                                     |
-| `s.font.family()`         | `fontFamily`          | A font name or an array of font names                                                                                                                                                                                                              |
-| `s.font.weight()`         | `fontWeight`          | A number from 1 through 1000, or `thin`, `hairline`, `extra-light`, `ultra-light`, `light`, `normal`, `regular`, `book`, `medium`, `semi-bold`, `demi-bold`, `bold`, `extra-bold`, `ultra-bold`, `black`, `heavy`, `extra-black`, or `ultra-black` |
-| `s.scale()`               | `dimension`           | One base length whose accessor multiplies it                                                                                                                                                                                                       |
-| `s.any()`                 | None                  | A string or number emitted verbatim                                                                                                                                                                                                                |
-| `s.group(self, children)` | Inherited from `self` | A typed node with schema overrides for children                                                                                                                                                                                                    |
+| Factory | Token type | Accepted authored value |
+| --- | --- | --- |
+| `s.color()` | `color` | CSS color text, including `light-dark()`, `color-mix()`, and `currentColor` |
+| `s.dimension()` | `dimension` | CSS length text, including `clamp()`, `calc()`, `em`, and `%` |
+| `s.duration()` | `duration` | CSS time text, including `ms`, `s`, and `calc()` |
+| `s.number()` | `number` | A finite number |
+| `s.easing()` | `cubicBezier` | `cubic-bezier(...)` text or a four-number tuple |
+| `s.shadow()` | `shadow` | CSS shadow text, including `inset` |
+| `s.border()` | `border` | CSS border shorthand text |
+| `s.transition()` | `transition` | CSS transition shorthand text |
+| `s.gradient()` | `gradient` | CSS gradient function text |
+| `s.stroke()` | `strokeStyle` | `solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`, `outset`, or `inset` |
+| `s.font.family()` | `fontFamily` | A font name or an array of font names |
+| `s.font.weight()` | `fontWeight` | A number from 1 through 1000, or `thin`, `hairline`, `extra-light`, `ultra-light`, `light`, `normal`, `regular`, `book`, `medium`, `semi-bold`, `demi-bold`, `bold`, `extra-bold`, `ultra-bold`, `black`, `heavy`, `extra-black`, or `ultra-black` |
+| `s.scale()` | `dimension` | One base length whose accessor multiplies it |
+| `s.any()` | None | A string or number emitted verbatim |
+| `s.group(self, children)` | Inherited from `self` | A typed node with schema overrides for children |
 
 `s.group(self, children)` gives a group a type and lets specific children use another type. In the example, `control.height.sm` inherits `s.dimension()`, while `control.color.default` uses `s.color()`. `default` is an ordinary token name. The schema stores its own type separately, so no token name is reserved.
 
@@ -444,8 +444,7 @@ import type { TVAProps } from "@pitlane/theme";
 
 type ButtonVariants = TVAProps<typeof button>;
 
-type IntentButtonProps = 
-    Omit<ButtonVariants, "intent"> & Required<Pick<ButtonVariants, "intent">>;
+type IntentButtonProps = Omit<ButtonVariants, "intent"> & Required<Pick<ButtonVariants, "intent">>;
 
 export let intentButton = (props: IntentButtonProps) => button(props);
 ```

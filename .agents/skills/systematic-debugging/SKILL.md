@@ -137,24 +137,24 @@ When you see these: **return to debugging stage 1**.
 
 ## Common rationalizations
 
-| Excuse                                    | Reality                                                                 |
-| ----------------------------------------- | ----------------------------------------------------------------------- |
-| "Issue is simple, don't need the process" | Simple issues have root causes too. Process is fast for simple bugs.    |
-| "Emergency, no time"                      | Systematic is faster than guess-and-check thrashing.                    |
-| "Just try this first, then investigate"   | First fix sets the pattern. Do it right from the start.                 |
-| "Multiple fixes at once saves time"       | Can't isolate what worked. Causes new bugs.                             |
-| "Reference too long, I'll adapt"          | Partial understanding guarantees bugs. Read it completely.              |
-| "I see the problem, let me fix it"        | Seeing symptoms ≠ understanding root cause.                             |
-| "One more fix" (after 2+ failures)        | 3+ failures = architectural problem. Discuss before attempting another. |
+| Excuse | Reality |
+| --- | --- |
+| "Issue is simple, don't need the process" | Simple issues have root causes too. Process is fast for simple bugs. |
+| "Emergency, no time" | Systematic is faster than guess-and-check thrashing. |
+| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
+| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
+| "Reference too long, I'll adapt" | Partial understanding guarantees bugs. Read it completely. |
+| "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
+| "One more fix" (after 2+ failures) | 3+ failures = architectural problem. Discuss before attempting another. |
 
 ## Quick reference
 
-| Debugging stage   | Activities                                                                      | Success criteria                     |
-| ----------------- | ------------------------------------------------------------------------------- | ------------------------------------ |
-| 1. Root cause     | Read errors, reproduce, check changes, gather boundary evidence, trace backward | Understand WHAT is broken and WHERE  |
-| 2. Pattern        | Find working example, read fully, identify differences                          | Know how working differs from broken |
-| 3. Hypothesis     | State theory, test minimally, verify                                            | Confirmed or new hypothesis          |
-| 4. Implementation | Write failing test, fix root cause, verify                                      | Bug resolved, tests pass             |
+| Debugging stage | Activities | Success criteria |
+| --- | --- | --- |
+| 1. Root cause | Read errors, reproduce, check changes, gather boundary evidence, trace backward | Understand WHAT is broken and WHERE |
+| 2. Pattern | Find working example, read fully, identify differences | Know how working differs from broken |
+| 3. Hypothesis | State theory, test minimally, verify | Confirmed or new hypothesis |
+| 4. Implementation | Write failing test, fix root cause, verify | Bug resolved, tests pass |
 
 ## Commit
 

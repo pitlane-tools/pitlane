@@ -1,25 +1,23 @@
 # pitlane
 
-This name is reserved for the **Pitlane umbrella package** — portable platform
-integration for [Remix 3](https://remix.run). It is not released yet.
+A meta-framework for [Remix](https://remix.run).
 
-What ships today:
+**Coming soon.** The umbrella package is not implemented yet. Use the individual packages below.
 
-- [`@pitlane/dev`](https://pitlane.tools/package/dev/) — the `remix()` Vite
-  plugin: build orchestration, the `clientEntry()` hydration transform, dev
-  serving with HMR, SPA mode, build-time prerendering, and preview for any
-  Vite or Vite+ project.
-- [`@pitlane/theme`](https://pitlane.tools/package/theme/) — type-safe styling
-  with design tokens: `createTheme({ schema, tokens, modes })` compiles to a
-  typed token accessor and a `<Theme />` component.
-- [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/) — a
-  Cloudflare D1 driver for Remix 3's `data-table`.
-- [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) — spiders a
-  Remix 3 fetch router in memory. The crawler behind `remix({ prerender })`,
-  installable on its own.
-- [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) —
-  one Remix 3 guest book wired for eight deploy targets.
-- [pitlane.tools](https://pitlane.tools) — documentation and deploy guides.
+## Available packages
 
-When the umbrella package ships, it will vendor the `@pitlane/*` packages as
-`pitlane/<name>` subpath exports.
+- [`@pitlane/dev`](https://pitlane.tools/package/dev/): Vite plugin for Remix development and production builds.
+- [`@pitlane/theme`](https://pitlane.tools/package/theme/): design tokens and type-safe styling.
+- [`@pitlane/content`](https://pitlane.tools/package/content/): content collections with schema validation.
+- [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/): Cloudflare D1 database driver.
+- [`@pitlane/crawler`](https://pitlane.tools/package/crawler/): in-memory route crawling and static path discovery.
+
+Use the [starter templates](https://github.com/pitlane-tools/templates) to create a Remix application.
+
+## Documentation
+
+- [Pitlane documentation](https://pitlane.tools)
+
+## License
+
+[MIT](https://github.com/pitlane-tools/pitlane/blob/main/LICENSE)

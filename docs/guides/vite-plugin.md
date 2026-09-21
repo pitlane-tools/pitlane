@@ -82,14 +82,14 @@ remix({
 });
 ```
 
-| Option               | Type                               | Default               | Purpose                                                                                                                                  |
-| -------------------- | ---------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`             | `boolean`                          | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                  |
-| `prerender`          | `boolean \| string[] \| fn \| obj` | none                  | Render paths to static HTML at build time. See [Prerendering](/guides/prerendering).                                                     |
-| `clientEntry`        | `string \| false`                  | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                      |
-| `serverEntry`        | `string`                           | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                       |
-| `serverEnvironments` | `string[]`                         | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                      |
-| `serverHandler`      | `boolean`                          | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+| Option | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `server` | `boolean` | `true` | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below. |
+| `prerender` | `boolean \| string[] \| fn \| obj` | none | Render paths to static HTML at build time. See [Prerendering](/guides/prerendering). |
+| `clientEntry` | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration. |
+| `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`. |
+| `serverEnvironments` | `string[]` | `["ssr"]` | Environment names the `clientEntry()` transform treats as "server". |
+| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
 
 ## SPA mode
 
@@ -145,12 +145,12 @@ Each result is `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` dedu
 
 ### Dev and production resolve differently, by design
 
-|                          | `vite dev`                                   | production build                                   |
-| ------------------------ | -------------------------------------------- | -------------------------------------------------- |
-| `entry`                  | source URL (`/app/entry.browser.ts`)         | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
-| `js`                     | **always empty** (no chunk graph exists yet) | reachable chunks, for `modulepreload`              |
-| `css` (`?assets=ssr`)    | dev links carrying `data-vite-dev-id`        | hashed files copied into `dist/client`             |
-| `css` (`?assets=client`) | empty (Vite injects dev styles itself)       | hashed files                                       |
+|  | `vite dev` | production build |
+| --- | --- | --- |
+| `entry` | source URL (`/app/entry.browser.ts`) | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
+| `js` | **always empty** (no chunk graph exists yet) | reachable chunks, for `modulepreload` |
+| `css` (`?assets=ssr`) | dev links carrying `data-vite-dev-id` | hashed files copied into `dist/client` |
+| `css` (`?assets=client`) | empty (Vite injects dev styles itself) | hashed files |
 
 Write the `Document` once against the full shape and both modes come out right: empty arrays render nothing in dev, real tags in production.
 

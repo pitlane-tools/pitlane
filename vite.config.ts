@@ -16,6 +16,7 @@ export default defineConfig({
             "pitlane.md",
             "vite-plus.md",
         ],
+        proseWrap: "never",
         printWidth: 100,
         tabWidth: 4,
         arrowParens: "avoid",

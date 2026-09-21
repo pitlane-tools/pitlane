@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/dev",
-    "version": "0.6.1",
-    "description": "remix() — the Remix 3 Vite plugin: build orchestration, clientEntry() hydration transform, dev server with component and server-data HMR, SPA mode, build-time prerendering, and preview for any Vite or Vite+ project.",
+    "version": "0.6.2",
+    "description": "Vite plugin for Remix development and production builds.",
     "keywords": [
         "pitlane",
         "remix",

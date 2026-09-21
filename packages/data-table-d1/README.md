@@ -1,6 +1,6 @@
 # @pitlane/data-table-d1
 
-A [Cloudflare D1](https://developers.cloudflare.com/d1/) driver for [Remix 3](https://remix.run)'s `data-table`.
+A [Cloudflare D1](https://developers.cloudflare.com/d1/) driver for [Remix](https://remix.run)'s `data-table`.
 
 ```ts
 import { createD1Database } from "@pitlane/data-table-d1";
@@ -12,7 +12,7 @@ let post = await db.create(Post, { title: "Hello" }, { returnRow: true });
 let recent = await db.query(Post).orderBy({ createdAt: "desc" }).limit(10).all();
 ```
 
-That is a `Database` from `remix/data-table`, so every query, persistence, and migration method behaves exactly as it does on SQLite or Postgres.
+`db` is a `Database` from `remix/data-table`, so queries, persistence, migrations, and schema inspection use the same API as the SQLite and Postgres drivers. `transaction()` is the exception: D1 has no interactive transactions, so it throws unless you opt into the non-atomic mode described in [What D1 cannot do](#what-d1-cannot-do).
 
 ## Install
 
@@ -22,25 +22,23 @@ npm install @pitlane/data-table-d1
 vp add @pitlane/data-table-d1
 ```
 
-Requires `remix@^3.0.0-rc.1` as a peer. Nothing else: the D1 API is described structurally, so you do not need `@cloudflare/workers-types` unless your own code already does.
+Requires `remix@^3.0.0-rc.1` as a peer. The D1 binding is typed structurally, so `@cloudflare/workers-types` is optional.
 
 ## Why this package exists
 
-D1 is SQLite, so the SQL is SQLite's. The execution model is not.
+Remix's SQLite driver expects a synchronous client, such as `better-sqlite3` or `node:sqlite`. Cloudflare D1 exposes asynchronous prepared statements over RPC.
 
-`@remix-run/data-table-sqlite` drives a **synchronous** client — `prepare(sql).all()` returns rows, not a promise, because that is the shape `better-sqlite3` and `node:sqlite` have. D1 is an RPC binding: every call is awaited. No adapter closes that gap, so a D1 app cannot use the SQLite driver at all.
-
-What it can reuse is the SQL. This package pairs the SQLite SQL compiler with a driver written against D1's async prepared-statement API.
+This package reuses Remix's SQLite SQL compiler with a driver for D1's API.
 
 ## API
 
 ### `createD1Database(binding, options?)`
 
-Wraps a D1 binding in a `Database`. `binding` is `env.DB`; `options` takes everything `Database` takes, plus `onStatement`.
+Wraps a D1 binding in a `Database`. `binding` is `env.DB`; `options` takes everything `Database` takes, plus `onStatement` and `transactions`.
 
 ### `D1Database`
 
-The `Database` subclass, if you would rather construct it yourself. Same shape as `SqliteDatabase` and `PostgresDatabase`.
+The `Database` subclass, if you would rather construct it yourself. Same shape as `SqliteDatabase` and `PostgresDatabase`, with `batch(statements)` added.
 
 ### `D1DatabaseDriver`
 
@@ -79,7 +77,7 @@ let db = createD1Database(env.DB, {
 });
 ```
 
-D1 bills on rows read and written, and its analytics report per database rather than per query, so this is the only way to attribute cost to the query or the request that caused it. The figures ride on responses the driver already reads, so it costs no extra statement and no extra billable operation.
+D1 reports rows read and written per statement. Use these values to attribute usage to a query or request without running an extra statement.
 
 The report is `{ kind, table, rowsRead, rowsWritten, durationMs }`. It runs once per statement on the hot path, so keep it cheap. Anything it throws is swallowed rather than failing the statement it was measuring. A statement that throws is not reported, because D1 returns no metadata for one and a zeroed entry would read as free. Figures D1 omits come through as `0`, never estimated.
 
@@ -88,6 +86,8 @@ The report is `{ kind, table, rowsRead, rowsWritten, durationMs }`. It runs once
 A binding is stable for the isolate, so build the database once rather than per request:
 
 ```ts
+import { createD1Database, type D1Database } from "@pitlane/data-table-d1";
+
 let db: D1Database | null = null;
 
 export default {
@@ -100,7 +100,7 @@ export default {
 
 ## What D1 cannot do
 
-**Several writes that must commit together** use `db.batch()`, which is D1's one atomic primitive and the reason it cannot back `transaction()`:
+Several writes that must commit together go through `db.batch()`, which is D1's one atomic primitive and the reason it cannot back `transaction()`:
 
 ```ts
 import { sql } from "remix/data-table";
@@ -113,7 +113,7 @@ await db.batch([
 
 If any statement fails the whole batch rolls back. They are `SqlStatement`s rather than query-builder calls because `data-table` exposes no way to build an operation without running it; `sql` still parameterises the values, so the raw binding stays out of your application code.
 
-**Transactions throw by default.** D1 rejects `BEGIN`, `COMMIT`, and `SAVEPOINT` at the SQL layer and offers `d1.batch()` instead, which takes every statement up front. That cannot express the interleaved begin/execute/commit a `Database` transaction drives, so the driver reports `savepoints: false` and `transactionalDdl: false` and throws a message pointing at `batch()`. Failing at the call beats failing halfway through a write that cannot be rolled back.
+Transactions throw by default. D1 rejects `BEGIN`, `COMMIT`, `ROLLBACK`, and `SAVEPOINT` at the SQL layer and offers `d1.batch()` instead, which takes every statement up front. That cannot express the interleaved begin/execute/commit a `Database` transaction drives, so the driver reports `savepoints: false` and `transactionalDdl: false` and throws a message pointing at `batch()`. Failing at the call beats failing halfway through a write that cannot be rolled back.
 
 When the caller is shared with a backend that does have transactions, and running without atomicity beats not running at all, opt in:
 
@@ -121,11 +121,11 @@ When the caller is shared with a backend that does have transactions, and runnin
 let db = createD1Database(env.DB, { transactions: "unsafe-nonatomic" });
 ```
 
-`transaction()` then runs the callback and each statement commits on its own. **A failure part-way leaves the earlier writes persisted**, because there is nothing to roll back — that is the whole of what you are accepting, and the package has a test against real D1 asserting exactly that outcome. Rollback stays silent rather than throwing, so the callback's own error is what surfaces instead of an `AggregateError` about an impossible rollback. Nested transactions still fail in both modes, since `savepoints: false` makes `Database` reject them before the driver is reached.
+`transaction()` runs the callback and each statement commits on its own. **A failure part-way leaves the earlier writes persisted.** The original error propagates. Nested transactions remain unsupported in both modes.
 
-**`wipe()` drops tables rather than deleting a file.** There is no file. D1's own `_cf_*` bookkeeping and SQLite's `sqlite_*` tables are left alone; dropping either breaks the binding.
+`wipe()` drops tables rather than deleting a file, because there is no file. D1's own `_cf_*` bookkeeping and SQLite's `sqlite_*` tables are left alone; dropping either breaks the binding.
 
-Everything else — `returning`, upserts, bulk inserts, migrations, schema inspection — works.
+The driver supports `returning`, upserts, bulk inserts, counts, migrations, and schema inspection. Savepoints, transactional DDL, and migration locks are unsupported.
 
 ## Prior art
 
@@ -138,6 +138,12 @@ Its sibling [`@pkg/data-table-sqlstorage`](https://github.com/sergiodxa/monorepo
 `src/sql-compiler.ts` is vendored verbatim from [`@remix-run/data-table-sqlite@0.6.0`](https://www.npmjs.com/package/@remix-run/data-table-sqlite) (MIT, Copyright (c) 2025 Shopify Inc.; the licence is in `LICENSE.remix`). Only its two import specifiers changed, from the private `@remix-run/data-table*` package names to the public `remix/*` subpaths, so a future upstream revision diffs cleanly against it.
 
 It is vendored because `@remix-run/data-table-sqlite` exports exactly `createSqliteDatabase` and `SqliteDatabase`. `compileSqliteOperation` is internal, reached by its own driver through a relative import, and there is no `@remix-run/data-table-d1`. If upstream exposes the compiler or ships a D1 dialect, this file goes away.
+
+## Documentation
+
+- [Cloudflare D1 guide](https://pitlane.tools/guides/cloudflare-d1)
+- [API reference](https://pitlane.tools/package/data-table-d1/)
+- [`@pitlane/data-table-d1/migrations` reference](https://pitlane.tools/package/data-table-d1/migrations)
 
 ## License
 

@@ -1,13 +1,10 @@
 # Prerendering
 
-A page whose content does not change per request does not need a server on the
-critical path. Render it once, write the HTML to disk, and a static host serves
-it without waking anything up.
+A page whose content does not change per request does not need a server on the critical path. Render it once, write the HTML to disk, and a static host serves it without waking anything up.
 
 :::: vite
 
-`remix({ prerender })` renders those pages during `vite build` and writes the
-HTML into the client output.
+`remix({ prerender })` renders those pages during `vite build` and writes the HTML into the client output.
 
 ```ts
 // vite.config.ts
@@ -23,9 +20,7 @@ export default defineConfig({
 
 :::: no-build
 
-[`@pitlane/crawler`](/package/crawler/) walks the app from a script and hands
-back each response with the path it belongs at on disk. The whole job is a
-`for await` loop and two filesystem calls:
+[`@pitlane/crawler`](/package/crawler/) walks the app from a script and hands back each response with the path it belongs at on disk. The whole job is a `for await` loop and two filesystem calls:
 
 ```ts
 import { crawl } from "@pitlane/crawler";
@@ -41,19 +36,13 @@ for await (let { filepath, response } of crawl(router)) {
 }
 ```
 
-The [crawling guide](/guides/crawler#install) has the install command for your
-package manager.
+The [crawling guide](/guides/crawler#install) has the install command for your package manager.
 
 ::::
 
-There is no separate rendering path. A `Request` goes through the same fetch
-handler production runs, and the response that comes back is the page. Route
-handlers, middleware, and components behave exactly as they do at runtime,
-because they are the same code answering the same request.
+There is no separate rendering path. A `Request` goes through the same fetch handler production runs, and the response that comes back is the page. Route handlers, middleware, and components behave exactly as they do at runtime, because they are the same code answering the same request.
 
-Both setups write the same thing, real HTML at real paths, and differ only in
-what drives the rendering. The control at the top of the page chooses which
-setup this guide describes.
+Both setups write the same thing, real HTML at real paths, and differ only in what drives the rendering. The control at the top of the page chooses which setup this guide describes.
 
 ## Where the paths come from
 
@@ -69,9 +58,7 @@ Four shapes, in order of how much the app knows about its own URLs.
 remix({ prerender: true });
 ```
 
-`/` and `/blog` qualify. `/blog/:slug` does not, because the slugs live outside
-the route map. For this to work the server entry has to export the route map
-alongside its handler:
+`/` and `/blog` qualify. `/blog/:slug` does not, because the slugs live outside the route map. For this to work the server entry has to export the route map alongside its handler:
 
 ```ts
 // app/entry.server.tsx
@@ -79,8 +66,7 @@ export { routes } from "./routes.ts";
 export default router;
 ```
 
-Without that export the build fails and says so, rather than quietly
-prerendering nothing.
+Without that export the build fails and says so, rather than quietly prerendering nothing.
 
 ### An explicit list
 
@@ -94,9 +80,7 @@ remix({
 
 ### A function
 
-When the list needs a database, a CMS, or a filesystem walk, pass a function.
-It receives `getStaticPaths()`, which is the `true` behavior on demand, so the
-per-slug half is the only part you write:
+When the list needs a database, a CMS, or a filesystem walk, pass a function. It receives `getStaticPaths()`, which is the `true` behavior on demand, so the per-slug half is the only part you write:
 
 ```ts
 remix({
@@ -128,16 +112,13 @@ remix({
 
 :::: no-build
 
-`crawl(router)` starts at `/` and follows the links it finds there. `paths`
-replaces that starting list:
+`crawl(router)` starts at `/` and follows the links it finds there. `paths` replaces that starting list:
 
 ```ts
 crawl(router, { paths: ["/", "/about", "/pricing"], spider: false });
 ```
 
-`staticPaths(routes)` fills the half of that list the route map already knows.
-It returns every path the app can serve with no params, which leaves the
-per-slug half as the only part you write:
+`staticPaths(routes)` fills the half of that list the route map already knows. It returns every path the app can serve with no params, which leaves the per-slug half as the only part you write:
 
 ```ts
 import { crawl, staticPaths } from "@pitlane/crawler";
@@ -150,19 +131,15 @@ crawl(router, {
 });
 ```
 
-[Asking what pages exist](/guides/crawler#asking-what-pages-exist) covers what
-qualifies.
+[Asking what pages exist](/guides/crawler#asking-what-pages-exist) covers what qualifies.
 
 ::::
 
-`concurrency` sets how many paths render at once. Rendering is CPU-bound in
-process, so the gain depends on how much of a render waits on I/O; start at the
-default of 1 and measure.
+`concurrency` sets how many paths render at once. Rendering is CPU-bound in process, so the gain depends on how much of a render waits on I/O; start at the default of 1 and measure.
 
 ## Spidering
 
-Spidering turns the path list into a set of starting points. Every rendered
-page is scanned for links, and those get rendered too.
+Spidering turns the path list into a set of starting points. Every rendered page is scanned for links, and those get rendered too.
 
 :::: vite
 
@@ -176,41 +153,29 @@ remix({ prerender: { paths: ["/"], spider: true } });
 
 :::: no-build
 
-It is on by default, so `crawl(router)` with nothing else already means
-"everything reachable". Pass `spider: false` to fetch exactly the paths you
-gave.
+It is on by default, so `crawl(router)` with nothing else already means "everything reachable". Pass `spider: false` to fetch exactly the paths you gave.
 
 ::::
 
-One starting path can be the whole list for a site whose pages all link to each
-other. Anything reachable gets built, including the page you forgot to list.
+One starting path can be the whole list for a site whose pages all link to each other. Anything reachable gets built, including the page you forgot to list.
 
-Crawling stops where a crawler should stop: `rel="nofollow"` links,
-`<meta name="robots" content="nofollow">` pages, other origins, and
-non-navigable hrefs like `mailto:`.
+Crawling stops where a crawler should stop: `rel="nofollow"` links, `<meta name="robots" content="nofollow">` pages, other origins, and non-navigable hrefs like `mailto:`.
 
 :::: vite
 
-That is [`@pitlane/crawler`](/package/crawler/) underneath, which is
-installable on its own for sitemaps, link checks, and render smoke tests the
-plugin does not cover. The [crawling guide](/guides/crawler) walks through
-those.
+That is [`@pitlane/crawler`](/package/crawler/) underneath, which is installable on its own for sitemaps, link checks, and render smoke tests the plugin does not cover. The [crawling guide](/guides/crawler) walks through those.
 
 ::::
 
 :::: no-build
 
-`ignorePageNofollow` is the escape hatch for a page whose `nofollow` is aimed
-at search engines rather than at you, such as a versioned docs tree that should
-not be indexed but does need to be built. See
-[where a crawl stops](/guides/crawler#where-a-crawl-stops).
+`ignorePageNofollow` is the escape hatch for a page whose `nofollow` is aimed at search engines rather than at you, such as a versioned docs tree that should not be indexed but does need to be built. See [where a crawl stops](/guides/crawler#where-a-crawl-stops).
 
 ::::
 
 ## Output on disk
 
-Each page becomes an `index.html` under its own path, so a static host serves
-it back for the original URL.
+Each page becomes an `index.html` under its own path, so a static host serves it back for the original URL.
 
 :::: vite
 
@@ -230,44 +195,29 @@ dist/client/
 
 The build logs each file as it writes it.
 
-The `assets/` directory beside them is the build's own output. Prerendering
-never fetches a page's stylesheets or scripts, because Vite already emitted
-every one of them.
+The `assets/` directory beside them is the build's own output. Prerendering never fetches a page's stylesheets or scripts, because Vite already emitted every one of them.
 
-Prerendering runs last, after both environments are built and the assets
-manifest is written. That ordering is what makes the HTML on disk identical to
-the HTML the runtime server would produce: the `?assets=` imports resolve to
-real hashed chunk URLs, not dev paths.
+Prerendering runs last, after both environments are built and the assets manifest is written. That ordering is what makes the HTML on disk identical to the HTML the runtime server would produce: the `?assets=` imports resolve to real hashed chunk URLs, not dev paths.
 
-If the app is served from a sub-path, declare the routes under it (the
-[GitHub Pages guide](/deploy/github-pages) shows the pattern) and set Vite's
-`base` to match. The rendered files still go to the top of the client output,
-because the host mounts that whole directory at the base.
+If the app is served from a sub-path, declare the routes under it (the [GitHub Pages guide](/deploy/github-pages) shows the pattern) and set Vite's `base` to match. The rendered files still go to the top of the client output, because the host mounts that whole directory at the base.
 
 ::::
 
 :::: no-build
 
-`filepath` is where each response belongs, ready to join onto an output
-directory. Everything that is not HTML keeps its own path instead.
+`filepath` is where each response belongs, ready to join onto an output directory. Everything that is not HTML keeps its own path instead.
 
-Assets come along too, which is what a site with no bundler needs: the
-`<link href>`, `<script src>`, and `<img src>` a page references are fetched
-and written beside it. Pass `assets: false` when something else already emitted
-those files.
+Assets come along too, which is what a site with no bundler needs: the `<link href>`, `<script src>`, and `<img src>` a page references are fetched and written beside it. Pass `assets: false` when something else already emitted those files.
 
 ::::
 
 ## Paths that redirect
 
-A redirect is not a page, so nothing is written for one. A route answering
-`302` is an ordinary thing to find in a route map: a `/` pointing at the real
-landing path, or a URL that moved.
+A redirect is not a page, so nothing is written for one. A route answering `302` is an ordinary thing to find in a route map: a `/` pointing at the real landing path, or a URL that moved.
 
 :::: vite
 
-`prerender: true` asks for every static path in the route map, so those routes
-turn up in the list. The build logs what it skipped and carries on:
+`prerender: true` asks for every static path in the route map, so those routes turn up in the list. The build logs what it skipped and carries on:
 
 ```
 prerendered nyc/index.html
@@ -278,21 +228,15 @@ skipped / (redirects to /nyc)
 
 :::: no-build
 
-Nothing is yielded for it, so the loop writes nothing. `onRedirect` is called
-with the path and the `Location` it pointed at, for a script that wants to
-report what it skipped.
+Nothing is yielded for it, so the loop writes nothing. `onRedirect` is called with the path and the `Location` it pointed at, for a script that wants to report what it skipped.
 
 ::::
 
-The app still answers that path at runtime, which is the behavior the redirect
-was for. Nothing about it changes.
+The app still answers that path at runtime, which is the behavior the redirect was for. Nothing about it changes.
 
-When spidering, a redirect is followed rather than skipped, because following
-links is what spidering is. A crawl seeded at a `/` that points elsewhere still
-reaches the site instead of stopping at the door.
+When spidering, a redirect is followed rather than skipped, because following links is what spidering is. A crawl seeded at a `/` that points elsewhere still reaches the site instead of stopping at the door.
 
-Any other failing response is a real failure and stops the walk, naming the
-path it came from:
+Any other failing response is a real failure and stops the walk, naming the path it came from:
 
 ```
 Error: Crawl failed: 404 Not Found (/blog/renamed-post)
@@ -304,59 +248,41 @@ During a build, that arrives under Vite's own `error during build:` header.
 
 ::::
 
-A listed path that 404s is a stale prerender list, and a spidered one is a dead
-internal link. Both are worth knowing about before a deploy rather than after.
+A listed path that 404s is a stale prerender list, and a spidered one is a dead internal link. Both are worth knowing about before a deploy rather than after.
 
 ## Serving the output
 
 :::: vite
 
-With `server: true`, which is the default, prerendering is an optimization rather
-than a deployment mode. The server is still there. Put the client output in
-front of it and requests for a prerendered path never reach the handler; every
-other path renders as usual. A `staticFiles()` middleware in the server entry
-does this in one line, and most CDNs do it in front of the origin.
+With `server: true`, which is the default, prerendering is an optimization rather than a deployment mode. The server is still there. Put the client output in front of it and requests for a prerendered path never reach the handler; every other path renders as usual. A `staticFiles()` middleware in the server entry does this in one line, and most CDNs do it in front of the origin.
 
-Hydration is unaffected. The HTML carries the same island markers a runtime
-render produces, and the same client entry picks them up.
+Hydration is unaffected. The HTML carries the same island markers a runtime render produces, and the same client entry picks them up.
 
 ::::
 
 :::: no-build
 
-That output directory is the whole site, documents and assets both. Point a
-static host at it.
+That output directory is the whole site, documents and assets both. Point a static host at it.
 
 ::::
 
 ## Data that goes stale
 
-A prerendered page is frozen at the moment it rendered. That is the point, and
-it is also the constraint: a page showing anything that changes between deploys
-should not be in the list.
+A prerendered page is frozen at the moment it rendered. That is the point, and it is also the constraint: a page showing anything that changes between deploys should not be in the list.
 
-There is no revalidation mechanism here, and no incremental regeneration.
-Render again and redeploy, or leave the path out and let the server answer it.
+There is no revalidation mechanism here, and no incremental regeneration. Render again and redeploy, or leave the path out and let the server answer it.
 
 :::: vite
 
 ## Not available without a server
 
-`remix({ server: false, prerender })` throws. Prerendering renders through the
-server entry, and [SPA mode](/guides/spa) builds no server, so there is nothing
-to render with. The two are alternatives: SPA mode serves one shell that
-hydrates any path, prerendering serves real HTML per path.
+`remix({ server: false, prerender })` throws. Prerendering renders through the server entry, and [SPA mode](/guides/spa) builds no server, so there is nothing to render with. The two are alternatives: SPA mode serves one shell that hydrates any path, prerendering serves real HTML per path.
 
 ## Bundles Node cannot run
 
-Prerendering imports the built server bundle and calls its fetch handler in the
-build process. A bundle built for another runtime does not load there. A
-Workers bundle opens with `import { env } from "cloudflare:workers"`, which
-Node has no answer for.
+Prerendering imports the built server bundle and calls its fetch handler in the build process. A bundle built for another runtime does not load there. A Workers bundle opens with `import { env } from "cloudflare:workers"`, which Node has no answer for.
 
-That is not a restriction on prerendering, only on how the request gets to the
-app. When the import fails, the build starts the project's own preview server
-and renders through that instead:
+That is not a restriction on prerendering, only on how the request gets to the app. When the import fails, the build starts the project's own preview server and renders through that instead:
 
 ```ts
 // vite.config.ts
@@ -369,15 +295,9 @@ export default defineConfig({
 });
 ```
 
-Nothing there names the runtime twice. `@cloudflare/vite-plugin` already
-supplies a preview server that boots workerd with the app's real bindings, so
-the pages written to `dist/client` come from the runtime that will serve them.
-`env` reads resolve, and `navigator.userAgent` says `Cloudflare-Workers`. The
-same holds for any platform plugin that contributes a preview server.
+Nothing there names the runtime twice. `@cloudflare/vite-plugin` already supplies a preview server that boots workerd with the app's real bindings, so the pages written to `dist/client` come from the runtime that will serve them. `env` reads resolve, and `navigator.userAgent` says `Cloudflare-Workers`. The same holds for any platform plugin that contributes a preview server.
 
-One thing does change on this path. `getStaticPaths()` normally reads the
-`routes` export off the built bundle, and that bundle is the thing that will
-not load. So the build follows the export back to its source instead:
+One thing does change on this path. `getStaticPaths()` normally reads the `routes` export off the built bundle, and that bundle is the thing that will not load. So the build follows the export back to its source instead:
 
 ```ts
 // app/entry.server.tsx
@@ -387,9 +307,6 @@ export { routes };
 export default router;
 ```
 
-Either spelling works. `export { routes } from "./routes.ts"` says the same
-thing in one line. What the build needs is a module to point at. A route map
-written inline in the server entry has none, and the build says so; move it to
-its own file, which is where it belongs anyway.
+Either spelling works. `export { routes } from "./routes.ts"` says the same thing in one line. What the build needs is a module to point at. A route map written inline in the server entry has none, and the build says so; move it to its own file, which is where it belongs anyway.
 
 ::::

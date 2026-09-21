@@ -8,7 +8,9 @@ description: Run a Remix 3 app on Netlify with @pitlane/dev — a one-file Netli
 Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the client build as static files and serving everything else through one [Netlify Function](https://docs.netlify.com/build/functions/overview/) that wraps the built fetch handler. [`@netlify/vite-plugin`](https://www.npmjs.com/package/@netlify/vite-plugin) adds local emulation of the Netlify platform (Functions, Blobs, redirects, headers, environment variables, Image CDN) to `vite dev`.
 
 ::: tip Start from the template
+
 `npx giget github:pitlane-tools/templates/netlify my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+
 :::
 
 ## Configuration
@@ -70,11 +72,11 @@ Keep `remix()`'s default `serverHandler: true` here. Netlify's plugin emulates p
 
 Netlify runs server code two ways, and both speak the same fetch-handler language as the built server entry — the wrapper is three lines either way. Pick **one**:
 
-|               | [Netlify Functions](https://docs.netlify.com/build/functions/overview/) | [Netlify Edge Functions](https://docs.netlify.com/build/edge-functions/overview/)                       |
-| ------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Runtime       | Node, in Netlify's serverless infrastructure                            | Deno, at the edge PoP nearest the visitor                                                               |
-| Static assets | CDN wins first via `preferStatic`                                       | Run **before** static serving — assets must be excluded via `excludedPath`                              |
-| Fits          | The default; larger CPU/memory limits, Node APIs                        | Latency-sensitive SSR; stricter [runtime limits](https://docs.netlify.com/build/edge-functions/limits/) |
+|  | [Netlify Functions](https://docs.netlify.com/build/functions/overview/) | [Netlify Edge Functions](https://docs.netlify.com/build/edge-functions/overview/) |
+| --- | --- | --- |
+| Runtime | Node, in Netlify's serverless infrastructure | Deno, at the edge PoP nearest the visitor |
+| Static assets | CDN wins first via `preferStatic` | Run **before** static serving — assets must be excluded via `excludedPath` |
+| Fits | The default; larger CPU/memory limits, Node APIs | Latency-sensitive SSR; stricter [runtime limits](https://docs.netlify.com/build/edge-functions/limits/) |
 
 ### Netlify Functions (Node)
 

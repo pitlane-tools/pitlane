@@ -50,6 +50,12 @@ The code an agent writes in this repo should feel like code a careful human wrot
 - **No defensive `try`/`catch` everywhere.** Catch where you can do something meaningful (recover, transform, log with context). Don't catch and rethrow.
 - **No silent fallbacks.** If a fallback hides a real bug, you'll find out about it weeks later in production. Surface the failure.
 
+### Markdown prose
+
+- Keep prose unwrapped: one source line per paragraph, with soft wrapping in the editor or viewer.
+- Use the project's Oxfmt formatter. The Markdown configuration sets `proseWrap` to `never`; preserve structural line breaks and format code blocks according to their language.
+- Separate VitePress `:::` container delimiters from their contents with blank lines so Oxfmt preserves their structure.
+
 ## When the rules conflict
 
 The rules conflict with each other regularly. "Small files" and "behavior-scoped grouping" can pull opposite ways. Use judgment: **optimize for the next person to read this code, not for the rule that sounds most universal**.

@@ -1,6 +1,6 @@
 # @pitlane/theme
 
-Type-safe styling with design tokens for [Remix 3](https://remix.run). `createTheme` compiles a schema tree and a tree of CSS values into a typed token accessor plus a `<Theme />` component that installs CSS custom properties. The `css`, `tva`, `combine`, and `cx` helpers wrap `remix/ui`'s `css()` mixin and enforce the theme palette at the type level.
+Type-safe styling with design tokens for [Remix](https://remix.run). `createTheme` compiles a schema tree and a tree of CSS values into a typed token accessor plus a `<Theme />` component that installs CSS custom properties. The `css`, `tva`, `combine`, and `cx` helpers wrap `remix/ui`'s `css()` mixin and enforce the theme palette at the type level.
 
 ## Install
 
@@ -123,9 +123,9 @@ A layer's declarations follow the ones they reference, which moves them later in
 - `@pitlane/theme/dtcg` is the DTCG interchange: `fromDTCG(document)` reads a W3C DTCG document into a `createTheme` init, and `toDTCG(theme)` exports a theme as a document plus per-mode overrides.
 - Types include `ThemeInit`, `ThemeMode`, `ThemeResult`, `ThemeComponent`, `ThemeProps`, `TokenTree`, `ScaleFn`, `Tokens`, `TokenValue`, `ThemedCSSProps`, `ThemedCSSMixin`, TVA types, and per-type token brands.
 
-## Links
+## Documentation
 
-- [Styling guide](https://pitlane.tools/guides/styling)
+- [Theme guide](https://pitlane.tools/guides/theme)
 - [API reference](https://pitlane.tools/package/theme/)
 
 ## License

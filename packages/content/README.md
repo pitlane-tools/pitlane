@@ -1,14 +1,14 @@
 # @pitlane/content
 
-Schema-validated, cross-referenced content collections for [Remix 3](https://remix.run).
+Schema-validated, cross-referenced content collections for [Remix](https://remix.run).
 
-Reads Markdown, MDX, JSON, and YAML into collections a controller queries like a
-database. Frontmatter is validated against a schema, one entry can reference
-another, and the types come from the schema rather than from generated code.
+Reads Markdown, MDX, JSON, and YAML into collections a controller queries like a database. Frontmatter is validated against a schema, one entry can reference another, and the types come from the schema rather than from generated code.
 
 ```sh
 npm install @pitlane/content
 ```
+
+Requires Node `^20.19.0 || >=22.12.0`. All three peer dependencies are optional: `remix` for `render()`, `satteri` for compiling Markdown and MDX bodies, and `vite` 8 or newer for `contentLayer()`. With a Vite build, `satteri` and `vite-plugin-satteri` are dev dependencies; without a build, `satteri` is a runtime dependency. A collection of only JSON or YAML files needs no Sätteri setup at all.
 
 ```ts
 import { createContent } from "@pitlane/content";
@@ -35,18 +35,17 @@ export let content = createContent(c => ({
 ```ts
 let posts = await content.blog.getCollection();
 let post = await content.blog.getEntry(params.slug);
-let { Content, headings } = await post.render();
-let author = await content.authors.getEntry(post.data.author);
+if (post) {
+    let { Content, headings } = await post.render();
+    let author = await content.authors.getEntry(post.data.author);
+}
 ```
 
-`createContent()` returns synchronously without loading entries. Import the
-returned object wherever you need it; reads and rendering stay asynchronous.
+`getEntry()` returns `undefined` when no entry has the requested ID.
 
-The loaders are ordinary runtime code, which covers Node, Bun, Deno, and
-container hosts. For a host with no filesystem, add `contentLayer()` from
-`@pitlane/content/vite` and the build resolves the collections ahead of time,
-inlining entry data and compiling Markdown bodies into the bundle. The
-collection declarations do not change.
+`createContent()` returns synchronously without loading entries. Import the returned object wherever you need it; reads and rendering stay asynchronous.
+
+The loaders are ordinary runtime code, which covers Node, Bun, Deno, and container hosts. For a host with no filesystem, add `contentLayer()` from `@pitlane/content/vite` and the build resolves the collections ahead of time, inlining entry data and compiling Markdown bodies into the bundle. The collection declarations do not change.
 
 ## Entry points
 
@@ -59,17 +58,13 @@ collection declarations do not change.
 
 ## Without Remix
 
-Every peer dependency is optional. The data path, meaning the loaders, schema
-validation, and both query methods, has no static dependency on `remix` and
-works with any [Standard Schema](https://standardschema.dev) validator. Only
-`render()` needs Remix, because it resolves to a Remix component, and it says
-so if you call it without one.
+The loaders, schema validation, and query methods work with any [Standard Schema](https://standardschema.dev) validator without importing Remix. Rendering returns a Remix component, so it requires Remix. Rendering Markdown or MDX also needs `satteri` unless `contentLayer()` compiled the collection during the build.
 
 ## Documentation
 
-- [Content](https://pitlane.tools/guides/content), whose toggle also serves
-  [an application that runs without a build](https://pitlane.tools/guides/content-no-build)
-- [Creating a content loader](https://pitlane.tools/guides/content-loaders)
+- [Content](https://pitlane.tools/guides/content), for an application with a Vite build
+- [Content (No Build)](https://pitlane.tools/guides/content-no-build), for an application that runs without one
+- [Custom loaders](https://pitlane.tools/guides/content#custom-loaders)
 - [API reference](https://pitlane.tools/package/content/)
 
 ## License
