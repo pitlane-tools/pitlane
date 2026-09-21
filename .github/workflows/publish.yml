@@ -308,3 +308,69 @@ jobs:
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
+
+    publish-pitlane:
+        if: startsWith(github.event.release.tag_name, 'pitlane@')
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/pitlane
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Verify release tag matches package version
+              env:
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+              run: |
+                  name=$(node -p "require('./package.json').name")
+                  version=$(node -p "require('./package.json').version")
+                  if [ "$RELEASE_TAG" != "$name@$version" ]; then
+                      echo "Release tag $RELEASE_TAG does not match package version $name@$version" >&2
+                      exit 1
+                  fi
+
+            - name: Pack with pnpm
+              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+
+            - name: Publish to npm with provenance
+              run: npm publish ./*.tgz --provenance --access public --tag latest
+
+    publish-create-pitlane:
+        if: startsWith(github.event.release.tag_name, 'create-pitlane@')
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/create-pitlane
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Verify release tag matches package version
+              env:
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+              run: |
+                  name=$(node -p "require('./package.json').name")
+                  version=$(node -p "require('./package.json').version")
+                  if [ "$RELEASE_TAG" != "$name@$version" ]; then
+                      echo "Release tag $RELEASE_TAG does not match package version $name@$version" >&2
+                      exit 1
+                  fi
+
+            - name: Pack with pnpm
+              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+
+            - name: Publish to npm with provenance
+              run: npm publish ./*.tgz --provenance --access public --tag latest
