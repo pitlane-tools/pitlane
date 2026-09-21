@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Document a hybrid Cloudflare Worker-first workaround for prerendered documents being served into frames. Documents and assets remain static, while frame requests render through the app at runtime. Every request invokes the Worker with the shown configuration. The plugin does not generate static frame variants automatically. Its API and generated output are unchanged.
+- Recommend separate prerendered frame URLs as the default workaround for documents being served into frames. Document links use `data-rmx-src` for the static frame response, preserving fully static navigation without frame headers or runtime SSR. Document Cloudflare assets-only deployment; retain Worker-first rendering as an optional hybrid alternative. The app supplies the frame routes and link attributes. The plugin's API and generated output are unchanged.
 
 ## 0.6.2
 

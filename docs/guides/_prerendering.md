@@ -254,7 +254,7 @@ A listed path that 404s is a stale prerender list, and a spidered one is a dead 
 
 :::: vite
 
-With `server: true`, which is the default, prerendering is an optimization rather than a deployment mode. The server is still there. Serve the client output for document requests to prerendered paths. Every other path renders as usual.
+Keep `server: true`, the default, so the build has a server entry to render through. You can then deploy only the client output for a fully static site, or deploy the server too when some routes need request-time rendering.
 
 Hydration is unaffected. The HTML carries the same island markers a runtime render produces, and the same client entry picks them up.
 
@@ -262,31 +262,94 @@ Hydration is unaffected. The HTML carries the same island markers a runtime rend
 
 :::: no-build
 
-For an app that only uses document navigation, that output directory is the whole site, documents and assets both. Point a static host at it.
+The output directory contains the documents and assets for a static host. Frame navigation also needs the separate frame responses described below.
 
 ::::
 
-### Current output and frame navigation
+### Fully static frame navigation
 
-Prerendering writes the response for each requested URL. For a page route, that response is a full HTML document. It does not automatically write a separate response for each frame target at the same URL. Serving the document into a frame duplicates the page shell.
+Use separate URLs for documents and frame content, and prerender both. This is the recommended workaround for static sites: initial loads and frame navigation stay 100% prerendered, with no request-time SSR.
 
-Route requests carrying `x-remix-frame` or `x-remix-target` to the app before checking for static files.
+Prerendering writes the response for each requested URL. A page route usually returns a full document. Serving that document into a frame duplicates the page shell. Headers cannot select another file at the same path on a static host.
 
-Remix rc.2's default resolver does not send these headers. A custom `run({ resolveFrame })` must add the frame marker for both named and unnamed frames, and the controller must recognize it.
+Register separate GET routes in your app:
 
-If you keep the default resolver, omit frame-resolved paths from prerendering instead.
+| URL                       | Rendered response                           |
+| ------------------------- | ------------------------------------------- |
+| `/`                       | Home document, including the page shell     |
+| `/platform/`              | Platform document, including the page shell |
+| `/_frames/main/home/`     | Home frame content only                     |
+| `/_frames/main/platform/` | Platform frame content only                 |
 
-A CDN or `staticFiles()` middleware placed ahead of the header check can serve the wrong response, even when the controller handles frames correctly. Hydration working on the first load does not prove soft navigation works.
+The document and frame routes can share content components. Render the frame routes through the app's normal Remix renderer, without the document's `<html>`, `<head>`, `<body>`, or surrounding layout. Keep the complete rendered response, including client-entry and nested-frame metadata. Do not extract `innerHTML` from a document.
 
-On Cloudflare Workers, the [Worker-first recipe](/deploy/cloudflare#prerendering-and-frame-navigation) is a hybrid-rendering workaround. Document responses stay prerendered, but each frame request renders through the app at runtime. With `run_worker_first: true`, even static documents and assets invoke the Worker. This requires a running SSR app.
+In the home document, use the frame URL as `<Frame src>` and put both destinations on each link:
 
-Leaving frame-resolved paths out of prerendering also leaves those paths rendered at runtime. That avoids the response mismatch without making frame navigation static.
+```tsx
+<>
+    <header>
+        <a href="/" data-rmx-target="main" data-rmx-src="/_frames/main/home/">
+            Home
+        </a>
+        <a href="/platform/" data-rmx-target="main" data-rmx-src="/_frames/main/platform/">
+            Platform
+        </a>
+    </header>
+    <main>
+        <Frame name="main" src="/_frames/main/home/" />
+    </main>
+</>
+```
 
-For a fully static deployment using the current document output, use full-document navigation instead of frame navigation. Any frame that loads or reloads independently still needs a suitable response of its own.
+Import `Frame` from `remix/ui`. The platform document uses `src="/_frames/main/platform/"` for its initial frame. Keep the existing client entry, assets, and `run({ loadModule })` setup.
 
-Separately prerendered frame responses can support fully static navigation, with the browser fetching those files while keeping the document URL in its address bar.
+`href` is the document URL for the address bar, reloads, and navigation without JavaScript. `data-rmx-src` is the URL Remix fetches into the frame selected by `data-rmx-target`. The default frame resolver works here. No frame headers or custom `resolveFrame` are required. Programmatic navigation uses the same distinction:
 
-The plugin does not automatically generate frame variants or map their URLs for the browser.
+```ts
+import { navigate } from "remix/ui";
+
+navigate("/platform/", {
+    target: "main",
+    src: "/_frames/main/platform/",
+});
+```
+
+Prerender every document and frame route:
+
+:::: vite
+
+```ts
+remix({
+    prerender: ["/", "/platform/", "/_frames/main/home/", "/_frames/main/platform/"],
+});
+```
+
+::::
+
+:::: no-build
+
+```ts
+crawl(router, {
+    paths: ["/", "/platform/", "/_frames/main/home/", "/_frames/main/platform/"],
+    spider: false,
+});
+```
+
+::::
+
+The build writes `_frames/main/home/index.html` and `_frames/main/platform/index.html` alongside the document files. Include the frame paths in the prerender list. Spidering follows link `href` values rather than `data-rmx-src`. Pitlane does not generate frame routes or their link attributes for you.
+
+Use URLs that the static host serves directly. With directory-index output, the trailing slashes above avoid asset redirects. Use root-relative links and asset references inside frame content, with the deployment base included when applicable. Moving the response under `/_frames/` then leaves their meaning unchanged.
+
+Every independently loading frame, including nested or unnamed frames, needs a prerendered response at its `src`. This recipe covers public content fixed at build time. A query string does not produce a separate static file. Query-dependent variants need distinct paths, while personalized content and mutations need a backend.
+
+Deploy the output directory without an SSR handler. On Cloudflare, use the [assets-only configuration](/deploy/cloudflare#fully-static-frame-navigation). Missing frame assets must return 404 rather than a document or SPA shell. For links that have a static document but no frame response, `data-rmx-document` opts into full-document navigation.
+
+Verify the built output with an assets-only server. Navigate from `/` to Platform and back using the links, then reload `/platform/` directly. Frame requests should fetch `/_frames/main/.../`. The address bar should retain the document URL, with one page shell throughout navigation. Check hydration both on the initial document and on content introduced by a frame response.
+
+### Optional runtime rendering
+
+Apps with per-request frame content can choose the [hybrid Worker-first recipe](/deploy/cloudflare#optional-hybrid-rendering) instead. Documents stay prerendered, but frame requests render at runtime. The shown configuration invokes the Worker even for static assets and requires a running SSR app.
 
 ## Data that goes stale
 
@@ -296,9 +359,9 @@ There is no revalidation mechanism here, and no incremental regeneration. Render
 
 :::: vite
 
-## Not available without a server
+## A server is required at build time
 
-`remix({ server: false, prerender })` throws. Prerendering renders through the server entry, and [SPA mode](/guides/spa) builds no server, so there is nothing to render with. The two are alternatives: SPA mode serves one shell that hydrates any path, prerendering serves real HTML per path.
+`remix({ server: false, prerender })` throws. Prerendering needs the server entry to render during the build, while [SPA mode](/guides/spa) builds no server. Leave `server: true` for prerendering. Deploying only the generated client output still gives you a fully static site.
 
 ## Bundles Node cannot run
 

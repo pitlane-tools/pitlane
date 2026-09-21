@@ -113,11 +113,44 @@ A D1 binding gets you a `remix/data-table` database through [`@pitlane/data-tabl
 
 ## Prerendering and frame navigation
 
-When you enable [`prerender`](/guides/prerendering), Cloudflare's default asset-first routing serves the generated HTML before your Worker runs. It does not distinguish a document request from a request carrying `x-remix-frame` or `x-remix-target`. A request for `/page` can redirect to `/page/` and receive `page/index.html`, putting a full document inside a frame during soft navigation.
+Cloudflare's default asset-first routing serves generated HTML before your Worker runs. It selects assets by URL, so a header-based frame request to a document URL can receive the full document and duplicate the page shell.
 
-### Hybrid workaround: render frames at runtime
+### Fully static frame navigation
 
-The Worker-first recipe below keeps document responses prerendered but renders frame responses through the app at request time. Frame navigation still depends on a running SSR app. A fully static deployment cannot use this recipe.
+Prefer [separate prerendered frame URLs](/guides/prerendering#fully-static-frame-navigation). Both documents and frame responses remain static, with no request-time SSR or application Worker invocation.
+
+For example, prerender `/platform/` as a complete document and `/_frames/main/platform/` as frame content. Use `href="/platform/"`, `data-rmx-target="main"`, and `data-rmx-src="/_frames/main/platform/"` on the link. Remix fetches the frame URL while keeping `/platform/` in the address bar. Use the frame URL for the initial `<Frame src>` too.
+
+Keep the server entry for build-time rendering and list both kinds of route in `prerender`. A portable app can build with `remix({ prerender: [...] })` alone; an app that needs Cloudflare bindings while rendering can keep the Cloudflare Vite plugin for the build. Deploy only `dist/client` with a separate assets-only configuration:
+
+```jsonc
+// wrangler.static.jsonc
+{
+    "name": "my-static-remix-app",
+    "assets": {
+        "directory": "dist/client",
+        "not_found_handling": "none",
+    },
+    "compatibility_date": "2026-04-02",
+}
+```
+
+This configuration has no `main`, `ASSETS` binding, or `run_worker_first`. Select it explicitly for both preview and deployment:
+
+```sh
+vp build
+vpx wrangler dev --config wrangler.static.jsonc
+# After checking the static preview:
+vpx wrangler deploy --config wrangler.static.jsonc
+```
+
+Use this assets-only preview to prove the site works without its SSR entry. `vp preview` can still run the built server and hide missing prerendered files. Check initial loads, frame-targeted links, hydration, and direct document reloads. A missing frame file must return 404, never a document-shell fallback.
+
+Cloudflare's default [HTML handling](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/) serves directory indexes at trailing-slash URLs. Keep those slashes in both document and frame destinations to avoid redirects. No frame headers are needed.
+
+### Optional hybrid rendering
+
+Choose the Worker-first recipe below only when frame content must render at request time. Document responses stay prerendered, but frame navigation depends on a running SSR app. This alternative gives up fully static deployment.
 
 | Request                                    | Response source       |
 | ------------------------------------------ | --------------------- |
