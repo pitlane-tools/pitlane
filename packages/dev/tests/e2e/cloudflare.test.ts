@@ -157,8 +157,12 @@ describe("prerender (workerd)", () => {
 
         try {
             let html = readFileSync(join(FIXTURE, "dist/client/page/index.html"), "utf8");
+            let redirect = await fetch(`${origin}/page`, { redirect: "manual" });
+            expect(redirect.status).toBe(307);
+            expect(new URL(redirect.headers.get("location")!, origin).pathname).toBe("/page/");
             let document = await fetch(`${origin}/page/`);
             expect(document.status).toBe(200);
+            // A fresh render generates new frame/island IDs; static output preserves them.
             expect(await document.text()).toBe(html);
             let head = await fetch(`${origin}/page/`, { method: "HEAD" });
             expect(head.status).toBe(200);

@@ -270,7 +270,13 @@ For an app that only uses document navigation, that output directory is the whol
 
 A prerendered file is a full HTML document. A Remix frame request can use the same URL but needs frame content from the controller. Serving the document into that frame duplicates the page shell.
 
-Route requests carrying `x-remix-frame` or `x-remix-target` to the app before checking for static files. A CDN or `staticFiles()` middleware placed ahead of that check can serve the wrong response, even when the controller handles frames correctly. Hydration working on the first load does not prove soft navigation works.
+Route requests carrying `x-remix-frame` or `x-remix-target` to the app before checking for static files.
+
+Remix rc.2's default resolver does not send these headers. A custom `run({ resolveFrame })` must add the frame marker for both named and unnamed frames, and the controller must recognize it.
+
+If you keep the default resolver, omit frame-resolved paths from prerendering instead.
+
+A CDN or `staticFiles()` middleware placed ahead of the header check can serve the wrong response, even when the controller handles frames correctly. Hydration working on the first load does not prove soft navigation works.
 
 On Cloudflare Workers, assets are served before the Worker by default. Use the [Worker-first prerendering configuration](/deploy/cloudflare#prerendering-and-frame-navigation) so the Worker can distinguish documents from frames. If you cannot control that routing, leave frame-resolved paths out of the prerender list, including paths discovered by `spider`. An app that needs runtime frame responses cannot run on a static-only host.
 
