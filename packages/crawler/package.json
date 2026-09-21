@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/crawler",
     "version": "0.2.1",
-    "description": "In-memory route crawling and static path discovery for Remix 3.",
+    "description": "In-memory route crawling and static path discovery for Remix.",
     "keywords": [
         "crawl",
         "fetch-router",

@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/content",
     "version": "0.1.0",
-    "description": "Schema-validated content collections for Remix 3.",
+    "description": "Schema-validated content collections for Remix.",
     "keywords": [
         "content",
         "content-collections",

@@ -1,7 +1,7 @@
 {
     "name": "create-pitlane",
     "version": "0.0.0",
-    "description": "Reserved package for the Pitlane project generator.",
+    "description": "Project generator for Pitlane applications.",
     "keywords": [
         "create",
         "pitlane",

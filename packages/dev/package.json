@@ -1,7 +1,7 @@
 {
     "name": "@pitlane/dev",
     "version": "0.6.1",
-    "description": "Vite plugin for Remix 3 development and production builds.",
+    "description": "Vite plugin for Remix development and production builds.",
     "keywords": [
         "pitlane",
         "remix",

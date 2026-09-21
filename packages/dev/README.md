@@ -1,6 +1,6 @@
 # @pitlane/dev
 
-A Vite plugin for [Remix 3](https://remix.run). It builds client and server bundles, serves development requests through your app's fetch handler, and previews the production build. It works with Vite and [Vite+](https://viteplus.dev).
+A Vite plugin for [Remix](https://remix.run). It builds client and server bundles, serves development requests through your app's fetch handler, and previews the production build. It works with Vite and [Vite+](https://viteplus.dev).
 
 Your server entry exports a standard fetch handler. Use platform plugins such as `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` in the same Vite config, or run the built application on Node, Bun, or Deno.
 
@@ -92,7 +92,7 @@ export function Panel(handle) {
 
 Only named (PascalCase) component exports in `.tsx`/`.jsx` files whose setup returns a render function are instrumented; other exports are left untouched. Editing the render function keeps live state. Editing the setup scope above the `return` remounts the component, so its state resets.
 
-**Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix 3 analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
+**Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
 
 It needs one line in your document:
 
@@ -123,28 +123,24 @@ remix({
 });
 ```
 
-| Option               | Type                               | Default               | Purpose                                                                                                                                                                                                  |
-| -------------------- | ---------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`             | `boolean`                          | `true`                | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below.                                                                                                  |
-| `prerender`          | `boolean \| string[] \| fn \| obj` | none                  | Render paths to static HTML at build time. See [Prerendering](#prerendering).                                                                                                                            |
-| `clientEntry`        | `string \| false`                  | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration.                                                                                                                      |
-| `serverEntry`        | `string`                           | `"app/entry.server"`  | Server entry module, built as `dist/ssr/index.js`.                                                                                                                                                       |
-| `serverEnvironments` | `string[]`                         | `["ssr"]`             | Environment names the `clientEntry()` transform treats as "server".                                                                                                                                      |
-| `serverHandler`      | `boolean`                          | `true`                | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. Netlify's plugin does not serve SSR, so keep the default there. |
+| Option | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `server` | `boolean` | `true` | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below. |
+| `prerender` | `boolean \| string[] \| fn \| obj` | none | Render paths to static HTML at build time. See [Prerendering](#prerendering). |
+| `clientEntry` | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration. |
+| `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`. |
+| `serverEnvironments` | `string[]` | `["ssr"]` | Environment names the `clientEntry()` transform treats as "server". |
+| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. Netlify's plugin does not serve SSR, so keep the default there. |
 
 ## Prerendering
 
-`prerender` renders paths to static HTML during `vite build` and writes them
-into the client output, so a CDN answers those URLs and the server never sees
-them. There is no second rendering path: the build sends a `Request` through
-the same fetch handler production runs.
+`prerender` renders paths to static HTML during `vite build` and writes them into the client output, so a CDN answers those URLs and the server never sees them. There is no second rendering path: the build sends a `Request` through the same fetch handler production runs.
 
 ```ts
 remix({ prerender: ["/", "/blog", "/blog/hello-world"] });
 ```
 
-`true` prerenders every static path in the app's route map, which the server
-entry exports alongside its handler:
+`true` prerenders every static path in the app's route map, which the server entry exports alongside its handler:
 
 ```ts
 // app/entry.server.tsx
@@ -152,8 +148,7 @@ export { routes } from "./routes.ts";
 export default router;
 ```
 
-A function computes the list, and gets `getStaticPaths()` for the route-map
-half of it:
+A function computes the list, and gets `getStaticPaths()` for the route-map half of it:
 
 ```ts
 remix({
@@ -164,33 +159,21 @@ remix({
 });
 ```
 
-The object form adds `concurrency`, and `spider` for following the links each
-rendered page contains:
+The object form adds `concurrency`, and `spider` for following the links each rendered page contains:
 
 ```ts
 remix({ prerender: { paths: ["/"], spider: true, concurrency: 4 } });
 ```
 
-Each path lands at `<path>/index.html` under the client output. Rendering runs
-after both builds and the assets manifest, so the HTML names real hashed
-chunks. Unsupported with `server: false`, which builds no server to render
-with.
+Each path lands at `<path>/index.html` under the client output. Rendering runs after both builds and the assets manifest, so the HTML names real hashed chunks. Unsupported with `server: false`, which builds no server to render with.
 
-A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and
-friends already contribute a preview server, so when the import fails the
-build starts that server and renders through it, inside the runtime that will
-serve the pages. Nothing extra to configure.
+A bundle Node cannot import renders anyway: `@cloudflare/vite-plugin` and friends already contribute a preview server, so when the import fails the build starts that server and renders through it, inside the runtime that will serve the pages. Nothing extra to configure.
 
-Full details in the [prerendering guide](https://pitlane.tools/guides/prerendering);
-the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/),
-and the [crawling guide](https://pitlane.tools/guides/crawler) covers using it
-on its own.
+Full details in the [prerendering guide](https://pitlane.tools/guides/prerendering); the crawler underneath is [`@pitlane/crawler`](https://pitlane.tools/package/crawler/), and the [crawling guide](https://pitlane.tools/guides/crawler) covers using it on its own.
 
 ## SPA mode
 
-Some apps have no server — a static host, a router that never touches one.
-`remix({ server: false })` targets those. React Router spells the same switch
-`ssr: false`:
+Some apps have no server — a static host, a router that never touches one. `remix({ server: false })` targets those. React Router spells the same switch `ssr: false`:
 
 ```ts
 // vite.config.ts
@@ -202,34 +185,15 @@ export default defineConfig({
 });
 ```
 
-There is no server environment, nothing is built to `dist/ssr`, and
-`vite build` emits a static site from your `index.html`. The plugin's one
-remaining job is the one a SPA still wants: component HMR. Editing a component
-swaps it in place and keeps live state, arrow forms included.
+There is no server environment, nothing is built to `dist/ssr`, and `vite build` emits a static site from your `index.html`. The plugin's one remaining job is the one a SPA still wants: component HMR. Editing a component swaps it in place and keeps live state, arrow forms included.
 
-Every `server*` option goes with it, and `clientEntry` too — the browser entry
-is whatever `index.html` loads. `<HMR />` from `pitlane:dev` resolves to the
-inert component, because there is no server data to revalidate.
+Every `server*` option goes with it, and `clientEntry` too — the browser entry is whatever `index.html` loads. `<HMR />` from `pitlane:dev` resolves to the inert component, because there is no server data to revalidate.
 
-Deploying means pointing every unknown URL at `index.html` so the client router
-can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`,
-on Netlify a `/* /index.html 200` redirect.
+Deploying means pointing every unknown URL at `index.html` so the client router can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`, on Netlify a `/* /index.html 200` redirect.
 
-The option removes the server, not the server rendering, which is what React
-Router's `ssr: false` does too. For a browser-rendered UI in front of routes
-that still run per request, stay in the default mode and let the server entry
-answer JSON on its data routes and one `remix/ui` shell on its document
-routes: nothing here asks it to render app UI. [Client rendering with a
-server](https://pitlane.tools/guides/spa#client-rendering-with-a-server) shows
-the shape.
+The option removes the server, not the server rendering, which is what React Router's `ssr: false` does too. For a browser-rendered UI in front of routes that still run per request, stay in the default mode and let the server entry answer JSON on its data routes and one `remix/ui` shell on its document routes: nothing here asks it to render app UI. [Client rendering with a server](https://pitlane.tools/guides/spa#client-rendering-with-a-server) shows the shape.
 
-SPA mode also works under Vite's experimental bundled dev mode
-(`experimental.bundledDev`, or `vite dev --experimentalBundle`), component
-hot-swap included. Server-rendered apps do not yet: bundled dev serves only
-bundle entrypoints, so the client module URLs an SSR render writes into its
-HTML resolve to nothing. That is upstream's
-[Phase 4](https://github.com/vitejs/vite/discussions/22746) — server
-environments — still a prototype.
+SPA mode also works under Vite's experimental bundled dev mode (`experimental.bundledDev`, or `vite dev --experimentalBundle`), component hot-swap included. Server-rendered apps do not yet: bundled dev serves only bundle entrypoints, so the client module URLs an SSR render writes into its HTML resolve to nothing. That is upstream's [Phase 4](https://github.com/vitejs/vite/discussions/22746) — server environments — still a prototype.
 
 ## The server entry contract
 
@@ -432,7 +396,7 @@ dist/
 | `remix`     | 3.0.0-rc.2     |
 | Node        | 24 (CI)        |
 
-Remix 3 is in prerelease, and each `@pitlane/dev` release records the exact prerelease it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. Rolldown is not required: the transform runs identically on generic Vite and Vite+.
+Each `@pitlane/dev` release records the exact Remix version it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. Rolldown is not required: the transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 

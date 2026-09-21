@@ -1,21 +1,18 @@
 # create-pitlane
 
-This package reserves the name for the Pitlane project generator. The CLI is not
-implemented yet.
+Project generator for Pitlane applications.
+
+**Coming soon.** The CLI is not implemented yet. Use the starter templates below.
 
 ## Create an application
 
-Create a Remix 3 app from the
-[Pitlane starter templates](https://github.com/pitlane-tools/templates) with
-[giget](https://github.com/unjs/giget):
+Create a Remix app from the [Pitlane starter templates](https://github.com/pitlane-tools/templates) with [giget](https://github.com/unjs/giget):
 
 ```sh
 npx giget github:pitlane-tools/templates/cloudflare my-app
 ```
 
-This example uses the Cloudflare Workers template. See the
-[template catalog](https://github.com/pitlane-tools/templates#templates) for other
-deployment targets.
+This example uses the Cloudflare Workers template. See the [template catalog](https://github.com/pitlane-tools/templates#templates) for other deployment targets.
 
 ## Documentation
 

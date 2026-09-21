@@ -1,6 +1,6 @@
 # @pitlane/data-table-d1
 
-A [Cloudflare D1](https://developers.cloudflare.com/d1/) driver for [Remix 3](https://remix.run)'s `data-table`.
+A [Cloudflare D1](https://developers.cloudflare.com/d1/) driver for [Remix](https://remix.run)'s `data-table`.
 
 ```ts
 import { createD1Database } from "@pitlane/data-table-d1";
