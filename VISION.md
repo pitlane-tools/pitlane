@@ -540,7 +540,7 @@ import { createContent } from "pitlane/content";
 import * as loaders from "pitlane/content/loaders";
 import * as s from "remix/data-schema";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({ pattern: "app/content/**/*.{md,mdx}", base: "blog" }),
         schema: s.object({

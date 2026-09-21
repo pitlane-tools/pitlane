@@ -52,7 +52,7 @@ import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
         loader: loaders.glob({ pattern: "**/*.mdx", base: "app/content/blog" }),
         schema: s.object({
@@ -148,7 +148,7 @@ wanted a loader and a schema, and would say something untrue about what the pack
 ```ts
 function createContent<T extends Record<string, CollectionDefinition>>(
     build: (c: ContentBuilder) => T,
-): Promise<Content<T>>;
+): Content<T>;
 
 interface ContentBuilder {
     collection<S extends StandardSchemaV1>(input: {
@@ -159,10 +159,12 @@ interface ContentBuilder {
 }
 ```
 
-- `createContent` calls `build` once and **performs no I/O**. It returns as soon as it has wired the
-  collections up, so a module that declares content does nothing asynchronous at import time. This
-  is not an optimization: Cloudflare Workers forbids asynchronous I/O in global scope, and
-  `createContent` is called at module scope.
+- `createContent` calls `build` once and returns the collection object synchronously, with no I/O.
+  A module can export that object directly without top-level `await`. Cloudflare Workers forbids
+  asynchronous I/O in global scope, so loaders run on reads or under the build plugin's control.
+- During prebuilding, construction registers deferred population work without starting it.
+  `contentLayer()` imports the declarations, then awaits that work before emitting the manifest.
+  Application code needs no initialization method, readiness promise, or middleware.
 - Each collection is wired according to the kind of loader it was given, which `createContent`
   determines by whether the loader has a `load` method:
     - A **`ContentLoader`** collection whose name appears in the prebuilt manifest reads from it. The
@@ -181,7 +183,8 @@ interface ContentBuilder {
 - `c.reference(name)` records `name` on the builder. After `build` returns, `createContent`
   compares every recorded name against the keys of the returned object and throws
   `Unknown collection "<name>" referenced by createContent; known collections are <keys>.` when one
-  does not exist. This catches a typo at startup rather than at the first `getEntry`.
+  does not exist. This is a synchronous throw. Errors thrown by `build` also propagate synchronously;
+  errors from loading entries or rendering bodies still reject the operation that requested them.
 
 ### Collections and entries
 
@@ -480,14 +483,15 @@ The plugin prebuilds in four steps:
 
 1. **Execute the entry in Node, in prebuild mode.** `createRunnableDevEnvironment` from Vite runs
    `entry` through Vite's own module runner, so TypeScript, aliases, and `vite.config.ts`
-   resolution all apply. `createContent` sees the prebuild flag and populates **only** its
-   `ContentLoader` collections, eagerly, with the filesystem available. A `LiveLoader` has no
-   `load` to call, so the build cannot execute it even in principle — which is why the build makes
-   no network calls on its behalf and needs none of its credentials.
-2. **Read what loaded.** `createContent` records each populated collection on a module-scoped
-   registry inside `@pitlane/content`, which the plugin reads from the same realm afterwards. The
-   entry module therefore needs no particular export shape and no annotation — only to have been
-   imported.
+   resolution all apply. Each `createContent` call returns synchronously and registers deferred
+   population work in the process-global prebuild channel. No loader runs during construction.
+2. **Populate and read the collections.** After module evaluation completes, the plugin awaits the
+   registered work in declaration order while the channel remains open. Only `ContentLoader`
+   collections populate; live loaders remain untouched. Entries and watched paths are recorded in
+   the channel, which both module-runner and plugin code can access. The entry module needs no
+   particular export shape, top-level `await`, or explicit initialization call. Loading or validation
+   failures fail the build with the entry module and underlying error; watched paths are retained
+   for development recovery, and the channel closes on success or failure.
 3. **Emit a manifest.** A virtual module replaces `@pitlane/content/internal/manifest`. Each entry
    contributes its `id`, `filePath`, and `data` as JavaScript literals — `Date` as
    `new Date("…")`, nested objects and arrays structurally — so a `coerce.date()` schema survives
@@ -735,7 +739,7 @@ import { createContent } from "@pitlane/content";
 import { hotContent } from "@pitlane/content/hot";
 import * as loaders from "@pitlane/content/loaders";
 
-export let content = await createContent(c => ({ ... }));
+export let content = createContent(c => ({ ... }));
 
 await hotContent(content);
 ```
@@ -908,9 +912,11 @@ A `storage` listener follows a choice made in another tab, so two open tabs do n
 
 ## Compatibility
 
-No compatibility impact. `@pitlane/content` is a new package at `0.1.0` with no dependents, and
-nothing in the repository changes. `satteri` and `vite-plugin-satteri` are the application's
-dependencies, so a project already using them keeps its own versions.
+`@pitlane/content` is a new package at `0.1.0`. Applications using an earlier preview remove
+`await` from `createContent` declarations; query and render calls keep their existing awaits.
+Callers using `.then()` or `.catch()` on construction must switch to direct access or `try`/`catch`.
+`satteri` and `vite-plugin-satteri` remain the application's dependencies, so a project already
+using them keeps its own versions.
 
 **VISION.md disagrees with this design in five places.** Each is the published code sample being
 illustrative rather than executable; all five want the human's agreement before implementation, and
