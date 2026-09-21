@@ -56,10 +56,10 @@ Choose the smallest independently useful slice. A proposal with a broad motivati
 
 4. **Choose the preview now.** Select which of pitlane's two preview mechanisms exercises the changed behavior. Record it as the artifact in **Preview**, with the reason it is the cheapest realistic exercise of this change.
 
-    | What the change touches   | Preview                                                                                                             |
-    | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-    | A package's behavior      | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
-    | The docs site, or a guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request                  |
+    | What the change touches | Preview |
+    | --- | --- |
+    | A package's behavior | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
+    | The docs site, or a guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request |
 
     Both run in CI on every push to a branch other than `main`, so there is nothing to configure and nothing to tear down beyond the branch itself. Neither is private: a pkg.pr.new build installs for anyone holding the URL, and the uploaded Workers version is reachable by anyone who opens it — record that rather than a private access path that does not exist here. A change with no exercisable surface records that instead of naming a mechanism that cannot show it.
 
@@ -98,15 +98,15 @@ Then enter Phase 3 — Implementation with `implementing-a-proposal`.
 
 ## Red flags — stop and correct
 
-| Symptom                                                     | Required response                                                   |
-| ----------------------------------------------------------- | ------------------------------------------------------------------- |
-| No pushed branch or draft pull request                      | Return to Phase 1 — Preparation.                                    |
-| Two unrelated motivations or more than roughly six criteria | Split the proposal.                                                 |
-| A record conflicts with the change                          | Surface it; the human chooses revision or supersession.             |
-| An unknown detail has no clarification marker               | Ask or add the marker.                                              |
-| Preview names no exerciseable artifact                      | Choose and record one before approval.                              |
-| A newly discovered defect expands scope                     | File a GitHub issue; keep the proposal bounded.                     |
-| Existing code suggests the design                           | Treat it as evidence, not authority; settle intent in the proposal. |
+| Symptom | Required response |
+| --- | --- |
+| No pushed branch or draft pull request | Return to Phase 1 — Preparation. |
+| Two unrelated motivations or more than roughly six criteria | Split the proposal. |
+| A record conflicts with the change | Surface it; the human chooses revision or supersession. |
+| An unknown detail has no clarification marker | Ask or add the marker. |
+| Preview names no exerciseable artifact | Choose and record one before approval. |
+| A newly discovered defect expands scope | File a GitHub issue; keep the proposal bounded. |
+| Existing code suggests the design | Treat it as evidence, not authority; settle intent in the proposal. |
 
 ## Anti-patterns
 

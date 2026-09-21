@@ -86,10 +86,10 @@ A project wires the mechanism matching its own shape. Previews are private by de
 
 In this repository the two mechanisms already exist, and both run on a push to any branch other than `main`:
 
-| What the change touches     | Preview                                                                                                             |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| A package's behavior        | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
-| The docs site, or any guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request                  |
+| What the change touches | Preview |
+| --- | --- |
+| A package's behavior | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
+| The docs site, or any guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request |
 
 Both are public by consequence rather than by choice: a pkg.pr.new build is installable by anyone with the URL, and the Workers preview version serves no production traffic but is reachable. Neither is a release.
 

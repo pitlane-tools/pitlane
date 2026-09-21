@@ -76,8 +76,7 @@ docs/.vitepress/dist
 
 ## Theme Components
 
-The `@voidzero-dev/vitepress-theme` package provides shared components you can
-import into your layouts and components:
+The `@voidzero-dev/vitepress-theme` package provides shared components you can import into your layouts and components:
 
 ```vue
 <!-- Section heading -->

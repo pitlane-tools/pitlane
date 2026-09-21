@@ -8,7 +8,9 @@ description: Run a Remix 3 app on Deno Deploy — the built fetch handler behind
 Deploy a Remix 3 app to [Deno Deploy](https://deno.com/deploy) — the new platform at [console.deno.com](https://console.deno.com), which runs full Deno 2 apps with CDN caching and built-in logs, traces, and metrics. No platform plugin is involved: the Vite build runs in your CI, and Deploy runs the uploaded fetch handler under real Deno.
 
 ::: tip Start from the template
+
 `npx giget github:pitlane-tools/templates/deno-deploy my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+
 :::
 
 ::: warning New Deploy only

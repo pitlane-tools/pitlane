@@ -46,17 +46,17 @@ The documentation site and its generators are untouched. `docs/` remains product
 
 ### What is vendored
 
-| Path                                     | What it is                                                                                                                                          |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PROCESS.md`                             | The full process description, with pitlane's previews and release path bound into it.                                                               |
-| `AGENTS.md`                              | The operative contract. Gains the process; keeps every existing repository convention.                                                              |
-| `.agents/rules/`                         | `verification.md`, `code-quality.md`, `commit-discipline.md`, `enforcement-hierarchy.md`.                                                           |
-| `.agents/skills/`                        | `writing-a-proposal`, `implementing-a-proposal`, `reviewing-an-implementation`, `completing-a-feature`, `tracking-defects`, `systematic-debugging`. |
-| `.agents/templates/`                     | The canonical shape of a vision, proposal, policy, decision, guide, and readiness report.                                                           |
-| `.agents/hooks/commit-msg`               | Rejects a subject that is not a Scoped Commit, and a scope that is not real.                                                                        |
-| `tools/validate.mjs`, `tools/status.mjs` | The record validator and the one command that reports where the work is. Dependency-free.                                                           |
-| `proposals/`, `policies/`, `decisions/`  | The record. Each carries a `README.md` describing its frontmatter and lifecycle.                                                                    |
-| `.github/pull_request_template.md`       | The phase checklist.                                                                                                                                |
+| Path | What it is |
+| --- | --- |
+| `PROCESS.md` | The full process description, with pitlane's previews and release path bound into it. |
+| `AGENTS.md` | The operative contract. Gains the process; keeps every existing repository convention. |
+| `.agents/rules/` | `verification.md`, `code-quality.md`, `commit-discipline.md`, `enforcement-hierarchy.md`. |
+| `.agents/skills/` | `writing-a-proposal`, `implementing-a-proposal`, `reviewing-an-implementation`, `completing-a-feature`, `tracking-defects`, `systematic-debugging`. |
+| `.agents/templates/` | The canonical shape of a vision, proposal, policy, decision, guide, and readiness report. |
+| `.agents/hooks/commit-msg` | Rejects a subject that is not a Scoped Commit, and a scope that is not real. |
+| `tools/validate.mjs`, `tools/status.mjs` | The record validator and the one command that reports where the work is. Dependency-free. |
+| `proposals/`, `policies/`, `decisions/` | The record. Each carries a `README.md` describing its frontmatter and lifecycle. |
+| `.github/pull_request_template.md` | The phase checklist. |
 
 ### What is adapted, and why
 
@@ -85,12 +85,12 @@ The documentation site and its generators are untouched. `docs/` remains product
 
 Prose is the tier most likely to be missed, so every checkable part is a check.
 
-| Tier      | Mechanism                                                                                                                                                    |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Checks    | `mise run validate` (`tools/validate.mjs`); the `record` job in `.github/workflows/test.yml`; the `commit-msg` hook; Vale through `.omp/hooks/vale-prose.ts` |
-| Tasks     | `mise run check`, which now depends on `docs:build`, `validate`, and `tools:test`; `vp test` and `vp run build` per package                                  |
-| Templates | `.agents/templates/`, including the proposal's "Policies and decisions checked" section                                                                      |
-| Prose     | `AGENTS.md`, the skills, and the rules                                                                                                                       |
+| Tier | Mechanism |
+| --- | --- |
+| Checks | `mise run validate` (`tools/validate.mjs`); the `record` job in `.github/workflows/test.yml`; the `commit-msg` hook; Vale through `.omp/hooks/vale-prose.ts` |
+| Tasks | `mise run check`, which now depends on `docs:build`, `validate`, and `tools:test`; `vp test` and `vp run build` per package |
+| Templates | `.agents/templates/`, including the proposal's "Policies and decisions checked" section |
+| Prose | `AGENTS.md`, the skills, and the rules |
 
 Three new Mise tasks: `validate` (the record), `status` (where the work is and what happens next), and `tools:test` (the record tooling's own `node:test` suites — namespaced because package tests run through Vite+ from inside each package).
 

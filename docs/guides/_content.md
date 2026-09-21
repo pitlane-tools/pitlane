@@ -209,14 +209,9 @@ All of your content collections are defined using the `createContent()` function
 
 ::::
 
-`createContent()` returns the content client synchronously. Export it directly and import it
-where you need it. Construction does no loading. Keep `await` on `getCollection()`, `getEntry()`,
-and `entry.render()`.
+`createContent()` returns the content client synchronously. Export it directly and import it where you need it. Construction does no loading. Keep `await` on `getCollection()`, `getEntry()`, and `entry.render()`.
 
-With Vite, `contentLayer()` waits for the declarations to finish, then loads the prebuildable
-collections before emitting the bundle. Without a bundler, a `ContentLoader` collection loads
-on its first read. Live collections load on every read in either setup. Neither setup needs an
-initialization call.
+With Vite, `contentLayer()` waits for the declarations to finish, then loads the prebuildable collections before emitting the bundle. Without a bundler, a `ContentLoader` collection loads on its first read. Live collections load on every read in either setup. Neither setup needs an initialization call.
 
 Each individual collection configures:
 

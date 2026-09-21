@@ -57,11 +57,11 @@ For every inventory row, establish all of these:
 
 Each non-full row resolves in exactly one way.
 
-| Resolution             | Use when                               | Action                                                                            |
-| ---------------------- | -------------------------------------- | --------------------------------------------------------------------------------- |
-| Fix the wrong artifact | Intent has not changed                 | Correct the tests, guides, or code, then recheck the row.                         |
-| Revise the proposal    | Intent or scope changed                | Discuss with the human first. Then derive affected tests, guides, and code again. |
-| Record the divergence  | It remains deliberate for human review | Name the behavior, affected sources, impact, and reason in the readiness report.  |
+| Resolution | Use when | Action |
+| --- | --- | --- |
+| Fix the wrong artifact | Intent has not changed | Correct the tests, guides, or code, then recheck the row. |
+| Revise the proposal | Intent or scope changed | Discuss with the human first. Then derive affected tests, guides, and code again. |
+| Record the divergence | It remains deliberate for human review | Name the behavior, affected sources, impact, and reason in the readiness report. |
 
 You MAY edit tests, guides, and code to remove a disagreement. You MUST NOT revise a proposal without the human; that is a design change.
 
@@ -97,10 +97,10 @@ A preview is **the cheapest realistic artifact through which the human can exerc
 
 Reviewing prose is not reviewing behavior. Pitlane has exactly two preview mechanisms, and both already run in CI on every push to a branch other than `main`:
 
-| What the change touches   | Preview                                                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| A package's behavior      | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
-| The docs site, or a guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request                  |
+| What the change touches | Preview |
+| --- | --- |
+| A package's behavior | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
+| The docs site, or a guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request |
 
 Because both previews already exist for the branch, this step confirms rather than builds: install the package build or open the docs preview from the branch's own run, see the changed behavior in it, and link it with what to try. Preview the surface the proposal changed; do not produce both by habit. A pure refactor with no exercisable surface produces no preview. State that plainly in the readiness report rather than fabricating one.
 
@@ -116,17 +116,17 @@ Neither preview is private. A pkg.pr.new build is installable by anyone holding 
 
 Compose the pull-request comment from `.agents/templates/READINESS_REPORT.md`. Fill every template section and add the cross-artifact inventory verdict, divergences, and resolutions.
 
-| Report section                                | Required content                                                                                                                                                                                 |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Proposal                                      | State `FULLY` implemented only when every promised behavior exists. For `PARTIALLY`, name completed and omitted behavior, limitations, and reason. Silent partial implementation is not allowed. |
-| What was built                                | Delivered behavior, not internals.                                                                                                                                                               |
-| How to exercise it                            | Preview link or honest absence, setup, actions, and expected results.                                                                                                                            |
-| Validation performed                          | Every command actually run in this session and its observed result, per `.agents/rules/verification.md`. Never report an unrun gate as passing.                                                  |
-| Adversarial findings adopted                  | Each accepted or fixed finding, or `- None.`                                                                                                                                                     |
-| Adversarial findings declined, with reasoning | Every declined finding and why it was declined, or `- None.` This section is always present.                                                                                                     |
-| Defects discovered and deferred               | Each deliberate, out-of-scope defect as a linked GitHub issue from `tracking-defects`, or `- None.`                                                                                              |
-| Remaining limitations                         | Known behavior gaps or `- None.`                                                                                                                                                                 |
-| What to look at first                         | The first behavior, preview action, or diff the human should inspect.                                                                                                                            |
+| Report section | Required content |
+| --- | --- |
+| Proposal | State `FULLY` implemented only when every promised behavior exists. For `PARTIALLY`, name completed and omitted behavior, limitations, and reason. Silent partial implementation is not allowed. |
+| What was built | Delivered behavior, not internals. |
+| How to exercise it | Preview link or honest absence, setup, actions, and expected results. |
+| Validation performed | Every command actually run in this session and its observed result, per `.agents/rules/verification.md`. Never report an unrun gate as passing. |
+| Adversarial findings adopted | Each accepted or fixed finding, or `- None.` |
+| Adversarial findings declined, with reasoning | Every declined finding and why it was declined, or `- None.` This section is always present. |
+| Defects discovered and deferred | Each deliberate, out-of-scope defect as a linked GitHub issue from `tracking-defects`, or `- None.` |
+| Remaining limitations | Known behavior gaps or `- None.` |
+| What to look at first | The first behavior, preview action, or diff the human should inspect. |
 
 Declined adversarial findings keep the independent review useful. Do not quietly omit a narrow, uncomfortable, or disputed finding.
 

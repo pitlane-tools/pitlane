@@ -8,7 +8,9 @@ description: "Deploy a Remix 3 app to GitHub Pages — SPA mode with remix({ ser
 [GitHub Pages](https://pages.github.com) serves static files only — there is no server runtime. Two kinds of Remix 3 app produce output it can serve: a client-only app in [SPA mode](/guides/spa), and a server-rendered app whose pages are all [prerendered](/guides/prerendering) at build time. (Need a server at runtime? Pick a target with one: [Cloudflare](/deploy/cloudflare), [Netlify](/deploy/netlify), [Vercel](/deploy/vercel), or [Railway](/deploy/railway).)
 
 ::: tip Start from the template
+
 `npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+
 :::
 
 A client-only app runs `remix()` in [SPA mode](/guides/spa): `server: false` turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), which is why it earns its place in a static build.

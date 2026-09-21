@@ -40,6 +40,10 @@
     },
     "overrides": [
         {
+            "files": ["**/*.md", "**/*.mdx"],
+            "options": { "proseWrap": "never" }
+        },
+        {
             "files": ["**/*.jsonc"],
             "options": { "trailingComma": "none" }
         },
