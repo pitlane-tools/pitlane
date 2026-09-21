@@ -19,6 +19,8 @@ jobs:
             fail-fast: false
             matrix:
                 include:
+                    - package: "@pitlane/content"
+                      directory: packages/content
                     - package: "@pitlane/crawler"
                       directory: packages/crawler
                     - package: "@pitlane/dev"
@@ -53,6 +55,11 @@ jobs:
             - name: Build crawler for dev fixtures
               if: matrix.directory == 'packages/dev'
               working-directory: packages/crawler
+              run: vp run build
+
+            # The runtime fixture imports content through its published exports.
+            - name: Build content for runtime fixtures
+              if: matrix.directory == 'packages/content'
               run: vp run build
 
             - name: Run tests
