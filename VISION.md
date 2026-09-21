@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-09-11
+updated: 2026-09-20
 ---
 
 # Pitlane Vision
@@ -95,7 +95,7 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 | Realtime                 | Pitlane-native                                                                        |
 | Email delivery           | Cloudflare Email Service • Resend                                                     |
 | Font providers           | Local • Fontsource • Google Fonts • Adobe Fonts                                       |
-| Content layer            | Pitlane-native                                                                        |
+| Content layer            | `@pitlane/content`: schema-validated collections with runtime and prebuilt loading    |
 | Head metadata            | Pitlane-native                                                                        |
 | Localization             | Pitlane-native                                                                        |
 | Type-safe env/secrets    | Pitlane-native                                                                        |
@@ -128,7 +128,7 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 `pitlane` and `create-pitlane` are published at `0.0.0` to hold their names, and neither ships working code. The umbrella's entry throws and points at `@pitlane/dev`; `create-pitlane` prints the `giget` command from the distribution list above and exits non-zero. Both were published by hand: they have no build, no tests, and no job in `publish.yml`.
 
-The umbrella vends no subpaths yet, `pitlane/theme` included. An umbrella over four packages is a second specifier for something a reader can already install; the namespace earns its place once the set is large enough to be worth learning as a whole. Code samples in this document follow the same line — a package that exists is imported as `@pitlane/<name>`, and a planned one keeps the `pitlane/<name>` specifier it will have once the umbrella ships.
+The umbrella vends no subpaths yet, `pitlane/theme` included. An umbrella over five packages is a second specifier for something a reader can already install; the namespace earns its place once the set is large enough to be worth learning as a whole. Code samples in this document follow the same line — a package that exists is imported as `@pitlane/<name>`, and a planned one keeps the `pitlane/<name>` specifier it will have once the umbrella ships.
 
 ### Runtime and build-time packages
 
@@ -153,14 +153,14 @@ let db = createD1Database(env.DB);
 
 ### Released baseline
 
-Four packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
+Five packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/content`, schema-validated content collections; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
 
 ### Planned package sequence
 
 Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
 
 1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
-2. `@pitlane/content`
+2. `@pitlane/content` — shipped at 0.1.0.
 3. `@pitlane/meta`
 4. `@pitlane/sprites`
 5. `@pitlane/image`
@@ -533,25 +533,26 @@ export default createController(routes.shop, {
 
 ### Content layer — `@pitlane/content`
 
-Define collections with `createContent` and loaders from `pitlane/content/loaders`; collections are typed by schema and support references between collections.
+`@pitlane/content@0.1.0` declares schema-validated collections with `createContent` and loaders from `@pitlane/content/loaders`. Construction is synchronous and performs no loading. Reads and rendering remain asynchronous, and collections support typed references to one another.
 
 ```ts
-import { createContent } from "pitlane/content";
-import * as loaders from "pitlane/content/loaders";
+import { createContent } from "@pitlane/content";
+import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
+import * as coerce from "remix/data-schema/coerce";
 
-export let content = await createContent(c => ({
+export let content = createContent(c => ({
     blog: c.collection({
-        loader: loaders.glob({ pattern: "app/content/**/*.{md,mdx}", base: "blog" }),
+        loader: loaders.glob({ pattern: "**/*.{md,mdx}", base: "app/content/blog" }),
         schema: s.object({
             title: s.string(),
             summary: s.string(),
-            publishedOn: s.date(),
+            publishedOn: coerce.date(),
             author: c.reference("authors"),
         }),
     }),
     authors: c.collection({
-        loader: loaders.file("app/content/authors.jsonc"),
+        loader: loaders.file("app/content/authors.json"),
         schema: s.object({ name: s.string(), avatar: s.string() }),
     }),
 }));
@@ -565,6 +566,8 @@ let post = await content.blog.getEntry(params.slug);
 let { Content, headings } = await post.render();
 let author = await content.authors.getEntry(post.data.author);
 ```
+
+`ContentLoader` collections populate on their first read and cache successful loads. `LiveLoader` collections answer each read afresh. During a Vite build, `contentLayer()` from `@pitlane/content/vite` waits for declaration evaluation, then loads and validates the `ContentLoader` collections into the bundle; live loaders stay untouched. This is the path for Cloudflare Workers and other hosts without a filesystem. Markdown and MDX prebuilding also uses `vite-plugin-satteri`; the [content guide](https://pitlane.tools/guides/content) gives the plugin setup and the runtime-only alternative.
 
 ### Head metadata — `@pitlane/meta`
 
@@ -1127,7 +1130,7 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 ## Release status
 
-`@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, and `@pitlane/crawler` followed it on their own tags, and the rest ship independently in the [planned package sequence](#planned-package-sequence); no later package is required to make an earlier one complete.
+`@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0; the rest ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
 
 ### Explicit non-goals
 

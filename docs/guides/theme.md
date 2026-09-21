@@ -1,9 +1,9 @@
 ---
-title: Styling
+title: Theme
 description: Style Remix apps with remix/ui css mixins and @pitlane/theme design tokens.
 ---
 
-# Styling
+# Theme
 
 Remix UI styles elements with the `css()` mixin through the `mix` prop. You manage no class names. Styles stream with server rendering, and structurally equal style objects share one generated class:
 
@@ -19,9 +19,41 @@ That works, but every value is a loose string. Nothing stops `#111` here and `#1
 
 First, install the package. `remix` 3.0.0-rc.1 or later is a peer dependency:
 
-```bash
+::: code-group
+
+```sh [npm]
+npm add @pitlane/theme
+```
+
+```sh [yarn]
+yarn add @pitlane/theme
+```
+
+```sh [pnpm]
+pnpm add @pitlane/theme
+```
+
+```sh [bun]
+bun add @pitlane/theme
+```
+
+```sh [deno]
+deno add npm:@pitlane/theme
+```
+
+```sh [vp]
 vp add @pitlane/theme
 ```
+
+```sh [vlt]
+vlt add @pitlane/theme
+```
+
+```sh [nub]
+nub add @pitlane/theme
+```
+
+:::
 
 ## Define a theme
 
@@ -279,9 +311,9 @@ function setColorScheme(scheme: ColorScheme | undefined) {
 
 Call `setColorScheme(undefined)` to return control to the operating-system preference.
 
-## Variants with tva
+## Variants with Theme Variance Authority
 
-`tva` is a cva-style variant resolver. It takes brand-enforced style objects instead of class strings and returns a `mix`-ready descriptor:
+`tva` (Theme Variance Authority) is a cva-style variant resolver. It takes brand-enforced style objects instead of class strings and returns a `mix`-ready descriptor:
 
 ```ts
 import { tva } from "@pitlane/theme";
@@ -412,8 +444,8 @@ import type { TVAProps } from "@pitlane/theme";
 
 type ButtonVariants = TVAProps<typeof button>;
 
-interface IntentButtonProps
-    extends Omit<ButtonVariants, "intent">, Required<Pick<ButtonVariants, "intent">> {}
+type IntentButtonProps = 
+    Omit<ButtonVariants, "intent"> & Required<Pick<ButtonVariants, "intent">>;
 
 export let intentButton = (props: IntentButtonProps) => button(props);
 ```

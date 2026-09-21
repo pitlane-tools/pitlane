@@ -256,3 +256,55 @@ jobs:
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
+
+    publish-content:
+        if: startsWith(github.event.release.tag_name, '@pitlane/content@')
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/content
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Vite+
+              uses: voidzero-dev/setup-vp@v1
+              with:
+                  node-version: "24"
+                  cache: true
+
+            - name: Verify release tag matches package version
+              run: |
+                  version=$(node -p "require('./package.json').version")
+                  tag="${{ github.event.release.tag_name }}"
+                  if [ "$tag" != "@pitlane/content@$version" ]; then
+                      echo "Release tag $tag does not match package version @pitlane/content@$version" >&2
+                      exit 1
+                  fi
+
+            - name: Install
+              run: vp install --frozen-lockfile
+
+            - name: Build package
+              run: vp run build
+
+            - name: Run tests
+              run: vp test
+
+            - name: Authenticate with npm
+              # First publication is manual; later releases use Trusted Publishing.
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -n "$NPM_TOKEN" ]; then
+                      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+                      echo "Authenticated with the NPM_TOKEN secret."
+                  else
+                      echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
+                  fi
+
+            - name: Pack with pnpm
+              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+
+            - name: Publish to npm with provenance
+              run: npm publish ./*.tgz --provenance --access public --tag latest
