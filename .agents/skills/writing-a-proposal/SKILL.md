@@ -7,17 +7,19 @@ description: Use when a new or substantial change needs definition before tests,
 
 **Phase 2 — Proposal development.** A proposal is the one durable record of one coherent change. It makes intent concrete enough to derive tests, guides, and code without returning to the original conversation.
 
-## First, decide whether this needs a proposal
+## First, ask whether this needs a proposal
 
 Proposals are for changes that decide something: new or changed behavior, a real choice between approaches, anything establishing a policy or decision, anything touching the vision.
 
 They are not for changes whose intent already exists. A bug has its correct behavior specified already — by the proposal that promised it, or by a contract too obvious to write down. Correcting an implementation is not defining one. Fixing a typo, a dead link, or a workflow whose behavior was never in question needs no proposal and often no pull request; describing it costs more than doing it.
 
-Say which you think it is and why, in a line, before starting. The human can ask for more process at any time and does not have to justify it. If you find partway through a small fix that a real design choice was hiding in it, stop and write the proposal — that direction is always right, and the reverse never is.
+State your recommendation, then ask whether the human wants a proposal. Always wait for explicit approval before creating one or opening a proposal-only branch or pull request. A request to implement something, a selected tool, answers to design questions, urgency, or your own assessment that work is substantial do not grant permission. Announcing that you will write a proposal is not asking.
+
+If the human declines, proceed from the agreed request and pull-request scope with applicable verification and review. Do not create a proposal approval gate. If a real design choice emerges during a small fix, stop, explain the choice, and ask whether the human wants a proposal before creating one.
 
 ## Preparation comes first
 
-For work that does warrant a proposal, confirm the change has a branch pushed to `origin` and an open draft pull request before writing one. The pull request is the durable workspace, and a proposal iterated anywhere else is a proposal the human cannot comment on.
+After the human approves creating a proposal, confirm the change has a branch pushed to `origin` and an open draft pull request before writing it. The pull request is the durable workspace, and a proposal iterated anywhere else is a proposal the human cannot comment on.
 
 ## Output
 
@@ -86,7 +88,7 @@ Choose the smallest independently useful slice. A proposal with a broad motivati
 
 ## The gate, once a proposal exists
 
-This gate applies to work you judged proposal-worthy. It does not turn every change into one — that decision was made at the top of this skill, and a correction never reaches here.
+This gate applies when the human chose a proposal. It does not apply when the human declined one; use the agreed request and pull-request scope instead.
 
 Once a proposal exists, never write tests, guides, or code until all of these are true:
 
@@ -100,6 +102,7 @@ Then enter Phase 3 — Implementation with `implementing-a-proposal`.
 
 | Symptom | Required response |
 | --- | --- |
+| No explicit approval to create a proposal | Ask whether the human wants one, then wait. |
 | No pushed branch or draft pull request | Return to Phase 1 — Preparation. |
 | Two unrelated motivations or more than roughly six criteria | Split the proposal. |
 | A record conflicts with the change | Surface it; the human chooses revision or supersession. |

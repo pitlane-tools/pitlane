@@ -6,7 +6,7 @@ The process is intended to be generalizable to any modern agentic coding harness
 
 This repository runs that process. [`AGENTS.md`](AGENTS.md) is the operative contract: it binds every artifact described below to a real path, task, and workflow in this repository, and it is what an agent follows when the two disagree on a detail.
 
-The process is built around a simple principle: the agent should not move directly from a human request to an implementation. Intent should first be made explicit, then represented independently in tests, documentation, and code, reviewed from multiple perspectives, and finally verified by a human before release.
+The process is built around a simple principle: intent should be made explicit before implementation, then represented independently in tests, documentation, and code, reviewed from multiple perspectives, and verified by a human before release. The human decides whether that intent needs a proposal.
 
 ## Goals
 
@@ -105,7 +105,7 @@ Unlike proposals, however, the vision is a living document. After accepted featu
 
 ## Feature Development
 
-Substantial feature work proceeds through five phases:
+When the human chooses a proposal, substantial feature work proceeds through five phases:
 
 1. preparation,
 2. proposal development,
@@ -114,6 +114,10 @@ Substantial feature work proceeds through five phases:
 5. completion and release.
 
 The process is iterative. Findings during implementation or review may cause the proposal itself to change, at which point the implementation is reevaluated against the revised proposal.
+
+Before creating any proposal, the agent states its recommendation, asks whether I want a proposal, and waits for explicit approval. This also applies before opening a proposal-only branch or pull request. A request to implement a change, selection of a tool, or answers to design questions do not authorize proposal creation. Announcing a proposal is not asking permission.
+
+If I decline a proposal, the agent proceeds from our agreed request and pull-request scope, retaining applicable verification and review. If a design choice emerges partway through a small fix, the agent explains the choice and asks whether I want a proposal before creating one.
 
 ## Preparation
 
@@ -127,7 +131,7 @@ The pull request remains a draft while the feature is being specified and implem
 
 ## Proposal Development
 
-Before implementation, the agent and I write a proposal describing the feature.
+After I approve creating a proposal, the agent and I write it before implementation.
 
 The proposal should make the intended change sufficiently concrete that the agent can derive tests, documentation, and an implementation from it without relying primarily on the original conversational request.
 

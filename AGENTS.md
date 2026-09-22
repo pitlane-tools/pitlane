@@ -4,7 +4,7 @@ This repository runs the **Workbench** development process. [`PROCESS.md`](PROCE
 
 The governing principle: **no single artifact defines a feature by itself.** A proposal records intent, tests encode behavior, guides explain behavior, code implements behavior. Each is written independently, so that disagreement between them is visible before release.
 
-You do not move directly from a request to an implementation.
+Make intent explicit before implementation. The human decides whether a proposal is needed.
 
 ## Start here, every session
 
@@ -49,7 +49,11 @@ branch → draft PR → proposal → tests → guides → code → validation
 
 Some of those do not need a pull request either. Moving a file and deleting the empty directory behind it is a commit, not a review — there is nothing for a reviewer to agree or disagree with. The three conditions that allow a direct commit to `main`, and the reminder that an unnecessary pull request is cheap while a skipped one is not, are in [`.agents/rules/commit-discipline.md`](.agents/rules/commit-discipline.md#when-the-default-branch-is-reachable-directly).
 
-Lean on one question: **does this change decide something?** If intent already exists — because a proposal promised the behavior, or because the contract is too obvious to write down — you are correcting an implementation, not defining one. Say which you think it is, in a line, before you start. Asking for more process is always granted without argument. When you discover partway through a small fix that a real design choice was hiding in it, stop and treat it as substantial work from that point.
+Lean on one question: **does this change decide something?** If intent already exists because a proposal promised the behavior or the contract is too obvious to write down, you are correcting an implementation. State your recommendation about whether a proposal would help.
+
+Always ask the human whether they want a proposal and wait for explicit approval before creating one or opening a proposal-only branch or pull request. Announcing that you will write a proposal is not asking. A request to implement something, a selected tool, or answers to design questions do not grant permission to create a proposal.
+
+If the human declines a proposal, proceed from the agreed request and pull-request scope, retaining the applicable verification and review steps. Do not impose a proposal approval gate. If a real design choice emerges during a small fix, stop, explain it, and ask whether the human wants a proposal before creating one.
 
 ### 1. Preparation
 
@@ -59,7 +63,7 @@ Pushing the branch is also what starts the previews — `preview.yml` and `pkg-p
 
 ### 2. Proposal
 
-Write `proposals/<NNNN>-<slug>.md` and **push it to the draft pull request as soon as it is coherent enough to react to**. Do not polish it privately — the pull request is where it gets read, commented on, and edited directly.
+After the human approves creating a proposal, write `proposals/<NNNN>-<slug>.md` and **push it to the draft pull request as soon as it is coherent enough to react to**. Do not polish it privately; the pull request is where it gets read, commented on, and edited directly.
 
 Then iterate, for as long as it takes. The proposal stays `status: draft` throughout, and must end up concrete enough to derive tests, guides, and an implementation from **without** rereading the original conversation. Unresolved questions are marked `[NEEDS CLARIFICATION: <question>]` and resolved with the human, never guessed.
 
@@ -107,7 +111,8 @@ Update `VISION.md` if the change altered what Pitlane is, merge, release, update
 
 ## Hard rules
 
-- **Never implement substantial work without an approved proposal.** A conversational request is not a proposal. Corrections and fixes with unambiguous intent are not substantial work.
+- **Always ask before creating a proposal.** Wait for explicit human approval; apply this even when you judge the work substantial or discover a design choice during implementation.
+- **When the human chooses a proposal, never implement it before approval.** The human sets `awaiting-implementation`. When they decline a proposal, use the agreed request and pull-request scope as the implementation contract.
 - **Never write production code before its failing test.** If the behavior warrants a test at all and you wrote the code first, delete it and start over.
 - **Never write guides from the finished code.** When a change warrants a guide, it is derived from the proposal. Whether it warrants one is a judgement; the direction of derivation is not.
 - **Never claim work is done without running the verifying command this turn** and reading its output. See [`.agents/rules/verification.md`](.agents/rules/verification.md).
