@@ -2,13 +2,15 @@
 id: proposal.0004
 title: Changesets for Deferred Package Releases
 authors: [Mark Malstrom]
-status: draft
+status: withdrawn
 pull-request: https://github.com/pitlane-tools/pitlane/pull/28
 issues: []
 supersedes: []
 ---
 
 # Changesets for Deferred Package Releases
+
+Withdrawn at the maintainer's request. Changesets adoption with on-request release preparation needs no proposal. The additional details below are unapproved draft suggestions, retained as history.
 
 ## Summary
 
@@ -166,7 +168,7 @@ An automatically maintained release-preparation pull request could use the same 
 
 ## Open questions
 
-None. The maintainer selected on-request preparation. This document remains a draft for review; implementation requires the human to move it to `awaiting-implementation`.
+The agreed direction is Changesets with on-request release preparation. This withdrawn draft imposes no approval gate or additional requirements.
 
 ## Acknowledgments
 
