@@ -4,7 +4,7 @@ This repository runs the **Workbench** development process. [`PROCESS.md`](PROCE
 
 The governing principle: **no single artifact defines a feature by itself.** A proposal records intent, tests encode behavior, guides explain behavior, code implements behavior. Each is written independently, so that disagreement between them is visible before release.
 
-You do not move directly from a request to an implementation.
+Make intent explicit before implementation. The human decides whether a proposal is needed.
 
 ## Start here, every session
 
@@ -49,7 +49,11 @@ branch → draft PR → proposal → tests → guides → code → validation
 
 Some of those do not need a pull request either. Moving a file and deleting the empty directory behind it is a commit, not a review — there is nothing for a reviewer to agree or disagree with. The three conditions that allow a direct commit to `main`, and the reminder that an unnecessary pull request is cheap while a skipped one is not, are in [`.agents/rules/commit-discipline.md`](.agents/rules/commit-discipline.md#when-the-default-branch-is-reachable-directly).
 
-Lean on one question: **does this change decide something?** If intent already exists — because a proposal promised the behavior, or because the contract is too obvious to write down — you are correcting an implementation, not defining one. Say which you think it is, in a line, before you start. Asking for more process is always granted without argument. When you discover partway through a small fix that a real design choice was hiding in it, stop and treat it as substantial work from that point.
+Lean on one question: **does this change decide something?** If intent already exists because a proposal promised the behavior or the contract is too obvious to write down, you are correcting an implementation. State your recommendation about whether a proposal would help.
+
+Always ask the human whether they want a proposal and wait for explicit approval before creating one or opening a proposal-only branch or pull request. Announcing that you will write a proposal is not asking. A request to implement something, a selected tool, or answers to design questions do not grant permission to create a proposal.
+
+If the human declines a proposal, proceed from the agreed request and pull-request scope, retaining the applicable verification and review steps. Do not impose a proposal approval gate. If a real design choice emerges during a small fix, stop, explain it, and ask whether the human wants a proposal before creating one.
 
 ### 1. Preparation
 
@@ -59,7 +63,7 @@ Pushing the branch is also what starts the previews — `preview.yml` and `pkg-p
 
 ### 2. Proposal
 
-Write `proposals/<NNNN>-<slug>.md` and **push it to the draft pull request as soon as it is coherent enough to react to**. Do not polish it privately — the pull request is where it gets read, commented on, and edited directly.
+After the human approves creating a proposal, write `proposals/<NNNN>-<slug>.md` and **push it to the draft pull request as soon as it is coherent enough to react to**. Do not polish it privately; the pull request is where it gets read, commented on, and edited directly.
 
 Then iterate, for as long as it takes. The proposal stays `status: draft` throughout, and must end up concrete enough to derive tests, guides, and an implementation from **without** rereading the original conversation. Unresolved questions are marked `[NEEDS CLARIFICATION: <question>]` and resolved with the human, never guessed.
 
@@ -82,7 +86,7 @@ Passing the quality gates is necessary, never sufficient. Then, still in this ph
 4. **Cross-artifact review** — read proposal, tests, guides, and code together and find where they disagree.
 5. **Adversarial review** — an independent subagent, **fresh context and a different model**, tries to falsify the claim that the work is done. It reports; it does not fix. Findings you decline are surfaced in the readiness report, never silently dropped. Skill: `adversarial-review`.
 6. **Preview** — publish the cheapest real artifact through which the change can be exercised. Review of prose is not review of behavior.
-7. **Readiness report** — post it to the PR linking the preview, set the proposal to `active-review`, and mark the PR ready. Those three are one action.
+7. **Readiness report** — post it to the PR linking the preview, set the proposal to `active-review`, and mark the PR ready. Make these updates together. If the human declined a proposal, post the report and mark the PR ready without creating a proposal or setting a proposal status.
 
 Skills: `.agents/skills/implementing-a-proposal/` for steps 1–3, `.agents/skills/reviewing-an-implementation/` for steps 4, 6, and 7.
 
@@ -107,14 +111,15 @@ Update `VISION.md` if the change altered what Pitlane is, merge, release, update
 
 ## Hard rules
 
-- **Never implement substantial work without an approved proposal.** A conversational request is not a proposal. Corrections and fixes with unambiguous intent are not substantial work.
+- **Always ask before creating a proposal.** Wait for explicit human approval; apply this even when you judge the work substantial or discover a design choice during implementation.
+- **When the human chooses a proposal, never implement it before approval.** The human sets `awaiting-implementation`. When they decline a proposal, use the agreed request and pull-request scope as the implementation contract.
 - **Never write production code before its failing test.** If the behavior warrants a test at all and you wrote the code first, delete it and start over.
 - **Never write guides from the finished code.** When a change warrants a guide, it is derived from the proposal. Whether it warrants one is a judgement; the direction of derivation is not.
 - **Never claim work is done without running the verifying command this turn** and reading its output. See [`.agents/rules/verification.md`](.agents/rules/verification.md).
 - **Never fix a bug before finding its root cause.** Skill: `.agents/skills/systematic-debugging/`.
 - **Never let the adversarial reviewer edit code.** It reports; the implementer fixes.
 - **Never delete a branch, force-push, or publish a release without explicit human confirmation.**
-- **Never expand scope.** Behavior not in the proposal does not get implemented. If it should exist, revise the proposal. A defect you discovered is not a licence to widen the work.
+- **Never expand scope.** Implement only the agreed request or approved proposal. Resolve design changes with the human before changing that contract. A defect you discovered is not a licence to widen the work.
 - **Never file an issue to defer work the proposal already requires.** Fix it.
 
 ## Policies and decisions
@@ -164,10 +169,27 @@ A release is a git tag plus a GitHub release on `main`. That is the only thing `
 
 This section is the mechanics. The order around them — what to update before the merge, and what is still in its pre-release state after the tag — is `.agents/skills/releasing-pitlane-packages/SKILL.md`.
 
-A feature PR **may** carry the version bump and the changelog entry for the release it is heading toward: `@pitlane/dev@0.3.0` was tagged directly on the squashed PR commit that bumped it. That stages a release. It does not perform one, and the distinction is worth keeping visible in the history:
+Feature and fix PRs capture consumer-visible package changes in `.changeset/*.md`, naming the affected packages and a patch, minor, or major bump. Write the body for someone deciding whether to upgrade. Keep package versions and numbered changelog sections unchanged until release preparation. Changes confined to repository tooling or agent guidance need no package release note.
+
+From the repository root:
+
+```sh
+mise run changeset          # add a pending note
+mise run changeset:status   # inspect pending packages and bump levels
+```
+
+Prepare versions only when the human requests it. Review the complete plan with them, including computed dependent bumps, before running:
+
+```sh
+mise run changeset:version
+```
+
+This consumes all pending notes, updates package versions and changelogs, and refreshes the pnpm lockfile. It neither commits, tags, nor publishes. Versions remain independent; private workspaces are excluded. Existing changelog history is retained. Land the preparation under the normal commit and review rules, then obtain explicit authorization to publish through the existing GitHub Release workflow. There is no automatically maintained release PR.
+
+Keep capture, preparation, and publication distinct in commit messages:
 
 - **`release:` is a commit scope reserved for version-only commits**, like `f6be34e release: @pitlane/dev@0.2.0 and @pitlane/theme@0.2.0`. A commit that also changes code or prose takes the scope of what it changes.
-- **Never put "release `<package>` `<version>`" in a commit subject** unless the commit is that version-only bump. A subject that claims a release nobody performed costs a reviewer the time it takes to disprove it. Note the bump in the body instead.
+- **Never put "release `<package>` `<version>`" in a commit subject** unless the commit is that version-only bump. A subject that claims a release nobody performed costs a reviewer the time it takes to disprove it.
 
 Checking what is actually published beats reasoning about it:
 

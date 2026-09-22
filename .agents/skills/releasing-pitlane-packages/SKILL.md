@@ -1,22 +1,25 @@
 ---
 name: releasing-pitlane-packages
-description: Use when a Pitlane package is ready to ship — an approved PR bumps a package version, a tag or GitHub release needs cutting, a published version has to reach dependent repos, or a companion PR in pitlane-tools/templates is waiting on a package that has not published yet. Also use when a release has landed and branches, draft PRs, or the vision document still describe the world before it.
+description: Use when a human asks for a Pitlane package release — pending changesets have to become versions, a tag or GitHub release needs cutting, a published version has to reach dependent repos, or a companion PR in pitlane-tools/templates is waiting on a package that has not published yet. Also use when a release has landed and branches, draft PRs, or the vision document still describe the world before it.
 ---
 
 # Releasing Pitlane Packages
 
 ## Overview
 
-`AGENTS.md` owns the mechanics: a release is a git tag plus a GitHub release on `main`, that release event is the only route to npm, and a first publish is manual once. Read it. This skill owns the **order** around that tag and the seven things that are still in their pre-release state once it exists.
+`AGENTS.md` owns the mechanics: a release is a git tag plus a GitHub release on `main`, that release event is the only route to npm, and a first publish is manual once. Read it. This skill owns the **order** around that tag — what a version is prepared from before it, and the things still in their pre-release state once it exists.
 
 A release is finished when nothing upstream still describes the world before it and nothing downstream still points at a preview.
 
+Feature work captures package changes in `.changeset/` notes. Prepare versions and changelogs only when the human requests it. Publishing through a GitHub Release requires explicit authorization; merging a feature or preparing its version does not grant it.
+
 ## Definition of done
 
-All seven, every time. A release that stops after the tag is a release that left work for whoever notices next.
+All eight, every time. A release that stops after the tag is a release that left work for whoever notices next.
 
 - [ ] `VISION.md` describes the world this PR creates, and the update is **on the branch** so the merge carries it
 - [ ] The PR is landed, and the intent behind the work is retrievable from `main` without the branch
+- [ ] The human asked for this release, and the plan `mise run changeset:status` printed — dependent bumps included — was reviewed with them before any version changed
 - [ ] The tag is pushed and the GitHub release is published — one release per tag, dependency first
 - [ ] `npm view` shows the version, checked rather than assumed
 - [ ] Every dependent PR installs the published range, with no preview URL, tarball path, or override anywhere in its tree
@@ -41,6 +44,8 @@ One more, easy to miss: a code sample naming a package that exists is written `@
 Write the edit yourself when the fact changed: a version claim, a `shipped at x.y.z`, a capability row for a package that now exists, an API sample that no longer compiles. **Ask the user first** when the edit changes direction rather than fact: killing or reordering a planned package, claiming a capability the document never claimed, or anything that changes what Pitlane says it is.
 
 Commit it on the release branch, as its own `vision:` commit, before the merge. `17af271` is exactly that — the last commit on the branch before the `@pitlane/theme@0.3.0` merge, with `e7bd843` earlier on the same branch. Both predate the move to the repository root and so carry the `docs:` scope the document's old path implied.
+
+Keep capability and API descriptions on the feature branch, marking unreleased work as pending. Update claims that name a version after preparation determines that version, in a separate `vision:` commit before the tag.
 
 ### The rationalizations, and what is true instead
 
@@ -70,7 +75,7 @@ The subject takes the scope of what changed, never `release:` — that scope is 
 
 Three places hold the intent afterward, and a release should leave all three readable: the merge or squash commit body, the PR page (which keeps every commit even after the branch is deleted), and the proposal that designed the work.
 
-The proposal is `proposals/<NNNN>-<slug>.md`, and the edit it needs is `status: implemented` — set after the release, never before, because an unshipped proposal marked implemented misrepresents the record. [`completing-a-feature`](../completing-a-feature/SKILL.md) owns that step; this skill only has to not leave it undone.
+The proposal is `proposals/<NNNN>-<slug>.md`, and the edit it needs is `status: implemented` — set after the release, never before, because an unshipped proposal marked implemented misrepresents the record. [`completing-a-feature`](../completing-a-feature/SKILL.md) owns that step; this skill only has to not leave it undone. Work the human declined a proposal for has no such file and gets no invented one: the pull request and the merge commit are its record, and there is no status to set.
 
 Work that predates the record has its design in `docs/internal/designs/` instead, in a different shape: a prose `Status:` line rather than frontmatter. `285287b` is the template for updating one of those.
 
@@ -79,7 +84,25 @@ Status: **shipped in `@pitlane/theme@0.3.0`** (pitlane-tools/pitlane#9, merged).
 Kept as the design record … Where it and the package disagree, the package is right.
 ```
 
-## 3. Tag it and cut the release
+## 3. Prepare the version — when the human asks — then tag it
+
+Pending notes under `.changeset/` describe work for a future release. Prepare versions only on human request. First inspect the plan:
+
+```sh
+mise run changeset:status
+```
+
+Review all pending notes and the complete status plan with the human, including computed dependent bumps. Changesets can bump dependents when a new dependency version falls outside their current range. The version task consumes all pending notes, so agree the full scope before running it.
+
+One thing preparation will not repair: a hand-written `## Unreleased` section someone left in a `CHANGELOG.md`. `changeset version` does not consume that section, so it survives into the published changelog. Migrate it into a note first, then prepare.
+
+```sh
+mise run changeset:version   # rewrites the manifests, writes the changelog sections, consumes the notes, refreshes the lockfile
+```
+
+The task neither commits, tags, nor publishes. Commit its generated changelogs, consumed notes, manifests, and lockfile together under `release:`, then land the preparation on `main` under [`.agents/rules/commit-discipline.md`](../../rules/commit-discipline.md). Do not use `changeset publish` or `changeset git-tag`; the existing GitHub Release publisher remains in place.
+
+With that commit on `main` and explicit human authorization to publish, cut the tag:
 
 ```sh
 git checkout main && git pull --ff-only
@@ -92,7 +115,7 @@ gh release create "@pitlane/<name>@<version>" --title "@pitlane/<name>@<version>
 
 **One release per tag.** A commit that bumps two packages gets two tags and two releases: `a4f462e` carries both `@pitlane/crawler@0.1.0` and `@pitlane/dev@0.5.0`. Release the dependency first — `pnpm pack` rewrites dev's `workspace:^` on crawler to the version the monorepo resolved, so dev's published manifest names a crawler version that has to exist on npm already or every install of dev fails.
 
-**The notes are written, not pasted.** Every release body in this repo is prose rewritten from the CHANGELOG for someone deciding whether to upgrade: what changed, a code sample of the new shape, what breaks, and links to the changelog and to the proposal that designed it. `@pitlane/crawler@0.1.0`'s CHANGELOG entry is five bullets; its release body is five paragraphs. A first publish also carries the `> [!NOTE]` explaining why that one version has no provenance attestation.
+**The release notes are written, not pasted.** Every release body in this repo is prose rewritten from the CHANGELOG for someone deciding whether to upgrade: what changed, a code sample of the new shape, what breaks, and links to the changelog and to the proposal that designed it. `@pitlane/crawler@0.1.0`'s CHANGELOG entry is five bullets; its release body is five paragraphs. A first publish also carries the `> [!NOTE]` explaining why that one version has no provenance attestation.
 
 Then watch the thing that actually publishes, and check the registry rather than the checkmark:
 
@@ -167,12 +190,16 @@ The same release makes other files wrong. Check them, fix what this release brok
 - `docs/guides/` — a guide showing the old API (and `vale docs/guides/<page>.md` after any edit)
 - Tracking issues — `gh issue close <N>` when this release is what closed it, and open one for a gap you found and are not fixing here
 - Dependents you did not touch — a Deno template pinned to `^0.4.0` while the package is at `0.5.1` is a real finding, and a separate PR
-- Packages in this repo that depend on the one you released. `npm view @pitlane/dev dependencies` reports what the published dependent pins: `@pitlane/dev@0.5.1` pins `@pitlane/crawler: ^0.1.0`, and a `0.2.0` does not satisfy that range. Until the dependent publishes too, the release reaches nobody through it. Decide whether it needs a companion bump, and say so either way.
+- Packages in this repo that depend on the one you released. `mise run changeset:version` already bumped a workspace dependent whose `workspace:` range demanded it, so that companion bump was in the plan you reviewed. What it cannot decide is a dependent that is **already published** against a range this version leaves behind: `npm view @pitlane/dev dependencies` reports what the published dependent pins, `@pitlane/dev@0.5.1` pins `@pitlane/crawler: ^0.1.0`, and a `0.2.0` does not satisfy that range. Until the dependent publishes too, the release reaches nobody through it. Decide whether it needs a release of its own, and say so either way.
 
 ## Common mistakes
 
 | Mistake | Do instead |
 | --- | --- |
+| Hand-editing a `version` field or a `CHANGELOG.md` section on a feature PR | Write a changeset note; preparation generates both |
+| Running `mise run changeset:version` because notes have piled up | Preparation is on request; review `changeset:status` with the human first |
+| `changeset publish` or `changeset git-tag` | Neither runs here; the existing GitHub Release workflow publishes |
+| Preparing a version over a hand-written `## Unreleased` section | Migrate it into a note first; `changeset version` leaves it in place |
 | Merging before VISION is updated | The update rides on the branch; the merge carries it |
 | Squashing a branch whose commits each record a decision | `--merge` with a body that says why, like `c97d28a` |
 | Release notes pasted from the CHANGELOG | Rewrite them for someone deciding whether to upgrade |
@@ -187,6 +214,9 @@ The same release makes other files wrong. Check them, fix what this release brok
 
 ## Red flags — stop
 
+- About to run `mise run changeset:version` when nobody asked for a release
+- About to cut a tag for a version prepared from a plan the human never saw
+- About to merge a change to a package's behavior with nothing in `.changeset/` describing it
 - About to run `gh pr merge` without having opened `VISION.md`
 - About to `gh pr ready` while the branch still names a preview build
 - About to merge a dependent PR while `npm view` has not shown the version

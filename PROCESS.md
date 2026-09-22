@@ -6,7 +6,7 @@ The process is intended to be generalizable to any modern agentic coding harness
 
 This repository runs that process. [`AGENTS.md`](AGENTS.md) is the operative contract: it binds every artifact described below to a real path, task, and workflow in this repository, and it is what an agent follows when the two disagree on a detail.
 
-The process is built around a simple principle: the agent should not move directly from a human request to an implementation. Intent should first be made explicit, then represented independently in tests, documentation, and code, reviewed from multiple perspectives, and finally verified by a human before release.
+The process is built around a simple principle: intent should be made explicit before implementation, then represented independently in tests, documentation, and code, reviewed from multiple perspectives, and verified by a human before release. The human decides whether that intent needs a proposal.
 
 ## Goals
 
@@ -105,7 +105,7 @@ Unlike proposals, however, the vision is a living document. After accepted featu
 
 ## Feature Development
 
-Substantial feature work proceeds through five phases:
+When the human chooses a proposal, substantial feature work proceeds through five phases:
 
 1. preparation,
 2. proposal development,
@@ -114,6 +114,10 @@ Substantial feature work proceeds through five phases:
 5. completion and release.
 
 The process is iterative. Findings during implementation or review may cause the proposal itself to change, at which point the implementation is reevaluated against the revised proposal.
+
+Before creating any proposal, the agent states its recommendation, asks whether I want a proposal, and waits for explicit approval. This also applies before opening a proposal-only branch or pull request. A request to implement a change, selection of a tool, or answers to design questions do not authorize proposal creation. Announcing a proposal is not asking permission.
+
+If I decline a proposal, the agent proceeds from our agreed request and pull-request scope, retaining applicable verification and review. If a design choice emerges partway through a small fix, the agent explains the choice and asks whether I want a proposal before creating one.
 
 ## Preparation
 
@@ -127,7 +131,7 @@ The pull request remains a draft while the feature is being specified and implem
 
 ## Proposal Development
 
-Before implementation, the agent and I write a proposal describing the feature.
+After I approve creating a proposal, the agent and I write it before implementation.
 
 The proposal should make the intended change sufficiently concrete that the agent can derive tests, documentation, and an implementation from it without relying primarily on the original conversational request.
 
@@ -356,7 +360,9 @@ The proposal and relevant pull request history therefore form part of the long-t
 
 ### Release
 
-The completed feature is released through the project's CI/CD process using whatever release mechanism the project requires, such as a release, Git tag, package publication, deployment, or another automated release trigger.
+Package changes are captured with their implementation in `.changeset/*.md` notes containing the affected packages, semver intent, and consumer-facing explanation. Feature pull requests leave versions and numbered changelog sections unchanged. Accepted work may be merged and remain unreleased; its notes wait for a human request.
+
+On request, the agent reviews the complete `mise run changeset:status` plan with me, including computed dependent bumps. `mise run changeset:version` then consumes the pending notes, updates versions and changelogs, and refreshes the lockfile. The preparation is committed and reviewed under the normal repository rules. Preparing versions does not authorize publication.
 
 In this repository that mechanism is a Git tag plus a published GitHub release on `main`, which is the only trigger `.github/workflows/publish.yml` listens for. The ordering around it — what must be updated before the merge, and what is still in its pre-release state after the tag — is `.agents/skills/releasing-pitlane-packages/SKILL.md`. A package that the starter templates depend on adds one more rule, in `.agents/skills/adopting-packages-into-templates/SKILL.md`: publish the package first, then merge the companion templates branch.
 

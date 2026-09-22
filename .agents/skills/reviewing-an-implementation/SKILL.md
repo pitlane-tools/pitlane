@@ -1,6 +1,6 @@
 ---
 name: reviewing-an-implementation
-description: Use when an implemented proposal has fresh validation evidence and needs its Phase 3 comparison, independent refutational review, human-exercisable preview, and ready-for-review handoff.
+description: Use when an implementation has fresh validation evidence and needs its Phase 3 comparison, independent refutational review, human-exercisable preview, and ready-for-review handoff. The contract may be an approved proposal or the agreed request and pull-request scope when the human declined a proposal.
 ---
 
 # Reviewing an Implementation
@@ -11,12 +11,12 @@ description: Use when an implemented proposal has fresh validation evidence and 
 
 Read these together before review. Add the current vision, policies, and decisions when they constrain the change.
 
-| Input                 | Read             |
-| --------------------- | ---------------- |
-| Intent                | Current proposal |
-| Executable behavior   | Changed tests    |
-| Human-facing behavior | Affected guides  |
-| Concrete behavior     | Implementation   |
+| Input | Read |
+| --- | --- |
+| Intent | Current proposal, or the agreed request and pull-request scope when the human declined one |
+| Executable behavior | Changed tests |
+| Human-facing behavior | Affected guides |
+| Concrete behavior | Implementation |
 
 Proceed in this order:
 
@@ -52,6 +52,12 @@ For every inventory row, establish all of these:
 4. No documented behavior is missing from the implementation.
 5. No implemented behavior is absent from the proposal and guides — this catches scope creep.
 6. Implementation details have not silently changed scope or intent.
+
+### Confirm the release note
+
+When the change alters what a package's consumers see, `.changeset/` on this branch holds a note for it: the right package names, a semver level the behavior justifies, and prose someone deciding whether to upgrade can read. A missing note is a gap like any other row, and so is one that names the wrong packages or understates the level. A branch that bumped a `version` field or wrote a `CHANGELOG.md` section instead is itself the finding; preparation generates both, on request, and not here.
+
+That note is what a future release would ship. It is not a release, and nothing in the review describes the change as released or versioned.
 
 ### Resolve every gap
 
@@ -116,10 +122,12 @@ Neither preview is private. A pkg.pr.new build is installable by anyone holding 
 
 Compose the pull-request comment from `.agents/templates/READINESS_REPORT.md`. Fill every template section and add the cross-artifact inventory verdict, divergences, and resolutions.
 
+When the human declined a proposal, use the PR number in the report title. In the Proposal section, state that decision, link the agreed request or pull-request scope, and assess completeness against that scope. Do not invent a proposal ID or link.
+
 | Report section | Required content |
 | --- | --- |
 | Proposal | State `FULLY` implemented only when every promised behavior exists. For `PARTIALLY`, name completed and omitted behavior, limitations, and reason. Silent partial implementation is not allowed. |
-| What was built | Delivered behavior, not internals. |
+| What was built | Delivered behavior, not internals. Name the pending release note and the semver level it claims; do not report a version that has not been prepared. |
 | How to exercise it | Preview link or honest absence, setup, actions, and expected results. |
 | Validation performed | Every command actually run in this session and its observed result, per `.agents/rules/verification.md`. Never report an unrun gate as passing. |
 | Adversarial findings adopted | Each accepted or fixed finding, or `- None.` |
@@ -155,6 +163,8 @@ At the end of Phase 3, these three actions form one transition and MUST NOT be s
 2. Post the readiness report.
 3. Flip the pull request from draft to ready with `gh pr ready <pr-number>`.
 
+When the human declined a proposal for this work, the transition is two actions rather than three: post the readiness report and flip the pull request to ready. There is no status to move, and writing a proposal to have one to move is the wrong repair.
+
 Do not leave the proposal, report, and pull-request state disagreeing. Ready means the work is human-reviewable, not correct or accepted. Never set `accepted`; only the human may do so in Phase 4, which starts Phase 5 completion.
 
 ## Red flags
@@ -164,7 +174,9 @@ Do not leave the proposal, report, and pull-request state disagreeing. Ready mea
 - You changed proposal intent without the human.
 - You skipped independent adversarial review or dropped a declined finding.
 - The preview is fabricated, public by accident, detached from the pull request, or a bare URL.
+- A package's consumers see a difference and nothing in `.changeset/` describes it.
+- The report calls the change released or versioned while only a note is pending.
 - The report claims a validation gate was not run.
-- You marked the pull request ready without the proposal status and report.
+- You marked the pull request ready without the readiness report, or — where a proposal exists — without its status.
 
 Correct the record before handoff.

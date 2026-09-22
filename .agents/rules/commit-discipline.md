@@ -57,16 +57,18 @@ Mechanical merge, revert, fixup, and squash commits are exempt. The `commit-msg`
 
 ## Release commits
 
-A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` and `.agents/skills/releasing-pitlane-packages/SKILL.md` own the mechanics; two of their rules are commit-message rules and belong here:
+A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` and `.agents/skills/releasing-pitlane-packages/SKILL.md` own the mechanics; three of their rules are commit-message rules and belong here:
 
-- `release:` is reserved for version-only commits. A commit that also changes code or prose takes the scope of what it changes. Both such commits so far bumped several packages at once:
+- A commit that implements a feature or a fix never carries a version bump. Work that changes what a package's consumers see adds a changeset note under `.changeset/` — write it with `mise run changeset` — and commits it alongside the work, under the scope of that work. The note names the packages and the semver intent; nothing hand-edits a `version` field or writes a numbered `## x.y.z` section into a `CHANGELOG.md`.
+
+- `release:` is reserved for version-only commits, which are prepared only when the human asks for one. Such a commit holds exactly what `mise run changeset:version` produced — the generated changelog sections, the changeset notes it consumed, the rewritten package manifests, and the refreshed lockfile — and nothing else. A commit that also changes code or prose takes the scope of what it changes. Both such commits so far bumped several packages at once:
 
     ```text
     release: @pitlane/dev@0.2.0 and @pitlane/theme@0.2.0
     release: @pitlane/crawler@0.2.1, @pitlane/data-table-d1@0.2.1, and @pitlane/theme@0.4.1
     ```
 
-- Never claim a release in a subject unless the commit is that version-only bump. A feature PR may carry the bump and the changelog entry, which stages a release without performing one; note the bump in the body. A subject that claims a release nobody performed costs a reviewer the time it takes to disprove it.
+- Never claim a release in a subject unless the commit is that version-only bump. Staging a release is what the changeset note does, and a note is not a version; a subject that claims a release nobody performed costs a reviewer the time it takes to disprove it.
 
 ## Staging
 

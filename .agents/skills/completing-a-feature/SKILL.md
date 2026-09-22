@@ -5,7 +5,9 @@ description: Use after a human has reviewed a pull request and the accepted chan
 
 # Completing a Feature
 
-**Phase 5.** Complete work in this order: **process feedback → record policies and decisions → update the vision → merge → release → dependent-repo updates → cleanup**.
+**Phase 5.** Complete work in this order: **process feedback → record policies and decisions → update the vision → merge → release when the human asks → dependent-repo updates → cleanup**.
+
+Some work reaching this phase has no proposal, because the human declined one. Then the agreed request and pull-request scope is what completion is measured against, every step below that sets a proposal status is skipped, and none of them is a reason to write a proposal after the fact.
 
 ## 1. Process feedback
 
@@ -69,13 +71,15 @@ Merge only after human acceptance. Preserve the record of what was proposed, wha
 
 The history shows both strategies, and the split is deliberate. Squash is the common case: `a4f462e crawler: static prerendering (#6)` and `2617cd3 chore: move every package onto remix@3.0.0-rc.1 (#12)` each have one parent. `c97d28a theme: schema-tree authoring, replacing the DTCG document (#9)` has two, and its body says why: “Merged rather than squashed. Each commit records a design decision or a defect found while implementing, and the branch is being pruned, so the history lives here.” `git show --no-patch --format=%p <commit>` tells them apart — one hash for a squash, two for a merge. `.agents/skills/releasing-pitlane-packages/SKILL.md` § “2. Land the PR so the intent outlives the branch” owns the choice. Either way, do not leave the reasoning only on a branch that is about to be pruned.
 
-The human sets `accepted` when they accept the work. Set `implemented` only after it is merged and released — not before, because an unshipped proposal marked implemented misrepresents the record.
+The human sets `accepted` when they accept the work. Set `implemented` only after it is merged **and** released — not before, because an unshipped proposal marked implemented misrepresents the record. Accepted, merged, and unreleased is a normal resting state here rather than a step someone skipped: the changeset note sits in `.changeset/` until the human asks for a version, the proposal stays `accepted`, and the completion report says exactly that — the behavior is on `main`, the release is pending. Never manufacture a release to clear a status, and never report one that has not happened.
 
-## 5. Release
+## 5. Release — only when the human asks
 
-A release is a Git tag plus a published GitHub release on `main`. That release event is the only trigger of `.github/workflows/publish.yml`, so nothing else ships a version — never a branch tag, never `npm publish` for a package that already exists. The ordered procedure is `.agents/skills/releasing-pitlane-packages/SKILL.md`; follow it rather than reconstructing it. A package the starter templates depend on also needs `.agents/skills/adopting-packages-into-templates/SKILL.md`: the package publishes first, then the templates branch merges. A package's **first** publish cannot go through the workflow at all and is performed by hand, exactly once, from a laptop.
+Merging does not begin a release, and pending changesets do not accumulate into one. What the merge must carry is the capture: a changeset note under `.changeset/` for every package whose consumers see a difference, naming those packages and the semver level, written with `mise run changeset` and committed under the scope of the work it describes. Nothing on the branch edits a `version` field or writes a `CHANGELOG.md` section — preparation generates both, later, and only on request.
 
-**Never publish without explicit human confirmation.** Approval to merge is not approval to release.
+When the human does ask, `.agents/skills/releasing-pitlane-packages/SKILL.md` is the ordered procedure: review the `mise run changeset:status` plan with them, dependent bumps included, then prepare the version, tag it, and cut the release. Follow it rather than reconstructing it. A release is a Git tag plus a published GitHub release on `main`. That release event is the only trigger of `.github/workflows/publish.yml`, so nothing else ships a version — never a branch tag, never `changeset publish`, never `npm publish` for a package that already exists. A package the starter templates depend on also needs `.agents/skills/adopting-packages-into-templates/SKILL.md`: the package publishes first, then the templates branch merges. A package's **first** publish cannot go through the workflow at all and is performed by hand, exactly once, from a laptop.
+
+**Never publish without explicit human confirmation.** Approval to merge is not approval to release, and a request to prepare a version is not approval to publish it.
 
 ## 6. Update dependent repositories
 
@@ -97,6 +101,10 @@ Cleanup runs when confidence is highest. Treat it as a separate destructive oper
 - You wrote a prose policy before checking whether automation can enforce it.
 - You changed an old policy or decision's meaning in place.
 - You merged without preserving why the final state differs.
+- A package's consumers see a difference and no changeset note describes it.
+- You edited a version or hand-wrote a changelog entry instead of writing a note.
+- You reported work as released, or set `implemented`, while its version is still pending.
+- You wrote a proposal at completion for work the human declined one for.
 - You released because the PR merged.
 - A dependent PR still uses a preview version after release.
 - A preview or prerelease artifact outlives its PR.
