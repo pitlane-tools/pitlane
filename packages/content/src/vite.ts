@@ -326,6 +326,8 @@ async function inPrebuildServer(
         root,
         configFile: false,
         logLevel: "silent",
+        // This SSR-only server must not replace the application's browser dependency cache.
+        optimizeDeps: { noDiscovery: true },
         resolve: resolution,
         server: { middlewareMode: true, watch: null },
         environments: {
