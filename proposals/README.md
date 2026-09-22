@@ -2,6 +2,8 @@
 
 This directory holds the durable design record for one change per file.
 
+Ask for and receive human permission before creating a proposal, including a proposal-only branch or pull request. If the human declines, use the agreed request and pull-request scope instead; do not invent a record here.
+
 Name each file `<NNNN>-<slug>.md`, using the next four-digit number and a kebab-case slug. Required frontmatter is `id: proposal.<NNNN>`, `title`, `authors` as a non-empty list, `status`, `pull-request`, and `supersedes`. Optional `issues` is a list of issue references or URLs. The normal lifecycle is `draft` → `awaiting-implementation` → `active-review` → `accepted` → `implemented`.
 
 | Status | Meaning | Decided by | Phase |
@@ -10,7 +12,7 @@ Name each file `<NNNN>-<slug>.md`, using the next four-digit number and a kebab-
 | `awaiting-implementation` | The human settled the proposal. Implementation is underway or not yet started. | human | 3 |
 | `active-review` | First full pass at tests, guides and code exists; report posted and pull request marked ready. | agent | 4 |
 | `returned-for-revisions` | The human requested changes. Back to implementation, or to the proposal if the design changed. | human | 4 → 3 or 2 |
-| `accepted` | The human accepted the work. Vision update, merge and release are underway. | human | 5 |
+| `accepted` | The human accepted the work. It may be merged and unreleased; release preparation waits for a human request. | human | 5 |
 | `implemented` | Merged and released. | agent | done |
 | `rejected` | The human declined the change. Kept as record. | human | terminal |
 | `withdrawn` | The author pulled it. Kept as record. | either | terminal |

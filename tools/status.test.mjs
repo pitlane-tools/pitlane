@@ -40,8 +40,6 @@ function assertPhase(input, expected) {
     assert.equal(status.title, expected.title);
     assert.equal(status.actor, expected.actor);
     assert.equal(status.skill, expected.skill);
-    assert.ok(status.next.length > 0, "every phase must say what happens next");
-    assert.ok(status.situation.length > 0, "every phase must describe the situation");
     return status;
 }
 

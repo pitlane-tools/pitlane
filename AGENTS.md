@@ -86,7 +86,7 @@ Passing the quality gates is necessary, never sufficient. Then, still in this ph
 4. **Cross-artifact review** — read proposal, tests, guides, and code together and find where they disagree.
 5. **Adversarial review** — an independent subagent, **fresh context and a different model**, tries to falsify the claim that the work is done. It reports; it does not fix. Findings you decline are surfaced in the readiness report, never silently dropped. Skill: `adversarial-review`.
 6. **Preview** — publish the cheapest real artifact through which the change can be exercised. Review of prose is not review of behavior.
-7. **Readiness report** — post it to the PR linking the preview, set the proposal to `active-review`, and mark the PR ready. Those three are one action.
+7. **Readiness report** — post it to the PR linking the preview, set the proposal to `active-review`, and mark the PR ready. Make these updates together. If the human declined a proposal, post the report and mark the PR ready without creating a proposal or setting a proposal status.
 
 Skills: `.agents/skills/implementing-a-proposal/` for steps 1–3, `.agents/skills/reviewing-an-implementation/` for steps 4, 6, and 7.
 
@@ -119,7 +119,7 @@ Update `VISION.md` if the change altered what Pitlane is, merge, release, update
 - **Never fix a bug before finding its root cause.** Skill: `.agents/skills/systematic-debugging/`.
 - **Never let the adversarial reviewer edit code.** It reports; the implementer fixes.
 - **Never delete a branch, force-push, or publish a release without explicit human confirmation.**
-- **Never expand scope.** Behavior not in the proposal does not get implemented. If it should exist, revise the proposal. A defect you discovered is not a licence to widen the work.
+- **Never expand scope.** Implement only the agreed request or approved proposal. Resolve design changes with the human before changing that contract. A defect you discovered is not a licence to widen the work.
 - **Never file an issue to defer work the proposal already requires.** Fix it.
 
 ## Policies and decisions
@@ -169,10 +169,27 @@ A release is a git tag plus a GitHub release on `main`. That is the only thing `
 
 This section is the mechanics. The order around them — what to update before the merge, and what is still in its pre-release state after the tag — is `.agents/skills/releasing-pitlane-packages/SKILL.md`.
 
-A feature PR **may** carry the version bump and the changelog entry for the release it is heading toward: `@pitlane/dev@0.3.0` was tagged directly on the squashed PR commit that bumped it. That stages a release. It does not perform one, and the distinction is worth keeping visible in the history:
+Feature and fix PRs capture consumer-visible package changes in `.changeset/*.md`, naming the affected packages and a patch, minor, or major bump. Write the body for someone deciding whether to upgrade. Keep package versions and numbered changelog sections unchanged until release preparation. Changes confined to repository tooling or agent guidance need no package release note.
+
+From the repository root:
+
+```sh
+mise run changeset          # add a pending note
+mise run changeset:status   # inspect pending packages and bump levels
+```
+
+Prepare versions only when the human requests it. Review the complete plan with them, including computed dependent bumps, before running:
+
+```sh
+mise run changeset:version
+```
+
+This consumes all pending notes, updates package versions and changelogs, and refreshes the pnpm lockfile. It neither commits, tags, nor publishes. Versions remain independent; private workspaces are excluded. Existing changelog history is retained. Land the preparation under the normal commit and review rules, then obtain explicit authorization to publish through the existing GitHub Release workflow. There is no automatically maintained release PR.
+
+Keep capture, preparation, and publication distinct in commit messages:
 
 - **`release:` is a commit scope reserved for version-only commits**, like `f6be34e release: @pitlane/dev@0.2.0 and @pitlane/theme@0.2.0`. A commit that also changes code or prose takes the scope of what it changes.
-- **Never put "release `<package>` `<version>`" in a commit subject** unless the commit is that version-only bump. A subject that claims a release nobody performed costs a reviewer the time it takes to disprove it. Note the bump in the body instead.
+- **Never put "release `<package>` `<version>`" in a commit subject** unless the commit is that version-only bump. A subject that claims a release nobody performed costs a reviewer the time it takes to disprove it.
 
 Checking what is actually published beats reasoning about it:
 

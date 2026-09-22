@@ -47,6 +47,24 @@ run = "node tools/status.mjs"
 description = "Run the record tooling's own tests"
 run = "node --test tools/*.test.mjs"
 
+[tasks.changeset]
+description = "Write a release note for the packages this branch changes"
+run = "changeset add"
+
+[tasks."changeset:status"]
+description = "Show the version bumps the pending release notes would produce"
+run = "changeset status"
+
+[tasks."changeset:version"]
+description = "Apply the pending release notes to versions and changelogs"
+# Changesets formats after editing manifests, while the lockfile is still stale.
+# Use the installed formatter without pnpm's automatic mid-version install.
+env = { pnpm_config_verify_deps_before_run = "false" }
+run = [
+    "changeset version",
+    "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile",
+]
+
 # TypeDoc lives in its own workspace package because it needs the TypeScript 6
 # JS API; running it from there picks up that TypeScript instead of the root's
 # 7.x. Config paths resolve relative to the config file, so `dir` costs nothing.

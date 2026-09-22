@@ -1,6 +1,6 @@
 ---
 name: implementing-a-proposal
-description: Use when an approved proposal is ready for Phase 3 implementation, including a substantive bug fix whose root cause is known. Do not use for proposal authoring or trivial inline edits.
+description: Use when an approved proposal is ready for Phase 3 implementation, or the human declined a proposal and agreed the request and pull-request scope instead. Includes a substantive bug fix whose root cause is known. Do not use for proposal authoring or trivial inline edits.
 ---
 
 # Implementing a Proposal
@@ -12,6 +12,7 @@ Phase 3 preserves proposal intent in independent tests, guides, and code.
 ## Preconditions
 
 - The proposal has `status: awaiting-implementation`, or the human returned it for implementation with `status: returned-for-revisions`; neither has an unresolved clarification marker.
+- Or the human declined a proposal for this work: the agreed request and pull-request scope is the contract, and every step below that reads from a proposal reads from that scope instead. Do not write a proposal now to have one to derive from.
 - Phase 1 — preparation — created the branch, pushed it to `origin`, and opened a draft pull request.
 - Read the proposal's **Detailed design**, relevant vision, policies, decisions, affected tests, guides, and project conventions.
 - Tests derive from **Detailed design**. Acceptance criteria are an occasional supplement, never the primary source.
@@ -150,6 +151,8 @@ If an unknown failure appears, stop implementation and use [`.agents/skills/syst
 
 Run `mise run check`, which depends on `docs:build`, `validate`, and `tools:test` before it runs `oxfmt --check`, `oxlint`, and `tsc`. A changed package also needs `vp test` and `vp run build` from inside `packages/<name>`. Follow [`.agents/rules/verification.md`](../../rules/verification.md) for completion evidence.
 
+A consumer-visible package change carries a release note on the branch. Run `mise run changeset` to name the affected packages and semver level, then commit the note with the work under its scope. Write the body for someone deciding whether to upgrade; Changesets uses it in the generated changelog. Repository tooling and agent-process changes need no package note. Feature work leaves version bumps and numbered changelog entries to `mise run changeset:version`, run later on human request.
+
 Perform these reviews sequentially. A finding returns the affected behavior to tests, guides, or code; rerun its gates and repeat the review that found it. Self-review can catch clear mistakes but never substitutes for either review.
 
 | Gate | Reviewer examines | May start when |
@@ -170,6 +173,7 @@ The adversarial reviewer is fresh-context, report-only, and uses a model distinc
 ## Dispatch constraints and model selection
 
 - Never let an implementer commit.
+- Never let an implementer bump a version or write a changelog section; the branch carries a changeset note instead.
 - Never let self-review substitute for proposal-compliance, code-quality, cross-artifact, or adversarial review.
 - Never begin the Phase 3 cross-artifact review before both inline gates are clean.
 - Use the harness’s standard capable model for implementation and inline reviews.
