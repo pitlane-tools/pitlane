@@ -1,9 +1,5 @@
 # @pitlane/content
 
-## 0.1.2
-
-- Keep content prebuilds from deleting the running app's optimized browser dependencies. This fixes `504 (Outdated Optimize Dep)` errors that could leave MDX updates and client-side navigation broken until the dev server restarted.
-
 ## 0.1.1
 
 Documentation only. No code changed.
