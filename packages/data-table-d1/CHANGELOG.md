@@ -2,6 +2,8 @@
 
 ## 0.2.2
 
+Published 2026-09-21. [npm](https://www.npmjs.com/package/@pitlane/data-table-d1/v/0.2.2) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/data-table-d1%400.2.2) · [Source](https://github.com/pitlane-tools/pitlane/commit/b725843491ad0c36c61c83d44466134f76dbd615).
+
 Documentation only. `createD1Database`, `D1Database`, and `D1DatabaseDriver` behave as they did in 0.2.1.
 
 - The npm description is now "Cloudflare D1 database driver for Remix."
@@ -13,23 +15,30 @@ Documentation only. `createD1Database`, `D1Database`, and `D1DatabaseDriver` beh
 
 ## 0.2.1
 
+Published 2026-09-10. [npm](https://www.npmjs.com/package/@pitlane/data-table-d1/v/0.2.1) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/data-table-d1%400.2.1) · [Source](https://github.com/pitlane-tools/pitlane/commit/dc4844ff683fb1eb6b61f6ab9fe960b8a6c93b44).
+
 Target Remix `3.0.0-rc.2`.
 
 - No driver code changed. `createD1Database`, `D1Database`, and `D1DatabaseDriver` behave as they did in 0.2.0.
 - rc.2 raises `@remix-run/data-table` to 0.5.1. This driver is described structurally against the `DatabaseDriver` contract, which the bump leaves alone.
 - The `remix` peer stays at `^3.0.0-rc.1`, which already admits rc.2.
+- Declarations now come from `typescript@7.0.2`. The pack step reached `@typescript/native-preview` through `dts: { tsgo: true }` until [19d9558](https://github.com/pitlane-tools/pitlane/commit/19d95585aa54078425cccb20414998bf5175fa79) dropped that opt-in. The published `dist/index.d.mts` and `dist/migrations.d.mts` are byte-identical between 0.2.0 and 0.2.1.
 - Tested against `remix@3.0.0-rc.2`, including the workerd suite that drives a real Miniflare D1 binding.
 
 ## 0.2.0
 
+Published 2026-09-01. [npm](https://www.npmjs.com/package/@pitlane/data-table-d1/v/0.2.0) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/data-table-d1%400.2.0) · [Source](https://github.com/pitlane-tools/pitlane/commit/2617cd3d0e4c074878f34a96c6175116f926cf05).
+
 Target Remix `3.0.0-rc.1`.
 
-- Raised the `remix` peer dependency to `^3.0.0-rc.1` (from `^3.0.0-beta.10`). `createD1Database`, `D1Database`, and `D1DatabaseDriver` are unchanged.
+- Raised the `remix` peer dependency to `^3.0.0-rc.1` (from `^3.0.0-beta.10`). `createD1Database`, `D1Database`, and `D1DatabaseDriver` are unchanged, and both published bundles and their declarations are byte-identical to 0.1.0's.
 - rc.1 ships `@remix-run/data-table@0.5.0`, which is what this driver is now built and tested against. The `DatabaseDriver<"sqlite">` contract did not move: `wipe()` and an idempotent `close()` are still the required members, and `withMigrationLock` is still optional and still not implemented here.
 - `and()` and `or()` compose object shorthand filters in 0.5.0, so `where: or({ status: "pending" }, { status: "processing" })` works through this driver with no change on its side.
 - Tested against `remix@3.0.0-rc.1`, including the workerd suite that drives a real Miniflare D1 binding.
 
 ## 0.1.0
+
+Published 2026-08-24. [npm](https://www.npmjs.com/package/@pitlane/data-table-d1/v/0.1.0) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/data-table-d1%400.1.0) · [Source](https://github.com/pitlane-tools/pitlane/commit/01359eaef837235ce930ff112e78ab04d93d03d1).
 
 Initial release.
 
@@ -44,4 +53,5 @@ Initial release.
 - `onStatement` reports what each statement cost — `{ kind, table, rowsRead, rowsWritten, durationMs }` — off the `meta` D1 already returns. D1 bills on rows read and written and reports analytics per database, so this is the only per-query attribution available, and it costs no extra statement. Observer throws are swallowed, statements that throw are not reported, and figures D1 omits come through as `0` rather than estimated. The idea is [`@pkg/data-table-d1`](https://github.com/sergiodxa/monorepo/tree/main/packages/data-table-d1)'s.
 - The D1 API is declared structurally, so the package pulls in no Cloudflare types and no ambient globals.
 - `src/sql-compiler.ts` is vendored verbatim from `@remix-run/data-table-sqlite@0.6.0` (MIT, Copyright (c) 2025 Shopify Inc.), with only its import specifiers repointed at the public `remix/*` subpaths. Upstream keeps `compileSqliteOperation` internal and publishes no D1 dialect; the file goes away if either changes.
+- Two ESM entry points, `.` and `./migrations`, with no runtime dependencies. `remix@^3.0.0-beta.10` is the only peer: the driver imports `remix/data-table` and `remix/data-table/sql-helpers`, and the migrations entry adds `remix/data-table/migrations/node` plus `node:fs/promises` and `node:path`. Node `^20.19.0 || >=22.12.0`.
 - Tested against `remix@3.0.0-beta.10`, with the query, write, count, schema and wipe paths exercised inside real workerd through Miniflare.
