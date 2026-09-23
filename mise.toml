@@ -1,7 +1,7 @@
 [tools]
 "github:can1357/oh-my-pi" = "latest"
 node = "26"
-pnpm = "11"
+pnpm = "12"
 vale = "3"
 
 [env]
@@ -60,10 +60,7 @@ description = "Apply the pending release notes to versions and changelogs"
 # Changesets formats after editing manifests, while the lockfile is still stale.
 # Use the installed formatter without pnpm's automatic mid-version install.
 env = { pnpm_config_verify_deps_before_run = "false" }
-run = [
-    "changeset version",
-    "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile",
-]
+run = ["changeset version", "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile"]
 
 # TypeDoc lives in its own workspace package because it needs the TypeScript 6
 # JS API; running it from there picks up that TypeScript instead of the root's
