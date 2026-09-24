@@ -38,11 +38,26 @@ describe("headings", () => {
         ]);
     });
 
-    it("collapses runs of non-alphanumerics and trims them from the ends", async () => {
-        let { data } = await markdownToHtml("## ...Hello, World! ---\n", plugins());
+    it("keeps the ids a heading already had on GitHub", async () => {
+        let { data } = await markdownToHtml(
+            "## Databases & Data Loading\n\n## Jenni’s Quesadillas\n\n## Hello World!\n\n## _Optimistic_ Mutations\n",
+            plugins(),
+        );
+
+        expect(headingsOf(data).map(heading => heading.slug)).toEqual([
+            "databases--data-loading",
+            "jennis-quesadillas",
+            "hello-world",
+            "optimistic-mutations",
+        ]);
+    });
+
+    it("leaves every hyphen GitHub leaves, collapsing and trimming none", async () => {
+        let { data } = await markdownToHtml("## ...Hello, World! ---\n\n## ---\n", plugins());
 
         expect(headingsOf(data)).toEqual([
-            { depth: 2, slug: "hello-world", text: "...Hello, World! ---" },
+            { depth: 2, slug: "hello-world----", text: "...Hello, World! ---" },
+            { depth: 2, slug: "---", text: "---" },
         ]);
     });
 
@@ -66,19 +81,23 @@ describe("headings", () => {
         ]);
     });
 
-    it("falls back to a stable slug when a heading has no letters or digits", async () => {
-        let { data, html } = await markdownToHtml("## ---\n\n## ***\n", plugins());
+    it("falls back to a stable slug when a heading slugs to nothing", async () => {
+        let { data, html } = await markdownToHtml("## ***\n\n## 🎉\n", plugins());
 
         expect(headingsOf(data).map(heading => heading.slug)).toEqual(["heading", "heading-1"]);
         expect(html).not.toContain('id=""');
     });
 
     it("suffixes a colliding slug so every anchor in a document is unique", async () => {
-        let { data } = await markdownToHtml("## Notes\n\n## Notes\n\n## Notes\n", plugins());
+        let { data } = await markdownToHtml(
+            "## Notes\n\n## Notes\n\n## Notes-1\n\n## Notes\n",
+            plugins(),
+        );
 
         expect(headingsOf(data).map(heading => heading.slug)).toEqual([
             "notes",
             "notes-1",
+            "notes-1-1",
             "notes-2",
         ]);
     });
