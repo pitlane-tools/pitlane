@@ -2,7 +2,7 @@
 id: proposal.0004
 title: Documentation Rebuild
 authors: [Mark Malstrom]
-status: draft
+status: awaiting-implementation
 pull-request: https://github.com/pitlane-tools/pitlane/pull/32
 issues: []
 supersedes: []
@@ -48,7 +48,7 @@ A guide is a topic-oriented document. A tutorial is an ordered learning experien
 
 ### Remaining uncertainty
 
-The combined cookie-aware shell, prerendered frame, and Cloudflare assets-binding pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. The MDX authoring-tool compatibility and headless checking mechanism described below remain to be verified before implementation approval.
+The combined cookie-aware shell, prerendered frame, and Cloudflare assets-binding pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. The MDX authoring-tool compatibility and headless checking mechanism described below are the first implementation gate.
 
 ## Existing baseline
 
@@ -160,7 +160,7 @@ Provide a reproducible command-line MDX check and include it in the documentatio
 
 Before treating the tooling choice as settled, exercise a representative document with the repository's actual Remix components and selected TypeScript version. Confirm completion, hover, and definition navigation in VS Code, then deliberately introduce an invalid prop and an expression type error: both the editor and command-line gate must report them, and both must clear after correction. Also verify valid imports, frontmatter, and shared components remain accepted by the build.
 
-Compatibility between MDX Analyzer, Sätteri's compilation, Remix's component types, and TypeScript 7 is unverified. Establish the supported version matrix and headless checking mechanism during proposal refinement before approving implementation. An isolated compatible TypeScript tool dependency is an option to evaluate, following the existing TypeDoc precedent; do not downgrade the whole repository or reduce the promised authoring support silently. If the required coverage cannot be delivered, return the tooling choice to the human.
+Compatibility between MDX Analyzer, Sätteri's compilation, Remix's component types, and TypeScript 7 is unverified. Establish the supported version matrix and headless checking mechanism as the first implementation gate. An isolated compatible TypeScript tool dependency is an option to evaluate, following the existing TypeDoc precedent; do not downgrade the whole repository or reduce the promised authoring support silently. If the required coverage cannot be delivered, return the tooling choice to the human.
 
 ## Compatibility
 
@@ -210,4 +210,4 @@ A tutorial section could provide chapter-based learning without changing the mea
 
 ## Open questions
 
-No unresolved human choices remain from the search and API organization review. MDX tooling compatibility and the headless checking mechanism still require investigation before implementation approval, as specified under MDX authoring and tooling.
+The human approved implementation with search and API organization settled. Verify MDX tooling compatibility and the headless checking mechanism as the first implementation gate; report any conflict with the promised authoring support before proceeding with dependent work.
