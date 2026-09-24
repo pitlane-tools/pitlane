@@ -144,19 +144,39 @@ Report deployed Worker size and measured invocations/CPU separately for document
 
 There is no preset byte or timing threshold. The readiness report names improvements and regressions, explains tradeoffs, and leaves acceptance to the human. Functionality and accessibility remain required even when a shortcut would reduce bytes.
 
+### MDX authoring and tooling
+
+Use MDX for guides that benefit from explicit, reusable Remix documentation components rather than recreating VitePress's component syntax as a new Markdown dialect. Plain prose and fenced code examples may remain Markdown. Fenced examples are displayed source, not executable MDX expressions. Converting a guide must preserve its public URL, heading destinations, build-mode variants, and readable Markdown export. Markdown exports must express the rendered meaning of documentation components rather than expose unresolved imports or JSX tags.
+
+Provide full typechecking and IntelliSense for the executable portions of authored MDX in VS Code: imports and exports, JSX components and their props, expressions, and declared document props. Completion, hover information, and go-to-definition must resolve to the actual documentation components and their types. Unknown components, missing required props, invalid prop values, unresolved imports, and invalid expressions must produce diagnostics at the originating MDX location.
+
+The initial tooling candidate is [MDX Analyzer](https://github.com/mdx-js/mdx-analyzer), including its official VS Code extension and strict `mdx.checkMdx` configuration. Its documentation supports JSDoc types rather than TypeScript syntax inside MDX. Put substantial typed logic in imported `.ts` or `.tsx` modules; use JSDoc for document-local types. Recommend the required extension in shared workspace configuration and document setup without relying on personal editor settings.
+
+Configure analysis for Remix's `remix/ui` JSX runtime and actual component contracts. Do not substitute React component types, broad `any` declarations, or diagnostic suppression to make MDX appear supported. Prefer explicit component imports; if components are provided implicitly, derive their type map from the same component registry used by rendering so editor availability cannot drift from runtime availability.
+
+Editor parsing must agree with the build's authoring syntax, including frontmatter and any supported Markdown extensions. MDX Analyzer documents support for parser plugins but does not support arbitrary remark transformers. Treat transformed exports and provided components as explicit typing boundaries. Frontmatter remains schema-validated by the content layer; syntax highlighting or a declaration for `*.mdx` alone does not establish that document bodies are typechecked.
+
+Provide a reproducible command-line MDX check and include it in the documentation quality gate. Verify that it visits every authored MDX page and shared MDX partial and reports source-positioned diagnostics. The existing TypeScript command must not be assumed to check MDX merely because it accepts imports from `.mdx` files. Fenced code examples are outside executable-MDX checking; this requirement does not silently introduce a separate example-compilation project.
+
+Before treating the tooling choice as settled, exercise a representative document with the repository's actual Remix components and selected TypeScript version. Confirm completion, hover, and definition navigation in VS Code, then deliberately introduce an invalid prop and an expression type error: both the editor and command-line gate must report them, and both must clear after correction. Also verify valid imports, frontmatter, and shared components remain accepted by the build.
+
+Compatibility between MDX Analyzer, Sätteri's compilation, Remix's component types, and TypeScript 7 is unverified. Establish the supported version matrix and headless checking mechanism during proposal refinement before approving implementation. An isolated compatible TypeScript tool dependency is an option to evaluate, following the existing TypeDoc precedent; do not downgrade the whole repository or reduce the promised authoring support silently. If the required coverage cannot be delivered, return the tooling choice to the human.
+
 ## Compatibility
 
 Preserve existing guide URLs, build-mode selections, package-manager preferences where feasible, generated-reference destinations, Markdown access, and HTTP status semantics. Any unavoidable preference-key migration or URL change must be documented before approval. Package APIs themselves do not change.
 
 ## Implications on adoption
 
-Contributors continue authoring guides in Markdown and reference prose in TSDoc. Renderer-specific syntax and generation tooling change internally. Preserve TypeDoc's separate compiler environment unless evidence establishes a supported replacement. Use compatible scoped Pitlane packages; the reserved umbrella package is not an implementation dependency.
+Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. API reference continues to derive from package exports and TSDoc. Both authoring formats are compiled and prerendered during the build; MDX alone does not introduce browser JavaScript.
+
+Preserve TypeDoc's separate compiler environment unless evidence establishes a supported replacement. Use compatible scoped Pitlane packages; the reserved umbrella package is not an implementation dependency.
 
 No published package release is required solely for the site migration. Necessary package changes would need explicit scope review and their own release treatment.
 
 ## Scope
 
-The documentation renderer, guides/deployment surfaces, symbol reference generation, associated navigation and enhancements, output compatibility, and comparative measurements form one documentation migration.
+The documentation renderer, Markdown/MDX authoring and editor/typechecking tooling, guides/deployment surfaces, symbol reference generation, associated navigation and enhancements, output compatibility, and comparative measurements form one documentation migration.
 
 ### Out of scope
 
