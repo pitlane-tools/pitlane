@@ -636,6 +636,8 @@ async post({ params, render }) {
 
 Nothing parses Markdown until you call `render()`, so listing a collection's titles never pays for the bodies it does not show. Each heading is `{ depth, slug, text }`, and the `slug` matches the `id` on the rendered heading, so a link to `#install` lands on it.
 
+Slugs are the ones GitHub gives the same headings: lowercased, with every character outside letters, marks, digits, and connector punctuation removed, spaces turned into hyphens, and nothing collapsed or trimmed. `## Databases & Data Loading` becomes `databases--data-loading`. Anchors you wrote against a GitHub render, or against Astro, which slugs the same way, keep landing. A heading left with no slug at all, such as `## 🎉`, becomes `heading` instead of an empty `id`, and a repeated slug takes a `-1`, `-2`, … suffix within its document.
+
 Props on `<Content />` reach an MDX document, which is how you replace the elements it renders with components of your own:
 
 ```tsx
