@@ -28,6 +28,8 @@ The migration also provides an opportunity to understand the cost of documentati
 
 [Cloudflare asset routing](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/) serves matching static assets without invoking the Worker by default. Worker-first routing deliberately changes that property. [HTML handling](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/) derives canonical trailing-slash behavior from configuration and asset layout.
 
+[Remix frames](https://guides.remix.run/streaming-ui-with-frames/) without a `fallback` resolve on the server before the initial HTML chunk is sent. The installed rc.2 server documentation confirms that the resolver accepts HTML strings or streams and embeds blocking frame content inline. This permits a runtime shell to include a build-generated article without requiring a browser fetch to make the initial article readable.
+
 [Pagefind](https://pagefind.app/) indexes built HTML and loads portions of its index for browser searches. Browser search does not inherently require downloading the complete index. Worker search exchanges browser engine/index costs for request-time work and network round trips.
 
 The visual references are [Remix Guides](https://guides.remix.run/rendering-ui/) and [Remix API](https://api.remix.run/api/remix/ui/server/function/renderToString/). Direct browser inspection established their shared reading layout, different navigation structures, responsive controls, system-font body text, blue links, pink metadata, and light/dark surfaces. The reference search modal opened, but results failed with a Pagefind metadata error during inspection; its successful retrieval behavior was not verified.
@@ -46,7 +48,7 @@ A guide is a topic-oriented document. A tutorial is an ordered learning experien
 
 ### Remaining uncertainty
 
-The combined content, prerendering, and assets-first deployment pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. Search placement and API identity edge cases remain review questions below.
+The combined cookie-aware shell, prerendered frame, and Cloudflare assets-binding pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. Search placement and API identity edge cases remain review questions below.
 
 ## Existing baseline
 
@@ -60,7 +62,7 @@ An exploratory browser load of `/guides/vite-plugin` fetched 20 same-origin Java
 
 ## Proposed solution
 
-Use Remix to render the documentation and Pitlane for its build integration, content handling, and styling capabilities. Generate complete public documents during the build and retain asset-first Workers delivery. Limit browser execution to the requested enhancements.
+Use Remix to render a cookie-aware document shell at request time and Pitlane to prerender documentation content as separate frame assets during the build. Resolve the article frame on the server for initial loads; enhanced navigation fetches prerendered frames directly. Keep static assets outside request-time application rendering and limit browser execution to enhancements.
 
 Adopt the Remix documentation shell while retaining Pitlane branding. Guides retain topical organization; API reference moves to symbol pages. Existing content remains authoritative.
 
@@ -94,13 +96,33 @@ At narrow widths, document navigation and the page outline remain separately acc
 
 Retain enhanced navigation transitions. Ordinary anchors remain valid document links; direct loads, reloads, back/forward navigation, and fragment navigation must work. A navigation failure must not leave stale content presented under a new URL. Prerender any separate frame representations the chosen enhancement requires, preserving metadata and avoiding duplicate document shells.
 
+### Cookie-aware shell and static article frames
+
+On a document request, the Worker reads the explicit URL and preference cookies, renders the shell, and resolves a blocking article frame through Cloudflare's assets binding. Do not give the primary article frame a loading fallback. The initial response includes the article inline and remains readable without JavaScript. Markdown parsing, API extraction, and syntax highlighting happen during the build.
+
+Prerender frame responses through Remix's renderer, preserving frame metadata, styles, and any client-entry metadata. A frame response contains the article region rather than a second document shell. Its static URL is distinct from the public document URL. Use root-relative links and asset references so embedding and direct frame retrieval preserve their meaning.
+
+Ordinary links target public document URLs. Enhanced navigation fetches the corresponding static frame and updates browser history. Without JavaScript, each navigation requests a newly composed document. The page title, canonical metadata, breadcrumbs, selected navigation item, and table of contents must change consistently with the article. Generate their source metadata at build time; the shell must not parse articles per request to recover it.
+
+Build-mode and package-manager selections persist in cookies. The server applies them before sending the document. Controls work through ordinary links or form submissions, with JavaScript enhancing updates to avoid full navigation where possible. Validate cookie values against the supported choices; absent or invalid preferences use the documented default. Blocked cookies must not prevent reading or making a selection for the current response.
+
+An explicit Vite or No Build variant URL takes precedence over the cookie, including deep links. Use the cookie as the default for navigation that does not explicitly choose a variant. Select the corresponding prerendered frame rather than rewriting article content at request time.
+
+Prerender all supported package-manager alternatives within each code group. A server-rendered shell attribute selects the visible alternative through CSS, so the initial choice requires no corrective browser script. Enhanced changes update the attribute after persisting the selection. Groups without the selected manager retain their designated default. This keeps article assets independent of package-manager preferences; the measurement report must include the HTML cost of carrying alternatives.
+
+Use small, host-only preference cookies with `Secure`, `SameSite=Lax`, and an explicit lifetime. Preferences require neither a session database nor signed tokens. Preserve existing localStorage preferences through a one-time browser-assisted migration only when no corresponding cookie exists; explicit new selections take precedence. The server cannot recover legacy browser storage on an initial request, so document that first-visit limitation.
+
+Serve cookie-dependent document responses and preference mutations without shared caching, using `Cache-Control: private, no-store`. Prerendered frames remain shared, cookie-independent assets. CSS, images, fonts, scripts, and frame assets bypass application execution on matching requests. A preference change must never put `Set-Cookie` on a shared frame response.
+
+Verify first loads and preference submissions with JavaScript disabled, then exercise enhanced navigation, back/forward, deep links, and preference changes. Confirm the initial response contains the article and selected examples, navigation retains one shell, and requests from readers with different cookies cannot reuse personalized document responses.
+
 ### Search contract
 
 Search covers public guides, deployment documentation, module overviews, and symbol pages. Results distinguish topical guidance from API reference and identify the package/module for symbols. Exact exported names must be discoverable, including repeated names under different modules. Results link to canonical pages or valid section anchors.
 
 The interface includes keyboard opening, query entry, loading state, results, no-results feedback, and a visible recoverable error state. A search failure does not disable navigation or reading. Do not eagerly transfer the entire corpus as part of every document load.
 
-Search placement remains open. Browser search would build and deploy its index with the documents and load the engine/index on demand. Worker search would require a defined query endpoint, build-coupled index, input limits, bounded work, failure responses, and caching behavior before implementation approval. It must not make ordinary documentation assets Worker-first.
+Search placement remains open. Browser search would build and deploy its index with the content and load the engine/index on demand. Index article content with canonical document destinations rather than exposing frame URLs as search results. Worker search would require a defined query endpoint, build-coupled index, input limits, bounded work, failure responses, and caching behavior before implementation approval. It must not make static documentation assets Worker-first.
 
 ### Build and deployment
 
@@ -118,7 +140,7 @@ Measure a representative guide, both build-mode variants, an API overview, and d
 
 Separate initial loading, automatic prefetch, subsequent navigation, and first/repeated search. Report compressed and decoded JavaScript bytes, script execution/main-thread work, relevant loading timings, search latency, and total transferred data including any WASM/index fragments. Distinguish first-party and third-party costs. Use repeated samples and report variation rather than a single timing.
 
-Report deployed Worker size and measured invocations/CPU for ordinary assets, missing routes, and search if server-backed. Local timings cannot substitute for production-like Worker measurements. Identify unavailable metrics explicitly.
+Report deployed Worker size and measured invocations/CPU separately for document-shell composition, preference submissions, static frame and asset requests, missing routes, and search if server-backed. Local timings cannot substitute for production-like Worker measurements. Identify unavailable metrics explicitly.
 
 There is no preset byte or timing threshold. The readiness report names improvements and regressions, explains tradeoffs, and leaves acceptance to the human. Functionality and accessibility remain required even when a shortcut would reduce bytes.
 
@@ -161,7 +183,8 @@ A tutorial section could provide chapter-based learning without changing the mea
 
 - Lazy browser search: recommended for review because the corpus changes with deployment and a chunked index avoids a search service. Browser engine/index costs still require measurement.
 - Worker-backed search: viable when smaller browser payloads justify server execution and operational complexity. Needs a concrete engine/index and query contract before selection is complete.
-- Request-time rendering of every documentation page: provides flexibility this build-time corpus does not require and loses the current assets-first advantage.
+- Fully static documents with browser-applied preferences: avoid document Worker invocations, but require browser correction to respect stored choices. Cookie-aware shell rendering is chosen so preferences work in the initial response and without JavaScript.
+- Request-time article rendering: repeats content rendering that the build can perform. The chosen boundary renders only the shell per request and embeds prerendered article frames.
 - Retaining module-sized API pages: simpler link migration, but the human explicitly prefers symbol-per-page organization.
 - Adopting Remix's chapter sequence for guides: conflicts with Pitlane's topical guides and planned distinction between guides and tutorials.
 
