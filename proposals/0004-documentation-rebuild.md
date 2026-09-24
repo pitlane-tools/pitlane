@@ -18,7 +18,7 @@ Rebuild Pitlane's guides and API documentation with Remix and Pitlane, adopting 
 
 Pitlane's documentation currently demonstrates Vue and VitePress rather than the Remix stack it teaches. Its VoidZero theme places it visually alongside Vite, Oxc, and related tools. Readers should recognize the Remix relationship while continuing to find Pitlane's existing material, examples, and package reference.
 
-The migration also provides an opportunity to understand the cost of documentation interactions. Lower runtime JavaScript is a goal, but removing useful interactions or inventing a byte threshold would misrepresent the agreed outcome. The human wants measured differences and an informed decision about any regressions.
+The migration also provides an opportunity to understand the cost of documentation interactions. The application must first be an idiomatic example of Remix and Pitlane. Minimize unnecessary runtime JavaScript within that architecture, rather than replacing framework components with imperative browser enhancements to save bytes. Removing useful interactions or inventing a byte threshold would misrepresent the agreed outcome. The human wants measured differences and an informed decision about any regressions.
 
 ## Domain grounding
 
@@ -28,7 +28,7 @@ The migration also provides an opportunity to understand the cost of documentati
 
 [Cloudflare asset routing](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/) serves matching static assets without invoking the Worker by default. Worker-first routing deliberately changes that property. [HTML handling](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/) derives canonical trailing-slash behavior from configuration and asset layout.
 
-[Remix frames](https://guides.remix.run/streaming-ui-with-frames/) without a `fallback` resolve on the server before the initial HTML chunk is sent. The installed rc.2 server documentation confirms that the resolver accepts HTML strings or streams and embeds blocking frame content inline. This permits a runtime shell to include a build-generated article without requiring a browser fetch to make the initial article readable.
+[Remix navigation](https://github.com/remix-run/remix/blob/main/packages/ui/docs/frames.md) represents the document as a top-level frame. `run()` reconciles ordinary document responses without requiring separately targeted article frames. Component state can survive matching updates, and removed components receive lifecycle cancellation.
 
 [Pagefind](https://pagefind.app/) indexes built HTML and loads portions of its index for browser searches. Browser search does not inherently require downloading the complete index. Worker search exchanges browser engine/index costs for request-time work and network round trips.
 
@@ -38,7 +38,7 @@ The visual references are [Remix Guides](https://guides.remix.run/rendering-ui/)
 
 Content compilation, complete-page prerendering, and client hydration are separate operations. Precompiled Markdown alone does not eliminate request-time page rendering. A client-rendered SPA can be statically hosted while carrying substantial browser work.
 
-Repository evidence: `@pitlane/dev` prerenders requests through the built fetch handler; `@pitlane/content` supports prebuilt bodies. Parameterized route patterns do not enumerate document slugs. The current crawler writes HTML to directory indexes, which can change canonical URLs compared with VitePress's flat HTML files. Static frame responses need their own addressable assets when their representation differs from a full document.
+Repository evidence: `@pitlane/dev` builds a default-exported fetch handler and supplies client-entry transforms and asset imports; `@pitlane/content` supplies prebuilt content components. Content compilation does not require publishing HTML at public document paths. A small browser experiment against the installed runtime confirmed coherent title, description, canonical URL, navigation selection, and component lifecycle updates through native soft document navigation.
 
 ### Quality bar
 
@@ -48,7 +48,7 @@ A guide is a topic-oriented document. A tutorial is an ordered learning experien
 
 ### Remaining uncertainty
 
-The combined cookie-aware shell, prerendered frame, and Cloudflare assets-binding pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. The MDX authoring-tool compatibility and headless checking mechanism described below are the first implementation gate.
+The full production Worker cost of rendering prebuilt content remains to be measured. The repository pins Remix rc.2 while inspected upstream documentation may describe later versions; verify against installed APIs. An isolated renderer experiment found that chunked streams returned by `resolveFrame` can place closing frame markers before article content ends in the installed runtime. Approach A does not require that nested static-frame transport. MDX authoring and headless checking have been exercised with an isolated TypeScript 6 tool dependency; retain that coverage while changing documentation components.
 
 ## Existing baseline
 
@@ -62,7 +62,7 @@ An exploratory browser load of `/guides/vite-plugin` fetched 20 same-origin Java
 
 ## Proposed solution
 
-Use Remix to render a cookie-aware document shell at request time and Pitlane to prerender documentation content as separate frame assets during the build. Resolve the article frame on the server for initial loads; enhanced navigation fetches prerendered frames directly. Keep static assets outside request-time application rendering and limit browser execution to enhancements.
+Build one conventional server-rendered Remix application using `@pitlane/dev`, `@pitlane/content`, and `@pitlane/theme`. Compile content during the build, then render the complete cookie-aware document from prebuilt components on requests. Use Remix's native soft document navigation rather than a separately fetched article representation. Keep static assets outside request-time application rendering. Idiomatic ownership takes precedence over minimizing JavaScript or HTML transfer.
 
 Adopt the Remix documentation shell while retaining Pitlane branding. Guides retain topical organization; API reference moves to symbol pages. Existing content remains authoritative.
 
@@ -94,25 +94,39 @@ Use the reference's restrained reading shell: compact left navigation, central a
 
 At narrow widths, document navigation and the page outline remain separately accessible. All disclosures have accessible names and state. Dialogs and overlays support keyboard dismissal, appropriate focus placement, and focus restoration. Respect reduced-motion preferences.
 
-Retain enhanced navigation transitions. Ordinary anchors remain valid document links; direct loads, reloads, back/forward navigation, and fragment navigation must work. A navigation failure must not leave stale content presented under a new URL. Prerender any separate frame representations the chosen enhancement requires, preserving metadata and avoiding duplicate document shells.
+Retain enhanced navigation transitions through Remix's document reconciliation. Ordinary anchors remain valid document links; direct loads, reloads, back/forward navigation, and fragment navigation must work. A navigation failure must not leave stale content presented under a new URL. The next document response supplies its article, metadata, breadcrumbs, selected navigation item, and outline together.
 
-### Cookie-aware shell and static article frames
+### Idiomatic application structure
 
-On a document request, the Worker reads the explicit URL and preference cookies, renders the shell, and resolves a blocking article frame through Cloudflare's assets binding. Do not give the primary article frame a loading fallback. The initial response includes the article inline and remains readable without JavaScript. Markdown parsing, API extraction, and syntax highlighting happen during the build.
+Follow the repository's `.agents/docs/cookbook.md`, checking its patterns against the installed Remix and Pitlane APIs. Keep static content server-only. Interactive UI belongs in `clientEntry` components with serializable props, component-owned state, event mixins, and lifecycle-scoped effects. Copy-code controls, search, preference controls, and navigation disclosures must not be implemented as document-wide DOM installers merely to reduce the JavaScript payload.
 
-Prerender frame responses through Remix's renderer, preserving frame metadata, styles, and any client-entry metadata. A frame response contains the article region rather than a second document shell. Its static URL is distinct from the public document URL. Use root-relative links and asset references so embedding and direct frame retrieval preserve their meaning.
+Render interactive controls through the component tree. Preserve their hydration metadata and resolve their client modules through Pitlane's build integration. Reconciliation preserves matching component state and disposes removed components. Do not serialize the entire article into a hydrated application merely to share state.
 
-Ordinary links target public document URLs. Enhanced navigation fetches the corresponding static frame and updates browser history. Without JavaScript, each navigation requests a newly composed document. The page title, canonical metadata, breadcrumbs, selected navigation item, and table of contents must change consistently with the article. Generate their source metadata at build time; the shell must not parse articles per request to recover it.
+The browser entry bootstraps Remix and configures application navigation and frame resolution. It is not a registry of imperative UI enhancements. Shared helpers may implement preference persistence or other non-visual protocols, but each component owns its interaction and presentation. Use refs and lifecycle-bound browser APIs when imperative work is necessary; wrapping a global installer in a component does not satisfy this design.
+
+Use Remix's routing, rendering, navigation, and component primitives where they own the concern. Measure the resulting JavaScript and execution costs without treating a smaller bundle as grounds to abandon those conventions.
+
+Use `@pitlane/theme` as the application's styling system, not merely as a source of variables for a separate handwritten stylesheet system. Define the documentation theme with `createTheme` and typed schemas, render its `<Theme />` component in the document shell, and use its typed token accessor throughout component styles. Express component styling through `css()` mixins and use `tva()` for meaningful variants. Layout, typography, responsive rules, and interaction states belong with their components or focused shared style definitions.
+
+Use `lightDark()` and theme modes for system and explicit appearance preferences, preserving the cookie-selected initial render. Static styling does not make a component interactive or require hydration. Style generated article markup through theme-backed selectors on its owning component. Retain plain CSS only where a specific global or third-party integration requires it, and identify those exceptions during review.
+
+### Cookie-aware document rendering
+
+One Vite-built application entry exposes the standard fetch handler used in development and deployment. Compose Remix routes, controllers, and rendering middleware with Pitlane's build integration and Cloudflare's platform integration. Resolve browser assets through `?assets=` imports and `@pitlane/dev/runtime`, not a separately maintained asset-manifest protocol.
+
+On a document request, the controller resolves the explicit URL, content entry, and preference cookies, then renders a complete document from prebuilt content components. The initial response includes the article and remains readable without JavaScript. Markdown parsing, API extraction, and syntax highlighting happen during the build; imported authoring components must not pull those tools into request-time rendering.
+
+Ordinary links target public document URLs. Remix's native soft navigation fetches and reconciles the next complete document. Metadata, breadcrumbs, selected navigation, and the table of contents derive from the same resolved document. Do not introduce an application-owned DOM synchronization registry or public static article-frame endpoints. Build-generated headings and content metadata remain authoritative; the Worker must not parse rendered HTML to recover them.
 
 Build-mode and package-manager selections persist in cookies. The server applies them before sending the document. Controls work through ordinary links or form submissions, with JavaScript enhancing updates to avoid full navigation where possible. Validate cookie values against the supported choices; absent or invalid preferences use the documented default. Blocked cookies must not prevent reading or making a selection for the current response.
 
-An explicit Vite or No Build variant URL takes precedence over the cookie, including deep links. Use the cookie as the default for navigation that does not explicitly choose a variant. Select the corresponding prerendered frame rather than rewriting article content at request time.
+An explicit Vite or No Build variant URL takes precedence over the cookie, including deep links. Use the cookie as the default for navigation that does not explicitly choose a variant. Render the corresponding prebuilt content entry.
 
-Prerender all supported package-manager alternatives within each code group. A server-rendered shell attribute selects the visible alternative through CSS, so the initial choice requires no corrective browser script. Enhanced changes update the attribute after persisting the selection. Groups without the selected manager retain their designated default. This keeps article assets independent of package-manager preferences; the measurement report must include the HTML cost of carrying alternatives.
+Render package-manager code groups with the server-selected alternative visible initially, without corrective browser scripting. Groups lacking that manager use their designated default. Preserve the existing choices and working native form submissions. Enhanced submissions use Remix document navigation so all controls and examples agree with the persisted selection.
 
 Use small, host-only preference cookies with `Secure`, `SameSite=Lax`, and an explicit lifetime. Preferences require neither a session database nor signed tokens. Preserve existing localStorage preferences through a one-time browser-assisted migration only when no corresponding cookie exists; explicit new selections take precedence. The server cannot recover legacy browser storage on an initial request, so document that first-visit limitation.
 
-Serve cookie-dependent document responses and preference mutations without shared caching, using `Cache-Control: private, no-store`. Prerendered frames remain shared, cookie-independent assets. CSS, images, fonts, scripts, and frame assets bypass application execution on matching requests. A preference change must never put `Set-Cookie` on a shared frame response.
+Serve cookie-dependent document responses and preference mutations without shared caching, using `Cache-Control: private, no-store`. CSS, images, fonts, scripts, search assets, and generated Markdown bypass application execution on matching requests. Do not publish prerendered HTML at public document paths where Cloudflare's asset-first routing would bypass preference-aware rendering.
 
 Verify first loads and preference submissions with JavaScript disabled, then exercise enhanced navigation, back/forward, deep links, and preference changes. Confirm the initial response contains the article and selected examples, navigation retains one shell, and requests from readers with different cookies cannot reuse personalized document responses.
 
@@ -126,9 +140,9 @@ Build and deploy the Pagefind index with the content. Load the browser search en
 
 ### Build and deployment
 
-Keep Cloudflare Workers, the existing production domain, and branch-preview mechanism. Run content compilation, API generation, and syntax highlighting during the build. Enumerate every published document explicitly or from authoritative content metadata, including symbols and any separate navigation representations.
+Keep Cloudflare Workers, the existing production domain, and branch-preview mechanism. Run content compilation, API generation, and syntax highlighting during the build. Enumerate every published document from authoritative content metadata, including symbols. Generate Pagefind, Markdown exports, sitemap, and LLM indexes from the same content and rendering definitions, not a second reader application. Build-only rendering for publication is permitted; static article-frame delivery is not required.
 
-Preserve canonical URL behavior deliberately rather than inheriting new trailing slashes from directory-index output. Preserve real 404 status codes, metadata, sitemap entries, Markdown counterparts, and LLM indexes. Missing frame assets must not return the home page or a successful document shell.
+Preserve canonical URL behavior deliberately rather than inheriting new trailing slashes from directory-index output. Preserve real 404 status codes, metadata, sitemap entries, Markdown counterparts, and LLM indexes. Unknown documents and removed article-frame paths must not return the home page or a successful document shell.
 
 The home-page design and port are separate work. This proposal can reach a reviewable preview independently, but must not merge into the production-deploying branch or launch until the home page is also ported. The existing home page may remain in the review workspace during this phase. That temporary state is not the completed migration or authorization to publish mixed stacks.
 
@@ -140,7 +154,7 @@ Measure a representative guide, both build-mode variants, an API overview, and d
 
 Separate initial loading, automatic prefetch, subsequent navigation, and first/repeated search. Report compressed and decoded JavaScript bytes, script execution/main-thread work, relevant loading timings, search latency, and total transferred data including any WASM/index fragments. Distinguish first-party and third-party costs. Use repeated samples and report variation rather than a single timing.
 
-Report deployed Worker size and measured invocations/CPU separately for document-shell composition, preference submissions, static frame and asset requests, missing routes, and search if server-backed. Local timings cannot substitute for production-like Worker measurements. Identify unavailable metrics explicitly.
+Report deployed Worker size and measured invocations/CPU separately for complete document rendering, preference submissions, static assets, missing routes, and search if server-backed. Include the HTML transfer and Worker cost of native soft document navigation. Local timings cannot substitute for production-like Worker measurements. Identify unavailable metrics explicitly.
 
 There is no preset byte or timing threshold. The readiness report names improvements and regressions, explains tradeoffs, and leaves acceptance to the human. Functionality and accessibility remain required even when a shortcut would reduce bytes.
 
@@ -168,7 +182,7 @@ Preserve existing guide URLs, build-mode selections, package-manager preferences
 
 ## Implications on adoption
 
-Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. API reference continues to derive from package exports and TSDoc. Both authoring formats are compiled and prerendered during the build; MDX alone does not introduce browser JavaScript.
+Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. API reference continues to derive from package exports and TSDoc. Both authoring formats are compiled during the build and rendered as server components on requests; MDX alone does not introduce browser JavaScript.
 
 Preserve TypeDoc's separate compiler environment unless evidence establishes a supported replacement. Use compatible scoped Pitlane packages; the reserved umbrella package is not an implementation dependency.
 
@@ -204,10 +218,12 @@ A tutorial section could provide chapter-based learning without changing the mea
 - Lazy browser search: selected because the corpus changes with deployment and a chunked index avoids a search service. Browser engine/index costs remain part of the measurement report.
 - Worker-backed search: deferred unless measurements justify its server execution and operational complexity. Revisit with the human rather than changing search placement automatically.
 - Fully static documents with browser-applied preferences: avoid document Worker invocations, but require browser correction to respect stored choices. Cookie-aware shell rendering is chosen so preferences work in the initial response and without JavaScript.
-- Request-time article rendering: repeats content rendering that the build can perform. The chosen boundary renders only the shell per request and embeds prerendered article frames.
+- Prebuilt content with request-time document rendering (Approach A): selected by the human after architecture research. It uses one application and native document reconciliation, accepting additional Worker rendering and HTML transfer in exchange for simpler ownership.
+- Prerendered article assets embedded in document responses (Approach B): not selected. It can reduce rendering work but retains artifact retrieval and nested-frame transport concerns.
+- Static article-only navigation with a persistent shell (Approach C): not selected. It can reduce navigation payload but requires additional cross-region coordination.
 - Retaining module-sized API pages: simpler link migration, but the human explicitly prefers symbol-per-page organization.
 - Adopting Remix's chapter sequence for guides: conflicts with Pitlane's topical guides and planned distinction between guides and tutorials.
 
 ## Open questions
 
-The human approved implementation with search and API organization settled. Verify MDX tooling compatibility and the headless checking mechanism as the first implementation gate; report any conflict with the promised authoring support before proceeding with dependent work.
+The human approved Approach A and resuming implementation. Content structure, symbol organization, search, authoring support, and the separate home-page production gate remain unchanged. Return any conflict with these contracts to the human; do not substitute optimizations for the approved application architecture.
