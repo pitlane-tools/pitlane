@@ -18,37 +18,4 @@ allowBuilds:
     sharp: false
     vue-demi: false
 
-minimumReleaseAgeExclude:
-    - "@oh-my-pi/hashline@17.0.0"
-    - "@oh-my-pi/omp-stats@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-agent-core@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-ai@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-catalog@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-coding-agent@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-mnemopi@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-natives-darwin-arm64@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-natives-darwin-x64@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-natives-linux-arm64@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-natives-linux-x64@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-natives-win32-x64@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-natives@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-tui@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-utils@17.0.0 || 18.1.17"
-    - "@oh-my-pi/pi-wire@17.0.0 || 18.1.17"
-    - "@oh-my-pi/snapcompact@17.0.0 || 18.1.17"
-    - miniflare@4.20260710.0
-    - wrangler@4.111.0
-    - "@remix-run/assets@0.7.0"
-    - "@remix-run/auth@0.3.1"
-    - "@remix-run/cli@0.7.0"
-    - "@remix-run/data-table-mysql@0.5.2"
-    - "@remix-run/data-table-postgres@0.5.2"
-    - "@remix-run/data-table-sqlite@0.6.2"
-    - "@remix-run/data-table@0.5.1"
-    - "@remix-run/render-middleware@0.3.0"
-    - "@remix-run/spa@0.1.1"
-    - "@remix-run/static-middleware@0.4.15"
-    - "@remix-run/ui@0.9.0"
-    - remix@3.0.0-rc.2
-    - "@oh-my-pi/omptype@18.1.17"
-    - "@oh-my-pi/pi-natives-win32-arm64@18.1.17"
+minimumReleaseAge: 0
