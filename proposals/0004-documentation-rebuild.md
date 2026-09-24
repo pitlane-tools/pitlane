@@ -48,7 +48,7 @@ A guide is a topic-oriented document. A tutorial is an ordered learning experien
 
 ### Remaining uncertainty
 
-The combined cookie-aware shell, prerendered frame, and Cloudflare assets-binding pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. Search placement and API identity edge cases remain review questions below.
+The combined cookie-aware shell, prerendered frame, and Cloudflare assets-binding pipeline has not been exercised for this site. The repository pins Remix rc.2 while the inspected upstream site identifies rc.3; exact APIs need version-specific verification. The MDX authoring-tool compatibility and headless checking mechanism described below remain to be verified before implementation approval.
 
 ## Existing baseline
 
@@ -66,7 +66,7 @@ Use Remix to render a cookie-aware document shell at request time and Pitlane to
 
 Adopt the Remix documentation shell while retaining Pitlane branding. Guides retain topical organization; API reference moves to symbol pages. Existing content remains authoritative.
 
-The recommended search approach for review is a build-generated, lazily loaded Pagefind index. It matches the static publication lifecycle and avoids introducing a request-time service. Worker-backed search remains a viable alternative if measured browser cost or search requirements justify it. This recommendation is not settled until the human selects an approach.
+Use a build-generated, lazily loaded Pagefind index for browser search. It matches the static publication lifecycle and avoids introducing a request-time service. Revisit Worker-backed search with the human if the measured browser costs justify changing this decision.
 
 ## Detailed design
 
@@ -82,9 +82,9 @@ HTML, Markdown exports, navigation metadata, and search documents must use the s
 
 Generate reference content from the package exports and TSDoc. Keep module overview pages as discovery surfaces with links to their symbols. Each documented symbol page presents its import context, name, kind, description, applicable signatures and type parameters, parameters, return value, examples, and documented errors. Omit sections with no content.
 
-A symbol's identity must be scoped by its public module and containing declaration where applicable. Display-name collisions must not depend on traversal order or numeric filename suffixes. Overloads of the same callable appear together. References in signatures and prose link to the corresponding documented target.
+A documented declaration has one canonical page even when multiple public modules re-export it. Distinguish declarations by their defining module and containing declaration where applicable, rather than by display name alone. Display-name collisions must not depend on traversal order or numeric filename suffixes. Overloads of the same callable appear together. References in signatures and prose link to the corresponding documented target.
 
-Before approval, resolve page ownership for class/interface members and symbols re-exported through multiple modules. Those choices govern canonical URLs and search deduplication.
+Top-level exports receive independent pages. Class and interface members remain addressable sections on their containing type's page. Each canonical page lists its public import paths, and every exporting module links to it. Re-exports must not create duplicate symbol pages or duplicate search results; public aliases remain discoverable and lead to the canonical declaration.
 
 Preserve old reference destinations through an explicit migration map. URL fragments are not sent to a Worker, so moving a module anchor to a symbol page cannot be solved solely with server redirects. Old module pages must provide useful compatibility anchor targets and destination links even without JavaScript. Optional client redirection may enhance those targets without being their only useful behavior.
 
@@ -122,7 +122,7 @@ Search covers public guides, deployment documentation, module overviews, and sym
 
 The interface includes keyboard opening, query entry, loading state, results, no-results feedback, and a visible recoverable error state. A search failure does not disable navigation or reading. Do not eagerly transfer the entire corpus as part of every document load.
 
-Search placement remains open. Browser search would build and deploy its index with the content and load the engine/index on demand. Index article content with canonical document destinations rather than exposing frame URLs as search results. Worker search would require a defined query endpoint, build-coupled index, input limits, bounded work, failure responses, and caching behavior before implementation approval. It must not make static documentation assets Worker-first.
+Build and deploy the Pagefind index with the content. Load the browser search engine and relevant index chunks on demand rather than during ordinary reading. Index article content with canonical document destinations rather than exposing frame URLs as search results. Measure first and repeated searches; any move to Worker-backed search requires a human-reviewed revision based on those results.
 
 ### Build and deployment
 
@@ -201,8 +201,8 @@ A tutorial section could provide chapter-based learning without changing the mea
 
 ## Alternatives considered
 
-- Lazy browser search: recommended for review because the corpus changes with deployment and a chunked index avoids a search service. Browser engine/index costs still require measurement.
-- Worker-backed search: viable when smaller browser payloads justify server execution and operational complexity. Needs a concrete engine/index and query contract before selection is complete.
+- Lazy browser search: selected because the corpus changes with deployment and a chunked index avoids a search service. Browser engine/index costs remain part of the measurement report.
+- Worker-backed search: deferred unless measurements justify its server execution and operational complexity. Revisit with the human rather than changing search placement automatically.
 - Fully static documents with browser-applied preferences: avoid document Worker invocations, but require browser correction to respect stored choices. Cookie-aware shell rendering is chosen so preferences work in the initial response and without JavaScript.
 - Request-time article rendering: repeats content rendering that the build can perform. The chosen boundary renders only the shell per request and embeds prerendered article frames.
 - Retaining module-sized API pages: simpler link migration, but the human explicitly prefers symbol-per-page organization.
@@ -210,6 +210,4 @@ A tutorial section could provide chapter-based learning without changing the mea
 
 ## Open questions
 
-- [NEEDS CLARIFICATION: Select lazy browser search or Worker-backed search; the recommendation is lazy browser search, subject to the human's preference and the measurement report.]
-- [NEEDS CLARIFICATION: Should members have independent pages, or remain sections on their containing class/interface page? The recommendation is independent pages for top-level exports, with members on the containing type page.]
-- [NEEDS CLARIFICATION: For the same declaration exported through multiple public modules, should each export surface have its own page or share a canonical declaration page? The recommendation is one canonical declaration page with explicit public import paths and links from every exporting module.]
+No unresolved human choices remain from the search and API organization review. MDX tooling compatibility and the headless checking mechanism still require investigation before implementation approval, as specified under MDX authoring and tooling.
