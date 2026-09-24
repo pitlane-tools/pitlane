@@ -16,7 +16,7 @@ Read the human's PR comments and direct commits before acting. Classify each ite
 | Feedback changes | Action |
 | --- | --- |
 | The implementation | Fix it, then rerun the affected implementation loop and review evidence. |
-| Intended design | Update the proposal first with the human, then rerun tests → guides → code → quality gates → review against the revision. |
+| Intended design | Update the proposal first with the human, then rerun tests → guides → code → quality gates → excellence pass → review against the revision. |
 
 Never encode a design change in code, tests, or guides while leaving the proposal stale.
 

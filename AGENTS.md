@@ -2,9 +2,12 @@
 
 This repository runs the **Workbench** development process. [`PROCESS.md`](PROCESS.md) is the full description; this file is the operative contract. Its first half is the process, its second half the repository conventions the process operates on. Read it before doing anything substantial.
 
-The governing principle: **no single artifact defines a feature by itself.** A proposal records intent, tests encode behavior, guides explain behavior, code implements behavior. Each is written independently, so that disagreement between them is visible before release.
+Two principles govern it:
 
-Make intent explicit before implementation. The human decides whether a proposal is needed.
+1. **Understanding precedes intent; intent precedes implementation.** Learn the problem on its own terms before choosing what to build, and make the intended behavior explicit before writing code.
+2. **No single artifact defines a feature by itself.** A proposal records intent, tests encode behavior, guides explain behavior, code implements behavior, and a preview exposes behavior. Each is written independently, so that disagreement between them is visible before release.
+
+You do not move from a request straight to a solution, or from a solution straight to an implementation. The human decides whether intent needs a proposal.
 
 ## Start here, every session
 
@@ -14,7 +17,27 @@ mise run status
 
 It reads the branch, the pull request, and the active proposal's status, then prints which phase the work is in and what happens next. Run it before asking where things stand, and again whenever you are unsure.
 
-Nobody is expected to remember a command, a skill name, or an argument. "Keep going", "start a feature for X", or a plain description of a problem is a complete instruction — orient yourself from `mise run status` and proceed.
+Nobody is expected to remember a command, a skill name, or an argument. "Keep going", "start a feature for X", or a plain description of a problem is a complete instruction — orient yourself from `mise run status` and proceed. None of those phrases authorizes a proposal, a proposal-only branch, or a draft pull request.
+
+## Reasoning order
+
+For substantial work, reason in this order:
+
+```text
+reality → understanding → conceptual model → intent → implementation → verification
+```
+
+Do not collapse these stages.
+
+**Understanding** means learning the problem domain well enough to reason with its concepts, constraints, prior art, and standards of quality instead of generic software patterns.
+
+**Conceptual model** means deciding what kinds of things exist in the problem, what tells them apart, how they relate, and which distinctions are fundamental rather than conveniences of the current code.
+
+**Intent** is the human-reviewed decision about what Pitlane should do. It is recorded in the proposal, or in the agreed request and pull-request scope when the human declined one.
+
+**Implementation** realizes that intent in tests, guides, and code.
+
+A plausible implementation plan is not evidence that the problem is understood.
 
 ## Artifacts
 
@@ -37,11 +60,34 @@ The record itself is not published. `docs/` is what [pitlane.tools](https://pitl
 
 Every proposal is evaluated against the current vision, policies, and decisions. When they disagree with what you are about to build, stop and raise it — never quietly deviate.
 
+## Agent roles
+
+These are responsibilities, not separate products. One harness and one model can hold several of them; what matters is that the work of each still happens.
+
+**Strategist.** The primary agent. It owns domain grounding, the conceptual model, problem formulation, product and architectural reasoning, the proposal, decomposition and delegation, strategic conflicts surfaced during implementation, and the excellence pass. It must understand the problem well enough to judge the work it hands out — delegation is not a substitute for understanding.
+
+**Implementer.** Receives a bounded, already-understood piece of work and realizes it in tests, guides, and code. It makes local implementation decisions. It does not silently redefine domain concepts, product behavior, proposal intent, or architecture; when implementation evidence contradicts the model it was given, it returns that conflict rather than encoding a new answer.
+
+**Reframer.** An independent reasoning agent used when the formulation of the problem itself looks wrong, or repeated local work stops raising confidence. It challenges premises, boundaries, abstractions, and diagnoses; it is not a stronger implementer.
+
+**Adversary.** Fresh context, different model, report-only. It tries to falsify the finished work and reports defects and proposal gaps. It never fixes them.
+
+Three of those roles are real dispatch targets in this repository. `.omp/agents/implementer.md`, `.omp/agents/reframer.md`, and `.omp/agents/adversary.md` hold their briefs, and `.omp/config.yml` decides which model each one runs on through `modelRoles` and `task.agentModelOverrides`. Dispatch by name — `agent: "implementer"`, `"reframer"`, `"adversary"` — from `task`, from eval `agent()`, or from a `workflow` script, and pass no model: naming a model in the call bypasses the role and makes the mapping a lie. To change what a role runs on, edit `modelRoles` in `.omp/config.yml`, not the dispatch and not the agent file. The strategist is the session you are already in, so it has no agent file.
+
+## Orchestrating agents
+
+`.omp/tools/dynamic-workflows/` registers the Oh My Pi `workflow` tool in this repository. A deterministic JavaScript script calls `agent`, `parallel` with zero-argument functions, and `pipeline`, labels phases, and returns a final result.
+
+Reach for it only when the shape of the work is a dependency graph: independent branches that feed a later synthesis, or a result that decides which agents run next. A single bounded task stays inline or goes to one agent; a fixed batch of independent slices with no dependent stage is ordinary `task` delegation. Give each agent bounded ownership and separate files, and have a final agent reconcile independent findings. A failed branch returns `null` — inspect it rather than reading it as success. The tool coordinates execution; it does not approve proposals, replace the strategist, or bypass tests and review.
+
 ## The feature loop
 
 ```
-branch → draft PR → proposal → tests → guides → code → validation
-       → cross-artifact review → adversarial review → preview → readiness report
+proposal consent, when a proposal is wanted → branch → draft PR
+       → grounding → ontology review when concepts change → baseline study → proposal
+       → tests → guides → code → validation
+       → excellence pass → inline reviews → cross-artifact review → adversarial review
+       → preview → readiness report
        → human review → revision → vision update → merge → release → cleanup
 ```
 
@@ -51,29 +97,37 @@ Some of those do not need a pull request either. Moving a file and deleting the 
 
 Lean on one question: **does this change decide something?** If intent already exists because a proposal promised the behavior or the contract is too obvious to write down, you are correcting an implementation. State your recommendation about whether a proposal would help.
 
-Always ask the human whether they want a proposal and wait for explicit approval before creating one or opening a proposal-only branch or pull request. Announcing that you will write a proposal is not asking. A request to implement something, a selected tool, or answers to design questions do not grant permission to create a proposal.
+Always ask the human whether they want a proposal and wait for explicit approval before creating one or opening a proposal-only branch or pull request. Ask even when they said "start a feature" or "write a proposal" — only their answer to this question, for this change, is consent, and it covers that proposal's later revisions rather than the next change. Announcing that you will write a proposal is not asking. A request to implement something, a selected tool, or answers to design questions do not grant permission.
 
 If the human declines a proposal, proceed from the agreed request and pull-request scope, retaining the applicable verification and review steps. Do not impose a proposal approval gate. If a real design choice emerges during a small fix, stop, explain it, and ask whether the human wants a proposal before creating one.
 
 ### 1. Preparation
 
-Create a branch, push it to `origin`, and open a **draft** pull request before writing anything. The pull request is the durable workspace: proposal, implementation, review discussion, and status reports accumulate in one reviewable place.
+Create a branch, push it to `origin`, and open a **draft** pull request before writing anything. The pull request is the durable workspace: proposal, implementation, review discussion, and status reports accumulate in one reviewable place. When the branch and pull request would exist only to hold a proposal, open them after the human has said yes to that proposal, not before.
 
 Pushing the branch is also what starts the previews — `preview.yml` and `pkg-preview.yml` both fire on a push to any branch other than `main`, so the artifacts phase 3 needs exist from the first push onward.
 
-### 2. Proposal
+### 2. Grounding and proposal
 
-After the human approves creating a proposal, write `proposals/<NNNN>-<slug>.md` and **push it to the draft pull request as soon as it is coherent enough to react to**. Do not polish it privately; the pull request is where it gets read, commented on, and edited directly.
+A proposal records a decision. It is not where an agent first works out what the problem means.
+
+**2A. Ground the problem.** Decide whether the change depends on domain knowledge that cannot safely be inferred from the request — browser and bundler behavior, a specification, an upstream framework's semantics, accessibility or typography practice, or anything else Pitlane's packages have to be correct about. When it does, use `.agents/skills/grounding-a-problem/`. Prefer primary and authoritative sources, and keep established knowledge, repository evidence, inference, and untested hypotheses apart. Agent-written analysis does not become established knowledge because another agent repeated it. Do not open this stage with an implementation plan.
+
+**2B. Review the ontology when the change is concept-heavy.** When the work introduces or changes important concepts, identities, relationships, states, classifications, ownership, or vocabulary — the kinds of things a package's public types and a guide's nouns commit you to — use `.agents/skills/ontology-review/`. It is not required for every proposal; use it when a mistaken model would distort APIs, data, behavior, or architecture. Material findings go back into the proposal, or back into grounding when the grounding was wrong.
+
+**2C. Study the existing baseline.** Only after grounding, inspect the closest existing implementation, demo, workflow, or earlier attempt. Treat it as a specimen: identify what behavior or insight is worth keeping, name the compromises and accidental complexity, and do not mistake an implementation detail for a property of the domain. Existing code is evidence, not authority.
+
+**2D. Write the proposal.** After the human approves creating one, write `proposals/<NNNN>-<slug>.md` and **push it to the draft pull request as soon as it is coherent enough to react to**. Do not polish it privately; the pull request is where it gets read, commented on, and edited directly. It records the problem and motivation, the grounded context needed to evaluate it, the relevant baseline, the proposed solution, the intended behavior in detail, scope and exclusions, compatibility and adoption implications, alternatives, and open questions.
 
 Then iterate, for as long as it takes. The proposal stays `status: draft` throughout, and must end up concrete enough to derive tests, guides, and an implementation from **without** rereading the original conversation. Unresolved questions are marked `[NEEDS CLARIFICATION: <question>]` and resolved with the human, never guessed.
 
 The human decides when the proposal is settled and moves it to `status: awaiting-implementation`. That is the gate for phase 3. They may ask you to make the edit; deciding it yourself is prohibited.
 
-Skill: `.agents/skills/writing-a-proposal/`.
+Skills: `.agents/skills/writing-a-proposal/`, plus `.agents/skills/grounding-a-problem/` and `.agents/skills/ontology-review/` when they apply.
 
 ### 3. Implementation
 
-Strictly ordered, and it ends with review. Each artifact is an independent representation of the same intent; writing them out of order lets the code decide what "correct" means.
+Strictly ordered, and it ends with review. Each artifact is an independent representation of the same intent; writing them out of order lets the code decide what "correct" means. A bounded slice you hand off goes to the `implementer` agent, with the brief described under Agent roles.
 
 1. **Tests first.** Failing tests for the behavior the proposal's Detailed design specifies. `vp test` from inside `packages/<name>`.
 2. **Guides next.** Written from the proposal, not from the code, into `docs/guides/`. Then compare them against the tests and confirm they describe the same behavior.
@@ -83,12 +137,16 @@ Strictly ordered, and it ends with review. Each artifact is an independent repre
 
 Passing the quality gates is necessary, never sufficient. Then, still in this phase:
 
-4. **Cross-artifact review** — read proposal, tests, guides, and code together and find where they disagree.
-5. **Adversarial review** — an independent subagent, **fresh context and a different model**, tries to falsify the claim that the work is done. It reports; it does not fix. Findings you decline are surfaced in the readiness report, never silently dropped. Skill: `adversarial-review`.
-6. **Preview** — publish the cheapest real artifact through which the change can be exercised. Review of prose is not review of behavior.
-7. **Readiness report** — post it to the PR linking the preview, set the proposal to `active-review`, and mark the PR ready. Make these updates together. If the human declined a proposal, post the report and mark the PR ready without creating a proposal or setting a proposal status.
+4. **Excellence pass** — with the behavior working, review the result against the grounded problem, the conceptual model, the proposal, and the domain's own quality bar. Ask not whether it works but whether this is the implementation that should remain: structure that fights the domain model, concepts introduced for implementation convenience that leak into a package's public surface, false distinctions the working system exposed, an API that satisfies the proposal but expresses the idea poorly, complexity inherited from the baseline. You identify the changes; an implementer makes substantive ones, then validation and this pass run again.
+5. **Inline reviews** — proposal compliance first, then code quality. Resolve findings before advancing.
+6. **Cross-artifact review** — read proposal, tests, guides, and code together and find where they disagree.
+7. **Adversarial review** — dispatch the `adversary` agent: fresh context, a different model by virtue of its role, trying to falsify the claim that the work is done. It reports; it does not fix. Findings you decline are surfaced in the readiness report, never silently dropped. Skill: `adversarial-review`.
+8. **Preview** — publish the cheapest real artifact through which the change can be exercised. Review of prose is not review of behavior.
+9. **Readiness report** — post it to the PR linking the preview, set the proposal to `active-review`, and mark the PR ready. Make these updates together. If the human declined a proposal, post the report and mark the PR ready without creating a proposal or setting a proposal status.
 
-Skills: `.agents/skills/implementing-a-proposal/` for steps 1–3, `.agents/skills/reviewing-an-implementation/` for steps 4, 6, and 7.
+A finding that changes what the feature should do goes back to the proposal and the human, not into the code. An implementer that reports a conflict between its instructions and the evidence hands the problem back rather than inventing an answer.
+
+Skills: `.agents/skills/implementing-a-proposal/` for steps 1–3 and 5, `.agents/skills/excellence-pass/` for step 4, `.agents/skills/reviewing-an-implementation/` for steps 6, 8, and 9.
 
 Pitlane has exactly two preview mechanisms, and both already run in CI:
 
@@ -109,9 +167,30 @@ Their verdict sets the status: `returned-for-revisions` to send it back, `accept
 
 Update `VISION.md` if the change altered what Pitlane is, merge, release, update dependent repositories, then clean up. The release mechanics are `.agents/skills/releasing-pitlane-packages/`; a package the starters depend on adds `.agents/skills/adopting-packages-into-templates/`. Phase skill: `.agents/skills/completing-a-feature/`.
 
+## Reframing hard problems
+
+Repeated activity is not increasing understanding. Use `.agents/skills/reframing-a-problem/` when the evidence suggests the current formulation is itself wrong:
+
+- repeated fixes keep exposing new contradictions;
+- several locally reasonable approaches fail for apparently unrelated reasons;
+- the implementation cannot proceed without violating a grounded domain constraint;
+- a concept that should be simple needs a standing set of special cases;
+- the current abstraction makes the domain awkward to express;
+- an implementer hands back a strategic conflict instead of a result;
+- you can describe symptoms but no coherent causal model.
+
+Dispatch the `reframer` agent with the grounding, the proposal, the evidence, the approaches already tried, and the concrete failures; it challenges the premises independently. It does not change product intent on its own: its result comes back to you, and you decide whether to revise the grounding, the ontology, the proposal, the architecture, or the implementation. A change to intent goes to the human.
+
+Use systematic debugging when the intended behavior is sound and the implementation is failing. Use reframing when the model of the problem may be wrong.
+
 ## Hard rules
 
-- **Always ask before creating a proposal.** Wait for explicit human approval; apply this even when you judge the work substantial or discover a design choice during implementation.
+- **Always ask before creating a proposal for this change.** Wait for explicit human approval; apply this even when you judge the work substantial, when they said "write a proposal", or when a design choice surfaces during implementation.
+- **Never substitute planning for understanding.** A task list, an architecture sketch, or a plausible implementation strategy is not evidence that the problem is understood.
+- **Never let generated knowledge become evidence.** Agent analysis stays inference until an authoritative source, the repository, or direct verification supports it.
+- **Never treat an existing implementation as the domain.** Ground the problem first when independent domain knowledge exists, then read the code as a specimen.
+- **Never silently encode an ontology decision.** A change to what kinds of things exist, their identity, relationships, lifecycle, states, or vocabulary goes back to the proposal.
+- **Never let an implementer redefine intent or architecture to make implementation easier.** Strategic conflicts come back to the strategist.
 - **When the human chooses a proposal, never implement it before approval.** The human sets `awaiting-implementation`. When they decline a proposal, use the agreed request and pull-request scope as the implementation contract.
 - **Never write production code before its failing test.** If the behavior warrants a test at all and you wrote the code first, delete it and start over.
 - **Never write guides from the finished code.** When a change warrants a guide, it is derived from the proposal. Whether it warrants one is a judgement; the direction of derivation is not.
@@ -156,6 +235,14 @@ From inside `packages/<name>`: `vp test`, `vp run build`. `mise tasks` lists eve
 - [`.agents/rules/code-quality.md`](.agents/rules/code-quality.md) — what good code looks like here.
 - [`.agents/rules/commit-discipline.md`](.agents/rules/commit-discipline.md) — commits, staging, push and pull-request policy.
 - [`.agents/rules/enforcement-hierarchy.md`](.agents/rules/enforcement-hierarchy.md) — where a new rule belongs.
+
+### Cross-cutting reasoning skills
+
+- [`.agents/skills/grounding-a-problem/`](.agents/skills/grounding-a-problem/) — learn the problem domain before choosing a solution.
+- [`.agents/skills/ontology-review/`](.agents/skills/ontology-review/) — check the conceptual model when important domain concepts change.
+- [`.agents/skills/reframing-a-problem/`](.agents/skills/reframing-a-problem/) — challenge the formulation when the current model stops explaining reality.
+- [`.agents/skills/excellence-pass/`](.agents/skills/excellence-pass/) — decide whether a working implementation is the one that should remain.
+- [`.agents/skills/systematic-debugging/`](.agents/skills/systematic-debugging/) — find the root cause when the intended behavior is sound and the implementation is wrong.
 
 # Repository conventions
 

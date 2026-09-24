@@ -47,6 +47,49 @@ current workaround. Do not propose a solution; establish why the problem is wort
 
 <Concrete problem, affected people, impact, and current workaround.>
 
+## Domain grounding
+
+<!--
+Record the knowledge needed to judge this proposal on the problem's own terms.
+
+Keep established facts, repository observations, inference, and open uncertainty
+distinct, and link primary or authoritative sources for important external claims.
+
+This section describes the world the solution has to fit. It is not an implementation
+plan. When the change needs no independent research, say so and why rather than
+filling the subsections with generic claims. Write "None" for uncertainty once it is
+resolved.
+-->
+
+### Established context
+
+- ...
+
+### Relevant constraints and principles
+
+- ...
+
+### Quality bar
+
+- ...
+
+### Remaining uncertainty
+
+- ...
+
+## Existing baseline
+
+<!--
+After grounding in the domain, inspect the closest thing that already does this: a
+package under packages/, a demo, an earlier attempt, or prior art elsewhere.
+
+Say what it demonstrates, what deserves to be preserved, and what is incidental,
+compromised, or wrong. Existing behavior is evidence of what happens today, not
+authority about the domain. State plainly when there is no relevant baseline.
+-->
+
+<The closest usable baseline and what can be learned from it.>
+
 ## Proposed solution
 
 <!--
@@ -125,6 +168,7 @@ scope are filed as GitHub issues, not folded in; use .agents/skills/tracking-def
 <!--
 Choose the artifact from the preview table that exercises this change and explain why it is the cheapest
 realistic one. A human must exercise changed behavior, not merely inspect prose or a screenshot; use .agents/skills/reviewing-an-implementation/.
+A pure refactor with no exercisable surface records that no preview applies, and why.
 -->
 
 - Artifact: <preview artifact>

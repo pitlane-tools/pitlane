@@ -6,7 +6,7 @@ The process is intended to be generalizable to any modern agentic coding harness
 
 This repository runs that process. [`AGENTS.md`](AGENTS.md) is the operative contract: it binds every artifact described below to a real path, task, and workflow in this repository, and it is what an agent follows when the two disagree on a detail.
 
-The process is built around a simple principle: intent should be made explicit before implementation, then represented independently in tests, documentation, and code, reviewed from multiple perspectives, and verified by a human before release. The human decides whether that intent needs a proposal.
+The process starts with understanding the problem. For a substantive change, the agent grounds the domain, makes the intent explicit with the human, then represents that intent independently in tests, documentation, and code. The resulting behavior is reviewed from several perspectives and verified by a human before release. The human decides whether that intent needs a proposal.
 
 ## Goals
 
@@ -115,13 +115,19 @@ When the human chooses a proposal, substantial feature work proceeds through fiv
 
 The process is iterative. Findings during implementation or review may cause the proposal itself to change, at which point the implementation is reevaluated against the revised proposal.
 
-Before creating any proposal, the agent states its recommendation, asks whether I want a proposal, and waits for explicit approval. This also applies before opening a proposal-only branch or pull request. A request to implement a change, selection of a tool, or answers to design questions do not authorize proposal creation. Announcing a proposal is not asking permission.
+The primary agent is the strategist: it owns domain understanding, the conceptual model, proposal intent, delegation, and the excellence pass. Implementers realize bounded, already-understood behavior without redefining the proposal. A reframer challenges the formulation of the problem when it no longer explains the evidence. An independent adversary tries to falsify the finished work and reports findings without editing it.
+
+Before entering the proposal path for a change, the agent states its recommendation, asks whether I want a proposal, and waits for explicit approval — even when the request sounds like a feature or asks for a proposal outright. This also applies before opening a proposal-only branch or pull request. A yes covers that proposal and its later revisions, not the next change. A request to implement a change, selection of a tool, or answers to design questions do not authorize proposal creation. Announcing a proposal is not asking permission.
 
 If I decline a proposal, the agent proceeds from our agreed request and pull-request scope, retaining applicable verification and review. If a design choice emerges partway through a small fix, the agent explains the choice and asks whether I want a proposal before creating one.
 
+### Agent orchestration
+
+The `workflow` tool registered by `.omp/tools/dynamic-workflows/` is for a dependency graph of agent work: independent branches feeding a later synthesis, or branches chosen by an earlier result. A single small task stays inline, and a fixed batch of independent slices uses ordinary task delegation. Workflow scripts orchestrate subagents deterministically and expose phases, but each agent still needs bounded ownership, and the strategist still owns intent and review. A failed branch yields `null`; treat that as a missing result, not as evidence of success.
+
 ## Preparation
 
-Work on a feature begins in an isolated Git branch.
+Work on a feature begins in an isolated Git branch. When that branch and its pull request exist only to carry a proposal, they are created after I have said yes to the proposal, never before.
 
 The agent creates the branch, pushes it to the project's `origin` remote, and creates a draft pull request for the work.
 
@@ -141,13 +147,23 @@ The proposal is preserved after the feature ships. It becomes part of the histor
 
 If future work changes that design, a later proposal may revise or supersede it.
 
+### Ground the problem
+
+When a change depends on domain knowledge that cannot safely be inferred from the request, the strategist grounds the problem before selecting an approach. It prefers authoritative sources and keeps established knowledge, observed repository behavior, inference, and untested hypotheses distinct. The context a reader needs to judge the proposal is recorded in its **Domain grounding** section; when no independent research is needed, the section says why rather than manufacturing it.
+
+When important domain concepts, identities, relationships, states, or vocabulary change, an ontology review happens before those assumptions harden into the detailed design. A material conceptual conflict returns to grounding or to the proposal rather than being settled in code.
+
+### Study the existing baseline
+
+After grounding, the agent inspects the closest implementation, prototype, workflow, or prior attempt, and records in **Existing baseline** what works, what should be preserved, and what is incidental or compromised. Existing code is evidence of current behavior, not authority about the domain.
+
 ## Implementation
 
-Once the proposal is sufficiently defined, the agent enters an implementation loop.
+Once the proposal is sufficiently defined, the agent enters an implementation loop. The strategist delegates bounded slices together with their detailed design, domain constraints, baseline, quality bar, governing records, and verification commands. When an implementer reports that the supplied model conflicts with the evidence, that slice stops and the conflict returns to the strategist; repeated local fixes that stop explaining the problem call for reframing it with the human before continuing.
 
 ### Behavioral Tests
 
-The agent first writes failing tests for the behavior specified by the proposal.
+The agent first writes failing tests for the observable behavior the proposal specifies, wherever such tests add meaningful protection.
 
 These tests establish an executable interpretation of the proposal before the implementation itself can influence what is considered correct.
 
@@ -155,7 +171,7 @@ The goal is not merely to increase test coverage, but to encode the externally m
 
 ### Usage Guides
 
-The agent then writes the user-facing guides for the feature based on the proposal.
+When the change has a user-facing surface, the agent then writes its guide from the proposal, before the production code exists. A change with no such surface needs no invented guide.
 
 Writing the documentation before or alongside the implementation forces the intended interface to be explained independently from the code that implements it.
 
@@ -177,6 +193,12 @@ Implementation continues until the project's quality gates pass. Depending on th
 - other project-specific validation.
 
 Passing the quality gates is necessary but not sufficient for the feature to be considered complete.
+
+### Excellence Pass and Inline Reviews
+
+Once the behavior works and validation passes, the strategist asks whether this is the implementation that should remain: does it express the grounded model, reuse the right boundaries, and present a clear interface without inherited or speculative complexity? Substantive corrections return to implementation, after which validation and this pass run again. A finding that changes intended behavior returns to the proposal and the human.
+
+The strategist then obtains a proposal-compliance review and a code-quality review, in that order. Both are clean before the cross-artifact review begins. These inline reviews do not replace the independent adversarial review.
 
 ### Cross-Artifact Review
 
@@ -220,6 +242,10 @@ The primary agent addresses findings it determines are legitimate. Findings it d
 
 The adversarial reviewer does not decide whether the feature is acceptable. Its role is to produce an independent attempt to falsify the primary agent's claim that the work is complete.
 
+### Preview
+
+After review findings are resolved, the agent produces the preview the proposal selected. Both of this repository's mechanisms already run in CI on every push to a branch other than `main`, so this step confirms rather than builds: install the package build or open the docs preview from the branch's own run, see the changed behavior in it, and link it with what to try. A green workflow is not evidence. A pure refactor with no exercisable surface produces no preview rather than a fabricated one.
+
 ### Readiness Report
 
 After completing the implementation loop, the agent posts a comment to the pull request summarizing the state of the implementation against the proposal. This repository configures no service account, so the comment is posted from the authenticated `gh` identity and says so rather than implying bot authorship.
@@ -251,11 +277,11 @@ I then instruct the agent to process the review feedback. Additional context may
 
 If the feedback changes the intended design rather than merely correcting its implementation, the agent updates the proposal first.
 
-The agent then repeats the implementation process against the revised proposal: tests, guides, code, automated validation, cross-artifact review, and adversarial review are reevaluated as necessary.
+The agent then repeats the implementation process against the revised proposal: tests, guides, code, automated validation, the excellence pass, inline reviews, cross-artifact review, and adversarial review are reevaluated as necessary.
 
 Implementation and human review therefore form a loop:
 
-**proposal → tests → guides → code → automated validation → cross-artifact review → adversarial review → human review → revision**
+**proposal → tests → guides → code → automated validation → excellence pass → inline reviews → cross-artifact review → adversarial review → preview → human review → revision**
 
 The loop continues until I accept the feature.
 
@@ -390,7 +416,7 @@ At the project level:
 
 For each feature:
 
-**branch → draft pull request → proposal → tests → guides → code → validation → cross-artifact review → adversarial review → ready pull request → human review → revision or acceptance → vision update → merge → release → dependent updates → cleanup**
+**branch → draft pull request → grounding and ontology review when needed → baseline study → proposal → tests → guides → code → validation → excellence pass → inline reviews → cross-artifact review → adversarial review → preview → ready pull request → human review → revision or acceptance → vision update → merge → release → dependent updates → cleanup**
 
 The central invariant of the process is that no single artifact defines the feature by itself.
 

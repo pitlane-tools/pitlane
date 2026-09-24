@@ -25,7 +25,7 @@ Proceed in this order:
 3. Produce the preview.
 4. Post the readiness report and make the pull request ready together.
 
-Begin after applicable validation has fresh evidence under `.agents/rules/verification.md`.
+Begin after applicable validation has fresh evidence under `.agents/rules/verification.md`, and after the excellence pass and the ordered inline reviews in `implementing-a-proposal` have no open findings. A substantive fix made here re-enters those gates before the cross-artifact review runs again.
 
 ## 1. Cross-artifact review
 

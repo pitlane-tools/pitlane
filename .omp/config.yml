@@ -1,0 +1,17 @@
+# Project settings for Oh My Pi in this repository.
+#
+# The agent definitions in .omp/agents/ carry role aliases instead of model
+# selectors, so a dispatch names the role and the model is decided here. Vibe's
+# fast and good tiers, and the bundled task and sonic agents, are deliberately
+# left alone.
+modelRoles:
+    default: openai-codex/gpt-6-astra
+    implementer: anthropic/claude-opus-5-5
+    reframer: anthropic/claude-fable-5-1
+    adversary: openai-codex/gpt-6-sol
+
+task:
+    agentModelOverrides:
+        implementer: "@implementer"
+        reframer: "@reframer"
+        adversary: "@adversary"

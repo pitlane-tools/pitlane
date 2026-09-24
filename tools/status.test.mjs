@@ -70,6 +70,20 @@ test("derives proposal work for a draft pull request without a proposal", () => 
     });
 });
 
+test("asks before opening a proposal workspace or drafting a proposal", () => {
+    let states = [
+        facts({ branch: "main", isDefaultBranch: true, pullRequest: null }),
+        facts({ pullRequest: null }),
+        facts(),
+    ];
+    for (let state of states) {
+        let { actor, next } = deriveStatus(state);
+        assert.equal(actor, "agent");
+        assert.match(next, /ask the human whether they want a proposal/i);
+        assert.match(next, /before (creating|pushing|writing)/i);
+    }
+});
+
 test("keeps a draft proposal in proposal work", () => {
     assertPhase(facts({ proposal: proposal("draft") }), {
         phase: "2",

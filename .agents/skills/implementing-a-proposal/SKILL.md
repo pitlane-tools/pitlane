@@ -7,7 +7,7 @@ description: Use when an approved proposal is ready for Phase 3 implementation, 
 
 Phase 3 preserves proposal intent in independent tests, guides, and code.
 
-**Hard order:** failing tests → guides → code → quality gates. Do not reverse, combine, or defer these stages.
+**Hard order, wherever a stage applies:** failing tests → guides → code → quality gates. Do not reverse, combine, or defer them.
 
 ## Preconditions
 
@@ -37,13 +37,16 @@ For each slice, in the order that protects shared boundaries:
 3. Dispatch one implementer and instruct it not to commit.
 4. Require the ordered cycle below and clean quality gates before the next review gate.
 5. Resolve its reported status. Never silently retry an identical dispatch.
-6. After every slice is integrated and clean, run the proposal-wide inline reviews.
+6. After every slice is integrated and clean, run `excellence-pass`, then the proposal-wide inline reviews.
+
+Each handoff carries, as it applies: the bounded behavior, the applicable Detailed design, the domain concepts needed to understand it, the domain constraints and invariants, the quality bar established during grounding, the relevant baseline, the governing policies and decisions, the scope and non-goals, and the verification commands. An implementer must not infer missing product intent.
 
 | Implementer status | Controller action |
 | --- | --- |
 | `DONE` | Continue only after the reported gates are clean. |
 | `DONE_WITH_CONCERNS` | Resolve correctness or scope concerns before review; retain observations for reviewers. |
 | `NEEDS_CONTEXT` | Supply the missing material and re-dispatch. Never ask it to guess intent. |
+| `NEEDS_STRATEGY` | Stop that slice. Check the reported conflict against domain evidence; you decide whether to revisit grounding, the ontology, or the proposal with the human. Use `reframing-a-problem` when repeated fixes stop explaining the evidence. Resume only once intent is settled. |
 | `BLOCKED` | Classify missing context, reasoning shortfall, oversized slice, or proposal conflict; supply context, escalate the model, re-slice, or stop and raise the conflict. |
 
 ## Do inline only when trivial
@@ -62,12 +65,12 @@ Do it inline. The required order still applies whenever production behavior chan
 ### Iron Law
 
 ```text
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+NO TEST-WORTHY PRODUCTION BEHAVIOR WITHOUT A FAILING TEST FIRST
 ```
 
-If you wrote production code first, **delete it and start over**. Do not keep it as reference, adapt it while writing the test, or inspect it for the test design. **Delete means delete.**
+If you wrote test-worthy production code before its failing test, **delete it and start over**. Do not keep it as reference, adapt it while writing the test, or inspect it for the test design. **Delete means delete.**
 
-The test is evidence only when you watched it fail for missing behavior. A test that first runs against finished code can describe what was built rather than what the proposal requires.
+When behavior warrants a test, that test is evidence only once you watched it fail for missing behavior. A test that first runs against finished code can describe what was built rather than what the proposal requires. When nothing about the change can be meaningfully tested, say so before writing code.
 
 ### Red → green → refactor
 
@@ -75,6 +78,7 @@ The test is evidence only when you watched it fail for missing behavior. A test 
 | --- | --- |
 | **RED** | Write one focused test for one observable behavior from Detailed design. Name it idiomatically with the proposal id and behavior it verifies. |
 | **Verify RED** | Run it — `vp test` from inside `packages/<name>`, or `mise run tools:test` for the record tooling. Confirm an expected assertion fails because behavior is missing — not because of setup, an import, or a typo. If it passes, correct the test. |
+| **Guide** | For user-facing behavior, write the guide from the proposal and compare it against the failing test before writing code. |
 | **GREEN** | Write the minimum production code that makes the test pass. Do not add untested defenses, future flexibility, or unrelated refactors. |
 | **Verify GREEN** | Run the test and the relevant suite — `vp test` in the package, `mise run tools:test` when the record tooling changed. Confirm they pass with no warnings, leaked logs, or skipped success. |
 | **Refactor** | Remove duplication and improve the design while tests stay green. Add no behavior. Then begin the next RED test. |
@@ -99,7 +103,7 @@ Watch the property fail in RED. Keep clear example tests alongside it; they docu
 
 | Red flag | Required correction |
 | --- | --- |
-| Code exists before its failing test | Delete the code. Start again with RED. |
+| Test-worthy code exists before its failing test | Delete the code. Start again with RED. |
 | A new test passes immediately | Correct the test until it fails for the required missing behavior. |
 | A test errors before asserting behavior | Fix setup and rerun until the expected assertion fails. |
 | “I will test after” or “keep this as reference” | Delete the code. Start again with RED. |
@@ -131,33 +135,35 @@ Every worked example **must actually run** against the real interface exactly as
 
 Before any production code:
 
-1. Read the proposal-derived guide and failing tests side by side.
+1. Read the proposal-derived guide and failing tests side by side, when both exist.
 2. List every behavior each artifact mentions.
 3. Treat anything in one list and not the other as a defect in one of them.
 4. Resolve every difference by correcting the guide, correcting the test, or revising the proposal with the human.
-5. Only then give the agreement to the implementer as the code contract.
+5. Only then give the agreement to the implementer as the code contract. When one of the two does not apply, compare the other directly against Detailed design.
 
 This comparison is load-bearing. Without it, the guide is decorative and the tests are an unreviewed interpretation. If a guide was written or rewritten from implementation, discard the code-shaped prose, derive it again from the proposal, and repeat the comparison.
 
 ## 3. Code
 
-Implement only the agreement among Detailed design, failing tests, and guide. Keep the production change minimal; do not add behavior that those artifacts do not require.
+Implement only Detailed design and whichever of its failing tests and guide apply. Keep the production change minimal; do not add behavior those artifacts do not require.
 
 When a test is difficult to write, simplify the interface rather than compensate with excessive mocking or setup. Test real code; isolate only inputs you cannot control, such as network, time, or randomness.
 
 If an unknown failure appears, stop implementation and use [`.agents/skills/systematic-debugging/SKILL.md`](../systematic-debugging/SKILL.md) to establish root cause before changing code.
 
-## 4. Quality gates and inline reviews
+## 4. Quality gates, excellence pass, and inline reviews
 
 Run `mise run check`, which depends on `docs:build`, `validate`, and `tools:test` before it runs `oxfmt --check`, `oxlint`, and `tsc`. A changed package also needs `vp test` and `vp run build` from inside `packages/<name>`. Follow [`.agents/rules/verification.md`](../../rules/verification.md) for completion evidence.
 
 A consumer-visible package change carries a release note on the branch. Run `mise run changeset` to name the affected packages and semver level, then commit the note with the work under its scope. Write the body for someone deciding whether to upgrade; Changesets uses it in the generated changelog. Repository tooling and agent-process changes need no package note. Feature work leaves version bumps and numbered changelog entries to `mise run changeset:version`, run later on human request.
 
-Perform these reviews sequentially. A finding returns the affected behavior to tests, guides, or code; rerun its gates and repeat the review that found it. Self-review can catch clear mistakes but never substitutes for either review.
+Once the behavior works and the gates are clean, run [`.agents/skills/excellence-pass/`](../excellence-pass/) over the result before either inline review: it asks whether this is the implementation that should remain, not merely whether it passes. An implementation improvement goes back to the implementer as a bounded correction, after which the affected gates and this pass run again. A finding that changes intended behavior goes back to the proposal and the human instead of being settled in code.
+
+Perform the inline reviews sequentially. A finding returns the affected behavior to tests, guides, or code; rerun its gates and repeat the review that found it. Self-review can catch clear mistakes but never substitutes for either review.
 
 | Gate | Reviewer examines | May start when |
 | --- | --- | --- |
-| Proposal compliance | Detailed design, tests, guides, code, scope, and every required behavior | All implementation slices and quality gates are clean |
+| Proposal compliance | Detailed design, tests, guides, code, scope, and every required behavior | All implementation slices, quality gates, and the excellence pass are clean |
 | Code quality | Project conventions, names, duplication, boundaries, errors, complexity, and tests that assert observable behavior | Proposal-compliance is clean |
 
 The proposal-compliance reviewer returns approval or concrete gaps. The code-quality reviewer reports only concrete, important issues. Do not start code-quality review while proposal-compliance has open findings.
@@ -175,7 +181,8 @@ The adversarial reviewer is fresh-context, report-only, and uses a model distinc
 - Never let an implementer commit.
 - Never let an implementer bump a version or write a changelog section; the branch carries a changeset note instead.
 - Never let self-review substitute for proposal-compliance, code-quality, cross-artifact, or adversarial review.
-- Never begin the Phase 3 cross-artifact review before both inline gates are clean.
+- Never begin the Phase 3 cross-artifact review before the excellence pass and both inline gates are clean.
+- Never let an implementer settle a conflict between the proposal and the evidence; that returns to the strategist and the human.
 - Use the harness’s standard capable model for implementation and inline reviews.
 - Use the strongest available model distinct from the implementer for adversarial review; cognitive diversity is the point.
 - Escalate an implementer only for a reasoning shortfall, never for missing context.
