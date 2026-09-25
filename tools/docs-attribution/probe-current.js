@@ -15,9 +15,24 @@ import docsWorker from "./index.js";
 import preparedDocuments from "./prepared-documents.js";
 import probe, { handleProbe, probeVersion } from "./probe.js";
 
+const preparedBytes = Object.fromEntries(
+    Object.entries(preparedDocuments).map(([path, html]) => [
+        path.replace("/prepared/", "/encoded/"),
+        new TextEncoder().encode(html),
+    ]),
+);
+
 export default {
     async fetch(request, env, ctx) {
         let url = new URL(request.url);
+        if (Object.hasOwn(preparedBytes, url.pathname)) {
+            return new Response(preparedBytes[url.pathname], {
+                headers: {
+                    "content-type": "text/html; charset=utf-8",
+                    "cache-control": "no-store",
+                },
+            });
+        }
 
         if (Object.hasOwn(preparedDocuments, url.pathname)) {
             return new Response(preparedDocuments[url.pathname], {

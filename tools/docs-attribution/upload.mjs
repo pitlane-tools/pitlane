@@ -53,7 +53,7 @@ cases.push(
 );
 const preparedDocuments = {};
 const preparedCases = [];
-const prepare = new Set(["page-0", "page-100", "page-2209", "current-guide", "current-dense"]);
+const prepare = new Set(["page-2209", "current-guide", "current-dense"]);
 for (const specification of cases) {
     const response = await invoke(specification.path);
     const body = await response.text();
@@ -68,6 +68,11 @@ for (const specification of cases) {
         const path = `/prepared/${specification.id}`;
         preparedDocuments[path] = body;
         preparedCases.push({ ...specification, id: `literal-${specification.id}`, path });
+        preparedCases.push({
+            ...specification,
+            id: `encoded-${specification.id}`,
+            path: `/encoded/${specification.id}`,
+        });
     }
 }
 await writeFile(
