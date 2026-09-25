@@ -220,8 +220,6 @@ function App() {
 import { css } from "@pitlane/theme";
 import { t } from "./theme.ts";
 
-// css() binds to the element type of the mix position it appears in,
-// so write it inline at each element, like remix/ui's own css.
 <article
     mix={css({
         color: t.color.page,
@@ -232,6 +230,8 @@ import { t } from "./theme.ts";
     })}
 />;
 ```
+
+Inline `css()` infers the element type from `mix`. For fixed styles reused on one element type, create a descriptor once with an explicit type, such as `css<HTMLAnchorElement>({ color: t.color.page })`. Share `ThemedCSSProps` objects instead when the same styles are used on different element types.
 
 Off-palette literals fail to compile. Keywords such as `transparent` and literal `0` stay legal. Properties outside the token-mapped set carry [csstype](https://github.com/frenic/csstype)'s value union, so `resize: "vertical"` autocompletes and `resize: "diagonal"` is a type error, while open-grammar properties such as `background` and `gridTemplateColumns` take any string. Template interpolation covers shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
 
