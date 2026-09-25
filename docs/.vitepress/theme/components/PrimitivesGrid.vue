@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { codeToHtml } from "shiki";
 
-const rawSnippets = import.meta.glob<string>("./snippets/*.{ts,tsx}", {
+let rawSnippets = import.meta.glob<string>("./snippets/*.{ts,tsx}", {
     eager: true,
     import: "default",
     query: "?raw",
 });
 
-const snippetOrder = {
+let snippetOrder = {
     config: "config",
     serverEntry: "server-entry",
     clientEntry: "client-entry",
@@ -18,11 +18,11 @@ const snippetOrder = {
 
 type SnippetKey = keyof typeof snippetOrder;
 
-const stripSnippetDirectives = (code: string) => code.replace(/^\/\/ @ts-nocheck\r?\n/, "").trim();
+let stripSnippetDirectives = (code: string) => code.replace(/^\/\/ @ts-nocheck\r?\n/, "").trim();
 
-const highlighted = {} as Record<SnippetKey, string>;
-for (const [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]) {
-    const code = rawSnippets[`./snippets/${file}.tsx`] ?? rawSnippets[`./snippets/${file}.ts`];
+let highlighted = {} as Record<SnippetKey, string>;
+for (let [key, file] of Object.entries(snippetOrder) as [SnippetKey, string][]) {
+    let code = rawSnippets[`./snippets/${file}.tsx`] ?? rawSnippets[`./snippets/${file}.ts`];
     if (code === undefined) throw new Error(`Missing primitive snippet: ${file}`);
     highlighted[key] = await codeToHtml(stripSnippetDirectives(code), {
         lang: "tsx",

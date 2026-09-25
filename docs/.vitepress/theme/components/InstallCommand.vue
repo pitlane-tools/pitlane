@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from "vue";
 
-const command = "vp add -D @pitlane/dev";
-const copied = ref(false);
+let command = "vp add -D @pitlane/dev";
+let copied = ref(false);
 
 async function copy() {
     await navigator.clipboard.writeText(command);

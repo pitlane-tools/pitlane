@@ -4,7 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 // Scaffold and install measured 2026-08-26 against the published cloudflare template
 // (giget 1.8s, pnpm install 5.5s cold, "Packages: +289"). The d1-create, dev, and
 // deploy times are estimates: they need a Cloudflare account and a GitHub repo to measure.
-const lines = [
+let lines = [
     {
         ts: "00:01.80",
         cmd: "vpx giget github:pitlane-tools/templates/cloudflare airfoil",
@@ -24,28 +24,28 @@ const lines = [
 const HOLD_MS = 2000;
 
 function parseTs(ts) {
-    const [mm, rest] = ts.split(":");
-    const [ss, hh] = rest.split(".");
+    let [mm, rest] = ts.split(":");
+    let [ss, hh] = rest.split(".");
     return Number(mm) * 60000 + Number(ss) * 1000 + Number(hh) * 10;
 }
 
 function formatTs(ms) {
-    const totalHundredths = Math.max(0, Math.floor(ms / 10));
-    const mm = Math.floor(totalHundredths / 6000);
-    const ss = Math.floor((totalHundredths % 6000) / 100);
-    const hh = totalHundredths % 100;
+    let totalHundredths = Math.max(0, Math.floor(ms / 10));
+    let mm = Math.floor(totalHundredths / 6000);
+    let ss = Math.floor((totalHundredths % 6000) / 100);
+    let hh = totalHundredths % 100;
     return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}.${String(hh).padStart(2, "0")}`;
 }
 
-const targets = lines.map(line => parseTs(line.ts));
-const totalMs = targets[targets.length - 1];
+let targets = lines.map(line => parseTs(line.ts));
+let totalMs = targets[targets.length - 1];
 
-const elapsedMs = ref(0);
-const sectionRef = ref(null);
+let elapsedMs = ref(0);
+let sectionRef = ref(null);
 
-const rowsWithState = computed(() => {
-    const e = elapsedMs.value;
-    const activeIdx = targets.findIndex(t => t > e);
+let rowsWithState = computed(() => {
+    let e = elapsedMs.value;
+    let activeIdx = targets.findIndex(t => t > e);
     return lines.map((line, i) => {
         if (activeIdx === -1 || i < activeIdx) {
             return { ...line, state: "locked", display: line.ts };
@@ -62,7 +62,7 @@ let rafId;
 
 function tick(now) {
     if (startTime === undefined) startTime = now;
-    const elapsed = now - startTime;
+    let elapsed = now - startTime;
     if (elapsed >= totalMs + HOLD_MS) {
         startTime = now;
         elapsedMs.value = 0;
@@ -88,14 +88,14 @@ function stopClock() {
 let observer;
 
 onMounted(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (reducedMotion.matches) {
         elapsedMs.value = totalMs;
         return;
     }
 
     observer = new IntersectionObserver(entries => {
-        for (const entry of entries) {
+        for (let entry of entries) {
             if (entry.isIntersecting) {
                 startClock();
             } else {
