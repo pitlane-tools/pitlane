@@ -38,36 +38,6 @@ jobs:
             - name: Build and verify documentation
               run: mise run docs:test
 
-            - name: Capture preview render exceptions
-              run: |
-                  node --input-type=module <<'NODE'
-                  import { readFile, writeFile } from "node:fs/promises";
-                  let directory = ".docs/dist/ssr/";
-                  await writeFile(directory + "probe.mjs", `
-                  export default {
-                      async fetch(request, env, context) {
-                          let mode = request.headers.get("X-Pitlane-Render-Probe");
-                          if (mode === "health") return Response.json({ probe: "entry" });
-                          try {
-                              let { default: app } = await import("./index.js");
-                              let response = await app.fetch(request, env, context);
-                              if (mode !== "dense-reference") return response;
-                              let headers = new Headers(response.headers);
-                              headers.set("X-Pitlane-Render-Probe", "buffered");
-                              return new Response(await response.arrayBuffer(), { status: response.status, headers });
-                          } catch (error) {
-                              if (mode !== "dense-reference") throw error;
-                              return Response.json({ name: error.name, message: error.message, stack: error.stack }, { status: 500 });
-                          }
-                      }
-                  };
-                  `);
-                  let config = JSON.parse(await readFile(directory + "wrangler.json", "utf8"));
-                  config.main = "probe.mjs";
-                  config.limits = { cpu_ms: 1000 };
-                  await writeFile(directory + "wrangler.json", JSON.stringify(config));
-                  NODE
-
             # `wrangler versions upload` routes zero production traffic to the
             # new version; the preview URL is what reviewers open.
             - name: ☁️ Upload preview version
@@ -76,16 +46,6 @@ jobs:
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
               run: |
-                  node --input-type=module <<'NODE'
-                  import { readFile } from "node:fs/promises";
-                  let config = JSON.parse(await readFile(".docs/dist/ssr/wrangler.json", "utf8"));
-                  for (let resource of ["workers/account-settings", "workers/scripts/pitlane/settings", "subscriptions"]) {
-                      let response = await fetch("https://api.cloudflare.com/client/v4/accounts/" + config.account_id + "/" + resource, { headers: { Authorization: "Bearer " + process.env.CLOUDFLARE_API_TOKEN } });
-                      let payload = await response.json();
-                      let result = payload.result;
-                      console.log(JSON.stringify({ resource, status: response.status, limits: result?.limits, usageModel: result?.usage_model, defaultUsageModel: result?.default_usage_model, plans: Array.isArray(result) ? result.map(subscription => subscription.rate_plan?.public_name) : undefined, errors: payload.errors?.map(error => error.code) }));
-                  }
-                  NODE
                   pnpm exec wrangler versions upload \
                       --config .docs/dist/ssr/wrangler.json \
                       --message "Preview: $GITHUB_REF_NAME @ ${GITHUB_SHA::7}" \
@@ -102,33 +62,6 @@ jobs:
                   echo "preview-url=$preview_url" >> "$GITHUB_OUTPUT"
                   echo "version-id=$version_id" >> "$GITHUB_OUTPUT"
 
-            - name: Inspect the remote development runtime
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-              run: |
-                  node --input-type=module <<'NODE'
-                  import { spawn } from "node:child_process";
-                  let server = spawn("pnpm", ["exec", "wrangler", "dev", "--remote", "--config", ".docs/dist/ssr/wrangler.json", "--port", "8791", "--inspector-port", "9230"], { detached: true, stdio: ["ignore", "pipe", "pipe"] });
-                  let ready = Promise.withResolvers();
-                  let timeout = setTimeout(() => ready.reject(new Error("Remote development did not become ready")), 90000);
-                  for (let output of [server.stdout, server.stderr]) output.on("data", bytes => {
-                      process.stdout.write(bytes);
-                      if (bytes.toString().includes("Ready on http")) ready.resolve();
-                  });
-                  server.on("exit", code => ready.reject(new Error("Remote development exited: " + code)));
-                  try {
-                      await ready.promise;
-                      clearTimeout(timeout);
-                      for (let sample = 0; sample < 10; sample++) {
-                          let response = await fetch("http://localhost:8791/package/theme/interface/ThemedCSSProps", { headers: { "X-Pitlane-Render-Probe": "dense-reference" } });
-                          let body = await response.text();
-                          console.log(JSON.stringify({ sample, status: response.status, bytes: body.length, failure: response.ok ? null : body.slice(0, 12000) }));
-                      }
-                  } finally {
-                      clearTimeout(timeout);
-                      process.kill(-server.pid, "SIGTERM");
-                  }
-                  NODE
             - name: 📝 Report preview URL
               env:
                   GH_TOKEN: ${{ github.token }}
