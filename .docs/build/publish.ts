@@ -31,8 +31,12 @@ interface ServerEntry {
  * build just produced: every page is rendered through the built Worker's own
  * `fetch`, with no preferences, and its article becomes the page's Markdown
  * counterpart and search record. The LLM indexes and the sitemap follow from
- * the same documents. Nothing is written at a document's own path, so a
- * document request always reaches the Worker and its reader's cookies.
+ * the same documents.
+ *
+ * A reference page's complete document is also written at its own address,
+ * where Cloudflare serves it without running the Worker: no reader preference
+ * changes it. An authored page's never is, so its requests reach the Worker
+ * and are rendered with the reader's cookies.
  */
 export function publish(options: PublishOptions): Plugin {
     let root = process.cwd();
@@ -88,7 +92,9 @@ export function publish(options: PublishOptions): Plugin {
                             `[docs-publish] ${page.url} answered ${response.status} when rendered.`,
                         );
                     }
-                    let article = articleOf(await response.text(), page.url);
+                    let html = await response.text();
+                    if (page.section === "api") await write(join(client, htmlPath(page.url)), html);
+                    let article = articleOf(html, page.url);
                     let markdown = markdownExport(page, article);
                     await write(join(client, markdownPath(page.url)), markdown);
                     exported.push({ page, markdown });
@@ -123,6 +129,14 @@ function isPublicationAsset(pathname: string): boolean {
         pathname === "/llms-full.txt" ||
         pathname === "/sitemap.xml"
     );
+}
+
+/**
+ * Where Cloudflare's default HTML handling serves a document at `url` as it is
+ * spelled: `/symbol` from `symbol.html`, `/module/` from `module/index.html`.
+ */
+function htmlPath(url: string): string {
+    return url.endsWith("/") ? `${url}index.html` : `${url}.html`;
 }
 
 /**
