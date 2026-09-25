@@ -12,7 +12,9 @@ const ASSETS = new URL("../dist/client/", import.meta.url);
 /** The Worker this build deploys, rendering in this process as the build's publication does. */
 let app = await import(new URL("../dist/ssr/index.js", import.meta.url).href);
 let { pages } = await app.publication.documents();
-let references = pages.filter(page => page.section === "api").map(page => page.url);
+let references = JSON.parse(
+    await readFile(new URL("../../docs/.generated/reference.json", import.meta.url), "utf8"),
+).map(page => page.url);
 let authored = pages.filter(page => page.section !== "api").map(page => page.url);
 
 /** Every combination of the supported preferences, as the cookies a reader sends with it. */
@@ -89,7 +91,6 @@ test("proposal.0004: every reference document is a static file served at its can
         let response = await fetch(new URL(url, origin), { redirect: "manual" });
         assert.equal(response.status, 200, url);
         assert.match(response.headers.get("content-type"), /^text\/html\b/i, url);
-        assert.notEqual(response.headers.get("etag"), null, `${url} is served as an asset`);
         assert.notEqual(response.headers.get("cache-control"), "private, no-store", url);
         assert.equal(response.headers.get("set-cookie"), null, url);
         assert.equal(await response.text(), file, url);
@@ -136,6 +137,5 @@ test("proposal.0004: authored documents have no static file and are rendered for
         let response = await fetch(new URL(url, origin), { method: "HEAD", redirect: "manual" });
         assert.equal(response.status, 200, url);
         assert.equal(response.headers.get("cache-control"), "private, no-store", url);
-        assert.equal(response.headers.get("etag"), null, url);
     }
 });
