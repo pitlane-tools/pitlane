@@ -38,6 +38,31 @@ jobs:
             - name: Build and verify documentation
               run: mise run docs:test
 
+            - name: Capture preview render exceptions
+              run: |
+                  node --input-type=module <<'NODE'
+                  import { readFile, writeFile } from "node:fs/promises";
+                  let directory = ".docs/dist/ssr/";
+                  await writeFile(directory + "probe.mjs", `
+                  import app from "./index.js";
+                  export default {
+                      async fetch(request, env, context) {
+                          if (request.headers.get("X-Pitlane-Render-Probe") !== "dense-reference")
+                              return app.fetch(request, env, context);
+                          try {
+                              let response = await app.fetch(request, env, context);
+                              return new Response(await response.arrayBuffer(), response);
+                          } catch (error) {
+                              return Response.json({ name: error.name, message: error.message, stack: error.stack }, { status: 500 });
+                          }
+                      }
+                  };
+                  `);
+                  let config = JSON.parse(await readFile(directory + "wrangler.json", "utf8"));
+                  config.main = "probe.mjs";
+                  await writeFile(directory + "wrangler.json", JSON.stringify(config));
+                  NODE
+
             # `wrangler versions upload` routes zero production traffic to the
             # new version; the preview URL is what reviewers open.
             - name: ☁️ Upload preview version
