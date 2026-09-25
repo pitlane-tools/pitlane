@@ -48,7 +48,7 @@ A guide is a topic-oriented document. A tutorial is an ordered learning experien
 
 ### Remaining uncertainty
 
-The full production Worker cost of rendering prebuilt content remains to be measured. The repository pins Remix rc.2 while inspected upstream documentation may describe later versions; verify against installed APIs. An isolated renderer experiment found that chunked streams returned by `resolveFrame` can place closing frame markers before article content ends in the installed runtime. Approach A does not require that nested static-frame transport. MDX authoring and headless checking have been exercised with an isolated TypeScript 6 tool dependency; retain that coverage while changing documentation components.
+The deployed investigation measured excessive request-time rendering cost and established that all 108 reference documents are invariant across the 16 supported preference combinations, after normalizing randomized hydration identifiers. All 16 authored documents remain preference-sensitive. See the [attribution and architecture investigation](https://github.com/pitlane-tools/pitlane/pull/32#issuecomment-5837934699) for measurements and limitations. Complete prerendered reference documents still need verification against Workers asset routing and native Remix navigation; prepared-response benchmarks do not establish that integration. The repository pins Remix rc.2, so verify against installed APIs. The design does not require nested static-frame transport. Retain the exercised MDX authoring and headless checking coverage while changing documentation components.
 
 ## Existing baseline
 
@@ -62,7 +62,7 @@ An exploratory browser load of `/guides/vite-plugin` fetched 20 same-origin Java
 
 ## Proposed solution
 
-Build one conventional server-rendered Remix application using `@pitlane/dev`, `@pitlane/content`, and `@pitlane/theme`. Compile authored guides to components and generated API reference bodies to HTML strings during the build, then render the complete cookie-aware document on requests. Use Remix's native soft document navigation rather than a separately fetched article representation. Keep static assets outside request-time application rendering.
+Build one conventional Remix application using `@pitlane/dev`, `@pitlane/content`, and `@pitlane/theme`, with delivery chosen according to the document's dependence on reader preferences. Render complete preference-invariant API reference documents at build time and publish them as native Workers static assets. Render preference-sensitive authored guides as complete cookie-aware documents on requests. Use the same application components and content definitions for both paths, with Remix's native soft document navigation rather than a separately fetched article representation.
 
 Adopt the Remix documentation shell while retaining Pitlane branding. Guides retain topical organization; API reference moves to symbol pages. Existing content remains authoritative.
 
@@ -110,15 +110,17 @@ Use `@pitlane/theme` as the application's styling system, not merely as a source
 
 In the new Remix reader, use `lightDark()` with the system color scheme. Remove the light/dark/system selector and theme preference from cookies, query overrides, and legacy-storage migration; old theme preferences have no effect. Appearance follows system changes without navigation and works without JavaScript. Static styling does not require hydration. Expressive Code uses GitHub Light and GitHub Dark themes selected by the system, with JetBrains Mono as the code font. Its build-generated CSS is an explicit third-party styling exception and must load without JavaScript. Leave the existing VitePress site's appearance and implementation unchanged; it will be replaced separately.
 
-### Cookie-aware document rendering
+### Static reference and cookie-aware guide delivery
 
 One Vite-built application entry exposes the standard fetch handler used in development and deployment. Compose Remix routes, controllers, and rendering middleware with Pitlane's build integration and Cloudflare's platform integration. Resolve browser assets through `?assets=` imports and `@pitlane/dev/runtime`, not a separately maintained asset-manifest protocol.
 
-On a document request, the controller resolves the explicit URL, content entry, and preference cookies, then renders a complete document. Authored guides retain their existing component path; generated TypeDoc bodies are HTML strings prepared at build time. Reference heading metadata is generated alongside the HTML. Preserve anchors, readable Markdown exports, and Pagefind content. Markdown parsing, API extraction, Expressive Code rendering, and syntax highlighting remain outside request-time execution. Keep the shell and outline on their existing rendering paths for the first comparative measurement.
+Render complete API reference documents during the build, including the shell, navigation, outline, metadata, hydration descriptors, and build-generated TypeDoc body. Serve them at their canonical public URLs through Cloudflare's assets-first routing without invoking the application Worker. Eligibility depends on the complete response being independent of reader preferences, not merely its article body; the current 108 reference pages satisfy this boundary. Do not use an in-Worker HTML cache as the static delivery mechanism.
+
+On an authored guide request, the controller resolves the explicit URL, content entry, and preference cookies, then renders a complete document through the existing component path. Do not publish static guide HTML that would bypass those preferences. Preserve anchors, readable Markdown exports, and Pagefind content on both delivery paths. Markdown parsing, API extraction, Expressive Code rendering, and syntax highlighting remain outside request-time execution.
 
 Ordinary links target public document URLs. Remix's native soft navigation fetches and reconciles the next complete document. Metadata, breadcrumbs, selected navigation, and the table of contents derive from the same resolved document. Do not introduce an application-owned DOM synchronization registry or public static article-frame endpoints. Build-generated headings and content metadata remain authoritative; the Worker must not parse rendered HTML to recover them.
 
-Build-mode and package-manager selections persist in cookies. The server applies them before sending the document. Controls work through ordinary links or form submissions, with JavaScript enhancing updates to avoid full navigation where possible. Validate cookie values against the supported choices; absent or invalid preferences use the documented default. Blocked cookies must not prevent reading or making a selection for the current response.
+Build-mode and package-manager selections persist in cookies. The server applies them before sending preference-sensitive guide documents; reference documents do not vary with these cookies. Navigating through a static reference page must not clear or replace the reader's preferences. Controls work through ordinary links or form submissions, with JavaScript enhancing updates to avoid full navigation where possible. Validate cookie values against the supported choices; absent or invalid preferences use the documented default. Blocked cookies must not prevent reading or making a selection for the current response.
 
 An explicit Vite or No Build variant URL takes precedence over the cookie, including deep links. Use the cookie as the default for navigation that does not explicitly choose a variant. Render the corresponding prebuilt content entry.
 
@@ -126,9 +128,9 @@ Render package-manager code groups with the server-selected alternative visible 
 
 Use small, host-only preference cookies with `Secure`, `SameSite=Lax`, and an explicit lifetime. Build-mode and package-manager preferences require neither a session database nor signed tokens. Preserve their existing localStorage preferences through a one-time browser-assisted migration only when no corresponding cookie exists; explicit new selections take precedence. Do not migrate stored appearance choices. The server cannot recover legacy browser storage on an initial request, so document that first-visit limitation.
 
-Serve cookie-dependent document responses and preference mutations without shared caching, using `Cache-Control: private, no-store`. CSS, images, fonts, scripts, search assets, and generated Markdown bypass application execution on matching requests. Do not publish prerendered HTML at public document paths where Cloudflare's asset-first routing would bypass preference-aware rendering.
+Serve cookie-dependent guide responses and preference mutations without shared caching, using `Cache-Control: private, no-store`. Complete reference HTML, CSS, images, fonts, scripts, search assets, and generated Markdown bypass application execution on matching requests. Static reference responses must not contain personalized state or set preference cookies.
 
-Verify first loads and preference submissions with JavaScript disabled, then exercise enhanced navigation, back/forward, deep links, and preference changes. Confirm the initial response contains the article and selected examples, navigation retains one shell, and requests from readers with different cookies cannot reuse personalized document responses.
+Verify direct reference and guide loads and preference submissions with JavaScript disabled, then exercise enhanced navigation in both directions between static references and SSR guides, back/forward, deep links, and preference changes. Confirm the initial response contains the complete article, guide examples reflect the selected preferences, navigation retains one shell, and readers with different cookies cannot reuse personalized guide responses. Verify that static reference requests bypass the Worker and preserve metadata, heading targets, outline behavior, and Expressive Code copying after soft navigation. Compare complete reference output across all supported preference combinations, normalizing only runtime-generated hydration identifiers, to guard its static eligibility.
 
 ### Search contract
 
@@ -140,7 +142,7 @@ Build and deploy the Pagefind index with the content. Load the browser search en
 
 ### Build and deployment
 
-Keep Cloudflare Workers, the existing production domain, and branch-preview mechanism. Run content compilation, API generation, and syntax highlighting during the build. Enumerate every published document from authoritative content metadata, including symbols. Generate Pagefind, Markdown exports, sitemap, and LLM indexes from the same content and rendering definitions, not a second reader application. Build-only rendering for publication is permitted; static article-frame delivery is not required.
+Keep Cloudflare Workers, the existing production domain, and branch-preview mechanism. Run content compilation, API generation, syntax highlighting, and complete reference-page rendering during the build. Enumerate every published document from authoritative content metadata, including symbols. Publish reference HTML alongside the existing static assets, retaining the guide routes and preference actions in the Worker. Generate Pagefind, Markdown exports, sitemap, and LLM indexes from the same content and rendering definitions, not a second reader application. Do not introduce static article-frame endpoints.
 
 Preserve canonical URL behavior deliberately rather than inheriting new trailing slashes from directory-index output. Preserve real 404 status codes, metadata, sitemap entries, Markdown counterparts, and LLM indexes. Unknown documents and removed article-frame paths must not return the home page or a successful document shell.
 
@@ -182,7 +184,7 @@ Preserve existing guide URLs, build-mode selections, package-manager preferences
 
 ## Implications on adoption
 
-Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. Authored guides keep their existing compiled component rendering. API reference continues to derive from package exports and TSDoc, but its serving representation is build-generated HTML with Expressive Code blocks. The full document still comes from the application's cookie-aware response.
+Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. Authored guides keep their existing compiled component rendering and cookie-aware request handling. API reference continues to derive from package exports and TSDoc, with Expressive Code blocks, but complete reference documents are rendered at build time and served as static assets.
 
 Preserve TypeDoc's separate compiler environment unless evidence establishes a supported replacement. Use compatible scoped Pitlane packages; the reserved umbrella package is not an implementation dependency.
 
@@ -195,6 +197,8 @@ The documentation renderer, Markdown/MDX authoring and editor/typechecking tooli
 ### Out of scope
 
 Home-page creative direction and implementation; production launch before that separate port; tutorial authoring; package API redesign; unrelated framework features; historical multi-version documentation.
+
+Fix the architecture of this documentation site first. A new documentation package, generic configuration API, external starter, or package extraction is not part of this work. Consider extraction only after the site's implementation works and demonstrates a worthwhile reusable boundary.
 
 ## Preview
 
@@ -217,13 +221,13 @@ A tutorial section could provide chapter-based learning without changing the mea
 
 - Lazy browser search: selected because the corpus changes with deployment and a chunked index avoids a search service. Browser engine/index costs remain part of the measurement report.
 - Worker-backed search: deferred unless measurements justify its server execution and operational complexity. Revisit with the human rather than changing search placement automatically.
-- Fully static documents with browser-applied preferences: avoid document Worker invocations, but require browser correction to respect stored choices. Cookie-aware shell rendering is chosen so preferences work in the initial response and without JavaScript.
-- Prebuilt content with request-time document rendering (Approach A): selected by the human after architecture research, then refined after dense-reference profiling. Keep one application and native document reconciliation; serve fixed reference bodies from prepared HTML while retaining guide components.
-- Separately retrieved article assets and nested article frames (Approach B): not selected. Prepared reference strings embedded directly in the normal document response require neither mechanism.
+- Fully static documents with browser-applied preferences: not selected for authored guides because it would change initial-response and no-JavaScript behavior. Preference-invariant reference documents need no browser correction and are served statically.
+- Prebuilt content with request-time document rendering (Approach A): originally selected for all documents. Deployed measurements and the preference-invariance check motivated the human-approved revision to complete static reference documents with cookie-aware guide rendering. Keep one application and native document reconciliation.
+- Separately retrieved article assets and nested article frames (Approach B): not selected. Both delivery paths return complete documents and require neither mechanism.
 - Static article-only navigation with a persistent shell (Approach C): not selected. It can reduce navigation payload but requires additional cross-region coordination.
 - Retaining module-sized API pages: simpler link migration, but the human explicitly prefers symbol-per-page organization.
 - Adopting Remix's chapter sequence for guides: conflicts with Pitlane's topical guides and planned distinction between guides and tutorials.
 
 ## Open questions
 
-The human approved Approach A and resuming implementation. Content structure, symbol organization, search, authoring support, and the separate home-page production gate remain unchanged. Return any conflict with these contracts to the human; do not substitute optimizations for the approved application architecture.
+The human approved revising the existing architecture to serve complete preference-invariant reference documents statically while retaining cookie-aware guide rendering. Fix this site's architecture before considering package extraction. Content structure, symbol organization, search, authoring support, and the separate home-page production gate remain unchanged. Return any conflict with these contracts to the human; do not substitute optimizations for the approved application architecture.
