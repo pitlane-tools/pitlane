@@ -26,7 +26,6 @@ export interface DocumentPage {
 export const PREFERENCE_CHOICES = {
     packageManager: ["npm", "yarn", "pnpm", "bun", "deno", "vp", "vlt", "nub"],
     buildMode: ["vite", "no-build"],
-    theme: ["system", "light", "dark"],
 } as const;
 
 export type Preferences = {
@@ -38,13 +37,11 @@ export type BuildMode = Preferences["buildMode"];
 export const DEFAULT_PREFERENCES: Preferences = {
     packageManager: "npm",
     buildMode: "vite",
-    theme: "system",
 };
 
 export const PREFERENCE_COOKIES: Record<keyof Preferences, string> = {
     packageManager: "pitlane-package-manager",
     buildMode: "pitlane-build-mode",
-    theme: "pitlane-theme",
 };
 
 export const PREFERENCE_MAX_AGE = 31_536_000;

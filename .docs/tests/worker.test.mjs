@@ -13,7 +13,7 @@ function preference(preference, value, returnTo = "/guides/vite-plugin") {
 
 test("proposal.0004: cookie-bearing documents cannot enter shared caches", async () => {
     let response = await request("/guides/vite-plugin", {
-        headers: { cookie: "pitlane-package-manager=pnpm; pitlane-theme=dark" },
+        headers: { cookie: "pitlane-package-manager=pnpm" },
     });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("cache-control"), "private, no-store");
@@ -52,12 +52,13 @@ test("proposal.0004: preference submissions issue secure cookies and redirect to
     assert.equal(selected.status, 200);
 });
 
-test("proposal.0004: preference validation rejects invalid values and external destinations", async () => {
+test("proposal.0004: preference validation rejects retired, unknown, or invalid choices and external destinations", async () => {
     for (let [key, value, destination] of [
         ["packageManager", "invalid", "/guides/vite-plugin"],
         ["unknown", "bun", "/guides/vite-plugin"],
-        ["theme", "dark", "https://example.com/"],
-        ["theme", "dark", "//example.com/"],
+        ["theme", "dark", "/guides/vite-plugin"],
+        ["packageManager", "bun", "https://example.com/"],
+        ["packageManager", "bun", "//example.com/"],
     ]) {
         let response = await preference(key, value, destination);
         assert.equal(response.status, 400);

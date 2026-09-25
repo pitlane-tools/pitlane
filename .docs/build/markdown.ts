@@ -34,6 +34,7 @@ function blocks(nodes: Content[]): string {
 function block(node: Content): string {
     if (node.type === "text") return node.value.trim() === "" ? "" : escape(node.value.trim());
     if (node.type !== "element" || DROPPED.has(node.tagName)) return "";
+    if (hasProperty(node, "dataPagefindIgnore")) return "";
 
     if (hasProperty(node, "dataCodeGroup")) return codeGroup(node);
     if (hasProperty(node, "dataCallout")) return callout(node);
@@ -107,7 +108,10 @@ function codeSpan(text: string): string {
 /** A `<pre>`, fenced with the language the build recorded on it, and long enough to hold any fence inside. */
 function fence(node: Element): string {
     let language = node.properties?.dataLanguage;
-    let code = textContent(node).replace(/\n$/, "");
+    let lines = descendants(node, element => classList(element).includes("ec-line"));
+    let code = lines.length
+        ? lines.map(line => textContent(line).replace(/\n$/, "")).join("\n")
+        : textContent(node).replace(/\n$/, "");
     let longest = Math.max(0, ...(code.match(/`+/g) ?? []).map(run => run.length));
     let ticks = "`".repeat(Math.max(3, longest + 1));
     return `${ticks}${typeof language === "string" && language !== "text" ? language : ""}\n${code}\n${ticks}`;

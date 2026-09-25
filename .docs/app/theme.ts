@@ -5,8 +5,7 @@ import * as s from "@pitlane/theme/schema";
  * The documentation site's design system. The palette follows the Remix
  * reference docs (blue links, pink metadata, quiet grey chrome) and keeps
  * Pitlane's red for the wordmark. Every semantic color is a `light-dark()`
- * pair, so one `color-scheme` decides the appearance: the operating system's
- * when the reader chose "system", the reader's own otherwise.
+ * pair, so the operating system's color scheme decides the appearance.
  */
 let primitives = createTheme({
     schema: {
@@ -58,7 +57,15 @@ let primitives = createTheme({
                 "Arial",
                 "sans-serif",
             ],
-            mono: ["ui-monospace", "SFMono-Regular", "SF Mono", "Menlo", "Consolas", "monospace"],
+            mono: [
+                "JetBrains Mono Variable",
+                "ui-monospace",
+                "SFMono-Regular",
+                "SF Mono",
+                "Menlo",
+                "Consolas",
+                "monospace",
+            ],
         },
         weight: { regular: 400, medium: 500, semibold: 600, bold: 700 },
         text: {
@@ -195,8 +202,6 @@ export let { token: t, Theme } = primitives.extend(base => ({
             dialogHeight: `min(calc(100dvh - ${base.size.header} - 3rem), 50rem)`,
             disclosureHeight: "min(60dvh, 32rem)",
             viewport: "100dvh",
-            /** Header menus hang just below the header's controls. */
-            menuTop: `calc(${base.size.header} - 0.5rem)`,
         },
     },
 }));

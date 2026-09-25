@@ -10,14 +10,13 @@ import { readStorage, writeStorage } from "./storage.ts";
 
 type PreferenceKey = keyof Preferences;
 
-/** Where the VitePress site kept each choice, and how its values read today. */
-const LEGACY_STORAGE: Record<PreferenceKey, { key: string; value(stored: string): string }> = {
-    packageManager: { key: "pitlane-package-manager", value: stored => stored },
-    buildMode: { key: "pitlane-build-mode", value: stored => stored },
-    theme: {
-        key: "vitepress-theme-appearance",
-        value: stored => (stored === "auto" ? "system" : stored),
-    },
+/**
+ * Where the VitePress site kept each choice. Its stored appearance is not
+ * here: the site follows the operating system's color scheme.
+ */
+const LEGACY_STORAGE: Record<PreferenceKey, string> = {
+    packageManager: "pitlane-package-manager",
+    buildMode: "pitlane-build-mode",
 };
 
 function hasCookie(key: PreferenceKey): boolean {
@@ -30,17 +29,16 @@ function hasCookie(key: PreferenceKey): boolean {
 export function migrateLegacyPreferences(): boolean {
     let migrated = false;
     for (let key of Object.keys(LEGACY_STORAGE) as PreferenceKey[]) {
-        let legacy = LEGACY_STORAGE[key];
-        let stored = readStorage(legacy.key);
-        if (stored === null) continue;
-        let value = legacy.value(stored);
+        let legacyKey = LEGACY_STORAGE[key];
+        let value = readStorage(legacyKey);
+        if (value === null) continue;
         if (!hasCookie(key) && (PREFERENCE_CHOICES[key] as readonly string[]).includes(value)) {
             document.cookie = `${PREFERENCE_COOKIES[key]}=${value}; Path=/; Max-Age=${PREFERENCE_MAX_AGE}; SameSite=Lax; Secure`;
             // A browser refusing the cookie keeps the stored value for a later visit.
             if (!hasCookie(key)) continue;
             migrated = true;
         }
-        writeStorage(legacy.key, null);
+        writeStorage(legacyKey, null);
     }
     return migrated;
 }

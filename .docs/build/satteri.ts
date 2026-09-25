@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import type { BuildMode, CompiledHeading } from "../app/document.ts";
 
 import { documentBindings } from "./bindings.ts";
+import { renderReferenceCode } from "./expressive-code.ts";
 import { highlight } from "./highlight.ts";
 
 type Element = Extract<HastNode, { type: "element" }>;
@@ -153,14 +154,10 @@ export function codeBlocks(): HastPluginEntry {
             element: {
                 filter: ["pre"],
                 visit(node, context) {
-                    let code = node.children.find(
-                        (child): child is Element =>
-                            child.type === "element" && child.tagName === "code",
-                    );
-                    if (!code) return;
+                    let fenced = example(node, context);
+                    if (!fenced) return;
 
-                    let language = languageOf(code);
-                    let text = context.textContent(code).replace(/\n$/, "");
+                    let { text, language } = fenced;
                     let attributes: MdxJsxAttribute[] = [
                         {
                             type: "mdxJsxAttribute",
@@ -194,6 +191,45 @@ export function codeBlocks(): HastPluginEntry {
         };
         return definition;
     };
+}
+
+/**
+ * Replaces every fenced example in a generated reference page with the
+ * Expressive Code block rendered for it now, during the build, spliced in as
+ * finished HTML. The page is served as that HTML, so its examples are neither
+ * components nor hydrated.
+ */
+export function referenceCode(): HastPluginEntry {
+    let definition: HastPluginDefinition = {
+        name: "docs-reference-code",
+        element: {
+            filter: ["pre"],
+            async visit(node, context) {
+                let fenced = example(node, context);
+                if (!fenced) return;
+
+                let { text, language } = fenced;
+                let html = await renderReferenceCode(text, language, where(context));
+                return { type: "raw", value: html };
+            },
+        },
+    };
+    return definition;
+}
+
+/**
+ * A fenced example's exact text, without the fence's closing newline, and the
+ * language the fence named; nothing for a `<pre>` that holds no `<code>`.
+ */
+function example(
+    pre: Element,
+    context: HastVisitorContext,
+): { text: string; language: string | undefined } | undefined {
+    let code = pre.children.find(
+        (child): child is Element => child.type === "element" && child.tagName === "code",
+    );
+    if (!code) return undefined;
+    return { text: context.textContent(code).replace(/\n$/, ""), language: languageOf(code) };
 }
 
 /** Conflicting ancestor variants cannot render in either mode. */

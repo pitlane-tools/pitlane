@@ -1,42 +1,29 @@
 import type { Handle } from "remix/ui";
 
-import { combine, css, tva } from "@pitlane/theme";
+import { css, tva } from "@pitlane/theme";
 
-import type { DocumentPage, Preferences } from "../document.ts";
+import type { DocumentPage } from "../document.ts";
 
-import { control, eyebrow, floatingPanel, inPlacePopover } from "../styles/controls.ts";
+import { floatingPanel, inPlacePopover } from "../styles/controls.ts";
 import { belowOutlineColumn, compact, narrow, outlineColumn, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
-import { MoonIcon, SunIcon, SystemIcon } from "./icons.tsx";
 import { Wordmark } from "./logo.tsx";
 import { PRIMARY_LINKS, REPOSITORY_URL } from "./navigation.ts";
 import { PopoverToggle } from "./popover-toggle.tsx";
 import { SearchDialog } from "./search-dialog.tsx";
 
-type Theme = Preferences["theme"];
-
-const THEMES: { value: Theme; label: string; Icon: typeof SystemIcon }[] = [
-    { value: "system", label: "System", Icon: SystemIcon },
-    { value: "light", label: "Light", Icon: SunIcon },
-    { value: "dark", label: "Dark", Icon: MoonIcon },
-];
-
 const PRIMARY_NAVIGATION_ID = "site-primary-navigation";
-const THEME_MENU_ID = "site-theme-menu";
 
 export interface SiteHeaderProps {
     /** The section being read; the 404 document has none. */
     section?: DocumentPage["section"];
-    theme: Theme;
-    /** Where a theme choice returns the reader. */
-    returnTo: string;
     /** Documentation pages head the sidebar column with the search field. */
     search: "sidebar" | "header";
 }
 
 export function SiteHeader(handle: Handle<SiteHeaderProps>) {
     return () => {
-        let { section, theme, returnTo, search } = handle.props;
+        let { section, search } = handle.props;
         let inGuides = section === "guides" || section === "deploy";
         return (
             <header
@@ -125,7 +112,6 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                 </nav>
                 <div mix={css({ display: "flex", alignItems: "center", gap: t.spacing(1) })}>
                     <SearchDialog placement={search} />
-                    <ThemeMenu returnTo={returnTo} theme={theme} />
                     <PopoverToggle
                         compactOnly
                         controls={PRIMARY_NAVIGATION_ID}
@@ -137,86 +123,6 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
         );
     };
 }
-
-/**
- * The appearance choice: a native popover holding an ordinary form, so it
- * opens, submits, and redirects back without a script. With one, Remix
- * submits it as a document navigation and the page answers in the new theme.
- */
-function ThemeMenu(handle: Handle<{ theme: Theme; returnTo: string }>) {
-    return () => {
-        let { theme, returnTo } = handle.props;
-        let current = THEMES.find(option => option.value === theme)!;
-        return (
-            <>
-                <PopoverToggle
-                    controls={THEME_MENU_ID}
-                    icon={theme}
-                    label={`Theme: ${current.label}`}
-                />
-                <form
-                    action="/preferences"
-                    data-rmx-history="replace"
-                    data-rmx-reset-scroll="false"
-                    id={THEME_MENU_ID}
-                    method="post"
-                    mix={css({
-                        ...floatingPanel,
-                        position: "fixed",
-                        inset: [t.size.menuTop, t.spacing(4), "auto", "auto"],
-                        width: t.size.menu,
-                    })}
-                    popover
-                >
-                    <input name="preference" type="hidden" value="theme" />
-                    <input name="returnTo" type="hidden" value={returnTo} />
-                    <p
-                        id={`${THEME_MENU_ID}-label`}
-                        mix={css({
-                            ...eyebrow,
-                            padding: [t.spacing(1.5), t.spacing(2.5), t.spacing(1)],
-                        })}
-                    >
-                        Theme
-                    </p>
-                    <div aria-labelledby={`${THEME_MENU_ID}-label`} role="group">
-                        {THEMES.map(({ value, label, Icon }) => (
-                            <button
-                                aria-pressed={value === theme ? "true" : "false"}
-                                mix={themeOption()}
-                                name="value"
-                                type="submit"
-                                value={value}
-                            >
-                                <Icon />
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-                </form>
-            </>
-        );
-    };
-}
-
-let themeOption = combine(
-    control,
-    tva({
-        base: {
-            justifyContent: "flex-start",
-            gap: t.spacing(2.5),
-            width: t.size.full,
-            minHeight: t.spacing(8.5),
-            padding: [t.spacing(1.5), t.spacing(2.5)],
-            color: t.color.text,
-            fontSize: t.text.md,
-            "&[aria-pressed='true']": {
-                backgroundColor: t.color.selected,
-                fontWeight: t.weight.semibold,
-            },
-        },
-    }),
-);
 
 /**
  * The bar under the header while the sidebar or the outline has no column of

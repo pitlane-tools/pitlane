@@ -4,9 +4,9 @@ import { clientEntry, type Handle } from "remix/ui";
 import { control } from "../styles/controls.ts";
 import { compact } from "../styles/media.ts";
 import { t } from "../theme.ts";
-import { ChevronIcon, MenuIcon, MoonIcon, SunIcon, SystemIcon } from "./icons.tsx";
+import { ChevronIcon, MenuIcon } from "./icons.tsx";
 
-const ICONS = { menu: MenuIcon, system: SystemIcon, light: SunIcon, dark: MoonIcon };
+const ICONS = { menu: MenuIcon };
 
 export type PopoverToggleProps =
     | {
@@ -51,8 +51,8 @@ let toggle = combine(
 );
 
 /**
- * The button that opens and closes a native popover: the compact site menu,
- * the theme menu, and the narrow-width document navigation and outline.
+ * The button that opens and closes a native popover: the compact site menu
+ * and the narrow-width document navigation and outline.
  *
  * `popovertarget` does the disclosing, with or without a script. Once
  * hydrated, the button also reports the state as `aria-expanded` and closes

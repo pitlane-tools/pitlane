@@ -37,18 +37,8 @@ export function Shell(handle: Handle<ShellProps>) {
         let navigation = buildNavigation(pages, page, preferences);
         let hasOutline = page.headings.length > 0;
         return (
-            <Document
-                description={page.description}
-                theme={preferences.theme}
-                title={page.title}
-                url={page.url}
-            >
-                <SiteHeader
-                    returnTo={page.url}
-                    search="sidebar"
-                    section={page.section}
-                    theme={preferences.theme}
-                />
+            <Document description={page.description} title={page.title} url={page.url}>
+                <SiteHeader search="sidebar" section={page.section} />
                 <SectionBar
                     label={navigation.label}
                     navigation={DOCUMENT_NAVIGATION_ID}
@@ -86,55 +76,43 @@ export function Shell(handle: Handle<ShellProps>) {
     };
 }
 
-export interface NotFoundProps {
-    preferences: Preferences;
-}
-
 /** The 404 document, sharing the shell's header, typography, and theme. */
-export function NotFound(handle: Handle<NotFoundProps>) {
-    return () => {
-        let { preferences } = handle.props;
-        return (
-            <Document
-                description="The requested documentation page does not exist."
-                theme={preferences.theme}
-                title="Page not found"
-            >
-                <SiteHeader
-                    returnTo={PRIMARY_LINKS.guides}
-                    search="header"
-                    theme={preferences.theme}
-                />
-                <main id="main-content" mix={main({ layout: "standalone" })} tabindex={-1}>
-                    <div mix={css({ ...prose, margin: [0, "auto"], paddingTop: t.spacing(6) })}>
-                        <p
-                            mix={css({
-                                ...eyebrow,
-                                marginBottom: t.spacing(2),
-                                color: t.color.accent,
-                                fontSize: t.text.xs,
-                            })}
-                        >
-                            404
-                        </p>
-                        <h1>Page not found</h1>
-                        <p>
-                            There is no documentation page at this address. It may have moved when
-                            the reference was reorganized, or the link may be out of date.
-                        </p>
-                        <ul>
-                            <li>
-                                <a href={PRIMARY_LINKS.guides}>Browse the guides</a>
-                            </li>
-                            <li>
-                                <a href={PRIMARY_LINKS.api}>Browse the API reference</a>
-                            </li>
-                        </ul>
-                    </div>
-                </main>
-            </Document>
-        );
-    };
+export function NotFound() {
+    return () => (
+        <Document
+            description="The requested documentation page does not exist."
+            title="Page not found"
+        >
+            <SiteHeader search="header" />
+            <main id="main-content" mix={main({ layout: "standalone" })} tabindex={-1}>
+                <div mix={css({ ...prose, margin: [0, "auto"], paddingTop: t.spacing(6) })}>
+                    <p
+                        mix={css({
+                            ...eyebrow,
+                            marginBottom: t.spacing(2),
+                            color: t.color.accent,
+                            fontSize: t.text.xs,
+                        })}
+                    >
+                        404
+                    </p>
+                    <h1>Page not found</h1>
+                    <p>
+                        There is no documentation page at this address. It may have moved when the
+                        reference was reorganized, or the link may be out of date.
+                    </p>
+                    <ul>
+                        <li>
+                            <a href={PRIMARY_LINKS.guides}>Browse the guides</a>
+                        </li>
+                        <li>
+                            <a href={PRIMARY_LINKS.api}>Browse the API reference</a>
+                        </li>
+                    </ul>
+                </div>
+            </main>
+        </Document>
+    );
 }
 
 let main = tva({
@@ -191,28 +169,22 @@ interface DocumentProps {
     description: string;
     /** Public path of the page; the 404 document has no canonical address. */
     url?: string;
-    theme: Preferences["theme"];
     children: RemixNode;
 }
 
 /**
- * The `<html>` every page shares. An explicit theme is an inline
- * `color-scheme`: every theme color is a `light-dark()` pair, and an inline
- * declaration outranks the `color-scheme: light dark` that `<Theme />` sets on
- * `:root`, which a layered `css()` rule could not. "System" leaves the
- * operating system in charge. Either way the first paint is already right.
+ * The `<html>` every page shares. Every theme color is a `light-dark()` pair
+ * and `<Theme />` sets `color-scheme: light dark` on `:root`, so the operating
+ * system's color scheme decides the appearance, from the first paint and as
+ * it changes, with or without a script.
  */
 function Document(handle: Handle<DocumentProps>) {
     return () => {
-        let { title, description, url, theme, children } = handle.props;
+        let { title, description, url, children } = handle.props;
         let fullTitle = documentTitle(title);
         let canonical = url ? `${SITE_URL}${url}` : undefined;
         return (
-            <html
-                lang="en"
-                mix={css(root)}
-                style={theme === "system" ? undefined : { colorScheme: theme }}
-            >
+            <html lang="en" mix={css(root)}>
                 <head>
                     <meta charset="utf-8" />
                     <meta content="width=device-width, initial-scale=1" name="viewport" />

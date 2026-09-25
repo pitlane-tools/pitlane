@@ -18,7 +18,7 @@ Rebuild Pitlane's guides and API documentation with Remix and Pitlane, adopting 
 
 Pitlane's documentation currently demonstrates Vue and VitePress rather than the Remix stack it teaches. Its VoidZero theme places it visually alongside Vite, Oxc, and related tools. Readers should recognize the Remix relationship while continuing to find Pitlane's existing material, examples, and package reference.
 
-The migration also provides an opportunity to understand the cost of documentation interactions. The application must first be an idiomatic example of Remix and Pitlane. Minimize unnecessary runtime JavaScript within that architecture, rather than replacing framework components with imperative browser enhancements to save bytes. Removing useful interactions or inventing a byte threshold would misrepresent the agreed outcome. The human wants measured differences and an informed decision about any regressions.
+The migration also provides an opportunity to understand the cost of documentation interactions. Use Remix and Pitlane for application concerns while preparing fixed reference content at build time. Expressive Code owns generated reference code-block presentation and copying. Removing useful interactions or inventing a byte threshold would misrepresent the agreed outcome. The human wants measured differences and an informed decision about any regressions.
 
 ## Domain grounding
 
@@ -62,7 +62,7 @@ An exploratory browser load of `/guides/vite-plugin` fetched 20 same-origin Java
 
 ## Proposed solution
 
-Build one conventional server-rendered Remix application using `@pitlane/dev`, `@pitlane/content`, and `@pitlane/theme`. Compile content during the build, then render the complete cookie-aware document from prebuilt components on requests. Use Remix's native soft document navigation rather than a separately fetched article representation. Keep static assets outside request-time application rendering. Idiomatic ownership takes precedence over minimizing JavaScript or HTML transfer.
+Build one conventional server-rendered Remix application using `@pitlane/dev`, `@pitlane/content`, and `@pitlane/theme`. Compile authored guides to components and generated API reference bodies to HTML strings during the build, then render the complete cookie-aware document on requests. Use Remix's native soft document navigation rather than a separately fetched article representation. Keep static assets outside request-time application rendering.
 
 Adopt the Remix documentation shell while retaining Pitlane branding. Guides retain topical organization; API reference moves to symbol pages. Existing content remains authoritative.
 
@@ -98,23 +98,23 @@ Retain enhanced navigation transitions through Remix's document reconciliation. 
 
 ### Idiomatic application structure
 
-Follow the repository's `.agents/docs/cookbook.md`, checking its patterns against the installed Remix and Pitlane APIs. Keep static content server-only. Interactive UI belongs in `clientEntry` components with serializable props, component-owned state, event mixins, and lifecycle-scoped effects. Copy-code controls, search, preference controls, and navigation disclosures must not be implemented as document-wide DOM installers merely to reduce the JavaScript payload.
+Follow the repository's `.agents/docs/cookbook.md`, checking its patterns against the installed Remix and Pitlane APIs. Keep static content server-only. Application UI uses `clientEntry` components with serializable props, component-owned state, event mixins, and lifecycle-scoped effects. Generated reference code blocks are the explicit exception: Expressive Code renders their markup and styles at build time and supplies their browser copying behavior. Do not build a custom copy Web Component or application-wide DOM installer.
 
-Render interactive controls through the component tree. Preserve their hydration metadata and resolve their client modules through Pitlane's build integration. Reconciliation preserves matching component state and disposes removed components. Do not serialize the entire article into a hydrated application merely to share state.
+Render application controls through the component tree, preserving their hydration metadata and resolving client modules through Pitlane's build integration. Reconciliation preserves matching component state and disposes removed components. Reference bodies enter the article as trusted build-generated HTML, without per-block Remix hydration or request-time style generation. Do not serialize the entire article into a hydrated application merely to share state.
 
-The browser entry bootstraps Remix and configures application navigation and frame resolution. It is not a registry of imperative UI enhancements. Shared helpers may implement preference persistence or other non-visual protocols, but each component owns its interaction and presentation. Use refs and lifecycle-bound browser APIs when imperative work is necessary; wrapping a global installer in a component does not satisfy this design.
+The browser entry bootstraps Remix and configures application navigation and frame resolution. It also loads Expressive Code's browser modules once; its library-owned enhancement must work for initial reference markup and markup inserted by soft navigation. Do not create an application-owned enhancement registry. Shared helpers may implement preference persistence or other non-visual protocols.
 
 Use Remix's routing, rendering, navigation, and component primitives where they own the concern. Measure the resulting JavaScript and execution costs without treating a smaller bundle as grounds to abandon those conventions.
 
 Use `@pitlane/theme` as the application's styling system, not merely as a source of variables for a separate handwritten stylesheet system. Define the documentation theme with `createTheme` and typed schemas, render its `<Theme />` component in the document shell, and use its typed token accessor throughout component styles. Express component styling through `css()` mixins and use `tva()` for meaningful variants. Layout, typography, responsive rules, and interaction states belong with their components or focused shared style definitions.
 
-Use `lightDark()` and theme modes for system and explicit appearance preferences, preserving the cookie-selected initial render. Static styling does not make a component interactive or require hydration. Style generated article markup through theme-backed selectors on its owning component. Retain plain CSS only where a specific global or third-party integration requires it, and identify those exceptions during review.
+In the new Remix reader, use `lightDark()` with the system color scheme. Remove the light/dark/system selector and theme preference from cookies, query overrides, and legacy-storage migration; old theme preferences have no effect. Appearance follows system changes without navigation and works without JavaScript. Static styling does not require hydration. Expressive Code uses GitHub Light and GitHub Dark themes selected by the system, with JetBrains Mono as the code font. Its build-generated CSS is an explicit third-party styling exception and must load without JavaScript. Leave the existing VitePress site's appearance and implementation unchanged; it will be replaced separately.
 
 ### Cookie-aware document rendering
 
 One Vite-built application entry exposes the standard fetch handler used in development and deployment. Compose Remix routes, controllers, and rendering middleware with Pitlane's build integration and Cloudflare's platform integration. Resolve browser assets through `?assets=` imports and `@pitlane/dev/runtime`, not a separately maintained asset-manifest protocol.
 
-On a document request, the controller resolves the explicit URL, content entry, and preference cookies, then renders a complete document from prebuilt content components. The initial response includes the article and remains readable without JavaScript. Markdown parsing, API extraction, and syntax highlighting happen during the build; imported authoring components must not pull those tools into request-time rendering.
+On a document request, the controller resolves the explicit URL, content entry, and preference cookies, then renders a complete document. Authored guides retain their existing component path; generated TypeDoc bodies are HTML strings prepared at build time. Reference heading metadata is generated alongside the HTML. Preserve anchors, readable Markdown exports, and Pagefind content. Markdown parsing, API extraction, Expressive Code rendering, and syntax highlighting remain outside request-time execution. Keep the shell and outline on their existing rendering paths for the first comparative measurement.
 
 Ordinary links target public document URLs. Remix's native soft navigation fetches and reconciles the next complete document. Metadata, breadcrumbs, selected navigation, and the table of contents derive from the same resolved document. Do not introduce an application-owned DOM synchronization registry or public static article-frame endpoints. Build-generated headings and content metadata remain authoritative; the Worker must not parse rendered HTML to recover them.
 
@@ -124,7 +124,7 @@ An explicit Vite or No Build variant URL takes precedence over the cookie, inclu
 
 Render package-manager code groups with the server-selected alternative visible initially, without corrective browser scripting. Groups lacking that manager use their designated default. Preserve the existing choices and working native form submissions. Enhanced submissions use Remix document navigation so all controls and examples agree with the persisted selection.
 
-Use small, host-only preference cookies with `Secure`, `SameSite=Lax`, and an explicit lifetime. Preferences require neither a session database nor signed tokens. Preserve existing localStorage preferences through a one-time browser-assisted migration only when no corresponding cookie exists; explicit new selections take precedence. The server cannot recover legacy browser storage on an initial request, so document that first-visit limitation.
+Use small, host-only preference cookies with `Secure`, `SameSite=Lax`, and an explicit lifetime. Build-mode and package-manager preferences require neither a session database nor signed tokens. Preserve their existing localStorage preferences through a one-time browser-assisted migration only when no corresponding cookie exists; explicit new selections take precedence. Do not migrate stored appearance choices. The server cannot recover legacy browser storage on an initial request, so document that first-visit limitation.
 
 Serve cookie-dependent document responses and preference mutations without shared caching, using `Cache-Control: private, no-store`. CSS, images, fonts, scripts, search assets, and generated Markdown bypass application execution on matching requests. Do not publish prerendered HTML at public document paths where Cloudflare's asset-first routing would bypass preference-aware rendering.
 
@@ -182,7 +182,7 @@ Preserve existing guide URLs, build-mode selections, package-manager preferences
 
 ## Implications on adoption
 
-Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. API reference continues to derive from package exports and TSDoc. Both authoring formats are compiled during the build and rendered as server components on requests; MDX alone does not introduce browser JavaScript.
+Contributors author guides in Markdown or MDX. Guides that compose callouts, code groups, shared examples, or other documentation components use MDX; simple pages may remain Markdown. Authored guides keep their existing compiled component rendering. API reference continues to derive from package exports and TSDoc, but its serving representation is build-generated HTML with Expressive Code blocks. The full document still comes from the application's cookie-aware response.
 
 Preserve TypeDoc's separate compiler environment unless evidence establishes a supported replacement. Use compatible scoped Pitlane packages; the reserved umbrella package is not an implementation dependency.
 
@@ -218,8 +218,8 @@ A tutorial section could provide chapter-based learning without changing the mea
 - Lazy browser search: selected because the corpus changes with deployment and a chunked index avoids a search service. Browser engine/index costs remain part of the measurement report.
 - Worker-backed search: deferred unless measurements justify its server execution and operational complexity. Revisit with the human rather than changing search placement automatically.
 - Fully static documents with browser-applied preferences: avoid document Worker invocations, but require browser correction to respect stored choices. Cookie-aware shell rendering is chosen so preferences work in the initial response and without JavaScript.
-- Prebuilt content with request-time document rendering (Approach A): selected by the human after architecture research. It uses one application and native document reconciliation, accepting additional Worker rendering and HTML transfer in exchange for simpler ownership.
-- Prerendered article assets embedded in document responses (Approach B): not selected. It can reduce rendering work but retains artifact retrieval and nested-frame transport concerns.
+- Prebuilt content with request-time document rendering (Approach A): selected by the human after architecture research, then refined after dense-reference profiling. Keep one application and native document reconciliation; serve fixed reference bodies from prepared HTML while retaining guide components.
+- Separately retrieved article assets and nested article frames (Approach B): not selected. Prepared reference strings embedded directly in the normal document response require neither mechanism.
 - Static article-only navigation with a persistent shell (Approach C): not selected. It can reduce navigation payload but requires additional cross-region coordination.
 - Retaining module-sized API pages: simpler link migration, but the human explicitly prefers symbol-per-page organization.
 - Adopting Remix's chapter sequence for guides: conflicts with Pitlane's topical guides and planned distinction between guides and tutorials.

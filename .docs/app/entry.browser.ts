@@ -1,5 +1,8 @@
 import { run } from "remix/ui";
+import "virtual:reference-code.css";
+import "virtual:reference-code.js";
 
+import "./styles/code-font.css";
 import { resolveDocument } from "./browser/navigation.ts";
 import { migrateLegacyPreferences, rerenderAfterMigration } from "./browser/preferences.ts";
 

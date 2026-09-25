@@ -12,8 +12,8 @@ import { routes } from "./routes.ts";
 
 /**
  * Keeps every response out of shared caches. A document is rendered with the
- * reader's preference cookies, a preference submission sets one, and even a
- * redirect or a 404 carries the reader's theme; static files never reach here.
+ * reader's preference cookies and a preference submission sets one; static
+ * files never reach here.
  */
 function privateResponses(): Middleware {
     return async (_context, next) => {

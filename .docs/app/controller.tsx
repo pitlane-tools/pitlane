@@ -23,9 +23,7 @@ export default createController(routes, {
             if (!document) {
                 let location = canonicalLocation(url, published);
                 if (location) return createRedirectResponse(location, 307);
-                return render(<NotFound preferences={await readPreferences(request)} />, {
-                    status: 404,
-                });
+                return render(<NotFound />, { status: 404 });
             }
 
             let [preferences, body] = await Promise.all([

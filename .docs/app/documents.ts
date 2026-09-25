@@ -1,26 +1,27 @@
-import type { RemixNode } from "remix/ui";
+import { createElement, type RemixNode } from "remix/ui";
 
 import type { BuildMode, CompiledHeading, DocumentPage } from "./document.ts";
 
 import { content } from "./content.ts";
 import { outline } from "./outline.ts";
 
-/** A compiled document: its body as a function of props, which is what an MDX import is. */
-type Body = (props: Record<string, never>) => RemixNode;
+/** An authored body: a function of props, which is what an MDX import is. */
+type Component = (props: Record<string, never>) => RemixNode;
 
 /**
  * Every publishable body, keyed by its path in the repository. `build/compile.ts`
- * compiles each import; the bodies load on demand, the outlines up front.
+ * compiles each import: an authored guide or deployment page to a component,
+ * a generated reference page to the HTML its article shows. The bodies load
+ * on demand, the outlines up front.
  */
-let bodies = import.meta.glob<Body>(
-    [
-        "./docs/guides/*.{md,mdx}",
-        "./docs/deploy/*.{md,mdx}",
-        "./docs/package/**/*.md",
-        "!./docs/*/_*",
-    ],
+let components = import.meta.glob<Component>(
+    ["./docs/guides/*.{md,mdx}", "./docs/deploy/*.{md,mdx}", "!./docs/*/_*"],
     { base: "../../", import: "default" },
 );
+let references = import.meta.glob<string>("./docs/package/**/*.md", {
+    base: "../../",
+    import: "default",
+});
 let outlines = import.meta.glob<CompiledHeading[]>(
     [
         "./docs/guides/*.{md,mdx}",
@@ -112,7 +113,7 @@ async function load(): Promise<Documents> {
 /** The body key of an authored page, which may be Markdown or MDX. */
 function authored(section: "guides" | "deploy", id: string): string {
     let key = [`./docs/${section}/${id}.mdx`, `./docs/${section}/${id}.md`].find(
-        candidate => candidate in bodies,
+        candidate => candidate in components,
     );
     if (!key) throw new Error(`docs/${section}/${id} has no compiled body.`);
     return key;
@@ -123,15 +124,27 @@ function document(
     metadata: Omit<DocumentPage, "headings">,
     aliases: Alias[] = [],
 ): Document {
-    let body = bodies[key];
+    let body = bodyOf(key);
     let compiled = outlines[key];
     if (!body || !compiled)
         throw new Error(`${metadata.url} has no compiled body at ${key.slice(2)}.`);
     return {
         page: { ...metadata, headings: outline(metadata, compiled, key.slice(2)) },
         aliases,
-        body: async () => (await body())({}),
+        body,
     };
+}
+
+/**
+ * A body ready for its article: an authored component rendered, or a
+ * reference page's prepared HTML inserted as it is.
+ */
+function bodyOf(key: string): (() => Promise<RemixNode>) | undefined {
+    let component = components[key];
+    if (component) return async () => (await component())({});
+    let reference = references[key];
+    if (reference) return async () => createElement("div", { innerHTML: await reference() });
+    return undefined;
 }
 
 function page(

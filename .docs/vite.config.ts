@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 import { compileDocuments } from "./build/compile.ts";
+import { expressiveAssets } from "./build/expressive-assets.ts";
 import { publish } from "./build/publish.ts";
 
 const SITE = {
@@ -13,20 +14,14 @@ const SITE = {
     description: "Portable platform integration for Remix 3.",
 };
 
-/**
- * One application, built once: `compileDocuments()` turns every Markdown and
- * MDX body into a component module, `contentLayer()` inlines the collections'
- * metadata, `remix()` builds the server entry and the browser entry, and
- * Cloudflare's plugin makes the server entry the Worker, in development too.
- * `publish()` then renders the built Worker's pages into the static Markdown
- * exports, LLM indexes, sitemap, and search index.
- */
+/** Publication derives exports and search from the built Worker's own document responses. */
 export default defineConfig({
     // Anchored here rather than to the working directory: content paths
     // resolve against the root, and so does the Worker's configuration.
     root: fileURLToPath(new URL(".", import.meta.url)),
     publicDir: "../docs/public",
     plugins: [
+        expressiveAssets(),
         compileDocuments(),
         contentLayer({ entry: "app/content.ts" }),
         remix({ serverHandler: false }),

@@ -16,7 +16,7 @@ let page = s.object({
  *
  * `contentLayer()` compiles a Markdown body to an HTML string, and a string
  * cannot hold the `CodeBlock` component a fenced example becomes. The build
- * compiles every body into a component module instead (`build/compile.ts`),
+ * compiles each authored body into a component module instead (`build/compile.ts`),
  * which `documents.ts` imports by path; keeping the body here as well would
  * put each page in the Worker twice.
  */
