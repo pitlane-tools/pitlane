@@ -44,15 +44,19 @@ jobs:
                   import { readFile, writeFile } from "node:fs/promises";
                   let directory = ".docs/dist/ssr/";
                   await writeFile(directory + "probe.mjs", `
-                  import app from "./index.js";
                   export default {
                       async fetch(request, env, context) {
-                          if (request.headers.get("X-Pitlane-Render-Probe") !== "dense-reference")
-                              return app.fetch(request, env, context);
+                          let mode = request.headers.get("X-Pitlane-Render-Probe");
+                          if (mode === "health") return Response.json({ probe: "entry" });
                           try {
+                              let { default: app } = await import("./index.js");
                               let response = await app.fetch(request, env, context);
-                              return new Response(await response.arrayBuffer(), response);
+                              if (mode !== "dense-reference") return response;
+                              let headers = new Headers(response.headers);
+                              headers.set("X-Pitlane-Render-Probe", "buffered");
+                              return new Response(await response.arrayBuffer(), { status: response.status, headers });
                           } catch (error) {
+                              if (mode !== "dense-reference") throw error;
                               return Response.json({ name: error.name, message: error.message, stack: error.stack }, { status: 500 });
                           }
                       }
@@ -87,6 +91,33 @@ jobs:
                   echo "preview-url=$preview_url" >> "$GITHUB_OUTPUT"
                   echo "version-id=$version_id" >> "$GITHUB_OUTPUT"
 
+            - name: Inspect the remote development runtime
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+              run: |
+                  node --input-type=module <<'NODE'
+                  import { spawn } from "node:child_process";
+                  let server = spawn("pnpm", ["exec", "wrangler", "dev", "--remote", "--config", ".docs/dist/ssr/wrangler.json", "--port", "8791", "--inspector-port", "9230"], { detached: true, stdio: ["ignore", "pipe", "pipe"] });
+                  let ready = Promise.withResolvers();
+                  let timeout = setTimeout(() => ready.reject(new Error("Remote development did not become ready")), 90000);
+                  for (let output of [server.stdout, server.stderr]) output.on("data", bytes => {
+                      process.stdout.write(bytes);
+                      if (bytes.toString().includes("Ready on http")) ready.resolve();
+                  });
+                  server.on("exit", code => ready.reject(new Error("Remote development exited: " + code)));
+                  try {
+                      await ready.promise;
+                      clearTimeout(timeout);
+                      for (let sample = 0; sample < 10; sample++) {
+                          let response = await fetch("http://localhost:8791/package/theme/interface/ThemedCSSProps", { headers: { "X-Pitlane-Render-Probe": "dense-reference" } });
+                          let body = await response.text();
+                          console.log(JSON.stringify({ sample, status: response.status, bytes: body.length, failure: response.ok ? null : body.slice(0, 12000) }));
+                      }
+                  } finally {
+                      clearTimeout(timeout);
+                      process.kill(-server.pid, "SIGTERM");
+                  }
+                  NODE
             - name: 📝 Report preview URL
               env:
                   GH_TOKEN: ${{ github.token }}
