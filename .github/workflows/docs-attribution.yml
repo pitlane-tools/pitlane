@@ -1,0 +1,31 @@
+name: Docs controlled attribution
+
+on:
+    push:
+        branches: [docs-rebuild]
+        paths:
+            - .github/workflows/docs-attribution.yml
+            - tools/docs-attribution/**
+
+permissions:
+    contents: read
+
+jobs:
+    attribute:
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+        environment: Preview
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v4
+            - run: pnpm install --frozen-lockfile
+            - run: mise run docs:build
+            - name: Upload isolated version and measure actual CPU
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+              run: node tools/docs-attribution/upload.mjs
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: docs-controlled-attribution
+                  path: attribution-results/
