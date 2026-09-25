@@ -12,11 +12,21 @@
  */
 
 import docsWorker from "./index.js";
+import preparedDocuments from "./prepared-documents.js";
 import probe, { handleProbe, probeVersion } from "./probe.js";
 
 export default {
     async fetch(request, env, ctx) {
         let url = new URL(request.url);
+
+        if (Object.hasOwn(preparedDocuments, url.pathname)) {
+            return new Response(preparedDocuments[url.pathname], {
+                headers: {
+                    "content-type": "text/html; charset=utf-8",
+                    "cache-control": "no-store",
+                },
+            });
+        }
 
         if (url.pathname.startsWith("/probe/")) return handleProbe(request);
 

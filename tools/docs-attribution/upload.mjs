@@ -10,8 +10,12 @@ await mkdir(output, { recursive: true });
 for (const name of ["probe.js", "probe-current.js"]) {
     await copyFile(resolve("tools/docs-attribution", name), resolve(directory, name));
 }
-const { default: probe } = await import(pathToFileURL(resolve(directory, "probe-current.js")).href);
-const invoke = path => probe.fetch(new Request(`https://probe.invalid${path}`), {});
+const { default: probe } = await import(pathToFileURL(resolve(directory, "probe.js")).href);
+const { default: docsWorker } = await import(pathToFileURL(resolve(directory, "index.js")).href);
+const invoke = path =>
+    path.startsWith("/current/")
+        ? docsWorker.fetch(new Request(`https://probe.invalid${path.slice("/current".length)}`), {})
+        : probe.fetch(new Request(`https://probe.invalid${path}`));
 const manifest = await (await invoke("/probe/_manifest")).json();
 const selected = new Set([
     "floor",
@@ -47,6 +51,9 @@ cases.push(
     { id: "current-dense", path: "/current/package/theme/interface/ThemedCSSProps" },
     { id: "floor-end", path: "/probe/floor?n=0" },
 );
+const preparedDocuments = {};
+const preparedCases = [];
+const prepare = new Set(["page-0", "page-100", "page-2209", "current-guide", "current-dense"]);
 for (const specification of cases) {
     const response = await invoke(specification.path);
     const body = await response.text();
@@ -57,8 +64,32 @@ for (const specification of cases) {
     specification.bytes = Buffer.byteLength(body);
     specification.sha256 = createHash("sha256").update(body).digest("hex");
     await writeFile(resolve(output, `${specification.id}-expected.html`), body);
+    if (prepare.has(specification.id)) {
+        const path = `/prepared/${specification.id}`;
+        preparedDocuments[path] = body;
+        preparedCases.push({ ...specification, id: `literal-${specification.id}`, path });
+    }
 }
-await writeFile(resolve(output, "manifest.json"), JSON.stringify(cases, null, 2));
+await writeFile(
+    resolve(directory, "prepared-documents.js"),
+    `export default ${JSON.stringify(preparedDocuments)};\n`,
+);
+const { default: wrapped } = await import(
+    pathToFileURL(resolve(directory, "probe-current.js")).href
+);
+for (const specification of preparedCases) {
+    const response = await wrapped.fetch(
+        new Request(`https://probe.invalid${specification.path}`),
+        {},
+    );
+    const sha256 = createHash("sha256")
+        .update(await response.text())
+        .digest("hex");
+    if (sha256 !== specification.sha256)
+        throw new Error(`Prepared output mismatch: ${specification.id}`);
+}
+const measuredCases = process.argv.includes("--prepared-only") ? preparedCases : cases;
+await writeFile(resolve(output, "manifest.json"), JSON.stringify(measuredCases, null, 2));
 await writeFile(resolve(output, "fixture-manifest.json"), JSON.stringify(manifest, null, 2));
 const info = await (await invoke("/probe/_info")).json();
 if (!info.styleReconstructionMatchesDeployedSite)
