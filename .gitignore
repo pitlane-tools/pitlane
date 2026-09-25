@@ -15,3 +15,7 @@ docs/package/crawler
 docs/package/dev
 docs/package/theme
 docs/package/data-table-d1
+docs/.generated
+.docs/.generated
+.docs/.index
+.docs/.legacy-home

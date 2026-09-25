@@ -54,7 +54,7 @@ A plausible implementation plan is not evidence that the problem is understood.
 
 Records are numbered `<NNNN>-<slug>.md` and carry `id`, `status`, and `title` frontmatter. `.agents/templates/` holds the canonical shape of each, and `mise run validate` enforces it.
 
-Guides are the deliberate exception. They are published VitePress pages, they keep VitePress's `title` and `description` frontmatter, and the validator never reads them — a second record-shaped contract on the same pages would buy a reverse pointer the proposal already carries in prose. They are still a process artifact: written from the proposal, before the code.
+Guides are the deliberate exception. They are published Markdown or MDX pages with `title` and `description` frontmatter, and the record validator never reads them — a second record-shaped contract on the same pages would buy a reverse pointer the proposal already carries in prose. They are still a process artifact: written from the proposal, before the code.
 
 The record itself is not published. `docs/` is what [pitlane.tools](https://pitlane.tools) builds, and `VISION.md`, `proposals/`, `policies/`, and `decisions/` all sit outside it.
 

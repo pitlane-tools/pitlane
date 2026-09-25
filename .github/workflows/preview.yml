@@ -35,8 +35,8 @@ jobs:
             - name: 📦 Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: 🚀 Build docs (VitePress)
-              run: mise run docs:build
+            - name: Build and verify documentation
+              run: mise run docs:test
 
             # `wrangler versions upload` routes zero production traffic to the
             # new version; the preview URL is what reviewers open.
@@ -47,7 +47,7 @@ jobs:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
               run: |
                   pnpm exec wrangler versions upload \
-                      --config wrangler.jsonc \
+                      --config .docs/dist/ssr/wrangler.json \
                       --message "Preview: $GITHUB_REF_NAME @ ${GITHUB_SHA::7}" \
                       2>&1 | tee upload.log
 

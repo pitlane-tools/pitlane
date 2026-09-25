@@ -26,11 +26,11 @@ run = "oxlint --fix"
 
 [tasks.typecheck]
 depends = "docs:build"
-run = "tsc"
+run = ["tsc", "tsc --project .docs/tsconfig.json"]
 
 [tasks.check]
-depends = ["docs:build", "validate", "tools:test"]
-run = ["oxfmt --check", "oxlint", "tsc"]
+depends = ["docs:build", "docs:mdx", "docs:test", "docs:api:test", "validate", "tools:test"]
+run = ["oxfmt --check", "oxlint", "tsc", "tsc --project .docs/tsconfig.json"]
 
 [tasks.validate]
 description = "Validate the record: vision, proposals, policies, decisions"
@@ -62,10 +62,15 @@ description = "Apply the pending release notes to versions and changelogs"
 env = { pnpm_config_verify_deps_before_run = "false" }
 run = ["changeset version", "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile"]
 
+[tasks."docs:packages"]
+description = "Build the reader's workspace dependencies in dependency order"
+run = "pnpm --filter 'pitlane-docs^...' -r exec vp run build"
+
 # TypeDoc lives in its own workspace package because it needs the TypeScript 6
 # JS API; running it from there picks up that TypeScript instead of the root's
 # 7.x. Config paths resolve relative to the config file, so `dir` costs nothing.
 [tasks."docs:api"]
+depends = "docs:packages"
 dir = "{{config_root}}/.typedoc"
 run = [
     "./node_modules/.bin/typedoc --options content.json",
@@ -75,21 +80,32 @@ run = [
     "./node_modules/.bin/typedoc --options theme.json",
 ]
 
-# Five guide pages link into /package/* from their prose — cloudflare-d1,
-# crawler, prerendering, styling, vite-plugin — and those pages only exist once
-# typedoc has emitted them. VitePress fails the build on a dead content link
-# (a sidebar entry pointing at a missing page builds fine, verified against
-# vitepress 2.0.0-alpha.18), so the reference has to be generated first.
+[tasks."docs:api:test"]
+dir = "{{config_root}}/.typedoc"
+run = "node --test plugin.test.mjs"
+
+[tasks."docs:mdx"]
+description = "Typecheck authored MDX with its pinned language server"
+depends = "docs:packages"
+run = ["node --test .mdx/check.test.mjs", "node .mdx/check.mjs"]
+
+[tasks."docs:test"]
+depends = "docs:build"
+run = "node .docs/test.mjs"
+
 [tasks."docs:dev"]
-depends = "docs:api"
-run = "vitepress dev docs --port 1337"
+depends = "docs:build"
+dir = "{{config_root}}/.docs"
+run = "vite --port 1337"
 
 [tasks."docs:build"]
-depends = "docs:api"
-run = "vitepress build docs"
+depends = ["docs:api", "docs:mdx"]
+dir = "{{config_root}}/.docs"
+run = ["vite build", "node legacy-home.mjs"]
 
 [tasks."docs:serve"]
-run = "vitepress serve docs --port 1337"
+dir = "{{config_root}}/.docs"
+run = "vite preview --port 1337"
 
 [tasks."docs:prose"]
 run = ["vale sync", "vale docs/package docs/guides"]

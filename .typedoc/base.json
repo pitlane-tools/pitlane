@@ -9,7 +9,6 @@
     "githubPages": false,
     "excludeInternal": true,
     "disableSources": true,
-    "outputFileStrategy": "modules",
     "entryFileName": "index.md",
     "hidePageHeader": true,
     "hideBreadcrumbs": true,

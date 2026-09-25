@@ -26,12 +26,12 @@ jobs:
             - name: 📦 Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: 🚀 Build docs (VitePress)
-              run: mise run docs:build
+            - name: Build and verify documentation
+              run: mise run docs:test
 
             - name: ☁️ Deploy Worker
               # Worker name and custom domain are pinned in wrangler.jsonc so a
               # repository rename can never redirect deploys to a new worker.
-              run: pnpm exec wrangler deploy --config wrangler.jsonc
+              run: pnpm exec wrangler deploy --config .docs/dist/ssr/wrangler.json
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -22,7 +22,7 @@ create-pitlane
 # demos/theme and demos/tui
 demos
 
-# worker.ts and wrangler.jsonc, the Worker that fronts the docs site's assets
+# .docs/app/entry.server.tsx and wrangler.jsonc, the documentation Worker
 worker
 
 # .typedoc/, which generates every page under docs/package/

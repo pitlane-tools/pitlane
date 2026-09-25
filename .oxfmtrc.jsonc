@@ -11,9 +11,8 @@
         "docs/SETUP.md",
         "docs/superpowers/**",
         "node_modules/**",
-        // Content fixtures, not prose. oxfmt formats `.mdx` as Markdown and
-        // escapes emphasis characters, which turns an MDX expression like
-        // `{2 ** 10}` into `{2 \*\* 10}` and fails the compile.
+        // Oxfmt parses MDX as Markdown and escapes executable expressions.
+        "**/*.mdx",
         "**/app/content/**",
         "packages/content/src/fixtures/**",
         "packages/content/tests/fixtures/**",

@@ -1,0 +1,6 @@
+{
+    "extends": "../.mdx/tsconfig.base.json",
+    "mdx": { "checkMdx": true },
+    "include": ["**/*.mdx"],
+    "exclude": ["package", "internal", "superpowers", ".generated", ".vitepress", "node_modules"]
+}

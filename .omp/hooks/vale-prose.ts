@@ -15,7 +15,7 @@ export default function (pi: HookAPI): void {
 
         let prose = collectPaths(event.input, ctx.cwd).filter(path => {
             let rel = relative(ctx.cwd, path).replaceAll("\\", "/");
-            return rel.endsWith(".md") && PROSE_DIRS.some(dir => rel.startsWith(dir));
+            return /\.mdx?$/.test(rel) && PROSE_DIRS.some(dir => rel.startsWith(dir));
         });
         prose = prose.filter(path => existsSync(path));
         if (prose.length === 0) return;

@@ -1,0 +1,21 @@
+{
+    "name": "pitlane-docs",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "@pitlane/content": "workspace:*",
+        "@pitlane/theme": "workspace:*",
+        "remix": "3.0.0-rc.2"
+    },
+    "devDependencies": {
+        "@cloudflare/vite-plugin": "^1.31.0",
+        "@pitlane/dev": "workspace:*",
+        "@types/node": "^25.5.0",
+        "pagefind": "1.5.2",
+        "satteri": "^0.10.5",
+        "shiki": "^4.0.2",
+        "sirv": "^3.0.2",
+        "vite": "^8.1.5",
+        "vite-plus": "^0.2.6"
+    }
+}
