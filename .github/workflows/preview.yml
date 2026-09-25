@@ -64,6 +64,7 @@ jobs:
                   `);
                   let config = JSON.parse(await readFile(directory + "wrangler.json", "utf8"));
                   config.main = "probe.mjs";
+                  config.limits = { cpu_ms: 1000 };
                   await writeFile(directory + "wrangler.json", JSON.stringify(config));
                   NODE
 
@@ -75,6 +76,16 @@ jobs:
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
               run: |
+                  node --input-type=module <<'NODE'
+                  import { readFile } from "node:fs/promises";
+                  let config = JSON.parse(await readFile(".docs/dist/ssr/wrangler.json", "utf8"));
+                  for (let resource of ["workers/account-settings", "workers/scripts/pitlane/settings", "subscriptions"]) {
+                      let response = await fetch("https://api.cloudflare.com/client/v4/accounts/" + config.account_id + "/" + resource, { headers: { Authorization: "Bearer " + process.env.CLOUDFLARE_API_TOKEN } });
+                      let payload = await response.json();
+                      let result = payload.result;
+                      console.log(JSON.stringify({ resource, status: response.status, limits: result?.limits, usageModel: result?.usage_model, defaultUsageModel: result?.default_usage_model, plans: Array.isArray(result) ? result.map(subscription => subscription.rate_plan?.public_name) : undefined, errors: payload.errors?.map(error => error.code) }));
+                  }
+                  NODE
                   pnpm exec wrangler versions upload \
                       --config .docs/dist/ssr/wrangler.json \
                       --message "Preview: $GITHUB_REF_NAME @ ${GITHUB_SHA::7}" \
