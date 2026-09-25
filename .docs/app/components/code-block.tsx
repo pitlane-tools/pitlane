@@ -28,20 +28,23 @@ export interface CodeBlockProps {
     language?: string;
 }
 
+let blockStyle = css<HTMLDivElement>({
+    position: "relative",
+    margin: [0, 0, t.spacing(4)],
+    "& pre": codeSurface,
+});
+
+// Shiki's per-token custom properties are not theme tokens.
+let highlightingStyle = unthemedCss<HTMLDivElement>({
+    "& .shiki, & .shiki span": {
+        color: "light-dark(var(--shiki-light), var(--shiki-dark))",
+    },
+});
+
 export function CodeBlock(handle: Handle<CodeBlockProps>) {
     return () => (
-        <div
-            mix={css({ position: "relative", margin: [0, 0, t.spacing(4)], "& pre": codeSurface })}
-        >
-            <div
-                innerHTML={handle.props.html}
-                // Shiki's per-token custom properties are not theme tokens.
-                mix={unthemedCss({
-                    "& .shiki, & .shiki span": {
-                        color: "light-dark(var(--shiki-light), var(--shiki-dark))",
-                    },
-                })}
-            />
+        <div mix={blockStyle}>
+            <div innerHTML={handle.props.html} mix={highlightingStyle} />
             <CopyButton code={handle.props.code} />
         </div>
     );
@@ -56,7 +59,7 @@ const ANNOUNCEMENTS: Record<CopyState, string> = {
     failed: "Copy failed",
 };
 
-let copyButton: ThemedCSSProps = {
+let copyButtonStyle = css<HTMLButtonElement>({
     position: "absolute",
     insetBlockStart: t.spacing(2.5),
     insetInlineEnd: t.spacing(2.5),
@@ -82,7 +85,9 @@ let copyButton: ThemedCSSProps = {
     "&[data-state='failed']": { color: t.color.danger },
     [canHover]: { opacity: 0, ":hover > &, &:focus-visible, &[data-state]": { opacity: 1 } },
     [noScript]: { display: "none" },
-};
+});
+
+let announcementStyle = css<HTMLSpanElement>(visuallyHidden);
 
 export let CopyButton = clientEntry(import.meta.url, (handle: Handle<{ code: string }>) => {
     let state: CopyState = "idle";
@@ -117,7 +122,7 @@ export let CopyButton = clientEntry(import.meta.url, (handle: Handle<{ code: str
                 aria-label="Copy code"
                 data-pagefind-ignore
                 data-state={state === "idle" ? undefined : state}
-                mix={[css(copyButton), on("click", copy)]}
+                mix={[copyButtonStyle, on("click", copy)]}
                 type="button"
             >
                 {state === "copied" ? (
@@ -128,7 +133,7 @@ export let CopyButton = clientEntry(import.meta.url, (handle: Handle<{ code: str
                     <CopyIcon />
                 )}
             </button>
-            <span data-pagefind-ignore mix={css(visuallyHidden)} role="status">
+            <span data-pagefind-ignore mix={announcementStyle} role="status">
                 {ANNOUNCEMENTS[state]}
             </span>
         </>

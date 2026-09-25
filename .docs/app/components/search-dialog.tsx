@@ -389,57 +389,58 @@ let badge: ThemedCSSProps = {
     textTransform: "uppercase",
 };
 
+let resultStyle = css<HTMLAnchorElement>({
+    display: "block",
+    padding: [t.spacing(2.5), t.spacing(4)],
+    borderRadius: t.radius.lg,
+    backgroundColor: t.color.subtle,
+    color: "inherit",
+    textDecoration: "none",
+    transition: `background-color ${t.duration.fast} ${t.ease.standard}`,
+    "&:hover": { backgroundColor: t.color.muted },
+    "&:focus-visible": { backgroundColor: t.color.selected },
+});
+
+let resultTitleStyle = css<HTMLSpanElement>({
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "baseline",
+    gap: t.spacing(2),
+    color: t.color.link,
+    fontSize: t.text.md,
+    fontWeight: t.weight.semibold,
+});
+
+let badgeStyle = css<HTMLSpanElement>(badge);
+
+let kindBadgeStyle = css<HTMLSpanElement>({ ...badge, color: t.color.accent });
+
+let excerptStyle = css<HTMLSpanElement>({
+    display: "block",
+    marginTop: t.spacing(1),
+    color: t.color.secondary,
+    fontSize: t.text.sm,
+    lineHeight: t.text.leading.normal,
+    "& mark": {
+        backgroundColor: "transparent",
+        color: t.color.text,
+        fontWeight: t.weight.semibold,
+    },
+});
+
 /** One result: its page, what kind of page it is, and the matching passage. */
 function Result(handle: Handle<{ hit: SearchHit }>) {
     return () => {
         let { hit } = handle.props;
         return (
-            <a
-                href={hit.href}
-                mix={css({
-                    display: "block",
-                    padding: [t.spacing(2.5), t.spacing(4)],
-                    borderRadius: t.radius.lg,
-                    backgroundColor: t.color.subtle,
-                    color: "inherit",
-                    textDecoration: "none",
-                    transition: `background-color ${t.duration.fast} ${t.ease.standard}`,
-                    "&:hover": { backgroundColor: t.color.muted },
-                    "&:focus-visible": { backgroundColor: t.color.selected },
-                })}
-            >
-                <span
-                    mix={css({
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "baseline",
-                        gap: t.spacing(2),
-                        color: t.color.link,
-                        fontSize: t.text.md,
-                        fontWeight: t.weight.semibold,
-                    })}
-                >
+            <a href={hit.href} mix={resultStyle}>
+                <span mix={resultTitleStyle}>
                     {hit.title}
-                    {hit.section ? <span mix={css(badge)}>{hit.section}</span> : null}
-                    {hit.module ? <span mix={css(badge)}>{hit.module}</span> : null}
-                    {hit.kind ? (
-                        <span mix={css({ ...badge, color: t.color.accent })}>{hit.kind}</span>
-                    ) : null}
+                    {hit.section ? <span mix={badgeStyle}>{hit.section}</span> : null}
+                    {hit.module ? <span mix={badgeStyle}>{hit.module}</span> : null}
+                    {hit.kind ? <span mix={kindBadgeStyle}>{hit.kind}</span> : null}
                 </span>
-                <span
-                    mix={css({
-                        display: "block",
-                        marginTop: t.spacing(1),
-                        color: t.color.secondary,
-                        fontSize: t.text.sm,
-                        lineHeight: t.text.leading.normal,
-                        "& mark": {
-                            backgroundColor: "transparent",
-                            color: t.color.text,
-                            fontWeight: t.weight.semibold,
-                        },
-                    })}
-                >
+                <span mix={excerptStyle}>
                     {hit.heading ? <strong>{hit.heading} — </strong> : null}
                     {/* Pagefind escapes the page text before adding its own <mark> elements. */}
                     <span innerHTML={hit.excerpt} />

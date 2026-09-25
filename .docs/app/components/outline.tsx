@@ -14,6 +14,12 @@ export type OutlineProps = {
     headings: OutlineHeading[];
 };
 
+let rowStyles = {
+    section: navLink<HTMLAnchorElement>({ size: "sm", depth: "section" }),
+    subsection: navLink<HTMLAnchorElement>({ size: "sm", depth: "subsection" }),
+    deeper: navLink<HTMLAnchorElement>({ size: "sm", depth: "deeper" }),
+};
+
 /**
  * The page outline: a sticky column beside the article on wide screens and a
  * native popover, disclosed from the section bar, below that. Its links are
@@ -132,15 +138,15 @@ export let Outline = clientEntry(import.meta.url, (handle: Handle<OutlineProps>)
                             <a
                                 aria-current={index === active ? "location" : undefined}
                                 href={`#${heading.id}`}
-                                mix={navLink({
-                                    size: "sm",
-                                    depth:
+                                mix={
+                                    rowStyles[
                                         heading.level <= 2
                                             ? "section"
                                             : heading.level === 3
                                               ? "subsection"
-                                              : "deeper",
-                                })}
+                                              : "deeper"
+                                    ]
+                                }
                             >
                                 {heading.text}
                             </a>

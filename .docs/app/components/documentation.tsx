@@ -73,6 +73,13 @@ let callout = tva({
     },
 });
 
+let calloutStyles = {
+    tip: callout<HTMLElement>({ kind: "tip" }),
+    info: callout<HTMLElement>({ kind: "info" }),
+    warning: callout<HTMLElement>({ kind: "warning" }),
+    danger: callout<HTMLElement>({ kind: "danger" }),
+};
+
 export interface CalloutProps {
     kind: CalloutKind;
     /** Shown in place of the kind's own label. */
@@ -83,7 +90,7 @@ export interface CalloutProps {
 /** An aside the prose sets apart: a tip, a note, a warning, or a danger. */
 export function Callout(handle: Handle<CalloutProps>) {
     return () => (
-        <aside data-callout={handle.props.kind} mix={callout({ kind: handle.props.kind })}>
+        <aside data-callout={handle.props.kind} mix={calloutStyles[handle.props.kind]}>
             <p>{handle.props.title ?? CALLOUT_LABELS[handle.props.kind]}</p>
             {handle.props.children}
         </aside>
@@ -191,7 +198,7 @@ export function Install(handle: Handle<InstallProps>) {
                         {PACKAGE_MANAGERS.map(manager => (
                             <button
                                 aria-pressed={manager === selected ? "true" : "false"}
-                                mix={managerButton()}
+                                mix={managerButtonStyle}
                                 name="value"
                                 type="submit"
                                 value={manager}
@@ -214,14 +221,10 @@ export function Install(handle: Handle<InstallProps>) {
                                     {installLines(manager, packages, dev).map((line, index) => (
                                         <>
                                             {index > 0 ? "\n" : null}
-                                            <span mix={css({ color: t.color.code.command })}>
-                                                {line.manager}
-                                            </span>
+                                            <span mix={commandStyle}>{line.manager}</span>
                                             {" add "}
                                             {line.flag ? (
-                                                <span
-                                                    mix={css({ color: t.color.code.flag })}
-                                                >{`${line.flag} `}</span>
+                                                <span mix={flagStyle}>{`${line.flag} `}</span>
                                             ) : null}
                                             {line.names.join(" ")}
                                         </>
@@ -262,3 +265,9 @@ let managerButton = combine(
         },
     }),
 );
+
+let managerButtonStyle = managerButton<HTMLButtonElement>();
+
+let commandStyle = css<HTMLSpanElement>({ color: t.color.code.command });
+
+let flagStyle = css<HTMLSpanElement>({ color: t.color.code.flag });

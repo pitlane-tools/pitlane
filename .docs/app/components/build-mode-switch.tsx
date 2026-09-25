@@ -9,6 +9,8 @@ import { t } from "../theme.ts";
 
 const BUILD_MODE_LABELS: Record<BuildMode, string> = { vite: "Vite", "no-build": "No Build" };
 
+let optionStyle = control<HTMLButtonElement>({ option: true });
+
 /**
  * Chooses between the Vite and No Build renditions of a two-setup guide. The
  * choice persists, and the server answers with the counterpart page, so this
@@ -54,7 +56,7 @@ export function BuildModeSwitch(handle: Handle<{ page: DocumentPage }>) {
                     {(Object.keys(BUILD_MODE_LABELS) as BuildMode[]).map(mode => (
                         <button
                             aria-pressed={page.buildMode === mode ? "true" : "false"}
-                            mix={control({ option: true })}
+                            mix={optionStyle}
                             name="value"
                             type="submit"
                             value={mode}

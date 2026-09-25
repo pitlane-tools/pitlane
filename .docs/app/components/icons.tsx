@@ -4,6 +4,8 @@ import { css } from "@pitlane/theme";
 
 import { t } from "../theme.ts";
 
+let iconStyle = css<SVGSVGElement>({ flex: "none", width: t.size.icon, height: t.size.icon });
+
 /** A decorative stroke icon sized to the text around it; its control carries the name. */
 function Icon(handle: Handle<{ children: RemixNode }>) {
     return () => (
@@ -11,7 +13,7 @@ function Icon(handle: Handle<{ children: RemixNode }>) {
             aria-hidden="true"
             fill="none"
             focusable="false"
-            mix={css({ flex: "none", width: t.size.icon, height: t.size.icon })}
+            mix={iconStyle}
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"

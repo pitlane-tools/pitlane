@@ -19,6 +19,55 @@ let linkList: ThemedCSSProps = {
     listStyle: "none",
 };
 
+let linkListStyle = css<HTMLUListElement>(linkList);
+
+let linkStyle = navLink<HTMLAnchorElement>();
+
+let groupTitleStyle = css<HTMLParagraphElement>({
+    ...eyebrow,
+    padding: [t.spacing(1.5), t.spacing(3), t.spacing(0.5)],
+});
+
+let moduleSummaryStyle = css<HTMLElement>({
+    ...eyebrow,
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    minHeight: t.size.control,
+    padding: [t.spacing(2), t.spacing(7), t.spacing(2), t.spacing(2)],
+    borderRadius: t.radius.md,
+    color: t.color.text,
+    fontSize: t.text.xs,
+    letterSpacing: "normal",
+    textTransform: "none",
+    overflowWrap: "anywhere",
+    listStyle: "none",
+    cursor: "pointer",
+    "&::-webkit-details-marker": { display: "none" },
+    "&:hover": { backgroundColor: t.color.hover },
+    // A drawn chevron, turned down while the module is open.
+    "&::after": {
+        content: '""',
+        position: "absolute",
+        right: t.spacing(3),
+        width: t.spacing(1.5),
+        height: t.spacing(1.5),
+        borderRight: `${t.size.hairline} solid`,
+        borderBottom: `${t.size.hairline} solid`,
+        opacity: 0.55,
+        transform: "rotate(-45deg)",
+        transition: `transform ${t.duration.fast} ${t.ease.standard}`,
+    },
+    ":is(details[open]) > &::after": { transform: "rotate(45deg)" },
+});
+
+let moduleContentsStyle = css<HTMLDivElement>({
+    display: "flex",
+    flexDirection: "column",
+    gap: t.spacing(2),
+    padding: [t.spacing(1), 0, t.spacing(3), t.spacing(2)],
+});
+
 /**
  * The section's document navigation: a fixed column on wide screens and a
  * native popover, disclosed from the section bar, on narrow ones.
@@ -85,14 +134,7 @@ function GuideGroups(handle: Handle<{ groups: GuideGroup[] }>) {
         <ul mix={css({ ...linkList, gap: t.spacing(4), marginTop: t.spacing(1) })}>
             {handle.props.groups.map(group => (
                 <li key={group.title}>
-                    <p
-                        mix={css({
-                            ...eyebrow,
-                            padding: [t.spacing(1.5), t.spacing(3), t.spacing(0.5)],
-                        })}
-                    >
-                        {group.title}
-                    </p>
+                    <p mix={groupTitleStyle}>{group.title}</p>
                     <LinkList links={group.links} />
                 </li>
             ))}
@@ -113,61 +155,12 @@ function ApiModules(handle: Handle<{ modules: ApiModule[] }>) {
         >
             {handle.props.modules.map(module => (
                 <details key={module.module} open={module.open}>
-                    <summary
-                        mix={css({
-                            ...eyebrow,
-                            position: "relative",
-                            display: "flex",
-                            alignItems: "center",
-                            minHeight: t.size.control,
-                            padding: [t.spacing(2), t.spacing(7), t.spacing(2), t.spacing(2)],
-                            borderRadius: t.radius.md,
-                            color: t.color.text,
-                            fontSize: t.text.xs,
-                            letterSpacing: "normal",
-                            textTransform: "none",
-                            overflowWrap: "anywhere",
-                            listStyle: "none",
-                            cursor: "pointer",
-                            "&::-webkit-details-marker": { display: "none" },
-                            "&:hover": { backgroundColor: t.color.hover },
-                            // A drawn chevron, turned down while the module is open.
-                            "&::after": {
-                                content: '""',
-                                position: "absolute",
-                                right: t.spacing(3),
-                                width: t.spacing(1.5),
-                                height: t.spacing(1.5),
-                                borderRight: `${t.size.hairline} solid`,
-                                borderBottom: `${t.size.hairline} solid`,
-                                opacity: 0.55,
-                                transform: "rotate(-45deg)",
-                                transition: `transform ${t.duration.fast} ${t.ease.standard}`,
-                            },
-                            ":is(details[open]) > &::after": { transform: "rotate(45deg)" },
-                        })}
-                    >
-                        {module.module}
-                    </summary>
-                    <div
-                        mix={css({
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: t.spacing(2),
-                            padding: [t.spacing(1), 0, t.spacing(3), t.spacing(2)],
-                        })}
-                    >
+                    <summary mix={moduleSummaryStyle}>{module.module}</summary>
+                    <div mix={moduleContentsStyle}>
                         <LinkList links={[module.overview]} />
                         {module.kinds.map(group => (
                             <div key={group.kind}>
-                                <p
-                                    mix={css({
-                                        ...eyebrow,
-                                        padding: [t.spacing(1.5), t.spacing(3), t.spacing(0.5)],
-                                    })}
-                                >
-                                    {group.title}
-                                </p>
+                                <p mix={groupTitleStyle}>{group.title}</p>
                                 <LinkList links={group.links} />
                             </div>
                         ))}
@@ -180,13 +173,13 @@ function ApiModules(handle: Handle<{ modules: ApiModule[] }>) {
 
 function LinkList(handle: Handle<{ links: NavigationLink[] }>) {
     return () => (
-        <ul mix={css(linkList)}>
+        <ul mix={linkListStyle}>
             {handle.props.links.map(link => (
                 <li key={link.url}>
                     <a
                         aria-current={link.current ? "page" : undefined}
                         href={link.url}
-                        mix={navLink()}
+                        mix={linkStyle}
                     >
                         {link.title}
                     </a>
