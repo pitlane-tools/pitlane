@@ -88,37 +88,3 @@ jobs:
                   gh pr comment "$GITHUB_REF_NAME" --edit-last --body "$body" ||
                       gh pr comment "$GITHUB_REF_NAME" --body "$body" ||
                       echo "No open PR for $GITHUB_REF_NAME yet — preview URL is in the step summary."
-
-            - name: Measure mixed document delivery
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  PREVIEW_URL: ${{ steps.upload.outputs.preview-url }}
-                  VERSION_ID: ${{ steps.upload.outputs.version-id }}
-              run: |
-                  mkdir -p /tmp/docs-delivery-results
-                  node --input-type=module -e '
-                    import { readFile, writeFile } from "node:fs/promises";
-                    import { createHash } from "node:crypto";
-                    const cases = [
-                      { id: "reference-dense", path: "/package/theme/interface/ThemedCSSProps" },
-                      { id: "reference-tva", path: "/package/theme/function/tva" },
-                      { id: "guide-vite", path: "/guides/vite-plugin" },
-                      { id: "guide-content", path: "/guides/content" },
-                      { id: "guide-no-build", path: "/guides/content-no-build" }
-                    ];
-                    for (const entry of cases) {
-                      entry.suffix = "</html><!-- rmx:flush document -->";
-                      if (entry.id.startsWith("reference-")) {
-                        const body = await readFile(".docs/dist/client" + entry.path + ".html");
-                        entry.bytes = body.length;
-                        entry.sha256 = createHash("sha256").update(body).digest("hex");
-                      }
-                    }
-                    await writeFile("/tmp/docs-delivery-results/manifest.json", JSON.stringify(cases));
-                  '
-                  node tools/docs-delivery-measure.mjs "$PREVIEW_URL" "$VERSION_ID" /tmp/docs-delivery-results/manifest.json /tmp/docs-delivery-results
-            - uses: actions/upload-artifact@v4
-              if: always()
-              with:
-                  name: docs-delivery-measurements
-                  path: /tmp/docs-delivery-results/
