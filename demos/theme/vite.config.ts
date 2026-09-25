@@ -1,4 +1,4 @@
-import { defineConfig } from "vite-plus";
+import { defineConfig } from "vite";
 
 import { remix } from "./remix.plugin.ts";
 
