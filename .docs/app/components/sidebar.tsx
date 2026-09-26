@@ -14,7 +14,7 @@ export const DOCUMENT_NAVIGATION_ID = "docs-navigation";
 let linkList: ThemedCSSProps = {
     display: "flex",
     flexDirection: "column",
-    gap: t.spacing(0.5),
+    gap: t.spacing(1),
     margin: 0,
     padding: 0,
     listStyle: "none",
@@ -24,23 +24,40 @@ let linkListStyle = css<HTMLUListElement>(linkList);
 
 let linkStyle = navLink<HTMLAnchorElement>();
 
+// The sidebar's type follows the Remix API reference: module and section
+// labels in small tracked capitals, group headings a size smaller and quieter,
+// and link rows indented past the group headings.
 let groupTitleStyle = css<HTMLParagraphElement>({
     ...eyebrow,
-    padding: [t.spacing(1.5), t.spacing(3), t.spacing(0.5)],
+    padding: [t.spacing(1.5), t.spacing(2)],
+    fontSize: t.text["3xs"],
 });
 
-let moduleSummaryStyle = css<HTMLElement>({
+let groupsStyle = css<HTMLElement>({
+    display: "flex",
+    flexDirection: "column",
+    gap: t.spacing(2),
+    margin: 0,
+    padding: [t.spacing(1), 0, t.spacing(3), t.spacing(2)],
+    listStyle: "none",
+});
+
+let sectionLabel: ThemedCSSProps = {
     ...eyebrow,
-    position: "relative",
     display: "flex",
     alignItems: "center",
     minHeight: t.size.control,
-    padding: [t.spacing(2), t.spacing(7), t.spacing(2), t.spacing(2)],
-    borderRadius: t.radius.md,
+    padding: t.spacing(2),
     color: t.color.text,
     fontSize: t.text.xs,
-    letterSpacing: "normal",
-    textTransform: "none",
+    letterSpacing: t.tracking.label,
+};
+
+let moduleSummaryStyle = css<HTMLElement>({
+    ...sectionLabel,
+    position: "relative",
+    paddingInlineEnd: t.spacing(7),
+    borderRadius: t.radius.md,
     overflowWrap: "anywhere",
     listStyle: "none",
     cursor: "pointer",
@@ -60,13 +77,6 @@ let moduleSummaryStyle = css<HTMLElement>({
         transition: `transform ${t.duration.fast} ${t.ease.standard}`,
     },
     ":is(details[open]) > &::after": { transform: "rotate(45deg)" },
-});
-
-let moduleContentsStyle = css<HTMLDivElement>({
-    display: "flex",
-    flexDirection: "column",
-    gap: t.spacing(2),
-    padding: [t.spacing(1), 0, t.spacing(3), t.spacing(2)],
 });
 
 /**
@@ -107,19 +117,7 @@ export function DocumentNavigation(handle: Handle<{ navigation: Navigation }>) {
                 })}
                 popover
             >
-                <p
-                    mix={css({
-                        ...eyebrow,
-                        display: "flex",
-                        alignItems: "center",
-                        minHeight: t.size.control,
-                        padding: t.spacing(2),
-                        color: t.color.text,
-                        fontSize: t.text.xs,
-                    })}
-                >
-                    {navigation.label}
-                </p>
+                <p mix={css(sectionLabel)}>{navigation.label}</p>
                 {navigation.section === "guides" ? (
                     <GuideGroups groups={navigation.groups} />
                 ) : (
@@ -132,7 +130,7 @@ export function DocumentNavigation(handle: Handle<{ navigation: Navigation }>) {
 
 function GuideGroups(handle: Handle<{ groups: GuideGroup[] }>) {
     return () => (
-        <ul mix={css({ ...linkList, gap: t.spacing(4), marginTop: t.spacing(1) })}>
+        <ul mix={groupsStyle}>
             {handle.props.groups.map(group => (
                 <li key={group.title}>
                     <p mix={groupTitleStyle}>{group.title}</p>
@@ -157,7 +155,7 @@ function ApiModules(handle: Handle<{ modules: ApiModule[] }>) {
             {handle.props.modules.map(module => (
                 <details key={module.module} open={module.open}>
                     <summary mix={moduleSummaryStyle}>{module.module}</summary>
-                    <div mix={moduleContentsStyle}>
+                    <div mix={groupsStyle}>
                         <LinkList links={[module.overview]} />
                         {module.kinds.map(group => (
                             <div key={group.kind}>

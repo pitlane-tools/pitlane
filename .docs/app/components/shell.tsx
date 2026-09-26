@@ -245,6 +245,9 @@ let root: ThemedCSSProps = {
     fontFamily: t.font.sans,
     fontSize: t.text.base,
     lineHeight: t.text.leading.normal,
+    // csstype's WebkitFontSmoothing omits the `antialiased` keyword WebKit and
+    // Blink actually implement.
+    "-webkit-font-smoothing": "antialiased",
     WebkitTextSizeAdjust: "100%",
     textSizeAdjust: "100%",
     scrollPaddingTop: t.size.anchorOffset,

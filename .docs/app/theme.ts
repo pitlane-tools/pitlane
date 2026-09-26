@@ -51,6 +51,7 @@ let primitives = createTheme({
             sans: [
                 "ui-sans-serif",
                 "system-ui",
+                "-apple-system",
                 "Segoe UI",
                 "Roboto",
                 "Helvetica",
@@ -69,6 +70,7 @@ let primitives = createTheme({
         },
         weight: { regular: 400, medium: 500, semibold: 600, bold: 700 },
         text: {
+            "3xs": "0.625rem",
             "2xs": "0.6875rem",
             xs: "0.75rem",
             sm: "0.8125rem",
@@ -81,7 +83,13 @@ let primitives = createTheme({
             code: "0.8125em",
             leading: { tight: 1.15, snug: 1.3, compact: 1.4, normal: 1.6 },
         },
-        tracking: { tight: "-0.015em", tighter: "-0.02em", caps: "0.06em" },
+        tracking: {
+            tight: "-0.015em",
+            tighter: "-0.02em",
+            caps: "0.06em",
+            /** The looser caps of a navigation heading set at label size. */
+            label: "0.05em",
+        },
         spacing: "0.25rem",
         radius: { sm: "4px", md: "8px", lg: "10px", xl: "12px", panel: "16px", full: "999px" },
         size: {
@@ -140,6 +148,8 @@ export let { token: t, Theme } = primitives.extend(base => ({
             secondary: lightDark(base.palette.ink[500], base.palette.ink[400]),
             faint: lightDark(base.palette.gray[400], base.palette.gray[500]),
             link: lightDark(base.palette.blue[600], base.palette.blue[400]),
+            /** Links in the sidebar and outline, a shade deeper than prose links as in the Remix docs. */
+            navLink: lightDark("#0074c0", base.palette.blue[400]),
             linkHover: lightDark(base.palette.blue[900], base.palette.blue[300]),
             linkUnderline: lightDark(
                 `color-mix(in srgb, ${base.palette.blue[600]} 30%, transparent)`,
