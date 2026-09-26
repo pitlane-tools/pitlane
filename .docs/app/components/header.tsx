@@ -4,7 +4,7 @@ import { css, tva } from "@pitlane/theme";
 
 import type { DocumentPage } from "../document.ts";
 
-import { floatingPanel, inPlacePopover } from "../styles/controls.ts";
+import { floatingPanel, inPlacePopover, navLinkStates } from "../styles/controls.ts";
 import { belowOutlineColumn, compact, narrow, outlineColumn, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { Wordmark } from "./logo.tsx";
@@ -66,17 +66,13 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                         ...inPlacePopover,
                         display: "flex",
                         alignItems: "center",
-                        gap: t.spacing(6),
-                        // Grey until hovered, like the outline; the section being read is red.
+                        gap: t.spacing(1),
                         "& a": {
-                            color: t.color.secondary,
+                            ...navLinkStates,
+                            padding: [t.spacing(1.5), t.spacing(3)],
+                            borderRadius: t.radius.md,
                             textDecoration: "none",
                             whiteSpace: "nowrap",
-                            "&:hover": { color: t.color.text },
-                            "&[aria-current]": {
-                                color: t.color.link,
-                                fontWeight: t.weight.semibold,
-                            },
                         },
                         [compact]: {
                             "&:not(:popover-open)": { display: "none" },
@@ -97,7 +93,6 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                                 minHeight: t.size.touch,
                                 padding: [t.spacing(2), t.spacing(3)],
                                 borderRadius: t.radius.md,
-                                "&:hover": { backgroundColor: t.color.hover },
                             },
                         },
                     })}

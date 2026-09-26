@@ -121,6 +121,22 @@ export const inPlacePopover: ThemedCSSProps = {
     backgroundColor: "transparent",
 };
 
+/**
+ * How every navigation link reads: the header's section links, the sidebar,
+ * and the outline. Grey until hovered, and red on a light red fill for the
+ * page, section, or heading being read.
+ */
+export const navLinkStates: ThemedCSSProps = {
+    color: t.color.secondary,
+    transition: stateTransition,
+    "&:hover": { color: t.color.text, backgroundColor: t.color.hover },
+    "&[aria-current]": {
+        color: t.color.link,
+        backgroundColor: t.color.linkCurrent,
+        fontWeight: t.weight.semibold,
+    },
+};
+
 /** A row of the document navigation or the page outline. */
 export const navLink = tva({
     base: {
@@ -130,18 +146,11 @@ export const navLink = tva({
         minHeight: t.size.control,
         padding: [t.spacing(1.75), t.spacing(3)],
         borderRadius: t.radius.md,
-        color: t.color.link,
+        ...navLinkStates,
         fontSize: t.text.md,
         lineHeight: t.text.leading.compact,
         textDecoration: "none",
         overflowWrap: "anywhere",
-        transition: stateTransition,
-        "&:hover": { color: t.color.linkHover, backgroundColor: t.color.hover },
-        "&[aria-current]": {
-            color: t.color.link,
-            backgroundColor: t.color.linkCurrent,
-            fontWeight: t.weight.semibold,
-        },
     },
     variants: {
         /** Outline rows indent by heading level below the page's sections. */
@@ -152,14 +161,7 @@ export const navLink = tva({
         },
         size: {
             md: {},
-            /** The outline's rows: grey until hovered, and red only for the section being read. */
-            sm: {
-                minHeight: 0,
-                paddingBlock: t.spacing(1.25),
-                color: t.color.secondary,
-                fontSize: t.text.xs,
-                "&:hover": { color: t.color.text },
-            },
+            sm: { minHeight: 0, paddingBlock: t.spacing(1.25), fontSize: t.text.xs },
         },
     },
     defaultVariants: { depth: "section", size: "md" },
