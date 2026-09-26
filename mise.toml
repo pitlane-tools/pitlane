@@ -4,6 +4,12 @@ node = "26"
 pnpm = "12"
 vale = "3"
 
+# Task freshness compares source contents with the last successful run instead
+# of file times: Vite+ replays cached package builds with their original times,
+# and a checkout touches files it leaves unchanged.
+[settings]
+task.source_freshness_hash_contents = true
+
 [env]
 _.path = ["{{config_root}}/node_modules/.bin"]
 
@@ -62,9 +68,21 @@ description = "Apply the pending release notes to versions and changelogs"
 env = { pnpm_config_verify_deps_before_run = "false" }
 run = ["changeset version", "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile"]
 
+# Tasks below declare `sources`, so mise skips one whose sources are unchanged
+# since its last successful run and whose declared `outputs` still exist, and
+# reruns everything downstream of a task that did run. `mise run --force`
+# ignores all of it.
 [tasks."docs:packages"]
 description = "Build the reader's workspace dependencies in dependency order"
 run = "pnpm --filter 'pitlane-docs^...' -r exec vp run build"
+# Every package's source counts, so a new dependency of the reader still
+# invalidates this; the outputs name the ones the filter builds today.
+sources = [
+    "pnpm-lock.yaml",
+    "packages/*/{package.json,tsconfig.json,vite.config.ts}",
+    "packages/*/src/**",
+]
+outputs = ["packages/{content,crawler,dev,theme}/dist/**"]
 
 # TypeDoc lives in its own workspace package because it needs the TypeScript 6
 # JS API; running it from there picks up that TypeScript instead of the root's
@@ -79,19 +97,54 @@ run = [
     "./node_modules/.bin/typedoc --options dev.json",
     "./node_modules/.bin/typedoc --options theme.json",
 ]
+sources = [
+    "../pnpm-lock.yaml",
+    "*.json",
+    "plugin.mjs",
+    "lib/**",
+    "../packages/*/{package.json,tsconfig.json}",
+    "../packages/*/src/**",
+]
+outputs = ["../docs/package/**", "../docs/.generated/reference.json"]
 
 [tasks."docs:api:test"]
 dir = "{{config_root}}/.typedoc"
 run = "node --test plugin.test.mjs"
+sources = [
+    "../pnpm-lock.yaml",
+    "package.json",
+    "plugin.mjs",
+    "plugin.test.mjs",
+    "lib/**",
+    "fixtures/**",
+]
 
 [tasks."docs:mdx"]
 description = "Typecheck authored MDX with its pinned language server"
 depends = "docs:packages"
 run = ["node --test .mdx/check.test.mjs", "node .mdx/check.mjs"]
+sources = [
+    "pnpm-lock.yaml",
+    ".mdx/*.{mjs,ts,json}",
+    ".mdx/fixtures/**",
+    "docs/tsconfig.json",
+    "docs/{guides,deploy,_partials}/**/*.mdx",
+    ".docs/app/**",
+    ".docs/build/**",
+]
 
 [tasks."docs:test"]
 depends = "docs:build"
 run = "node .docs/test.mjs"
+sources = [
+    "pnpm-lock.yaml",
+    "wrangler.jsonc",
+    ".docs/test.mjs",
+    ".docs/tests/**",
+    ".docs/app/**",
+    ".docs/build/**",
+    ".docs/dist/**",
+]
 
 # The reader runs its own Vite: the root's `node_modules/.bin` leads PATH and can
 # hold a different version, and plugins that check a dev environment against
@@ -105,6 +158,18 @@ run = "./node_modules/.bin/vite --port 1337"
 depends = ["docs:api", "docs:mdx"]
 dir = "{{config_root}}/.docs"
 run = ["./node_modules/.bin/vite build", "node legacy-home.mjs"]
+# VitePress writes its cache under docs/ while building the legacy home page.
+sources = [
+    "../pnpm-lock.yaml",
+    "{package.json,tsconfig.json,vite.config.ts,legacy-home.mjs}",
+    "app/**",
+    "build/**",
+    "../packages/*/dist/**",
+    "../docs/**",
+    "!../docs/.vitepress/{cache,.temp}/**",
+    "!../docs/{internal,superpowers}/**",
+]
+outputs = ["dist/**"]
 
 # The last build's published files under Cloudflare's local runtime, as they deploy.
 [tasks."docs:serve"]
