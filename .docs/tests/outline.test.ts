@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { DocumentPage } from "../app/document.ts";
+
 import { outline } from "../app/outline.ts";
 
-let page = {
+let page: Omit<DocumentPage, "headings"> = {
     url: "/guides/example",
     title: "Example",
     description: "Example guide",

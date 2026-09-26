@@ -10,9 +10,13 @@ let origin = process.env.DOCS_TEST_ORIGIN ?? "http://127.0.0.1:8788";
 const ASSETS = new URL("../dist/client/", import.meta.url);
 
 /** The build renderer must stay independent of request cookies. */
-let app = await import(new URL("../dist/ssr/index.js", import.meta.url).href);
-let references = JSON.parse(
-    await readFile(new URL("../../docs/.generated/reference.json", import.meta.url), "utf8"),
+let app: { default: { fetch(request: Request): Promise<Response> } } = await import(
+    new URL("../dist/ssr/index.js", import.meta.url).href
+);
+let references = (
+    JSON.parse(
+        await readFile(new URL("../../docs/.generated/reference.json", import.meta.url), "utf8"),
+    ) as { url: string }[]
 ).map(page => page.url);
 
 /**
@@ -33,7 +37,7 @@ let documents = [...references, ...authored];
 
 /** Every combination of the supported preferences, as the cookies a reader sends with it. */
 let preferences = Object.entries(PREFERENCE_CHOICES)
-    .reduce(
+    .reduce<string[][]>(
         (combinations, [key, choices]) =>
             combinations.flatMap(cookies =>
                 choices.map(choice =>
@@ -47,21 +51,21 @@ let preferences = Object.entries(PREFERENCE_CHOICES)
     .map(cookies => cookies.join("; "));
 
 /** The static file at `path`, or `undefined` when the build published none there. */
-async function asset(path) {
+async function asset(path: string) {
     try {
         return await readFile(new URL(`.${path}`, ASSETS), "utf8");
     } catch (error) {
-        if (error.code === "ENOENT") return undefined;
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
         throw error;
     }
 }
 
 /** Where a document's HTML file serves it at its own address, trailing slash and all. */
-function htmlFile(url) {
+function htmlFile(url: string) {
     return url.endsWith("/") ? `${url}index.html` : `${url}.html`;
 }
 
-async function rendered(url, cookie) {
+async function rendered(url: string, cookie: string) {
     let response = await app.default.fetch(
         new Request(new URL(url, "https://pitlane.tools"), { headers: { cookie } }),
     );
@@ -74,7 +78,7 @@ async function rendered(url, cookie) {
  * appearance. Every render draws new ones; nothing else may differ between
  * two renders of the same document.
  */
-function normalized(html) {
+function normalized(html: string) {
     let ids = new Set([...html.matchAll(/<!-- rmx:h:(h[0-9a-f]{8}) -->/g)].map(([, id]) => id));
     let index = 0;
     for (let id of ids) html = html.replaceAll(id, `rmx-${index++}`);
@@ -82,7 +86,7 @@ function normalized(html) {
 }
 
 /** Where `path` finally answers, following only temporary redirects. */
-async function destination(path) {
+async function destination(path: string) {
     let location = new URL(path, origin);
     for (let hop = 0; hop < 4; hop++) {
         let response = await fetch(location, { redirect: "manual" });
@@ -93,7 +97,7 @@ async function destination(path) {
             307,
             `${path} redirects temporarily from ${location.pathname}`,
         );
-        location = new URL(response.headers.get("location"), location);
+        location = new URL(response.headers.get("location")!, location);
     }
     assert.fail(`${path} redirects more than four times`);
 }
@@ -108,7 +112,7 @@ test("proposal.0004: every public document is a static file served at its canoni
         }
         let response = await fetch(new URL(url, origin), { redirect: "manual" });
         assert.equal(response.status, 200, url);
-        assert.match(response.headers.get("content-type"), /^text\/html\b/i, url);
+        assert.match(response.headers.get("content-type")!, /^text\/html\b/i, url);
         assert.notEqual(response.headers.get("cache-control"), "private, no-store", url);
         assert.equal(response.headers.get("set-cookie"), null, url);
         assert.equal(await response.text(), file, url);
@@ -157,6 +161,7 @@ test("proposal.0004: legacy file and index spellings preserve their canonical de
         ["/package/dev.html", "/package/dev/"],
         ["/package/dev/index.md/", "/package/dev/index.md"],
         ["/package/content/index-1/index.html/", "/package/content/"],
+        ["/package/content/index-1", "/package/content/"],
         ["/package/content/index-1.md/", "/package/content/index.md"],
     ]) {
         assert.equal(await destination(`${from}?source=legacy`), `${to}?source=legacy`);

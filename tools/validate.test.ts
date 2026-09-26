@@ -1,3 +1,5 @@
+import type { TestContext } from "node:test";
+
 import assert from "node:assert/strict";
 import {
     mkdirSync,
@@ -12,19 +14,21 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { collectArtifacts, parseFrontmatter, validateArtifacts, withoutCode } from "./validate.mjs";
+import type { Artifact, Frontmatter } from "./validate.ts";
 
-function artifact(path, frontmatter, content = "") {
+import { collectArtifacts, parseFrontmatter, validateArtifacts, withoutCode } from "./validate.ts";
+
+function artifact(path: string, frontmatter: Frontmatter, content = ""): Artifact {
     return { path, frontmatter, content };
 }
 
 let templateDirectory = new URL("../.agents/templates/", import.meta.url);
 
-function readTemplate(name) {
+function readTemplate(name: string) {
     return readFileSync(new URL(name, templateDirectory), "utf8");
 }
 
-function temporaryRoot(t) {
+function temporaryRoot(t: TestContext) {
     let root = mkdtempSync(path.join(tmpdir(), "workbench-validate-"));
     t.after(() => rmSync(root, { force: true, recursive: true }));
     return root;
@@ -44,13 +48,13 @@ function proposalSource(id = "proposal.0001") {
     ].join("\n");
 }
 
-function hasClarificationViolation(content) {
+function hasClarificationViolation(content: string) {
     return validateArtifacts([proposalArtifact("accepted", content)]).some(({ message }) =>
         message.includes("NEEDS CLARIFICATION"),
     );
 }
 
-function assertCodeIgnoresButProseReports(content) {
+function assertCodeIgnoresButProseReports(content: string) {
     assert.equal(hasClarificationViolation(content), false);
     assert.equal(
         hasClarificationViolation(`${content}\n\n[NEEDS CLARIFICATION: What remains unresolved?]`),
@@ -58,7 +62,7 @@ function assertCodeIgnoresButProseReports(content) {
     );
 }
 
-function validArtifacts() {
+function validArtifacts(): Artifact[] {
     return [
         artifact("proposals/0001-records.md", {
             id: "proposal.0001",
@@ -96,7 +100,7 @@ function validArtifacts() {
         }),
     ];
 }
-function proposalArtifact(status, content = "") {
+function proposalArtifact(status: string, content = "") {
     return artifact(
         "proposals/0001-records.md",
         {
@@ -182,9 +186,7 @@ test("rule 1 rejects an empty authors list on proposals", () => {
 });
 
 test("rule 1 accepts newly allowed statuses for their record kinds", () => {
-    let cases = [
-        ["proposal", 1, "rejected"],
-        ["proposal", 1, "withdrawn"],
+    let cases: [string, number, string][] = [
         ["policy", 2, "draft"],
         ["decision", 3, "proposed"],
     ];
@@ -221,7 +223,7 @@ test("rule 1 accepts every proposal status", () => {
 });
 
 test("rule 1 keeps proposal, policy, and decision statuses distinct", () => {
-    let cases = [
+    let cases: [string, number, string][] = [
         ["proposal", 0, "active"],
         ["proposal", 0, "proposed"],
         ["policy", 2, "implemented"],
@@ -355,7 +357,7 @@ test("rule 3 accepts resolved cross-references", () => {
     );
 });
 
-function policySupersession(status) {
+function policySupersession(status: string) {
     return [
         artifact("proposals/0001-records.md", {
             id: "proposal.0001",

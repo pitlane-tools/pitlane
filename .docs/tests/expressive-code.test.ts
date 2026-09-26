@@ -1,3 +1,5 @@
+import type { HastNode } from "satteri";
+
 import fc from "fast-check";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -8,6 +10,9 @@ import { htmlToHast, markdownToHtml } from "satteri";
 import { installAlternatives } from "../app/install.ts";
 import { renderCode } from "../build/expressive-code.ts";
 import { htmlToMarkdown } from "../build/markdown.ts";
+
+type Element = Extract<HastNode, { type: "element" }>;
+type Root = Extract<HastNode, { type: "root" }>;
 
 const WHERE = "docs/package/example.md";
 
@@ -25,28 +30,29 @@ let example = fc
  * The example as Expressive Code displays it: every line without trailing
  * whitespace, and no blank lines before the first or after the last.
  */
-function displayed(code) {
+function displayed(code: string) {
     let lines = code.split("\n").map(line => line.trimEnd());
     while (lines[0] === "") lines.shift();
     while (lines.at(-1) === "") lines.pop();
     return lines.join("\n");
 }
 
-function elements(node, tagName) {
+function elements(node: HastNode, tagName: string): Element[] {
     if (node.type !== "root" && node.type !== "element") return [];
     let found = node.type === "element" && node.tagName === tagName ? [node] : [];
     return found.concat(...node.children.map(child => elements(child, tagName)));
 }
 
-function text(node) {
+function text(node: HastNode): string {
     if (node.type === "text") return node.value;
     return node.type === "element" ? node.children.map(text).join("") : "";
 }
 
 /** What a Markdown reader finds in an export: every code block's language and exact text. */
-function readFences(markdown) {
+function readFences(markdown: string) {
     let { html } = markdownToHtml(markdown);
-    let root = htmlToHast(html, { fragment: true });
+    // A fragment parse always yields a root, which satteri's return type does not say.
+    let root = htmlToHast(html, { fragment: true }) as Root;
     let content = root.children.filter(node => node.type !== "text" || node.value.trim() !== "");
     return {
         onlyCodeBlocks: content.every(node => node.type === "element" && node.tagName === "pre"),
@@ -62,10 +68,10 @@ function readFences(markdown) {
 }
 
 /** The text Expressive Code's copy button hands the clipboard, decoded as its script does. */
-function copyPayloads(html) {
+function copyPayloads(html: string) {
     return elements(htmlToHast(html, { fragment: true }), "button")
         .filter(button => typeof button.properties?.dataCode === "string")
-        .map(button => button.properties.dataCode.replace(/\u007f/g, "\n"));
+        .map(button => (button.properties.dataCode as string).replace(/\u007f/g, "\n"));
 }
 
 test("proposal.0004: for any example, the Markdown export holds its displayed code and language", async () => {
@@ -116,16 +122,16 @@ test("proposal.0004: HTML examples cannot swallow the document's hydration data"
     let html = await renderCode(code, "html", WHERE);
     let Control = clientEntry(
         "/control.js#Control",
-        () => () => createElement("button", null, "Choose"),
+        () => () => createElement("button", undefined, "Choose"),
     );
     let document = await renderToString(
         createElement(
             "html",
-            null,
+            undefined,
             createElement("head"),
             createElement(
                 "body",
-                null,
+                undefined,
                 createElement("div", { innerHTML: html }),
                 createElement(Control),
             ),

@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 
+import type * as Preferences from "../app/browser/preferences.ts";
+
 const MANAGER = "pitlane-package-manager";
 const BUILD = "pitlane-build-mode";
 
+/** The browser globals the preference module reads, which Node lacks. */
+let browser = globalThis as { window?: object; document?: object };
 let loads = 0;
-let browserGlobals = ["window", "document"].map(key => [
-    key,
-    Object.getOwnPropertyDescriptor(globalThis, key),
-]);
+let browserGlobals = (["window", "document"] as const).map(
+    key => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const,
+);
 
 afterEach(() => {
     for (let [key, descriptor] of browserGlobals) {
         if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-        else delete globalThis[key];
+        else delete browser[key];
     }
 });
 
@@ -23,35 +26,45 @@ afterEach(() => {
  * storage refuse everything, as a reader blocking site data does, or refuse
  * only writes.
  */
-async function page({ storage = {}, cookies = {}, blocked, cookiesBlocked }) {
+async function page({
+    storage = {},
+    cookies = {},
+    blocked,
+    cookiesBlocked,
+}: {
+    storage?: Record<string, string>;
+    cookies?: Record<string, string>;
+    blocked?: "all" | "write";
+    cookiesBlocked?: "read" | "write";
+}) {
     let items = new Map(Object.entries(storage));
     let jar = new Map(Object.entries(cookies));
     let refuse = () => {
         throw new DOMException("The operation is insecure.", "SecurityError");
     };
     let localStorage = {
-        getItem: key => items.get(key) ?? null,
-        setItem(key, value) {
+        getItem: (key: string) => items.get(key) ?? null,
+        setItem(key: string, value: string) {
             if (blocked === "write") refuse();
             items.set(key, String(value));
         },
-        removeItem(key) {
+        removeItem(key: string) {
             if (blocked === "write") refuse();
             items.delete(key);
         },
     };
-    globalThis.window = {
+    browser.window = {
         get localStorage() {
             if (blocked === "all") refuse();
             return localStorage;
         },
     };
-    globalThis.document = {
+    browser.document = {
         get cookie() {
             if (cookiesBlocked === "read") refuse();
             return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
         },
-        set cookie(serialized) {
+        set cookie(serialized: string) {
             if (cookiesBlocked === "write") refuse();
             let [pair, ...attributes] = serialized.split(/;\s*/);
             let separator = pair.indexOf("=");
@@ -60,7 +73,9 @@ async function page({ storage = {}, cookies = {}, blocked, cookiesBlocked }) {
             else jar.set(name, pair.slice(separator + 1));
         },
     };
-    let preferences = await import(`../app/browser/preferences.ts?page=${loads++}`);
+    let preferences: typeof Preferences = await import(
+        `../app/browser/preferences.ts?page=${loads++}`
+    );
     return { preferences, items, jar };
 }
 

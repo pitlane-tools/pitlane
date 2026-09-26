@@ -1,13 +1,59 @@
+import type { Dirent } from "node:fs";
+
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-const RECORD_TYPES = {
+export type FrontmatterValue = string | string[];
+export type Frontmatter = Record<string, FrontmatterValue>;
+
+export interface Artifact {
+    path: string;
+    frontmatter: Frontmatter;
+    content: string;
+}
+
+export interface Violation {
+    path: string;
+    message: string;
+}
+
+export interface FrontmatterDocument {
+    frontmatter: Frontmatter;
+    content: string;
+    error?: undefined;
+}
+
+export interface FrontmatterError {
+    error: string;
+    frontmatter?: undefined;
+    content?: undefined;
+}
+
+export type ParsedFrontmatter = FrontmatterDocument | FrontmatterError;
+
+type RecordType = "proposal" | "policy" | "decision";
+type ArtifactType = RecordType | "vision";
+
+interface Schema {
+    required: string[];
+    lists: string[];
+    optionalLists?: string[];
+    nonEmptyLists?: string[];
+    statuses?: string[];
+}
+
+interface Reference {
+    field: string;
+    id: string;
+}
+
+const RECORD_TYPES: Record<string, RecordType> = {
     proposals: "proposal",
     policies: "policy",
     decisions: "decision",
 };
 
-const SCHEMAS = {
+const SCHEMAS: Record<ArtifactType, Schema> = {
     proposal: {
         required: ["id", "title", "authors", "status", "pull-request", "supersedes"],
         lists: ["authors", "supersedes"],
@@ -41,23 +87,23 @@ const SCHEMAS = {
     },
 };
 
-function violation(file, message) {
+function violation(file: string, message: string): Violation {
     return { path: file, message };
 }
 
-function artifactType(file) {
+function artifactType(file: string): ArtifactType | undefined {
     let normalized = file.split(path.sep).join("/");
     if (normalized === "VISION.md") return "vision";
-    return RECORD_TYPES[normalized.split("/").at(-2)];
+    return RECORD_TYPES[normalized.split("/").at(-2) as string];
 }
 
-function expectedId(file, type) {
+function expectedId(file: string, type: RecordType): string | null {
     let filename = path.basename(file, ".md");
     let match = filename.match(/^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*$/);
     return match ? `${type}.${match[1]}` : null;
 }
 
-function referencesFor(artifact, type) {
+function referencesFor(artifact: Artifact, type: ArtifactType): Reference[] {
     let { frontmatter } = artifact;
     let fields = type === "vision" ? [] : ["supersedes", "established-by"];
 
@@ -76,9 +122,9 @@ function referencesFor(artifact, type) {
 // A proposal that documents the clarification convention necessarily writes the marker down.
 // Only prose counts as an unresolved question, so fenced blocks and inline spans are stripped
 // before the check. An author raising a real question writes it as prose, not as code.
-export function withoutCode(markdown) {
+export function withoutCode(markdown: string): string {
     let parts = markdown.split(/(\r?\n)/);
-    let fence;
+    let fence: { character: string; length: number } | undefined;
 
     for (let index = 0; index < parts.length; index += 2) {
         let line = parts[index];
@@ -107,14 +153,14 @@ export function withoutCode(markdown) {
     return parts.join("");
 }
 
-export function parseFrontmatter(source) {
+export function parseFrontmatter(source: string): ParsedFrontmatter {
     let lines = source.split(/\r?\n/);
     if (lines[0] !== "---") return { error: "missing YAML frontmatter" };
 
     let end = lines.indexOf("---", 1);
     if (end === -1) return { error: "unterminated YAML frontmatter" };
 
-    let frontmatter = {};
+    let frontmatter: Frontmatter = {};
     for (let line of lines.slice(1, end)) {
         let trimmed = line.trim();
         if (trimmed === "" || trimmed.startsWith("#")) continue;
@@ -144,15 +190,15 @@ export function parseFrontmatter(source) {
     return { frontmatter, content: source };
 }
 
-export function validateArtifacts(inputArtifacts) {
+export function validateArtifacts(inputArtifacts: Iterable<Artifact>): Violation[] {
     let artifacts = [...inputArtifacts].sort((left, right) => left.path.localeCompare(right.path));
-    let violations = [];
-    let ids = new Map();
+    let violations: Violation[] = [];
+    let ids = new Map<string, Artifact>();
 
     for (let artifact of artifacts) {
         let type = artifactType(artifact.path);
+        if (!type) continue;
         let schema = SCHEMAS[type];
-        if (!schema) continue;
 
         let frontmatter = artifact.frontmatter ?? {};
         for (let key of schema.required) {
@@ -184,7 +230,7 @@ export function validateArtifacts(inputArtifacts) {
         if (
             schema.statuses &&
             Object.hasOwn(frontmatter, "status") &&
-            !schema.statuses.includes(frontmatter.status)
+            !schema.statuses.includes(frontmatter.status as string)
         ) {
             violations.push(
                 violation(artifact.path, `invalid status "${frontmatter.status}" for ${type}`),
@@ -193,7 +239,7 @@ export function validateArtifacts(inputArtifacts) {
         if (
             type === "vision" &&
             Object.hasOwn(frontmatter, "updated") &&
-            !/^\d{4}-\d{2}-\d{2}$/.test(frontmatter.updated)
+            !/^\d{4}-\d{2}-\d{2}$/.test(frontmatter.updated as string)
         ) {
             violations.push(violation(artifact.path, 'key "updated" must use YYYY-MM-DD'));
         }
@@ -258,7 +304,7 @@ export function validateArtifacts(inputArtifacts) {
                 "accepted",
                 "implemented",
                 "superseded",
-            ].includes(artifact.frontmatter.status) &&
+            ].includes(artifact.frontmatter.status as string) &&
             withoutCode(artifact.content).includes("[NEEDS CLARIFICATION:")
         ) {
             violations.push(
@@ -270,7 +316,7 @@ export function validateArtifacts(inputArtifacts) {
         }
     }
 
-    let graph = new Map();
+    let graph = new Map<string, string[]>();
     for (let [id, artifact] of ids) {
         graph.set(
             id,
@@ -280,14 +326,14 @@ export function validateArtifacts(inputArtifacts) {
         );
     }
 
-    let states = new Map();
-    let visit = (id, trail) => {
+    let states = new Map<string, "visiting" | "visited">();
+    let visit = (id: string, trail: string[]) => {
         states.set(id, "visiting");
-        for (let target of graph.get(id)) {
+        for (let target of graph.get(id)!) {
             if (states.get(target) === "visiting") {
                 let cycle = [...trail.slice(trail.indexOf(target)), target];
                 violations.push(
-                    violation(ids.get(target).path, `supersession cycle: ${cycle.join(" -> ")}`),
+                    violation(ids.get(target)!.path, `supersession cycle: ${cycle.join(" -> ")}`),
                 );
             } else if (!states.has(target)) {
                 visit(target, [...trail, target]);
@@ -303,19 +349,22 @@ export function validateArtifacts(inputArtifacts) {
     return violations;
 }
 
-export function collectArtifacts(root = process.cwd()) {
-    let artifacts = [];
-    let violations = [];
-    let add = relativePath => {
+export function collectArtifacts(root = process.cwd()): {
+    artifacts: Artifact[];
+    violations: Violation[];
+} {
+    let artifacts: Artifact[] = [];
+    let violations: Violation[] = [];
+    let add = (relativePath: string) => {
         let source = readFileSync(path.join(root, relativePath), "utf8");
         let parsed = parseFrontmatter(source);
         if (parsed.error) {
             violations.push(violation(relativePath, parsed.error));
         } else {
-            artifacts.push({ path: relativePath, ...parsed });
+            artifacts.push({ path: relativePath, ...(parsed as FrontmatterDocument) });
         }
     };
-    let isRegularFile = (entry, absolutePath) => {
+    let isRegularFile = (entry: Dirent, absolutePath: string) => {
         if (entry.isFile()) return true;
         if (!entry.isSymbolicLink()) return false;
         try {
@@ -324,7 +373,7 @@ export function collectArtifacts(root = process.cwd()) {
             return false;
         }
     };
-    let collectDirectory = (directory, relativeDirectory, nested = false) => {
+    let collectDirectory = (directory: string, relativeDirectory: string, nested = false) => {
         let absoluteDirectory = path.join(root, relativeDirectory);
         for (let entry of readdirSync(absoluteDirectory, { withFileTypes: true })) {
             let relativePath = path.join(relativeDirectory, entry.name);

@@ -1,10 +1,15 @@
+import type { HastNode } from "satteri";
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { htmlToHast } from "satteri";
 
+type Element = Extract<HastNode, { type: "element" }>;
+
 let origin = process.env.DOCS_TEST_ORIGIN ?? "http://127.0.0.1:8788";
-let request = (path, init) => fetch(new URL(path, origin), { redirect: "manual", ...init });
+let request = (path: string, init?: RequestInit) =>
+    fetch(new URL(path, origin), { redirect: "manual", ...init });
 
 test("proposal.0004: HEAD serves public document headers without a response body", async () => {
     let response = await request("/guides/vite-plugin", { method: "HEAD" });
@@ -35,7 +40,7 @@ test("proposal.0004: unknown documents and retired article-frame paths return re
     }
 });
 
-function elements(node, tag) {
+function elements(node: HastNode, tag: string): Element[] {
     if (node.type !== "root" && node.type !== "element") return [];
     return [
         ...(node.type === "element" && node.tagName === tag ? [node] : []),
@@ -43,9 +48,9 @@ function elements(node, tag) {
     ];
 }
 
-function text(node) {
+function text(node: HastNode): string {
     if (node.type === "text") return node.value;
-    return (node.children ?? []).map(text).join("");
+    return ("children" in node ? node.children : []).map(text).join("");
 }
 
 test("proposal.0004: every install alternative is reachable through a named native disclosure", async () => {
@@ -71,7 +76,7 @@ test("proposal.0004: authored examples expose library copy payloads matching dis
     let examples = elements(article, "pre");
     let payloads = elements(article, "button")
         .filter(button => typeof button.properties?.dataCode === "string")
-        .map(button => button.properties.dataCode.replace(/\u007f/g, "\n"));
+        .map(button => (button.properties.dataCode as string).replace(/\u007f/g, "\n"));
     for (let example of examples) {
         let lines = elements(example, "div").filter(line =>
             [line.properties?.className ?? []].flat().includes("ec-line"),

@@ -20,9 +20,9 @@ let server = spawn(
     ],
     { stdio: ["ignore", "pipe", "pipe"] },
 );
-let timer;
+let timer: NodeJS.Timeout | undefined;
 try {
-    let origin = await new Promise((resolve, reject) => {
+    let origin = await new Promise<string>((resolve, reject) => {
         timer = setTimeout(
             () => reject(new Error("Documentation assets did not become ready within 60 seconds.")),
             60_000,
@@ -39,7 +39,7 @@ try {
         server.stderr.pipe(process.stderr);
     });
     clearTimeout(timer);
-    let files = (await readdir(".docs/tests")).filter(name => name.endsWith(".test.mjs")).sort();
+    let files = (await readdir(".docs/tests")).filter(name => name.endsWith(".test.ts")).sort();
     let tests = spawn(process.execPath, ["--test", ...files.map(name => `.docs/tests/${name}`)], {
         stdio: "inherit",
         env: { ...process.env, DOCS_TEST_ORIGIN: origin },

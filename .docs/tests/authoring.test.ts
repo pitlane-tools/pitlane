@@ -6,7 +6,7 @@ import { mdxToJs } from "satteri";
 import { bindings } from "../build/bindings.ts";
 import { codeBlocks, outline } from "../build/satteri.ts";
 
-function compile(source) {
+function compile(source: string) {
     return mdxToJs(source, {
         fileURL: new URL("authoring.mdx", import.meta.url),
         jsxImportSource: "remix/ui",

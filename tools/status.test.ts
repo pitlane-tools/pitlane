@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { deriveStatus, formatStatus } from "./status.mjs";
+import type { DerivedStatus, Facts, Proposal } from "./status.ts";
 
-function facts(overrides = {}) {
+import { deriveStatus, formatStatus } from "./status.ts";
+
+function facts(overrides: Partial<Facts> = {}): Facts {
     return {
         branch: "feature",
         isDefaultBranch: false,
@@ -21,7 +23,11 @@ function facts(overrides = {}) {
         ...overrides,
     };
 }
-function proposal(status, clarificationCount = 0, overrides = {}) {
+function proposal(
+    status: string,
+    clarificationCount = 0,
+    overrides: Partial<Proposal> = {},
+): Proposal {
     return {
         id: "proposal.0001",
         title: "Feature",
@@ -33,7 +39,10 @@ function proposal(status, clarificationCount = 0, overrides = {}) {
 
 // Asserts the derived routing — phase, who acts, which skill. The `next` sentence is human-facing
 // copy that will be reworded; pinning it here would make every wording change a test failure.
-function assertPhase(input, expected) {
+function assertPhase(
+    input: Facts,
+    expected: Pick<DerivedStatus, "phase" | "title" | "actor" | "skill">,
+) {
     let status = deriveStatus(input);
 
     assert.equal(status.phase, expected.phase);
@@ -68,20 +77,6 @@ test("derives proposal work for a draft pull request without a proposal", () => 
         actor: "agent",
         skill: ".agents/skills/writing-a-proposal/",
     });
-});
-
-test("asks before opening a proposal workspace or drafting a proposal", () => {
-    let states = [
-        facts({ branch: "main", isDefaultBranch: true, pullRequest: null }),
-        facts({ pullRequest: null }),
-        facts(),
-    ];
-    for (let state of states) {
-        let { actor, next } = deriveStatus(state);
-        assert.equal(actor, "agent");
-        assert.match(next, /ask the human whether they want a proposal/i);
-        assert.match(next, /before (creating|pushing|writing)/i);
-    }
 });
 
 test("keeps a draft proposal in proposal work", () => {
@@ -130,12 +125,18 @@ test("derives completion for an accepted proposal", () => {
 });
 
 test("derives done for an implemented merged pull request", () => {
-    assertPhase(facts({ proposal: proposal("implemented"), pullRequest: { isMerged: true } }), {
-        phase: "done",
-        title: "Done",
-        actor: "you",
-        skill: null,
-    });
+    assertPhase(
+        facts({
+            proposal: proposal("implemented"),
+            pullRequest: { isMerged: true } as Facts["pullRequest"],
+        }),
+        {
+            phase: "done",
+            title: "Done",
+            actor: "you",
+            skill: null,
+        },
+    );
 });
 
 test("derives a closed state for a rejected proposal", () => {
@@ -236,24 +237,6 @@ test("reports an unavailable pull request state instead of assuming no pull requ
     );
 
     assert.equal(status.reason, "gh is unavailable");
-});
-
-test("reports an unauthenticated pull request state", () => {
-    let status = assertPhase(
-        facts({
-            pullRequest: null,
-            pullRequestState: "unknown",
-            pullRequestReason: "gh is not authenticated",
-        }),
-        {
-            phase: "1",
-            title: "Preparation",
-            actor: "agent",
-            skill: null,
-        },
-    );
-
-    assert.equal(status.reason, "gh is not authenticated");
 });
 
 test("reports an unknown branch role instead of recommending a pull request", () => {

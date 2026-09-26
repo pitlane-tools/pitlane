@@ -11,17 +11,17 @@ const OVERVIEW = "/package/content/hot";
 
 const FENCE = /^```(\w*)\n([\s\S]*?)\n```$/gm;
 
-function generated(url) {
+function generated(url: string) {
     return readFile(new URL(`../../docs${url}.md`, import.meta.url), "utf8");
 }
 
-async function served(path) {
+async function served(path: string) {
     let response = await fetch(new URL(path, origin));
     assert.equal(response.status, 200, path);
     return response.text();
 }
 
-async function page(url) {
+async function page(url: string) {
     let html = await served(url);
     let start = html.indexOf("<article");
     let end = html.indexOf("</article>", start);
@@ -30,7 +30,7 @@ async function page(url) {
 }
 
 /** Each fenced example; Expressive Code drops trailing whitespace, which no example means. */
-function fences(markdown) {
+function fences(markdown: string) {
     return [...markdown.matchAll(FENCE)].map(([, language, code]) => ({
         language,
         code: code.replace(/[ \t]+$/gm, ""),
