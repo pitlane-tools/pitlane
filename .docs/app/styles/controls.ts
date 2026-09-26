@@ -152,7 +152,14 @@ export const navLink = tva({
         },
         size: {
             md: {},
-            sm: { minHeight: 0, paddingBlock: t.spacing(1.25), fontSize: t.text.xs },
+            /** The outline's rows: grey until hovered, and red only for the section being read. */
+            sm: {
+                minHeight: 0,
+                paddingBlock: t.spacing(1.25),
+                color: t.color.secondary,
+                fontSize: t.text.xs,
+                "&:hover": { color: t.color.text },
+            },
         },
     },
     defaultVariants: { depth: "section", size: "md" },
