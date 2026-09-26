@@ -131,11 +131,24 @@ let main = tva({
             docs: {
                 marginInlineStart: t.size.sidebarOffset,
                 borderRadius: [t.radius.panel, 0, 0, t.radius.panel],
+                // The panel scrolls under the fixed header, taking its rounded
+                // corner along; this redraws the corner where the header ends.
+                "&::before": {
+                    content: '""',
+                    position: "fixed",
+                    top: t.size.header,
+                    left: t.size.sidebarOffset,
+                    width: t.radius.panel,
+                    height: t.radius.panel,
+                    background: `radial-gradient(circle at 100% 100%, transparent calc(${t.radius.panel} - 0.5px), ${t.color.canvas} ${t.radius.panel})`,
+                    pointerEvents: "none",
+                },
                 [narrow]: {
                     marginInlineStart: 0,
                     marginTop: t.size.barsHeight,
                     minHeight: t.size.belowBars,
                     borderRadius: 0,
+                    "&::before": { display: "none" },
                 },
             },
             standalone: {},
@@ -256,7 +269,7 @@ let skipLink: ThemedCSSProps = {
     borderRadius: t.radius.md,
     backgroundColor: t.color.raised,
     color: t.color.text,
-    boxShadow: t.shadow.lg,
     transform: "translateY(calc(-100% - 1rem))",
-    "&:focus": { transform: "none" },
+    // Its shadow would reach into the header while the link waits off screen.
+    "&:focus": { transform: "none", boxShadow: t.shadow.lg },
 };
