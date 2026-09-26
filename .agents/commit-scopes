@@ -28,6 +28,9 @@ worker
 # .typedoc/, which generates every page under docs/package/
 typedoc
 
+# packages/mdx-checker, the headless MDX typecheck harness behind docs:mdx
+mdx-checker
+
 # Version-only commits. See AGENTS.md: a commit that also changes code or prose
 # takes the scope of what it changes.
 release
