@@ -301,7 +301,7 @@ export let SearchDialog = clientEntry(import.meta.url, (handle: Handle<SearchDia
                             display: "flex",
                             alignItems: "center",
                             gap: t.spacing(2),
-                            padding: [t.spacing(2.5), t.spacing(5), 0],
+                            padding: [t.spacing(2.5), t.spacing(5)],
                             color: status.kind === "failed" ? t.color.danger : t.color.secondary,
                             fontSize: t.text.sm,
                         })}
@@ -335,7 +335,7 @@ export let SearchDialog = clientEntry(import.meta.url, (handle: Handle<SearchDia
                                     flexDirection: "column",
                                     gap: t.spacing(1),
                                     margin: 0,
-                                    padding: [t.spacing(3), t.spacing(4), t.spacing(4)],
+                                    padding: [0, t.spacing(4), t.spacing(4)],
                                     listStyle: "none",
                                     overflowY: "auto",
                                     overscrollBehavior: "contain",
