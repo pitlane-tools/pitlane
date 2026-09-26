@@ -93,15 +93,18 @@ run = ["node --test .mdx/check.test.mjs", "node .mdx/check.mjs"]
 depends = "docs:build"
 run = "node .docs/test.mjs"
 
+# The reader runs its own Vite: the root's `node_modules/.bin` leads PATH and can
+# hold a different version, and plugins that check a dev environment against
+# their own Vite's classes reject a server created by another copy.
 [tasks."docs:dev"]
 depends = "docs:build"
 dir = "{{config_root}}/.docs"
-run = "vite --port 1337"
+run = "./node_modules/.bin/vite --port 1337"
 
 [tasks."docs:build"]
 depends = ["docs:api", "docs:mdx"]
 dir = "{{config_root}}/.docs"
-run = ["vite build", "node legacy-home.mjs"]
+run = ["./node_modules/.bin/vite build", "node legacy-home.mjs"]
 
 # The last build's published files under Cloudflare's local runtime, as they deploy.
 [tasks."docs:serve"]
