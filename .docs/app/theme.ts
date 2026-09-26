@@ -161,7 +161,7 @@ export let { token: t, Theme } = primitives.extend(base => ({
             /** The fill behind the navigation link to the page being read. */
             linkCurrent: lightDark(
                 `color-mix(in srgb, ${base.palette.red[600]} 10%, transparent)`,
-                `color-mix(in srgb, ${base.palette.red[400]} 16%, transparent)`,
+                `color-mix(in srgb, ${base.palette.red[400]} 28%, transparent)`,
             ),
             /** Metadata: eyebrows, symbol kinds, module names. */
             accent: lightDark(base.palette.pink[600], base.palette.pink[400]),
