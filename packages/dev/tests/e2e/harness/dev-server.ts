@@ -12,7 +12,7 @@
 // Pass --bundled to enable Vite's experimental bundled dev mode (full bundle
 // mode), which serves the app as a rolldown bundle instead of unbundled ESM.
 //
-// Usage: node dev-server.mjs <root> [port] [--bundled]
+// Usage: node dev-server.ts <root> [port] [--bundled]
 import { resolve } from "node:path";
 import { createServer } from "vite";
 
@@ -20,7 +20,7 @@ let args = process.argv.slice(2);
 let bundled = args.includes("--bundled");
 let [rootArg, portArg] = args.filter(arg => !arg.startsWith("--"));
 if (!rootArg) {
-    console.error("usage: node dev-server.mjs <root> [port] [--bundled]");
+    console.error("usage: node dev-server.ts <root> [port] [--bundled]");
     process.exit(1);
 }
 let root = resolve(rootArg);

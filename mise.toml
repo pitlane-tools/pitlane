@@ -32,26 +32,32 @@ run = "oxlint --fix"
 
 [tasks.typecheck]
 depends = "docs:build"
-run = ["tsc", "tsc --project .docs/tsconfig.json"]
+run = ["tsc", "tsc --project .docs/tsconfig.json", "tsc --project .typedoc/tsconfig.json"]
 
 [tasks.check]
 depends = ["docs:build", "docs:mdx", "docs:test", "docs:api:test", "validate", "tools:test"]
-run = ["oxfmt --check", "oxlint", "tsc", "tsc --project .docs/tsconfig.json"]
+run = [
+    "oxfmt --check",
+    "oxlint",
+    "tsc",
+    "tsc --project .docs/tsconfig.json",
+    "tsc --project .typedoc/tsconfig.json",
+]
 
 [tasks.validate]
 description = "Validate the record: vision, proposals, policies, decisions"
-run = "node tools/validate.mjs"
+run = "node tools/validate.ts"
 
 [tasks.status]
 description = "Show where the work is in the process and what happens next"
-run = "node tools/status.mjs"
+run = "node tools/status.ts"
 
 # The record tooling carries its own `node:test` suites so it stays
 # dependency-free. Package tests run through Vite+ (`vp test`) from inside each
 # package, so this task is namespaced instead of claiming the bare `test` name.
 [tasks."tools:test"]
 description = "Run the record tooling's own tests"
-run = "node --test tools/*.test.mjs"
+run = "node --test tools/*.test.ts"
 
 [tasks.changeset]
 description = "Write a release note for the packages this branch changes"
@@ -100,7 +106,7 @@ run = [
 sources = [
     "../pnpm-lock.yaml",
     "*.json",
-    "plugin.mjs",
+    "plugin.ts",
     "lib/**",
     "../packages/*/{package.json,tsconfig.json}",
     "../packages/*/src/**",
@@ -109,12 +115,12 @@ outputs = ["../docs/package/**", "../docs/.generated/reference.json"]
 
 [tasks."docs:api:test"]
 dir = "{{config_root}}/.typedoc"
-run = "node --test plugin.test.mjs"
+run = "node --test plugin.test.ts"
 sources = [
     "../pnpm-lock.yaml",
     "package.json",
-    "plugin.mjs",
-    "plugin.test.mjs",
+    "plugin.ts",
+    "plugin.test.ts",
     "lib/**",
     "fixtures/**",
 ]
@@ -122,10 +128,10 @@ sources = [
 [tasks."docs:mdx"]
 description = "Typecheck authored MDX with its pinned language server"
 depends = "docs:packages"
-run = ["node --test .mdx/check.test.mjs", "node .mdx/check.mjs"]
+run = ["node --test .mdx/check.test.ts", "node .mdx/check.ts"]
 sources = [
     "pnpm-lock.yaml",
-    ".mdx/*.{mjs,ts,json}",
+    ".mdx/*.{ts,json}",
     ".mdx/fixtures/**",
     "docs/tsconfig.json",
     "docs/{guides,deploy,_partials}/**/*.mdx",
@@ -135,11 +141,11 @@ sources = [
 
 [tasks."docs:test"]
 depends = "docs:build"
-run = "node .docs/test.mjs"
+run = "node .docs/test.ts"
 sources = [
     "pnpm-lock.yaml",
     "wrangler.jsonc",
-    ".docs/test.mjs",
+    ".docs/test.ts",
     ".docs/tests/**",
     ".docs/app/**",
     ".docs/build/**",
@@ -157,11 +163,11 @@ run = "./node_modules/.bin/vite --port 1337"
 [tasks."docs:build"]
 depends = ["docs:api", "docs:mdx"]
 dir = "{{config_root}}/.docs"
-run = ["./node_modules/.bin/vite build", "node legacy-home.mjs"]
+run = ["./node_modules/.bin/vite build", "node legacy-home.ts"]
 # VitePress writes its cache under docs/ while building the legacy home page.
 sources = [
     "../pnpm-lock.yaml",
-    "{package.json,tsconfig.json,vite.config.ts,legacy-home.mjs}",
+    "{package.json,tsconfig.json,vite.config.ts,legacy-home.ts}",
     "app/**",
     "build/**",
     "../packages/*/dist/**",

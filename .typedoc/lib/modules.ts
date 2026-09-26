@@ -1,3 +1,11 @@
+import type {
+    ContainerReflection,
+    DeclarationReflection,
+    ProjectReflection,
+    ReferenceReflection,
+    Reflection,
+} from "typedoc";
+
 import { ReflectionKind } from "typedoc";
 
 // TypeDoc names a module after its entry file unless the file carries a
@@ -5,9 +13,9 @@ import { ReflectionKind } from "typedoc";
 // renamed to the package's public specifier: `index` is the package root and
 // any other basename is a subpath export. The original name is kept so the
 // legacy routing pass can reproduce the URLs those names produced.
-let originalNames = new WeakMap();
+let originalNames = new WeakMap<Reflection, string>();
 
-export function nameModulesAfterExports(project, entryModule) {
+export function nameModulesAfterExports(project: ProjectReflection, entryModule: string): void {
     for (let module of project.getChildrenByKind(ReflectionKind.Module)) {
         if (module.name === entryModule || module.name.startsWith(`${entryModule}/`)) {
             continue;
@@ -17,13 +25,13 @@ export function nameModulesAfterExports(project, entryModule) {
     }
 }
 
-export function withOriginalModuleNames(project, callback) {
+export function withOriginalModuleNames<T>(project: ProjectReflection, callback: () => T): T {
     let renamed = project
         .getChildrenByKind(ReflectionKind.Module)
         .filter(module => originalNames.has(module))
-        .map(module => [module, module.name]);
+        .map((module): [DeclarationReflection, string] => [module, module.name]);
     for (let [module] of renamed) {
-        module.name = originalNames.get(module);
+        module.name = originalNames.get(module)!;
     }
     try {
         return callback();
@@ -32,6 +40,21 @@ export function withOriginalModuleNames(project, callback) {
             module.name = name;
         }
     }
+}
+
+/** One public import surface: its reflection and the specifier readers import it by. */
+export interface PublicModule {
+    reflection: ContainerReflection;
+    name: string;
+    isRoot: boolean;
+    path: string;
+    entryFile: string | undefined;
+}
+
+/** One name a public module exports a declaration under. */
+export interface ModuleExport {
+    module: PublicModule;
+    name: string;
 }
 
 /**
@@ -45,11 +68,12 @@ export function withOriginalModuleNames(project, callback) {
  * never on the order TypeDoc converted the entry points in.
  */
 export class PublicModules {
-    #project;
-    #surfaces = new Map();
-    #exports = new Map();
+    #project: ProjectReflection;
+    // Keyed by container, and probed with any reflection's parent, which the project lacks.
+    #surfaces = new Map<Reflection | undefined, PublicModule>();
+    #exports = new Map<Reflection, ModuleExport[]>();
 
-    constructor(project, entryModule) {
+    constructor(project: ProjectReflection, entryModule: string) {
         this.#project = project;
         let modules = project.getChildrenByKind(ReflectionKind.Module);
         let containers = modules.length ? modules : [project];
@@ -59,10 +83,12 @@ export class PublicModules {
         if (![...this.#surfaces.values()].some(surface => surface.isRoot)) {
             throw new Error(`[pitlane] entryModule "${entryModule}" names none of the modules`);
         }
-        for (let container of this.#surfaces.keys()) {
+        for (let container of this.#surfaces.keys() as MapIterator<ContainerReflection>) {
             for (let child of container.children ?? []) {
                 let isReference = child.kind === ReflectionKind.Reference;
-                let declaration = isReference ? child.getTargetReflectionDeep() : child;
+                let declaration = isReference
+                    ? (child as ReferenceReflection).getTargetReflectionDeep()
+                    : child;
                 if (declaration && this.#surfaces.has(declaration.parent)) {
                     this.#addExport(declaration, container, child.name);
                 }
@@ -70,7 +96,7 @@ export class PublicModules {
         }
     }
 
-    #describe(container, entryModule) {
+    #describe(container: ContainerReflection, entryModule: string): PublicModule {
         let name = container === this.#project ? entryModule : container.name;
         let isRoot = name === entryModule;
         if (!isRoot && !name.startsWith(`${entryModule}/`)) {
@@ -85,41 +111,42 @@ export class PublicModules {
         };
     }
 
-    #addExport(declaration, container, name) {
+    #addExport(declaration: Reflection, container: ContainerReflection, name: string): void {
         let exports = this.#exports.get(declaration) ?? [];
-        exports.push({ module: this.#surfaces.get(container), name });
+        exports.push({ module: this.#surfaces.get(container)!, name });
         this.#exports.set(declaration, exports);
     }
 
-    get(reflection) {
+    get(reflection: Reflection): PublicModule | undefined {
         return this.#surfaces.get(reflection);
     }
 
-    all() {
+    all(): PublicModule[] {
         return [...this.#surfaces.values()];
     }
 
-    isTopLevel(reflection) {
+    isTopLevel(reflection: Reflection): boolean {
         return this.#surfaces.has(reflection.parent);
     }
 
-    exportsOf(declaration) {
+    exportsOf(declaration: Reflection): ModuleExport[] {
         return [...(this.#exports.get(declaration) ?? [])].sort(
             (a, b) => a.module.name.localeCompare(b.module.name) || a.name.localeCompare(b.name),
         );
     }
 
-    canonical(declaration) {
+    canonical(declaration: Reflection): PublicModule {
         let exports = this.exportsOf(declaration);
         let declaringFile = this.#project.getSymbolIdFromReflection(declaration)?.fileName;
         let chosen =
             exports.find(({ module }) => module.entryFile === declaringFile) ??
             exports.find(({ module }) => module.isRoot) ??
             exports[0];
-        return chosen?.module ?? this.#surfaces.get(declaration.parent);
+        // Callers ask about top-level declarations, whose parent is a surface.
+        return chosen?.module ?? this.#surfaces.get(declaration.parent)!;
     }
 
-    aliasesOf(declaration) {
+    aliasesOf(declaration: Reflection): ModuleExport[] {
         let canonical = this.canonical(declaration);
         return this.exportsOf(declaration).filter(
             ({ module, name }) => module !== canonical || name !== declaration.name,

@@ -6,13 +6,15 @@
 // tinypool). Standalone Node is deterministic; see the design spec's
 // verification notes.
 //
-// Usage: node serve.mjs '<spec-json>'
+// Usage: node serve.ts '<spec-json>'
 // Spec:  { root: string, port: number, requests: [{ path: string, abort?: true }] }
 // Out:   { requests: [{ path, aborted?, status?, body? }] }
 
 import { createServer } from "vite";
 
-let spec = JSON.parse(process.argv[2]);
+import type { ServeRequest, ServeResult } from "../harness.ts";
+
+let spec: { root: string; port: number; requests: ServeRequest[] } = JSON.parse(process.argv[2]);
 
 process.chdir(spec.root);
 
@@ -23,7 +25,7 @@ let server = await createServer({
 });
 await server.listen();
 
-let results = [];
+let results: ServeResult[] = [];
 for (let request of spec.requests) {
     let url = `http://127.0.0.1:${spec.port}${request.path}`;
     if (request.abort) {

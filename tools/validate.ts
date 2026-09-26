@@ -233,7 +233,10 @@ export function validateArtifacts(inputArtifacts: Iterable<Artifact>): Violation
             !schema.statuses.includes(frontmatter.status as string)
         ) {
             violations.push(
-                violation(artifact.path, `invalid status "${frontmatter.status}" for ${type}`),
+                violation(
+                    artifact.path,
+                    `invalid status "${String(frontmatter.status)}" for ${type}`,
+                ),
             );
         }
         if (
@@ -290,7 +293,7 @@ export function validateArtifacts(inputArtifacts: Iterable<Artifact>): Violation
                 violations.push(
                     violation(
                         target.path,
-                        `record superseded by ${artifact.frontmatter.id} must have status "superseded"`,
+                        `record superseded by ${String(artifact.frontmatter.id)} must have status "superseded"`,
                     ),
                 );
             }
@@ -310,7 +313,7 @@ export function validateArtifacts(inputArtifacts: Iterable<Artifact>): Violation
             violations.push(
                 violation(
                     artifact.path,
-                    `proposal status "${artifact.frontmatter.status}" does not allow a [NEEDS CLARIFICATION:] marker`,
+                    `proposal status "${String(artifact.frontmatter.status)}" does not allow a [NEEDS CLARIFICATION:] marker`,
                 ),
             );
         }

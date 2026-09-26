@@ -1,6 +1,6 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "plugin": ["typedoc-plugin-markdown", "./plugin.mjs"],
+    "plugin": ["typedoc-plugin-markdown", "./plugin.ts"],
     "theme": "pitlane",
     "router": "pitlane",
     "skipErrorChecking": true,

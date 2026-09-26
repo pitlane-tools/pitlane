@@ -10,9 +10,11 @@
         "skipLibCheck": true,
         "strict": true,
         "target": "ES2022",
+        "types": ["node"],
         "verbatimModuleSyntax": true
     },
     "exclude": [
+        ".mdx/*.d.ts",
         "docs/.vitepress/cache",
         "docs/.vitepress/dist",
         "docs/.vitepress/theme/components/snippets",
@@ -25,6 +27,8 @@
         "docs/.vitepress/**/*.vue",
         "docs/.vitepress/**/*.tsx",
         ".omp/hooks/*.ts",
-        ".omp/tools/**/*.ts"
+        ".omp/tools/**/*.ts",
+        "tools/*.ts",
+        ".mdx/*.ts"
     ]
 }

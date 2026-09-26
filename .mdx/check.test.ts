@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-function checkFixture(name) {
-    let run = spawnSync(process.execPath, [".mdx/check.mjs", `.mdx/fixtures/${name}/tsconfig.json`], {
+function checkFixture(name: string) {
+    let run = spawnSync(process.execPath, [".mdx/check.ts", `.mdx/fixtures/${name}/tsconfig.json`], {
         cwd: new URL("../", import.meta.url),
         encoding: "utf8",
         timeout: 60_000,

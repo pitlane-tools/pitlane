@@ -1,3 +1,7 @@
+import type { TestContext } from "node:test";
+import type { TypeDocOptions } from "typedoc";
+import type { PluginOptions } from "typedoc-plugin-markdown";
+
 import fc from "fast-check";
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -6,10 +10,12 @@ import path from "node:path";
 import test from "node:test";
 import { Application } from "typedoc";
 
+import type { ReferenceEntry } from "./lib/manifest.ts";
+
 let fixture = new URL("./fixtures/reexports/", import.meta.url).pathname;
 let entryPoints = ["index", "loaders", "hot"].map(name => path.join(fixture, "src", `${name}.ts`));
 
-function temporaryRoot(t) {
+function temporaryRoot(t: TestContext): string {
     let root = mkdtempSync(path.join(tmpdir(), "pitlane-typedoc-"));
     t.after(() => rmSync(root, { force: true, recursive: true }));
     return root;
@@ -17,7 +23,11 @@ function temporaryRoot(t) {
 
 // Mirrors one `docs:api` run: `out` is the package's directory under
 // docs/package, from which the generator derives the site root and URL prefix.
-async function generate(root, name, overrides = {}) {
+async function generate(
+    root: string,
+    name: string,
+    overrides: Partial<TypeDocOptions & PluginOptions> = {},
+): Promise<void> {
     let app = await Application.bootstrapWithPlugins({
         options: path.join(fixture, "typedoc.json"),
         out: path.join(root, "docs", "package", name),
@@ -29,26 +39,26 @@ async function generate(root, name, overrides = {}) {
     await app.generateOutputs(project);
 }
 
-function pages(root, name = "pkg") {
+function pages(root: string, name = "pkg"): string[] {
     let packageRoot = path.join(root, "docs", "package", name);
-    return readdirSync(packageRoot, { recursive: true })
+    return readdirSync(packageRoot, { encoding: "utf8", recursive: true })
         .filter(file => file.endsWith(".md"))
         .sort((left, right) => left.localeCompare(right));
 }
 
-function read(root, page, name = "pkg") {
+function read(root: string, page: string, name = "pkg"): string {
     let file = path.join(root, "docs", "package", name, page);
     assert.ok(existsSync(file), `${page} is generated`);
     return readFileSync(file, "utf8");
 }
 
-function manifest(root) {
+function manifest(root: string): ReferenceEntry[] {
     let file = path.join(root, "docs", ".generated", "reference.json");
     assert.ok(existsSync(file), "docs/.generated/reference.json is generated");
     return JSON.parse(readFileSync(file, "utf8"));
 }
 
-function withoutCompatibilityAnchors(markdown) {
+function withoutCompatibilityAnchors(markdown: string): string {
     return markdown.replace(/<a id="[^"]*"><\/a>/g, "");
 }
 
@@ -93,9 +103,9 @@ test("proposal.0004: a declaration defined by a public module stays there when t
         /\[FileEvent\]\(\/package\/pkg\/hot\/interface\/FileEvent\)/,
     );
     let entry = manifest(root).find(page => page.title === "FileEvent");
-    assert.equal(entry.url, "/package/pkg/hot/interface/FileEvent");
-    assert.equal(entry.module, "@fixture/pkg/hot");
-    assert.deepEqual(entry.aliases, [{ module: "@fixture/pkg", name: "FileEvent" }]);
+    assert.equal(entry!.url, "/package/pkg/hot/interface/FileEvent");
+    assert.equal(entry!.module, "@fixture/pkg/hot");
+    assert.deepEqual(entry!.aliases, [{ module: "@fixture/pkg", name: "FileEvent" }]);
 });
 
 test("proposal.0004: module overviews link every export and alias to the canonical page", async t => {
@@ -207,16 +217,16 @@ test("proposal.0004: reference.json has one document per canonical page with mod
         "aliases add no documents",
     );
     let widget = entries.find(entry => entry.url === "/package/pkg/class/Widget");
-    assert.equal(widget.title, "Widget");
-    assert.equal(widget.kind, "class");
-    assert.equal(widget.module, "@fixture/pkg");
-    assert.equal(widget.description, "A widget declared once and exported by two public modules.");
-    assert.equal(widget.sourcePath, "docs/package/pkg/class/Widget.md");
+    assert.equal(widget!.title, "Widget");
+    assert.equal(widget!.kind, "class");
+    assert.equal(widget!.module, "@fixture/pkg");
+    assert.equal(widget!.description, "A widget declared once and exported by two public modules.");
+    assert.equal(widget!.sourcePath, "docs/package/pkg/class/Widget.md");
     assert.ok(
-        existsSync(path.join(root, widget.sourcePath)),
+        existsSync(path.join(root, widget!.sourcePath)),
         "sourcePath resolves from the repository root",
     );
-    assert.deepEqual(widget.aliases, [
+    assert.deepEqual(widget!.aliases, [
         { module: "@fixture/pkg/loaders", name: "Gadget" },
         { module: "@fixture/pkg/loaders", name: "Widget" },
     ]);

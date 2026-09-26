@@ -1,0 +1,8 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "types": ["node"]
+    },
+    "include": ["plugin.ts", "plugin.test.ts", "lib/**/*.ts"],
+    "exclude": ["fixtures", "node_modules"]
+}

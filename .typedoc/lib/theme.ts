@@ -1,17 +1,31 @@
+import type { DeclarationReflection, Options, ReferenceReflection, Reflection } from "typedoc";
+import type { MarkdownPageEvent } from "typedoc-plugin-markdown";
+
 import { ReflectionKind } from "typedoc";
 import { MarkdownTheme, MarkdownThemeContext } from "typedoc-plugin-markdown";
 
-import { legacyAnchors, legacySlug } from "./legacy-anchors.mjs";
-import { KIND_SEGMENTS } from "./router.mjs";
+import type { SymbolRouter } from "./router.ts";
+
+import { legacyAnchors, legacySlug } from "./legacy-anchors.ts";
+import { KIND_SEGMENTS } from "./router.ts";
+
+/** An overview line: the name a module exports and the declaration it reaches. */
+interface OverviewEntry {
+    child: DeclarationReflection;
+    target: DeclarationReflection;
+}
 
 export class SymbolTheme extends MarkdownTheme {
-    getRenderContext(page) {
+    getRenderContext(page: MarkdownPageEvent<Reflection>): SymbolThemeContext {
         return new SymbolThemeContext(this, page, this.application.options);
     }
 }
 
-class SymbolThemeContext extends MarkdownThemeContext {
-    constructor(theme, page, options) {
+export class SymbolThemeContext extends MarkdownThemeContext {
+    // base.json pairs the pitlane theme with the pitlane router.
+    declare router: SymbolRouter;
+
+    constructor(theme: MarkdownTheme, page: MarkdownPageEvent<Reflection>, options: Options) {
         super(theme, page, options);
         let reflection = this.templates.reflection;
         this.templates.reflection = page =>
@@ -21,14 +35,14 @@ class SymbolThemeContext extends MarkdownThemeContext {
 
     // Every link is root-relative, so a page reads the same wherever the
     // pipeline embeds it.
-    urlTo(reflection) {
+    urlTo(reflection: Reflection): string {
         return this.router.hasUrl(reflection)
             ? this.router.layout.urlOf(this.router.getFullUrl(reflection))
             : "";
     }
 
-    overview(model) {
-        let { name } = this.router.modules.get(model);
+    overview(model: DeclarationReflection): string {
+        let { name } = this.router.modules.get(model)!;
         let anchors = legacyAnchors(this);
         let currentHeadings = new Set([
             legacySlug(name),
@@ -41,12 +55,17 @@ class SymbolThemeContext extends MarkdownThemeContext {
         if (model.comment) {
             md.push(this.partials.comment(model.comment, { headingLevel: 2 }));
         }
-        let groups = new Map([...KIND_SEGMENTS.keys()].map(kind => [kind, []]));
+        let groups = new Map<ReflectionKind, OverviewEntry[]>(
+            [...KIND_SEGMENTS.keys()].map(kind => [kind, []]),
+        );
         for (let child of model.children ?? []) {
             let target =
-                child.kind === ReflectionKind.Reference ? child.getTargetReflectionDeep() : child;
+                child.kind === ReflectionKind.Reference
+                    ? (child as ReferenceReflection).getTargetReflectionDeep()
+                    : child;
             if (target && this.router.hasUrl(target) && groups.has(target.kind)) {
-                groups.get(target.kind).push({ child, target });
+                // Every kind an overview groups is a declaration kind.
+                groups.get(target.kind)!.push({ child, target: target as DeclarationReflection });
             }
         }
         for (let [kind, entries] of groups) {
@@ -64,7 +83,7 @@ class SymbolThemeContext extends MarkdownThemeContext {
         return md.join("\n\n");
     }
 
-    overviewEntry({ child, target }, legacy) {
+    overviewEntry({ child, target }: OverviewEntry, legacy: Map<Reflection, string[]>): string {
         let anchors = (legacy.get(child) ?? []).map(anchor => `<a id="${anchor}"></a>`).join("");
         let link = `[${child.name}](${this.urlTo(target)})`;
         let alias = child.name === target.name ? "" : ` (alias of \`${target.name}\`)`;
@@ -76,9 +95,10 @@ class SymbolThemeContext extends MarkdownThemeContext {
 
 // The `content.begin` hook: how a symbol page's declaration is imported,
 // through every public module that exports it.
-export function importBlock(context) {
+export function importBlock(context: MarkdownThemeContext): string {
     let { model } = context.page;
-    let { modules } = context.router;
+    // base.json pairs the pitlane theme with the pitlane router.
+    let { modules } = context.router as SymbolRouter;
     if (modules.get(model) || !modules.isTopLevel(model)) {
         return "";
     }

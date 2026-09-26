@@ -2,17 +2,19 @@
 // public module and per top-level export, root-relative links, a site-wide
 // reference manifest, and compatibility anchors for the fragments the old
 // module-sized pages had. See lib/ for the pieces.
+import type { MarkdownApplication } from "typedoc-plugin-markdown";
+
 import { Converter } from "typedoc";
 
-import { writeSiteManifests } from "./lib/manifest.mjs";
-import { nameModulesAfterExports } from "./lib/modules.mjs";
-import { SymbolRouter } from "./lib/router.mjs";
-import { importBlock, SymbolTheme } from "./lib/theme.mjs";
+import { writeSiteManifests } from "./lib/manifest.ts";
+import { nameModulesAfterExports } from "./lib/modules.ts";
+import { SymbolRouter } from "./lib/router.ts";
+import { importBlock, SymbolTheme } from "./lib/theme.ts";
 
-/** @param {import("typedoc-plugin-markdown").MarkdownApplication} app */
-export function load(app) {
+export function load(app: MarkdownApplication): void {
     app.converter.on(Converter.EVENT_RESOLVE_BEGIN, context => {
-        nameModulesAfterExports(context.project, app.options.getValue("entryModule"));
+        // typedoc-plugin-markdown declares this option without adding it to TypeDoc's option map.
+        nameModulesAfterExports(context.project, app.options.getValue("entryModule") as string);
     });
     app.renderer.defineTheme("pitlane", SymbolTheme);
     app.renderer.defineRouter("pitlane", SymbolRouter);
