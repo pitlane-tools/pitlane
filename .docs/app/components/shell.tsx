@@ -8,18 +8,18 @@ import clientAssets from "../entry.browser.ts?assets=client";
 import { eyebrow } from "../styles/controls.ts";
 import { belowOutlineColumn, compact, medium, narrow, outlineColumn } from "../styles/media.ts";
 import { t, Theme } from "../theme.ts";
-import { Article, Breadcrumbs, prose } from "./article.tsx";
+import { Article, prose } from "./article.tsx";
 import { BuildModeSwitch } from "./build-mode-switch.tsx";
 import { SectionBar, SiteHeader } from "./header.tsx";
 import { MarkdownActions } from "./markdown-actions.tsx";
-import { breadcrumbs, buildModeVariants, buildNavigation, PRIMARY_LINKS } from "./navigation.ts";
+import { buildModeVariants, buildNavigation, PRIMARY_LINKS } from "./navigation.ts";
 import { OUTLINE_ID } from "./outline.tsx";
 import { DOCUMENT_NAVIGATION_ID, DocumentNavigation } from "./sidebar.tsx";
 import { documentTitle, OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site.ts";
 
 export interface ShellProps {
     page: DocumentPage;
-    /** Every published page, for the navigation and the breadcrumb trail. */
+    /** Every published page, for the navigation. */
     pages: DocumentPage[];
     /** The page's compiled body. */
     children?: RemixNode;
@@ -28,7 +28,7 @@ export interface ShellProps {
 /**
  * A documentation page as one complete document. Every request, and every
  * soft navigation Remix reconciles, renders its metadata, navigation,
- * breadcrumbs, article, and outline together from the same page.
+ * article, and outline together from the same page.
  */
 export function Shell(handle: Handle<ShellProps>) {
     return () => {
@@ -53,16 +53,12 @@ export function Shell(handle: Handle<ShellProps>) {
                     <div mix={css(pageGrid)}>
                         <div
                             mix={css({
-                                gridArea: "crumbs",
+                                gridArea: "actions",
                                 display: "flex",
-                                flexWrap: "wrap",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: [t.spacing(2), t.spacing(4)],
-                                marginBottom: t.spacing(8),
+                                justifyContent: "flex-end",
+                                marginBottom: t.spacing(4),
                             })}
                         >
-                            <Breadcrumbs title={page.title} trail={breadcrumbs(pages, page)} />
                             <MarkdownActions url={page.url} />
                         </div>
                         {page.buildMode && variants ? (
@@ -167,12 +163,12 @@ let main = tva({
 let pageGrid: ThemedCSSProps = {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr)",
-    gridTemplateAreas: '"crumbs" "switch" "body"',
+    gridTemplateAreas: '"actions" "switch" "body"',
     columnGap: t.spacing(10),
     maxWidth: t.size.content,
     [outlineColumn]: {
         gridTemplateColumns: `minmax(0, 1fr) ${t.size.toc}`,
-        gridTemplateAreas: '"crumbs outline" "switch outline" "body outline"',
+        gridTemplateAreas: '"actions outline" "switch outline" "body outline"',
         gridTemplateRows: "auto auto 1fr",
     },
 };
@@ -257,16 +253,16 @@ let root: ThemedCSSProps = {
     "&, & *, & ::before, & ::after": { boxSizing: "border-box" },
     "& ::selection": { backgroundColor: t.color.selection, color: t.color.selectionText },
     "& :focus-visible": {
+        outline: `${t.size.focus} solid ${t.color.link}`,
+        outlineOffset: t.size.focus,
+    },
+    "& :where(button, input, select, textarea)": { font: "inherit", color: "inherit" },
     // Every monospace run, including elements no component styles, sets in
     // JetBrains Mono with its programming ligatures.
     "& :where(code, kbd, pre, samp)": {
         fontFamily: t.font.mono,
         fontVariantLigatures: "common-ligatures contextual",
     },
-        outline: `${t.size.focus} solid ${t.color.link}`,
-        outlineOffset: t.size.focus,
-    },
-    "& :where(button, input, select, textarea)": { font: "inherit", color: "inherit" },
 };
 
 let skipLink: ThemedCSSProps = {

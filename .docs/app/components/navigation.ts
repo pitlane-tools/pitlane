@@ -33,12 +33,6 @@ export type Navigation =
     | { section: "guides"; label: "Guides"; groups: GuideGroup[] }
     | { section: "api"; label: "API reference"; modules: ApiModule[] };
 
-/** One step of the trail above a page, linked when it has a page of its own. */
-export interface Breadcrumb {
-    text: string;
-    href?: string;
-}
-
 /**
  * Where the header's section links point. Both are published documents,
  * which indexing the page list verifies, so the 404 document can use them
@@ -245,21 +239,4 @@ export function buildModeVariants(page: DocumentPage): Record<BuildMode, string>
     return buildMode === "vite"
         ? { vite: url, "no-build": counterpart }
         : { vite: counterpart, "no-build": url };
-}
-
-/** The trail above `page`: its section, and for a symbol, the module that exports it. */
-export function breadcrumbs(pages: DocumentPage[], page: DocumentPage): Breadcrumb[] {
-    switch (page.section) {
-        case "guides":
-            return [{ text: "Guides" }];
-        case "deploy":
-            return [{ text: "Guides" }, { text: "Deployment" }];
-        case "api": {
-            if (page.kind === "module") return [{ text: "Packages" }];
-            let overview = indexPages(pages).modules.find(
-                module => module.module === page.module,
-            )?.overview;
-            return [{ text: "Packages" }, { text: page.module!, href: overview?.url }];
-        }
-    }
 }

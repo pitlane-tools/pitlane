@@ -96,7 +96,7 @@ Use the reference's restrained reading shell: compact left navigation, central a
 
 At narrow widths, document navigation and the page outline remain separately accessible. All disclosures have accessible names and state. Dialogs and overlays support keyboard dismissal, appropriate focus placement, and focus restoration. Respect reduced-motion preferences.
 
-Retain enhanced navigation transitions through Remix's document reconciliation. Ordinary anchors remain valid document links; direct loads, reloads, back/forward navigation, and fragment navigation must work. A navigation failure must not leave stale content presented under a new URL. The next document response supplies its article, metadata, breadcrumbs, selected navigation item, and outline together.
+Retain enhanced navigation transitions through Remix's document reconciliation. Ordinary anchors remain valid document links; direct loads, reloads, back/forward navigation, and fragment navigation must work. A navigation failure must not leave stale content presented under a new URL. The next document response supplies its article, metadata, selected navigation item, and outline together.
 
 ### Idiomatic application structure
 
@@ -118,7 +118,7 @@ One Vite-built application entry exposes the standard fetch handler used in deve
 
 Render each complete public document during the build, including the shell, navigation, outline, metadata, hydration descriptors, authored body, and generated reference. Publish each at its canonical URL and generate a complete static 404. No request-time document rendering, in-Worker HTML cache, cookie-based response variation, or preference mutation endpoint remains. Missing paths and retired article-frame routes return actual 404 responses; legacy redirects preserve meaningful query parameters.
 
-Ordinary links target public document URLs. Remix's native soft navigation fetches and reconciles the next complete static document. Metadata, breadcrumbs, selected navigation, and the outline describe that URL's document. Do not introduce an application-owned DOM synchronization registry, separately fetched article representation, or nested static-frame transport.
+Ordinary links target public document URLs. Remix's native soft navigation fetches and reconciles the next complete static document. Metadata, selected navigation, and the outline describe that URL's document. Do not introduce an application-owned DOM synchronization registry, separately fetched article representation, or nested static-frame transport.
 
 Persist supported semantic package-manager and build-mode values in browser localStorage using the existing `pitlane-package-manager` and `pitlane-build-mode` keys. Absent or invalid values use npm and Vite defaults. Preserve valid existing localStorage values; migrate a valid old same-named preference cookie only when no valid stored value exists, then retire that cookie. An explicit new selection wins. Do not migrate appearance. Storage failures leave reading, current-session selection, and native controls usable.
 

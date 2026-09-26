@@ -3,7 +3,6 @@ import type { Handle, RemixNode } from "remix/ui";
 import { css, type ThemedCSSProps } from "@pitlane/theme";
 
 import type { DocumentPage } from "../document.ts";
-import type { Breadcrumb } from "./navigation.ts";
 
 import { t } from "../theme.ts";
 import { Outline } from "./outline.tsx";
@@ -149,42 +148,4 @@ export function Article(handle: Handle<ArticleProps, ArticleContext>) {
             </>
         );
     };
-}
-
-/** The trail above the page, ending in the page itself. */
-export function Breadcrumbs(handle: Handle<{ trail: Breadcrumb[]; title: string }>) {
-    return () => (
-        <nav
-            aria-label="Breadcrumb"
-            mix={css({
-                fontSize: t.text.md,
-                "& ol": {
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    margin: 0,
-                    padding: 0,
-                    listStyle: "none",
-                },
-                "& li + li::before": {
-                    content: '"/"',
-                    margin: [0, t.spacing(2)],
-                    color: t.color.faint,
-                },
-                "& a": {
-                    color: t.color.link,
-                    textDecoration: "none",
-                    "&:hover": { textDecoration: "underline" },
-                },
-                "& [aria-current]": { color: t.color.secondary },
-            })}
-        >
-            <ol>
-                {handle.props.trail.map(crumb => (
-                    <li>{crumb.href ? <a href={crumb.href}>{crumb.text}</a> : crumb.text}</li>
-                ))}
-                <li aria-current="page">{handle.props.title}</li>
-            </ol>
-        </nav>
-    );
 }
