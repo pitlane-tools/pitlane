@@ -1,6 +1,6 @@
 # Documentation development
 
-The reader in `.docs/` is a Remix application built with Pitlane and published as Cloudflare static assets. Guides live in `docs/guides/`, deployment pages in `docs/deploy/`, and shared authoring inputs in `docs/_partials/`. `docs/internal/` is excluded from publication and search.
+`docs/` is a Remix application built with Pitlane and published as Cloudflare static assets. Its content lives under `docs/app/content/`: guides in `guides/`, deployment pages in `deployment/`, the generated API reference in `api/`, and shared authoring inputs in `_partials/`. `docs/app/content.ts` declares the collections. `docs/internal/` and `docs/superpowers/` are not part of any collection, so nothing publishes or indexes them.
 
 ## Run the reader
 
@@ -27,13 +27,13 @@ The home page still uses its existing VitePress implementation in branch preview
 
 ## Author Markdown and MDX
 
-Use Markdown for plain prose and fenced examples. Use MDX for pages that compose documentation components. Import components explicitly from `.docs/app/components/documentation.tsx`, following existing guides. Shared MDX partials are rendered through `Include`; they are authoring inputs, not public pages.
+Use Markdown for plain prose and fenced examples. Use MDX for pages that compose documentation components. Import components explicitly from `docs/app/components/documentation.tsx`, following existing guides. Shared MDX partials are rendered through `Include`; they are authoring inputs, not public pages.
 
 Prepare installation examples at MDX module scope, then pass them to the real `InstallGroup` component. The async helper accepts ordinary JavaScript values, including imported package lists:
 
 ```mdx
-import { InstallGroup } from "../../.docs/app/components/documentation.tsx";
-import { installAlternatives } from "../../.docs/app/install.ts";
+import { InstallGroup } from "../../components/documentation.tsx";
+import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ dev: ["@pitlane/dev"] });
 
@@ -72,9 +72,9 @@ Do not format MDX with the repository's Markdown formatter. Oxfmt currently chan
 
 ## Reference and deployment
 
-API reference is generated from package exports and TSDoc by `.typedoc/`, which has its own TypeScript 6 dependency. Never edit `docs/package/` output. Change the originating TSDoc instead.
+API reference is generated from package exports and TSDoc by `.typedoc/`, which has its own TypeScript 6 dependency. Never edit `docs/app/content/api/` output. Change the originating TSDoc instead.
 
-The build keeps a Node server renderer in `.docs/dist/ssr/` for development and publication and emits complete public HTML with the browser assets in `.docs/dist/client/`. Production and branch previews use the root `wrangler.jsonc` to serve those assets, with native canonical redirects and a static 404. There is no deployed application entry, request-time document renderer, personalized response HTML, or cookie-dependent cache policy.
+The build keeps a Node server renderer in `docs/dist/ssr/` for development and publication and emits complete public HTML with the browser assets in `docs/dist/client/`. Production and branch previews use the root `wrangler.jsonc` to serve those assets, with native canonical redirects and a static 404. There is no deployed application entry, request-time document renderer, personalized response HTML, or cookie-dependent cache policy.
 
 Guides and deployment pages compile to Remix components. Generated reference pages compile to HTML strings with their headings, permalinks, and old module anchors in place. The same application shell renders every document at build time: symbol and guide pages as `<path>.html`, module overviews as `<path>/index.html`. Explicit Vite and No Build documents contain only their own resolved content, metadata, outline, search entry, and Markdown export.
 

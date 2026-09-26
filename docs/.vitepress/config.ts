@@ -90,7 +90,7 @@ let config = defineConfig({
     titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
     // `_`-prefixed files are partials a page includes, not pages of their own.
-    srcExclude: ["superpowers/**", "internal/**", "**/_*.md"],
+    srcExclude: ["app/**", "superpowers/**", "internal/**", "**/_*.md"],
     cleanUrls: true,
     sitemap: { hostname: SITE_URL },
     transformPageData(pageData) {
@@ -122,6 +122,8 @@ let config = defineConfig({
         },
     },
     vite: {
+        // The Remix app's vite.config.ts shares this root; VitePress must not merge it.
+        configFile: false,
         plugins: [
             // Before llmstxt(): it resolves includes itself and emits a Markdown
             // twin of every page, so the mode has to be resolved in the source
@@ -138,7 +140,7 @@ let config = defineConfig({
             // page into the dist assets (build only). Mirrors `srcExclude`:
             // those pages are not on the site, so LLMs don't get them either.
             llmstxt({
-                ignoreFiles: ["superpowers/**", "internal/**"],
+                ignoreFiles: ["app/**", "superpowers/**", "internal/**"],
                 // The theme sidebar maps two prefixes ("/guides", "/deploy")
                 // to the same `guides` array; the llms.txt TOC builder flattens
                 // sidebar values and would list every section twice. Hand it

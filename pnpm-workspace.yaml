@@ -6,7 +6,7 @@ packages:
     # workspace package is what lets it hold TypeScript 6 while the rest of the
     # repo is on 7, instead of aliasing the name repo-wide.
     - .typedoc
-    - .docs
+    - docs
 
 allowBuilds:
     remix: true

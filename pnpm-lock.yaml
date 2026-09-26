@@ -230,58 +230,6 @@ importers:
         specifier: ^4.111.0
         version: 4.111.0
 
-  .docs:
-    dependencies:
-      '@pitlane/content':
-        specifier: workspace:*
-        version: link:../packages/content
-      '@pitlane/theme':
-        specifier: workspace:*
-        version: link:../packages/theme
-      remix:
-        specifier: 3.0.0-rc.2
-        version: 3.0.0-rc.2(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)
-    devDependencies:
-      '@cloudflare/vite-plugin':
-        specifier: ^1.31.0
-        version: 1.47.0(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)
-      '@fontsource-variable/jetbrains-mono':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@pitlane/dev':
-        specifier: workspace:*
-        version: link:../packages/dev
-      '@types/node':
-        specifier: ^25.5.0
-        version: 25.9.5
-      expressive-code:
-        specifier: 0.44.2
-        version: 0.44.2
-      fast-check:
-        specifier: 4.10.2
-        version: 4.10.2
-      pagefind:
-        specifier: 1.5.2
-        version: 1.5.2
-      satteri:
-        specifier: ^0.10.5
-        version: 0.10.5
-      shiki:
-        specifier: ^4.0.2
-        version: 4.3.1
-      sirv:
-        specifier: ^3.0.2
-        version: 3.0.2
-      vite:
-        specifier: ^8.1.5
-        version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
-      vite-plugin-satteri:
-        specifier: ^0.3.5
-        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
-      vite-plus:
-        specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
-
   .typedoc:
     devDependencies:
       '@types/node':
@@ -374,6 +322,58 @@ importers:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.1.19
         version: '@voidzero-dev/vite-plus-core@0.1.19(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
+
+  docs:
+    dependencies:
+      '@pitlane/content':
+        specifier: workspace:*
+        version: link:../packages/content
+      '@pitlane/theme':
+        specifier: workspace:*
+        version: link:../packages/theme
+      remix:
+        specifier: 3.0.0-rc.2
+        version: 3.0.0-rc.2(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)
+    devDependencies:
+      '@cloudflare/vite-plugin':
+        specifier: ^1.31.0
+        version: 1.47.0(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)
+      '@fontsource-variable/jetbrains-mono':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@pitlane/dev':
+        specifier: workspace:*
+        version: link:../packages/dev
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.5
+      expressive-code:
+        specifier: 0.44.2
+        version: 0.44.2
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
+      pagefind:
+        specifier: 1.5.2
+        version: 1.5.2
+      satteri:
+        specifier: ^0.10.5
+        version: 0.10.5
+      shiki:
+        specifier: ^4.0.2
+        version: 4.3.1
+      sirv:
+        specifier: ^3.0.2
+        version: 3.0.2
+      vite:
+        specifier: ^8.1.5
+        version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+      vite-plugin-satteri:
+        specifier: ^0.3.5
+        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+      vite-plus:
+        specifier: ^0.2.6
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   packages/content:
     dependencies:

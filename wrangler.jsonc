@@ -8,7 +8,7 @@
     // only (no zone permissions), and custom domains persist across deploys.
     "preview_urls": true,
     "assets": {
-        "directory": "./.docs/dist/client",
+        "directory": "./docs/dist/client",
         "html_handling": "auto-trailing-slash",
         "not_found_handling": "404-page"
     }

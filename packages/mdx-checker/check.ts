@@ -1,7 +1,7 @@
 // Typechecks every MDX document of one or more TypeScript projects by driving
 // the same MDX language server VS Code runs, headlessly over stdio.
 //
-//   node packages/mdx-checker/check.ts [tsconfig.json ...]     default: docs/tsconfig.json
+//   node packages/mdx-checker/check.ts [tsconfig.json ...]     default: docs/app/content/tsconfig.json
 //
 // A document is bound to the nearest ancestor tsconfig.json that includes it,
 // exactly as in the editor, so the project has to live above the documents and
@@ -206,9 +206,9 @@ function byPosition(a: Diagnostic, b: Diagnostic): number {
 }
 
 async function main(args: string[]): Promise<number> {
-    let projects = (args.length > 0 ? args : [path.join(REPO_ROOT, "docs/tsconfig.json")]).map(
-        readProject,
-    );
+    let projects = (
+        args.length > 0 ? args : [path.join(REPO_ROOT, "docs/app/content/tsconfig.json")]
+    ).map(readProject);
     let server = startServer();
     let errors = 0;
     let checked = 0;

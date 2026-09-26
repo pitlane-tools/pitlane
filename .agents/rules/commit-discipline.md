@@ -33,7 +33,7 @@ The allowed scopes are:
 | Scope | Use for |
 | --- | --- |
 | `proposal` · `policy` · `decision` | The corresponding record type |
-| `guides` · `docs` | Pages under `docs/guides/`, and the published site |
+| `guides` · `docs` | Pages under `docs/app/content/guides/`, and the published site |
 | `tools` · `ci` · `mise` | The record tooling, workflows, and Mise task definitions |
 | `agents` · `skills` · `rules` · `templates` · `hooks` | Agent process infrastructure |
 | `readme` · `vision` | Project overview and direction |

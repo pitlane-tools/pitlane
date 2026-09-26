@@ -91,7 +91,7 @@ jobs:
               run: |
                   if grep -rn '@hiogawa' \
                       packages/dev/README.md packages/theme/README.md \
-                      docs/guides docs/package; then
+                      docs/app/content/guides docs/app/content/api; then
                       echo "Dependency API leaked into user-facing docs" >&2
                       exit 1
                   fi

@@ -6,6 +6,6 @@
         "../packages/data-table-d1/src/migrations.ts"
     ],
     "tsconfig": "../packages/data-table-d1/tsconfig.json",
-    "out": "../docs/package/data-table-d1",
+    "out": "../docs/app/content/api/data-table-d1",
     "entryModule": "@pitlane/data-table-d1"
 }

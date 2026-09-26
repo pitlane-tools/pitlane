@@ -32,7 +32,7 @@ run = "oxlint --fix"
 
 [tasks.typecheck]
 depends = "docs:build"
-run = ["tsc", "tsc --project .docs/tsconfig.json", "tsc --project .typedoc/tsconfig.json"]
+run = ["tsc", "tsc --project docs/tsconfig.json", "tsc --project .typedoc/tsconfig.json"]
 
 [tasks.check]
 depends = ["docs:build", "docs:mdx", "docs:test", "docs:api:test", "validate", "tools:test"]
@@ -40,7 +40,7 @@ run = [
     "oxfmt --check",
     "oxlint",
     "tsc",
-    "tsc --project .docs/tsconfig.json",
+    "tsc --project docs/tsconfig.json",
     "tsc --project .typedoc/tsconfig.json",
 ]
 
@@ -111,7 +111,7 @@ sources = [
     "../packages/*/{package.json,tsconfig.json}",
     "../packages/*/src/**",
 ]
-outputs = ["../docs/package/**", "../docs/.generated/reference.json"]
+outputs = ["../docs/app/content/api/**", "../docs/.generated/reference.json"]
 
 [tasks."docs:api:test"]
 dir = "{{config_root}}/.typedoc"
@@ -133,23 +133,21 @@ sources = [
     "pnpm-lock.yaml",
     "packages/mdx-checker/*.{ts,json}",
     "packages/mdx-checker/fixtures/**",
-    "docs/tsconfig.json",
-    "docs/{guides,deploy,_partials}/**/*.mdx",
-    ".docs/app/**",
-    ".docs/build/**",
+    "docs/app/**",
+    "docs/build/**",
 ]
 
 [tasks."docs:test"]
 depends = "docs:build"
-run = "node .docs/test.ts"
+run = "node docs/test.ts"
 sources = [
     "pnpm-lock.yaml",
     "wrangler.jsonc",
-    ".docs/test.ts",
-    ".docs/tests/**",
-    ".docs/app/**",
-    ".docs/build/**",
-    ".docs/dist/**",
+    "docs/test.ts",
+    "docs/tests/**",
+    "docs/app/**",
+    "docs/build/**",
+    "docs/dist/**",
 ]
 
 # The reader runs its own Vite: the root's `node_modules/.bin` leads PATH and can
@@ -157,23 +155,24 @@ sources = [
 # their own Vite's classes reject a server created by another copy.
 [tasks."docs:dev"]
 depends = "docs:build"
-dir = "{{config_root}}/.docs"
+dir = "{{config_root}}/docs"
 run = "./node_modules/.bin/vite --port 1337"
 
 [tasks."docs:build"]
 depends = ["docs:api", "docs:mdx"]
-dir = "{{config_root}}/.docs"
+dir = "{{config_root}}/docs"
 run = ["./node_modules/.bin/vite build", "node legacy-home.ts"]
-# VitePress writes its cache under docs/ while building the legacy home page.
+# VitePress writes its cache under .vitepress/ while building the legacy home page.
 sources = [
     "../pnpm-lock.yaml",
-    "{package.json,tsconfig.json,vite.config.ts,legacy-home.ts}",
+    "{package.json,tsconfig.json,vite.config.ts,legacy-home.ts,index.md}",
     "app/**",
     "build/**",
+    "public/**",
+    ".generated/**",
+    ".vitepress/**",
+    "!.vitepress/{cache,dist,.temp}/**",
     "../packages/*/dist/**",
-    "../docs/**",
-    "!../docs/.vitepress/{cache,.temp}/**",
-    "!../docs/{internal,superpowers}/**",
 ]
 outputs = ["dist/**"]
 
@@ -182,4 +181,4 @@ outputs = ["dist/**"]
 run = "wrangler dev --config wrangler.jsonc --port 1337"
 
 [tasks."docs:prose"]
-run = ["vale sync", "vale docs/package docs/guides"]
+run = ["vale sync", "vale docs/app/content/api docs/app/content/guides"]

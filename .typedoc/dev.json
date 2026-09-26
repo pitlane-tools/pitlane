@@ -3,6 +3,6 @@
     "extends": "./base.json",
     "entryPoints": ["../packages/dev/src/index.ts", "../packages/dev/src/runtime.ts"],
     "tsconfig": "../packages/dev/tsconfig.json",
-    "out": "../docs/package/dev",
+    "out": "../docs/app/content/api/dev",
     "entryModule": "@pitlane/dev"
 }
