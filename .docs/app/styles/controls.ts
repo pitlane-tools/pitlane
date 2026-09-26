@@ -137,7 +137,11 @@ export const navLink = tva({
         overflowWrap: "anywhere",
         transition: stateTransition,
         "&:hover": { color: t.color.linkHover, backgroundColor: t.color.hover },
-        "&[aria-current]": { color: t.color.text, backgroundColor: t.color.selected },
+        "&[aria-current]": {
+            color: t.color.link,
+            backgroundColor: t.color.linkCurrent,
+            fontWeight: t.weight.semibold,
+        },
     },
     variants: {
         /** Outline rows indent by heading level below the page's sections. */
