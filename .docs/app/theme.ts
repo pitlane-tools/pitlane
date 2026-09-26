@@ -211,7 +211,6 @@ export let { token: t, Theme } = primitives.extend(base => ({
             codeRadius: "calc(var(--ec-brdRad) + var(--ec-brdWd))",
         },
         shadow: {
-            code: "var(--ec-frm-frameBoxShdCssVal)",
             /** The rule under a row of tabs, which the open tab's bar covers. */
             tabRule: `inset 0 calc(-1 * ${base.size.hairline}) 0 var(--ec-frm-edTabBarBrdBtmCol)`,
         },

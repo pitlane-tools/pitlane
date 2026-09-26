@@ -41,8 +41,7 @@ const RESTORE_DISCLOSURE =
 // shares the tabs' background. Its unlayered stylesheet outranks component
 // styles, so this overrides the variables it reads instead, as a string
 // because style objects would kebab-case their mixed-case names.
-const FRAMELESS_CODE =
-    "--ec-brdWd:0px;--ec-brdRad:0px;--ec-frm-frameBoxShdCssVal:none;--ec-codeBg:var(--ec-frm-trmBg)";
+const FRAMELESS_CODE = "--ec-brdWd:0px;--ec-brdRad:0px;--ec-codeBg:var(--ec-frm-trmBg)";
 
 // Each disclosure's summary becomes a tab and its content the panel beneath
 // them, which needs `::details-content`. A browser without it stacks the
@@ -53,7 +52,6 @@ let groupStyle = css<HTMLDivElement>({
     border: `${t.size.codeBorder} solid ${t.color.code.border}`,
     borderRadius: t.size.codeRadius,
     backgroundColor: t.color.code.frame,
-    boxShadow: t.shadow.code,
     overflow: "hidden",
     "@supports selector(::details-content)": {
         containerType: "inline-size",

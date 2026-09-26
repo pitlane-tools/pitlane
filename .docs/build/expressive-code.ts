@@ -9,7 +9,7 @@ let engine = new ExpressiveCode({
     themeCssSelector: false,
     useDarkModeMediaQuery: true,
     frames: { extractFileNameFromCode: false, removeCommentsWhenCopyingTerminalFrames: false },
-    styleOverrides: { codeFontFamily: t.font.mono },
+    styleOverrides: { codeFontFamily: t.font.mono, frames: { frameBoxShadowCssValue: "none" } },
 });
 
 /**
