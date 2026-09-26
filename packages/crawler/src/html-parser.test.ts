@@ -9,16 +9,18 @@ const FIXTURE_HTML = readFileSync(
 );
 
 const EXPECTED_TOTAL = 223;
-const EXPECTED_HEAD = 1;
-const EXPECTED_BODY = 1;
-const EXPECTED_DIV = 26;
-const EXPECTED_A = 47;
-const EXPECTED_IMG = 20;
-const EXPECTED_SCRIPT = 2;
-const EXPECTED_LINK = 3;
-const EXPECTED_META = 2;
-const EXPECTED_SECTION = 7;
-const EXPECTED_LI = 25;
+const EXPECTED_COUNTS = {
+    head: 1,
+    body: 1,
+    div: 26,
+    a: 47,
+    img: 20,
+    script: 2,
+    link: 3,
+    meta: 2,
+    section: 7,
+    li: 25,
+};
 
 describe("parse()", () => {
     it("parses all elements from a realistic HTML document", () => {
@@ -27,74 +29,16 @@ describe("parse()", () => {
         expect(elements).toHaveLength(EXPECTED_TOTAL);
     });
 
-    it("parses the correct number of head elements", () => {
+    it("parses the correct number of each element", () => {
         let elements = parse(FIXTURE_HTML).elements;
-        let head = elements.filter(el => el.name === "head");
+        let counts = Object.fromEntries(
+            Object.keys(EXPECTED_COUNTS).map(name => [
+                name,
+                elements.filter(el => el.name === name).length,
+            ]),
+        );
 
-        expect(head).toHaveLength(EXPECTED_HEAD);
-    });
-
-    it("parses the correct number of body elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let body = elements.filter(el => el.name === "body");
-
-        expect(body).toHaveLength(EXPECTED_BODY);
-    });
-
-    it("parses the correct number of div elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let divs = elements.filter(el => el.name === "div");
-
-        expect(divs).toHaveLength(EXPECTED_DIV);
-    });
-
-    it("parses the correct number of anchor elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let anchors = elements.filter(el => el.name === "a");
-
-        expect(anchors).toHaveLength(EXPECTED_A);
-    });
-
-    it("parses the correct number of img elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let imgs = elements.filter(el => el.name === "img");
-
-        expect(imgs).toHaveLength(EXPECTED_IMG);
-    });
-
-    it("parses the correct number of script elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let scripts = elements.filter(el => el.name === "script");
-
-        expect(scripts).toHaveLength(EXPECTED_SCRIPT);
-    });
-
-    it("parses the correct number of link elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let links = elements.filter(el => el.name === "link");
-
-        expect(links).toHaveLength(EXPECTED_LINK);
-    });
-
-    it("parses the correct number of meta elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let metas = elements.filter(el => el.name === "meta");
-
-        expect(metas).toHaveLength(EXPECTED_META);
-    });
-
-    it("parses the correct number of section elements", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let sections = elements.filter(el => el.name === "section");
-
-        expect(sections).toHaveLength(EXPECTED_SECTION);
-    });
-
-    it("parses the correct number of list items", () => {
-        let elements = parse(FIXTURE_HTML).elements;
-        let listItems = elements.filter(el => el.name === "li");
-
-        expect(listItems).toHaveLength(EXPECTED_LI);
+        expect(counts).toEqual(EXPECTED_COUNTS);
     });
 
     it("extracts href attributes from anchor elements", () => {
@@ -104,7 +48,7 @@ describe("parse()", () => {
             .map(el => el.getAttribute("href"))
             .filter((href): href is string => href !== null);
 
-        expect(hrefs).toHaveLength(EXPECTED_A);
+        expect(hrefs).toHaveLength(EXPECTED_COUNTS.a);
         expect(hrefs).toContain("/features");
         expect(hrefs).toContain("/signup");
     });
@@ -116,7 +60,7 @@ describe("parse()", () => {
             .map(el => el.getAttribute("src"))
             .filter((src): src is string => src !== null);
 
-        expect(srcs).toHaveLength(EXPECTED_IMG);
+        expect(srcs).toHaveLength(EXPECTED_COUNTS.img);
         expect(srcs).toContain("/images/logo.svg");
         expect(srcs).toContain("/images/hero-screenshot.png");
     });
