@@ -14,7 +14,7 @@
         "verbatimModuleSyntax": true
     },
     "exclude": [
-        ".mdx/*.d.ts",
+        "packages/mdx-checker/*.d.ts",
         "docs/.vitepress/cache",
         "docs/.vitepress/dist",
         "docs/.vitepress/theme/components/snippets",
@@ -29,6 +29,6 @@
         ".omp/hooks/*.ts",
         ".omp/tools/**/*.ts",
         "tools/*.ts",
-        ".mdx/*.ts"
+        "packages/mdx-checker/*.ts"
     ]
 }

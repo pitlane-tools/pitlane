@@ -7,7 +7,6 @@ packages:
     # repo is on 7, instead of aliasing the name repo-wide.
     - .typedoc
     - .docs
-    - .mdx
 
 allowBuilds:
     remix: true

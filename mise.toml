@@ -128,11 +128,11 @@ sources = [
 [tasks."docs:mdx"]
 description = "Typecheck authored MDX with its pinned language server"
 depends = "docs:packages"
-run = ["node --test .mdx/check.test.ts", "node .mdx/check.ts"]
+run = ["node --test packages/mdx-checker/check.test.ts", "node packages/mdx-checker/check.ts"]
 sources = [
     "pnpm-lock.yaml",
-    ".mdx/*.{ts,json}",
-    ".mdx/fixtures/**",
+    "packages/mdx-checker/*.{ts,json}",
+    "packages/mdx-checker/fixtures/**",
     "docs/tsconfig.json",
     "docs/{guides,deploy,_partials}/**/*.mdx",
     ".docs/app/**",
