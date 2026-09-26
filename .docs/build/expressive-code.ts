@@ -8,12 +8,18 @@ let engine = new ExpressiveCode({
     themes: [await loadShikiTheme("github-light"), await loadShikiTheme("github-dark")],
     themeCssSelector: false,
     useDarkModeMediaQuery: true,
-    frames: { extractFileNameFromCode: false, removeCommentsWhenCopyingTerminalFrames: false },
-    styleOverrides: { codeFontFamily: t.font.mono, frames: { frameBoxShadowCssValue: "none" } },
+    frames: { extractFileNameFromCode: true, removeCommentsWhenCopyingTerminalFrames: false },
+    styleOverrides: {
+        borderWidth: "1px",
+        codeFontFamily: t.font.mono,
+        frames: { frameBoxShadowCssValue: "none" },
+    },
 });
 
 /**
- * Preserves displayed code and fence language for copying and exports; unknown languages fail with source context.
+ * Preserves displayed code, fence language, and a file-name title for copying and exports;
+ * unknown languages fail with source context. A file-name comment opening the code becomes the
+ * frame's title, as Expressive Code extracts it.
  * `meta` takes Expressive Code's per-block options, such as `frame="none"`.
  */
 export async function renderCode(
@@ -31,9 +37,10 @@ export async function renderCode(
         language: lang,
         meta,
     });
-    let displayed = renderedGroupContents[0].codeBlock.code;
+    let { code: displayed, props } = renderedGroupContents[0].codeBlock;
     for (let pre of selectAll("pre", renderedGroupAst)) {
         pre.properties.dataLanguage = language ?? "";
+        if (props.title) pre.properties.dataTitle = props.title;
     }
     for (let button of selectAll("button[data-code]", renderedGroupAst)) {
         button.properties.dataCode = displayed.replace(/\n/g, "\u007f");

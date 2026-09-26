@@ -106,16 +106,25 @@ function codeSpan(text: string): string {
     return `${ticks}${text}${ticks}`;
 }
 
-/** A `<pre>`, fenced with the language the build recorded on it, and long enough to hold any fence inside. */
+/**
+ * A `<pre>`, fenced with the language the build recorded on it and any file-name title, and long
+ * enough to hold any fence inside.
+ */
 function fence(node: Element): string {
-    let language = node.properties?.dataLanguage;
+    let { dataLanguage: language, dataTitle: title } = node.properties ?? {};
     let lines = descendants(node, element => classList(element).includes("ec-line"));
     let code = lines.length
         ? lines.map(line => textContent(line).replace(/\n$/, "")).join("\n")
         : textContent(node).replace(/\n$/, "");
     let longest = Math.max(0, ...(code.match(/`+/g) ?? []).map(run => run.length));
     let ticks = "`".repeat(Math.max(3, longest + 1));
-    return `${ticks}${typeof language === "string" && language !== "text" ? language : ""}\n${code}\n${ticks}`;
+    let info = [
+        typeof language === "string" && language !== "text" ? language : "",
+        typeof title === "string" ? `title=${JSON.stringify(title)}` : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+    return `${ticks}${info}\n${code}\n${ticks}`;
 }
 
 /**

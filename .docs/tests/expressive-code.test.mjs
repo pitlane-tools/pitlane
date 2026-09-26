@@ -98,11 +98,17 @@ test("proposal.0004: shell examples copy their comments and blank lines too", as
     assert.deepEqual(readFences(htmlToMarkdown(html)).fences, [{ language: "sh", code }]);
 });
 
-test("proposal.0004: an example opening with a file-name comment keeps that line", async () => {
-    let code = "// vite.config.ts\nexport default defineConfig({ plugins: [remix()] });";
-    let html = await renderCode(code, "ts", WHERE);
-    assert.deepEqual(copyPayloads(html), [code]);
-    assert.deepEqual(readFences(htmlToMarkdown(html)).fences, [{ language: "ts", code }]);
+test("proposal.0004: an example opening with a file-name comment shows the name as its frame's title", async () => {
+    let body = "export default defineConfig({ plugins: [remix()] });";
+    let html = await renderCode(`// vite.config.ts\n${body}`, "ts", WHERE);
+    let titles = elements(htmlToHast(html, { fragment: true }), "span")
+        .filter(span => [span.properties?.className ?? []].flat().includes("title"))
+        .map(text);
+    assert.deepEqual(titles, ["vite.config.ts"]);
+    assert.deepEqual(copyPayloads(html), [body]);
+    let markdown = htmlToMarkdown(html);
+    assert.match(markdown, /^```ts title="vite\.config\.ts"$/m);
+    assert.deepEqual(readFences(markdown).fences, [{ language: "ts", code: body }]);
 });
 
 test("proposal.0004: HTML examples cannot swallow the document's hydration data", async () => {
