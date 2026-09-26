@@ -6,6 +6,7 @@ import type { BuildMode, CompiledHeading, DocumentPage } from "./document.ts";
 
 import { content } from "./content.ts";
 import { outline } from "./outline.ts";
+import { routes } from "./routes.ts";
 
 /** Another public name the same declaration is exported under. */
 export interface Alias {
@@ -54,16 +55,18 @@ async function load(): Promise<Documents> {
     let all = await Promise.all([
         ...guides.map(guide =>
             document(guide, {
-                ...page(`/guides/${guide.id}`, "guides", guide.data),
+                ...page(routes.guide.href({ slug: guide.id }), "guides", guide.data),
                 ...variant(guide.id, guide.data.build, guideIds),
             }),
         ),
-        ...deploy.map(entry => document(entry, page(`/deploy/${entry.id}`, "deploy", entry.data))),
+        ...deploy.map(entry =>
+            document(entry, page(routes.deploy.href({ slug: entry.id }), "deploy", entry.data)),
+        ),
         ...api.map(entry =>
             document(
                 entry,
                 {
-                    ...page(entry.data.url, "api", entry.data),
+                    ...page(referenceUrl(entry.data.url), "api", entry.data),
                     module: entry.data.module,
                     kind: entry.data.kind,
                 },
@@ -103,6 +106,15 @@ async function document(
     };
 }
 
+/** A reference page's URL, which the generated manifest names and the api route must claim. */
+function referenceUrl(url: string): string {
+    let base = routes.api.href({ path: "" });
+    if (!url.startsWith(base)) {
+        throw new Error(`Reference page ${url} is outside the api route at ${base}.`);
+    }
+    return url;
+}
+
 function page(
     url: string,
     section: DocumentPage["section"],
@@ -130,5 +142,5 @@ function variant(
                 `${mode === "vite" ? "No Build" : "Vite"} counterpart docs/guides/${sibling} does not exist.`,
         );
     }
-    return { buildMode: mode, counterpart: `/guides/${sibling}` };
+    return { buildMode: mode, counterpart: routes.guide.href({ slug: sibling }) };
 }

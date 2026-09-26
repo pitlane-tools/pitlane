@@ -1,4 +1,5 @@
 import { type BuildMode, DEFAULT_PREFERENCES, type DocumentPage } from "../document.ts";
+import { routes } from "../routes.ts";
 
 export interface NavigationLink {
     title: string;
@@ -38,9 +39,15 @@ export type Navigation =
  * which indexing the page list verifies, so the 404 document can use them
  * without the list.
  */
-export const PRIMARY_LINKS = { guides: "/guides/vite-plugin", api: "/package/dev/" } as const;
+export const PRIMARY_LINKS = {
+    guides: routes.guide.href({ slug: "vite-plugin" }),
+    api: routes.api.href({ path: "dev/" }),
+} as const;
 
 export const REPOSITORY_URL = "https://github.com/pitlane-tools/pitlane";
+
+let guide = (title: string, slug: string) => ({ title, url: routes.guide.href({ slug }) });
+let deploy = (title: string, slug: string) => ({ title, url: routes.deploy.href({ slug }) });
 
 /**
  * Topical guide groups, in the order the sidebar shows them. Only the URL of
@@ -51,32 +58,29 @@ const GUIDE_GROUPS: { title: string; links: { title: string; url: string }[] }[]
     {
         title: "Vite Plugin",
         links: [
-            { title: "Overview", url: PRIMARY_LINKS.guides },
-            { title: "Hot Module Replacement", url: "/guides/hmr" },
-            { title: "Single-Page Apps", url: "/guides/spa" },
+            guide("Overview", "vite-plugin"),
+            guide("Hot Module Replacement", "hmr"),
+            guide("Single-Page Apps", "spa"),
         ],
     },
     {
         title: "Deployment",
         links: [
-            { title: "Cloudflare Workers", url: "/deploy/cloudflare" },
-            { title: "Netlify", url: "/deploy/netlify" },
-            { title: "Vercel", url: "/deploy/vercel" },
-            { title: "Railway", url: "/deploy/railway" },
-            { title: "Deno Deploy", url: "/deploy/deno-deploy" },
-            { title: "GitHub Pages", url: "/deploy/github-pages" },
+            deploy("Cloudflare Workers", "cloudflare"),
+            deploy("Netlify", "netlify"),
+            deploy("Vercel", "vercel"),
+            deploy("Railway", "railway"),
+            deploy("Deno Deploy", "deno-deploy"),
+            deploy("GitHub Pages", "github-pages"),
         ],
     },
     {
         title: "Crawler",
-        links: [
-            { title: "Overview", url: "/guides/crawler" },
-            { title: "Prerendering", url: "/guides/prerendering" },
-        ],
+        links: [guide("Overview", "crawler"), guide("Prerendering", "prerendering")],
     },
-    { title: "Theme", links: [{ title: "Overview", url: "/guides/theme" }] },
-    { title: "Content", links: [{ title: "Overview", url: "/guides/content" }] },
-    { title: "Data", links: [{ title: "Cloudflare D1", url: "/guides/cloudflare-d1" }] },
+    { title: "Theme", links: [guide("Overview", "theme")] },
+    { title: "Content", links: [guide("Overview", "content")] },
+    { title: "Data", links: [guide("Cloudflare D1", "cloudflare-d1")] },
 ];
 
 const KIND_TITLES: Record<string, string> = {
