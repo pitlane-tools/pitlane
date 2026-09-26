@@ -28,6 +28,9 @@ export const eyebrow: ThemedCSSProps = {
 
 let stateTransition = `background-color ${t.duration.fast} ${t.ease.standard}, color ${t.duration.fast} ${t.ease.standard}, border-color ${t.duration.fast} ${t.ease.standard}`;
 
+/** The duration and easing of the sidebar collapsing or expanding, for a `transition` list. */
+export const collapse = `${t.duration.moderate} ${t.ease.standard}`;
+
 /**
  * A chrome button or link: the header's icon buttons, disclosure toggles, and
  * the build-mode switch.

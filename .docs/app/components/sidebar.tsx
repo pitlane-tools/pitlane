@@ -5,8 +5,8 @@ import type { ApiModule, GuideGroup, Navigation, NavigationLink } from "./naviga
 
 import { onPreferenceChange, rememberedPreference } from "../browser/preferences.ts";
 import { type BuildMode, DEFAULT_PREFERENCES } from "../document.ts";
-import { eyebrow, floatingPanel, inPlacePopover, navLink } from "../styles/controls.ts";
-import { narrow } from "../styles/media.ts";
+import { collapse, eyebrow, floatingPanel, inPlacePopover, navLink } from "../styles/controls.ts";
+import { narrow, navCollapsed, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
 
 export const DOCUMENT_NAVIGATION_ID = "docs-navigation";
@@ -103,6 +103,17 @@ export function DocumentNavigation(handle: Handle<{ navigation: Navigation }>) {
                     paddingBottom: t.spacing(10),
                     overflowY: "auto",
                     overscrollBehavior: "contain",
+                    [wide]: {
+                        transition: `transform ${collapse}, opacity ${collapse}, visibility 0s`,
+                        // Slides out and fades, then leaves the tab order once out of sight.
+                        [navCollapsed]: {
+                            visibility: "hidden",
+                            opacity: 0,
+                            transform: `translateX(calc(-1 * (${t.size.sidebar} + ${t.size.gutter})))`,
+                            pointerEvents: "none",
+                            transition: `transform ${collapse}, opacity ${collapse}, visibility 0s linear ${t.duration.moderate}`,
+                        },
+                    },
                     [narrow]: {
                         "&:not(:popover-open)": { display: "none" },
                         "&:popover-open": {

@@ -4,13 +4,15 @@ import { css, tva } from "@pitlane/theme";
 
 import type { DocumentPage } from "../document.ts";
 
-import { floatingPanel, inPlacePopover, navLinkStates } from "../styles/controls.ts";
+import { collapse, floatingPanel, inPlacePopover, navLinkStates } from "../styles/controls.ts";
 import { belowOutlineColumn, compact, narrow, outlineColumn, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { Wordmark } from "./logo.tsx";
 import { PRIMARY_LINKS, REPOSITORY_URL } from "./navigation.ts";
 import { PopoverToggle } from "./popover-toggle.tsx";
 import { SearchDialog } from "./search-dialog.tsx";
+import { SidebarToggle } from "./sidebar-toggle.tsx";
+import { DOCUMENT_NAVIGATION_ID } from "./sidebar.tsx";
 
 const PRIMARY_NAVIGATION_ID = "site-primary-navigation";
 
@@ -59,6 +61,7 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                 >
                     <Wordmark />
                 </a>
+                {search === "sidebar" ? <SidebarToggle controls={DOCUMENT_NAVIGATION_ID} /> : null}
                 <nav
                     aria-label="Primary"
                     id={PRIMARY_NAVIGATION_ID}
@@ -152,7 +155,8 @@ let sectionBar = tva({
     base: {
         position: "fixed",
         insetBlockStart: t.size.header,
-        insetInline: [t.size.sidebarOffset, 0],
+        insetInline: [t.size.panelStart, 0],
+        transition: `inset-inline-start ${collapse}`,
         zIndex: t.layer.sectionBar,
         display: "none",
         alignItems: "center",

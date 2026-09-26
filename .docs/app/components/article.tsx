@@ -4,6 +4,7 @@ import { css, type ThemedCSSProps } from "@pitlane/theme";
 
 import type { DocumentPage } from "../document.ts";
 
+import { collapse } from "../styles/controls.ts";
 import { t } from "../theme.ts";
 import { Outline } from "./outline.tsx";
 
@@ -37,6 +38,7 @@ let headingAnchor: ThemedCSSProps = {
 export const prose: ThemedCSSProps = {
     minWidth: 0,
     maxWidth: t.size.prose,
+    transition: `max-width ${collapse}`,
     fontSize: t.text.base,
     lineHeight: t.text.leading.normal,
     overflowWrap: "break-word",

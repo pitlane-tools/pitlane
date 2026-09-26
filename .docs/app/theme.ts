@@ -103,8 +103,10 @@ let primitives = createTheme({
             gutter: "1.5rem",
             sidebar: "15rem",
             toc: "15rem",
-            prose: "48rem",
-            content: "65rem",
+            // Both measures grow by the sidebar column while the reader has
+            // collapsed it, which sets `--docs-reclaimed`.
+            prose: "calc(48rem + var(--docs-reclaimed, 0px))",
+            content: "calc(65rem + var(--docs-reclaimed, 0px))",
             dialog: "40rem",
             menu: "12rem",
             control: "2rem",
@@ -203,8 +205,20 @@ export let { token: t, Theme } = primitives.extend(base => ({
             },
         },
         size: {
-            /** Where the article column starts beside the fixed sidebar. */
-            sidebarOffset: `calc(${base.size.sidebar} + ${base.size.gutter} * 2)`,
+            /**
+             * Where the article panel starts: beside the sidebar column, or at
+             * the gutter while the sidebar is collapsed, which sets the property.
+             */
+            panelStart: `var(--docs-panel-start, calc(${base.size.sidebar} + ${base.size.gutter} * 2))`,
+            /** The P of the wordmark, at the wordmark's height. */
+            brandMark: `calc(${base.size.wordmark} * 337 / 148)`,
+            /** The sidebar toggle: at the sidebar column's end, or beside the P once collapsed. */
+            navToggleStart: `calc(${base.size.gutter} + ${base.size.sidebar} - ${base.size.control})`,
+            navToggleCollapsedStart: `calc(${base.size.gutter} + ${base.size.wordmark} * 337 / 148 + 1.25rem)`,
+            /** The search button beside the collapsed sidebar's toggle. */
+            collapsedSearchStart: `calc(${base.size.gutter} + ${base.size.wordmark} * 337 / 148 + 1.25rem + ${base.size.control} + 0.25rem)`,
+            /** A header control centered in the header's height. */
+            headerControlTop: `calc((${base.size.header} - ${base.size.control}) / 2)`,
             /** The sidebar's links begin below the search field that heads its column. */
             sidebarTop: `calc(${base.size.header} + ${base.size.control} + 1rem)`,
             belowHeader: `calc(100dvh - ${base.size.header})`,

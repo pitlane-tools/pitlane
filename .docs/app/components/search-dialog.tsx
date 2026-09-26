@@ -3,7 +3,7 @@ import { clientEntry, type Handle, on, ref } from "remix/ui";
 
 import { loadSearchEngine, type SearchHit, searchDocumentation } from "../browser/pagefind.ts";
 import { control, visuallyHidden } from "../styles/controls.ts";
-import { compact, narrow, noScript, wide } from "../styles/media.ts";
+import { compact, narrow, navCollapsed, noScript, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { CloseIcon, SearchIcon } from "./icons.tsx";
 
@@ -34,7 +34,7 @@ let opener = combine(
     tva({
         base: {
             [noScript]: { display: "none" },
-            [narrow]: { "& [data-label]": visuallyHidden, "& kbd": { display: "none" } },
+            [narrow]: { "& [data-label]": visuallyHidden },
         },
         variants: {
             placement: {
@@ -45,6 +45,21 @@ let opener = combine(
                         insetBlockStart: t.size.header,
                         insetInlineStart: t.size.gutter,
                         width: t.size.sidebar,
+                        // With the sidebar collapsed, an icon beside its toggle in the header.
+                        [navCollapsed]: {
+                            insetBlockStart: t.size.headerControlTop,
+                            insetInlineStart: t.size.collapsedSearchStart,
+                            width: t.size.control,
+                            padding: 0,
+                            justifyContent: "center",
+                            borderColor: "transparent",
+                            backgroundColor: "transparent",
+                            "&:hover": {
+                                borderColor: "transparent",
+                                backgroundColor: t.color.hover,
+                            },
+                            "& [data-label]": visuallyHidden,
+                        },
                     },
                 },
                 header: { [wide]: { ...field, width: t.size.menu } },
@@ -53,10 +68,14 @@ let opener = combine(
     }),
 );
 
+// The keycap hides itself wherever the opener shrinks to an icon: a rule in
+// the opener's class would sit in an earlier cascade layer and lose.
 let keycap: ThemedCSSProps = {
     display: "inline-flex",
     gap: t.spacing(0.5),
     color: t.color.secondary,
+    [narrow]: { display: "none" },
+    [wide]: { [navCollapsed]: { display: "none" } },
     fontFamily: t.font.mono,
     fontSize: t.text.xs,
     lineHeight: "normal",

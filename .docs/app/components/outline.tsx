@@ -91,7 +91,7 @@ export let Outline = clientEntry(import.meta.url, (handle: Handle<OutlineProps>)
                         "&:popover-open": {
                             ...floatingPanel,
                             position: "fixed",
-                            inset: [t.size.barsHeight, 0, "auto", t.size.sidebarOffset],
+                            inset: [t.size.barsHeight, 0, "auto", t.size.panelStart],
                             width: "auto",
                             maxHeight: t.size.disclosureHeight,
                             padding: [t.spacing(2), t.spacing(4), t.spacing(4)],

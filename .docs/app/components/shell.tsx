@@ -5,8 +5,15 @@ import { css, type ThemedCSSProps, tva } from "@pitlane/theme";
 import type { DocumentPage } from "../document.ts";
 
 import clientAssets from "../entry.browser.ts?assets=client";
-import { eyebrow } from "../styles/controls.ts";
-import { belowOutlineColumn, compact, medium, narrow, outlineColumn } from "../styles/media.ts";
+import { collapse, eyebrow } from "../styles/controls.ts";
+import {
+    belowOutlineColumn,
+    compact,
+    medium,
+    narrow,
+    outlineColumn,
+    wide,
+} from "../styles/media.ts";
 import { t, Theme } from "../theme.ts";
 import { Article, prose } from "./article.tsx";
 import { BuildModeSwitch } from "./build-mode-switch.tsx";
@@ -125,19 +132,21 @@ let main = tva({
     variants: {
         layout: {
             docs: {
-                marginInlineStart: t.size.sidebarOffset,
+                marginInlineStart: t.size.panelStart,
                 borderRadius: [t.radius.panel, 0, 0, t.radius.panel],
+                transition: `margin-inline-start ${collapse}`,
                 // The panel scrolls under the fixed header, taking its rounded
                 // corner along; this redraws the corner where the header ends.
                 "&::before": {
                     content: '""',
                     position: "fixed",
                     top: t.size.header,
-                    left: t.size.sidebarOffset,
+                    left: t.size.panelStart,
                     width: t.radius.panel,
                     height: t.radius.panel,
                     background: `radial-gradient(circle at 100% 100%, transparent calc(${t.radius.panel} - 0.5px), ${t.color.canvas} ${t.radius.panel})`,
                     pointerEvents: "none",
+                    transition: `left ${collapse}`,
                 },
                 [narrow]: {
                     marginInlineStart: 0,
@@ -166,6 +175,7 @@ let pageGrid: ThemedCSSProps = {
     gridTemplateAreas: '"actions" "switch" "body"',
     columnGap: t.spacing(10),
     maxWidth: t.size.content,
+    transition: `max-width ${collapse}`,
     [outlineColumn]: {
         gridTemplateColumns: `minmax(0, 1fr) ${t.size.toc}`,
         gridTemplateAreas: '"actions outline" "switch outline" "body outline"',
@@ -250,6 +260,13 @@ let root: ThemedCSSProps = {
     scrollbarColor: `${t.color.control} transparent`,
     scrollbarWidth: "thin",
     [belowOutlineColumn]: { scrollPaddingTop: t.size.anchorOffsetBars },
+    // The sidebar toggle collapses the column; the panel and its chrome follow this offset.
+    "&[data-nav-collapsed]": {
+        [wide]: {
+            "--docs-panel-start": t.size.gutter,
+            "--docs-reclaimed": `calc(${t.size.sidebar} + ${t.size.gutter})`,
+        },
+    },
     "&, & *, & ::before, & ::after": { boxSizing: "border-box" },
     "& ::selection": { backgroundColor: t.color.selection, color: t.color.selectionText },
     "& :focus-visible": {

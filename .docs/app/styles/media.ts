@@ -20,3 +20,10 @@ export const medium = "@media (56.25rem <= width < 80rem)";
 export const noScript = "@media (scripting: none)";
 /** Stand-ins for those controls, needed only when they are missing. */
 export const scripted = "@media (scripting: enabled)";
+
+/**
+ * While the reader has collapsed the sidebar: a page condition rather than a
+ * media query, set as `data-nav-collapsed` on the root by the sidebar toggle.
+ * Pair it with `wide`, the only layout with a sidebar column to collapse.
+ */
+export const navCollapsed = ":root[data-nav-collapsed] &";
