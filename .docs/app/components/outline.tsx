@@ -127,7 +127,7 @@ export let Outline = clientEntry(import.meta.url, (handle: Handle<OutlineProps>)
                     mix={css({
                         display: "flex",
                         flexDirection: "column",
-                        gap: t.spacing(1),
+                        gap: t.spacing(0.5),
                         margin: [t.spacing(1), 0, 0],
                         padding: 0,
                         listStyle: "none",

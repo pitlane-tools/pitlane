@@ -148,7 +148,7 @@ export const navLink = tva({
         },
         size: {
             md: {},
-            sm: { fontSize: t.text.xs, padding: [t.spacing(2), t.spacing(3)] },
+            sm: { minHeight: 0, paddingBlock: t.spacing(1.25), fontSize: t.text.xs },
         },
     },
     defaultVariants: { depth: "section", size: "md" },
