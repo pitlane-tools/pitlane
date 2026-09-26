@@ -1,4 +1,14 @@
-import { Callout, Install, NoBuild, Vite } from "../../.docs/app/components/documentation.tsx";
+import { Callout, InstallGroup, NoBuild, Vite } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const viteInstallation = await installAlternatives({
+    packages: ["@pitlane/content"],
+    dev: ["satteri", "vite-plugin-satteri"],
+});
+
+export const noBuildInstallation = await installAlternatives({
+    packages: ["@pitlane/content", "satteri"],
+});
 
 # Content
 
@@ -12,7 +22,7 @@ The content package enables you to render content from anywhere, whether it live
 
 `@pitlane/content` is a runtime dependency. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and `contentLayer()` calls `satteri` directly to retrieve a Markdown file's heading list.
 
-<Install packages={["@pitlane/content"]} dev={["satteri","vite-plugin-satteri"]} />
+<InstallGroup alternatives={viteInstallation} />
 
 </Vite>
 
@@ -20,7 +30,7 @@ The content package enables you to render content from anywhere, whether it live
 
 `@pitlane/content` and `satteri` are runtime dependencies because the content client transforms the Markdown and MDX at runtime when using it within a Remix no-build setup.
 
-<Install packages={["@pitlane/content","satteri"]} />
+<InstallGroup alternatives={noBuildInstallation} />
 
 `satteri` is an optional peer dependency of `@pitlane/content`, needed only when a collection holds `.md` or `.mdx` files.
 

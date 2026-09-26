@@ -3,7 +3,10 @@ title: Cloudflare D1
 description: "How @pitlane/data-table-d1 runs Remix 3's data-table on Cloudflare D1, and which parts of D1 the driver cannot paper over."
 ---
 
-import { Install } from "../../.docs/app/components/documentation.tsx";
+import { InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ dev: ["@pitlane/data-table-d1"] });
 
 # Cloudflare D1
 
@@ -42,7 +45,7 @@ Declare the binding in `wrangler.jsonc`:
 
 Install the driver alongside the Vite plugin:
 
-<Install dev={["@pitlane/data-table-d1"]} />
+<InstallGroup alternatives={installation} />
 
 Nothing else is required. Now you can start using the D1 database in your Cloudflare Workers Remix app!
 

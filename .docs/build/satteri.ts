@@ -11,8 +11,7 @@ import { fileURLToPath } from "node:url";
 import type { BuildMode, CompiledHeading } from "../app/document.ts";
 
 import { documentBindings } from "./bindings.ts";
-import { renderReferenceCode } from "./expressive-code.ts";
-import { highlight } from "./highlight.ts";
+import { renderCode } from "./expressive-code.ts";
 
 type Element = Extract<HastNode, { type: "element" }>;
 
@@ -22,11 +21,6 @@ const COMBINING = /[\u0300-\u036F]/g;
 
 /** The documentation components whose children only one build mode shows. */
 const VARIANTS: Record<string, BuildMode> = { Vite: "vite", NoBuild: "no-build" };
-
-const CODE_BLOCK = "DocumentationCodeBlock";
-const CODE_BLOCK_MODULE = fileURLToPath(
-    new URL("../app/components/code-block.tsx", import.meta.url),
-);
 
 /**
  * One step of a document's outline, in document order: a heading of its own,
@@ -133,71 +127,41 @@ export function outline(): HastPluginEntry {
     };
 }
 
-/**
- * Replaces every fenced example with the `CodeBlock` component: `html` is the
- * example highlighted now, during the build, `code` the exact text a reader
- * copies, and `language` the one the fence named. The component is imported
- * into the compiled module only when the document has an example.
- */
+/** Compile authored fences to static HTML; Expressive Code owns their browser enhancement. */
 export function codeBlocks(): HastPluginEntry {
-    return () => {
-        let used = false;
-        let binding = CODE_BLOCK;
+    let definition: HastPluginDefinition = {
+        name: "docs-code-blocks",
+        options: { position: true },
+        element: {
+            filter: ["pre"],
+            async visit(node, context) {
+                let fenced = example(node, context);
+                if (!fenced) return;
 
-        let definition: HastPluginDefinition = {
-            name: "docs-code-blocks",
-            before(_root, context) {
-                let names = documentBindings(context).identifiers;
-                for (let suffix = 1; names.has(binding); suffix++)
-                    binding = `${CODE_BLOCK}${suffix}`;
-            },
-            element: {
-                filter: ["pre"],
-                visit(node, context) {
-                    let fenced = example(node, context);
-                    if (!fenced) return;
-
-                    let { text, language } = fenced;
-                    let attributes: MdxJsxAttribute[] = [
+                let { text, language } = fenced;
+                return {
+                    type: "mdxJsxFlowElement",
+                    name: "div",
+                    attributes: [
                         {
                             type: "mdxJsxAttribute",
-                            name: "html",
-                            value: highlight(text, language, where(context)),
+                            name: "innerHTML",
+                            value: await renderCode(text, language, where(context, node)),
                         },
-                        { type: "mdxJsxAttribute", name: "code", value: text },
-                    ];
-                    if (language)
-                        attributes.push({
-                            type: "mdxJsxAttribute",
-                            name: "language",
-                            value: language,
-                        });
-                    used = true;
-                    return {
-                        type: "mdxJsxFlowElement",
-                        name: binding,
-                        attributes,
-                        children: [],
-                    };
-                },
+                    ],
+                    children: [],
+                };
             },
-            after(root, context) {
-                if (!used) return;
-                context.prependChild(root, {
-                    type: "mdxjsEsm",
-                    value: `import { CodeBlock as ${binding} } from ${JSON.stringify(CODE_BLOCK_MODULE)};`,
-                });
-            },
-        };
-        return definition;
+        },
     };
+    return definition;
 }
 
 /**
  * Replaces every fenced example in a generated reference page with the
  * Expressive Code block rendered for it now, during the build, spliced in as
- * finished HTML. The page is served as that HTML, so its examples are neither
- * components nor hydrated.
+ * finished HTML. The page is published as that HTML, so its examples are
+ * neither components nor hydrated.
  */
 export function referenceCode(): HastPluginEntry {
     let definition: HastPluginDefinition = {
@@ -209,7 +173,7 @@ export function referenceCode(): HastPluginEntry {
                 if (!fenced) return;
 
                 let { text, language } = fenced;
-                let html = await renderReferenceCode(text, language, where(context));
+                let html = await renderCode(text, language, where(context, node));
                 return { type: "raw", value: html };
             },
         },
@@ -254,6 +218,9 @@ function languageOf(code: Element): string | undefined {
     return list.find(name => name.startsWith("language-"))?.slice("language-".length);
 }
 
-function where(context: HastVisitorContext): string {
-    return context.fileURL ? fileURLToPath(context.fileURL) : "A document";
+/** Where a node is: its document, and the line and column when the compile tracks positions. */
+function where(context: HastVisitorContext, node?: Readonly<HastNode>): string {
+    let file = context.fileURL ? fileURLToPath(context.fileURL) : "A document";
+    let start = node?.position?.start;
+    return start ? `${file}:${start.line}:${start.column}` : file;
 }

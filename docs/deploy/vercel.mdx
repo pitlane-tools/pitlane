@@ -3,7 +3,10 @@ title: Deploy to Vercel
 description: Run a Remix 3 app on Vercel with @pitlane/dev and the Nitro Vite plugin — Vercel Functions via the Build Output API.
 ---
 
-import { Callout, Install } from "../../.docs/app/components/documentation.tsx";
+import { Callout, InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ dev: ["nitro"] });
 
 # Vercel
 
@@ -17,7 +20,7 @@ Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with
 
 ## Configuration
 
-<Install dev={["nitro"]} />
+<InstallGroup alternatives={installation} />
 
 ```ts
 // vite.config.ts

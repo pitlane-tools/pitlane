@@ -3,12 +3,14 @@ import { once } from "node:events";
 import { readdir } from "node:fs/promises";
 import { createInterface } from "node:readline";
 
+// The published files under Cloudflare's local runtime, configured exactly as
+// they deploy: static assets only, with no Worker code for any request.
 let server = spawn(
     "./node_modules/.bin/wrangler",
     [
         "dev",
         "--config",
-        ".docs/dist/ssr/wrangler.json",
+        "wrangler.jsonc",
         "--ip",
         "127.0.0.1",
         "--port",
@@ -22,12 +24,12 @@ let timer;
 try {
     let origin = await new Promise((resolve, reject) => {
         timer = setTimeout(
-            () => reject(new Error("Documentation Worker did not become ready within 60 seconds.")),
+            () => reject(new Error("Documentation assets did not become ready within 60 seconds.")),
             60_000,
         );
         server.once("error", reject);
         server.once("exit", code =>
-            reject(new Error(`Documentation Worker exited before readiness (${code}).`)),
+            reject(new Error(`Documentation assets server exited before readiness (${code}).`)),
         );
         server.stdout.pipe(process.stdout);
         createInterface({ input: server.stdout }).on("line", line => {

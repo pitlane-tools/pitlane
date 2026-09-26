@@ -2,7 +2,7 @@ import type { Handle, RemixNode } from "remix/ui";
 
 import { css, type ThemedCSSProps } from "@pitlane/theme";
 
-import type { DocumentPage, Preferences } from "../document.ts";
+import type { DocumentPage } from "../document.ts";
 import type { Breadcrumb } from "./navigation.ts";
 
 import { t } from "../theme.ts";
@@ -10,7 +10,6 @@ import { Outline } from "./outline.tsx";
 
 export interface ArticleProps {
     page: DocumentPage;
-    preferences: Preferences;
     /** The page's compiled body. */
     children?: RemixNode;
 }
@@ -18,7 +17,6 @@ export interface ArticleProps {
 /** What the documentation components inside a body read from their page. */
 export interface ArticleContext {
     page: DocumentPage;
-    preferences: Preferences;
 }
 
 let headingAnchor: ThemedCSSProps = {
@@ -116,6 +114,7 @@ export const prose: ThemedCSSProps = {
         verticalAlign: "top",
     },
     "& th": { backgroundColor: t.color.subtle, fontWeight: t.weight.semibold },
+    "& :where(.expressive-code)": { margin: [0, 0, t.spacing(4)] },
     "& :not(pre) > code": {
         padding: [t.spacing(0.5), t.spacing(1.5)],
         border: `${t.size.hairline} solid ${t.color.border}`,
@@ -135,15 +134,14 @@ export const prose: ThemedCSSProps = {
 };
 
 /**
- * A page's body and its outline. It provides the page and the reader's
- * preferences to the documentation components inside the body, so an install
- * command renders with the chosen package manager and a two-setup guide with
- * its setup's sections, in the first response.
+ * A page's body and its outline. It provides the page to the documentation
+ * components inside the body, so a two-setup guide renders its own setup's
+ * sections.
  */
 export function Article(handle: Handle<ArticleProps, ArticleContext>) {
     return () => {
-        let { page, preferences, children } = handle.props;
-        handle.context.set({ page, preferences });
+        let { page, children } = handle.props;
+        handle.context.set({ page });
         return (
             <>
                 <article mix={css({ ...prose, gridArea: "body" })}>{children}</article>

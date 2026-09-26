@@ -5,16 +5,11 @@ type Component = "Vite" | "NoBuild" | "Include";
 interface DocumentBindings {
     components: Map<string, Component>;
     documents: Map<string, string>;
-    identifiers: Set<string>;
 }
 
 const DOCUMENTATION = new URL("../app/components/documentation.tsx", import.meta.url).href;
 const COMPONENTS: Component[] = ["Vite", "NoBuild", "Include"];
-const EMPTY: DocumentBindings = {
-    components: new Map(),
-    documents: new Map(),
-    identifiers: new Set(),
-};
+const EMPTY: DocumentBindings = { components: new Map(), documents: new Map() };
 
 export function documentBindings(context: HastVisitorContext): DocumentBindings {
     return (context.data.documentationBindings as DocumentBindings | undefined) ?? EMPTY;
@@ -27,10 +22,8 @@ export function bindings(): HastPluginEntry {
             let found = (context.data.documentationBindings ??= {
                 components: new Map(),
                 documents: new Map(),
-                identifiers: new Set(),
             }) as DocumentBindings;
             let program = node.parseExpression();
-            collectIdentifiers(program, found.identifiers);
             for (let statement of program?.body ?? []) {
                 if (statement.type !== "ImportDeclaration") continue;
                 let source = String(statement.source.value);
@@ -58,16 +51,4 @@ export function bindings(): HastPluginEntry {
             }
         },
     });
-}
-
-function collectIdentifiers(node: unknown, names: Set<string>): void {
-    if (typeof node !== "object" || node === null) return;
-    if (
-        "type" in node &&
-        node.type === "Identifier" &&
-        "name" in node &&
-        typeof node.name === "string"
-    )
-        names.add(node.name);
-    for (let child of Object.values(node)) collectIdentifiers(child, names);
 }

@@ -29,8 +29,8 @@ export const eyebrow: ThemedCSSProps = {
 let stateTransition = `background-color ${t.duration.fast} ${t.ease.standard}, color ${t.duration.fast} ${t.ease.standard}, border-color ${t.duration.fast} ${t.ease.standard}`;
 
 /**
- * A chrome button: the header's icon buttons, disclosure toggles, and the
- * option buttons of preference groups.
+ * A chrome button or link: the header's icon buttons, disclosure toggles,
+ * install alternatives, and the build-mode switch.
  */
 export const control = tva({
     base: {
@@ -67,12 +67,12 @@ export const control = tva({
                 "&:hover": { borderColor: t.color.strong, backgroundColor: t.color.raised },
             },
         },
-        /** A pressed option in a group of mutually exclusive choices. */
+        /** One of a set of alternatives, marked while it is the page being read. */
         option: {
             true: {
                 fontSize: t.text.sm,
                 fontWeight: t.weight.medium,
-                "&[aria-pressed='true']": {
+                "&[aria-current='page']": {
                     borderColor: t.color.border,
                     backgroundColor: t.color.raised,
                     color: t.color.text,

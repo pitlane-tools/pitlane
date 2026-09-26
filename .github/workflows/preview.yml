@@ -47,7 +47,7 @@ jobs:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
               run: |
                   pnpm exec wrangler versions upload \
-                      --config .docs/dist/ssr/wrangler.json \
+                      --config wrangler.jsonc \
                       --message "Preview: $GITHUB_REF_NAME @ ${GITHUB_SHA::7}" \
                       2>&1 | tee upload.log
 

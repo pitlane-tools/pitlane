@@ -5,7 +5,6 @@ import referenceRedirects from "../../docs/.generated/reference-redirects.json" 
 import { NotFound, Shell } from "./components/shell.tsx";
 import { markdownPath } from "./document.ts";
 import { type Documents, documents } from "./documents.ts";
-import { readPreferences, submitPreference } from "./preferences.ts";
 import { routes } from "./routes.ts";
 
 /** Module pages the reference used to publish, by old path, and where each went. */
@@ -14,10 +13,12 @@ let moved = new Map<string, string>(Object.entries(referenceRedirects));
 export default createController(routes, {
     actions: {
         /**
-         * A document, rendered in full for this reader: the explicit URL picks
-         * the page and its build-mode variant, the cookies everything else.
+         * A document, rendered in full from its URL alone, which picks the
+         * page and its build-mode variant. Nothing else about the request
+         * changes it, so the file the build publishes is what every reader
+         * receives.
          */
-        async document({ render, request, url }) {
+        async document({ render, url }) {
             let published = await documents();
             let document = published.byUrl.get(url.pathname);
             if (!document) {
@@ -26,19 +27,11 @@ export default createController(routes, {
                 return render(<NotFound />, { status: 404 });
             }
 
-            let [preferences, body] = await Promise.all([
-                readPreferences(request),
-                document.body(),
-            ]);
             return render(
-                <Shell page={document.page} pages={published.pages} preferences={preferences}>
-                    {body}
+                <Shell page={document.page} pages={published.pages}>
+                    {await document.body()}
                 </Shell>,
             );
-        },
-
-        async preferences({ request }) {
-            return submitPreference(request, (await documents()).byUrl);
         },
     },
 });
@@ -48,6 +41,9 @@ export default createController(routes, {
  * spelling the old site served (a trailing slash, `.html`, `/index`, a module
  * page the reference has since renamed), or the Markdown counterpart of one
  * asked for with a trailing slash or by its module path.
+ *
+ * Only the development server runs this. A deployment redirects through
+ * Cloudflare's HTML handling and the `_redirects` file the build publishes.
  */
 function canonicalLocation(url: URL, published: Documents): string | undefined {
     let path = url.pathname.replace(/\/+$/, "");

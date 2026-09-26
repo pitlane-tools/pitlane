@@ -28,9 +28,7 @@ export function reference(options: { manifest: string; repository: string }): Co
     return {
         name: "reference",
         async load(context) {
-            // Loaded here, as `@pitlane/content`'s own loaders load the
-            // filesystem: this module is in the Worker too, where the prebuilt
-            // manifest answers and `load` never runs.
+            // The built renderer uses the content manifest and never runs this filesystem loader.
             let [{ readFile }, { resolve }] = await Promise.all([
                 import("node:fs/promises"),
                 import("node:path"),

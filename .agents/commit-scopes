@@ -22,7 +22,7 @@ create-pitlane
 # demos/theme and demos/tui
 demos
 
-# .docs/app/entry.server.tsx and wrangler.jsonc, the documentation Worker
+# Cloudflare Workers static-asset hosting, wrangler.jsonc
 worker
 
 # .typedoc/, which generates every page under docs/package/

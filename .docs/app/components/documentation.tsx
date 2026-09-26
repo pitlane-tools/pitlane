@@ -1,12 +1,11 @@
 import type { Handle, RemixNode } from "remix/ui";
 
-import { combine, css, tva } from "@pitlane/theme";
+import { tva } from "@pitlane/theme";
 
-import { PREFERENCE_CHOICES, type Preferences } from "../document.ts";
-import { control } from "../styles/controls.ts";
+import type { Preferences } from "../document.ts";
+
 import { t } from "../theme.ts";
 import { Article } from "./article.tsx";
-import { CopyButton, codeSurface } from "./code-block.tsx";
 
 /**
  * A compiled MDX document: a plain function of props, which is what an
@@ -124,150 +123,6 @@ function variant(
     return () => (page.buildMode === mode ? handle.props.children : null);
 }
 
-/** Every package manager an install group offers, in the order its buttons show. */
-const PACKAGE_MANAGERS = PREFERENCE_CHOICES.packageManager;
-
-type PackageManager = (typeof PACKAGE_MANAGERS)[number];
-
-export interface InstallProps {
-    /** Runtime dependencies. */
-    packages?: string[];
-    /** Development dependencies, installed with `-D`. */
-    dev?: string[];
-}
-
-/**
- * The `add` lines that install `packages`, then `dev` with `-D`, with one
- * manager. Deno reaches npm packages through `npm:` specifiers.
- */
-function installLines(manager: PackageManager, packages: string[], dev: string[]) {
-    let specifier = (name: string) => (manager === "deno" ? `npm:${name}` : name);
-    return [
-        { flag: undefined, names: packages },
-        { flag: "-D", names: dev },
-    ]
-        .filter(line => line.names.length > 0)
-        .map(line => ({ manager, flag: line.flag, names: line.names.map(specifier) }));
-}
-
-/**
- * The install command for a set of packages, one alternative per package
- * manager. The server renders every alternative and shows the reader's chosen
- * manager, so the first response is already right. Choosing another manager
- * is an ordinary form submission that persists the choice.
- */
-export function Install(handle: Handle<InstallProps>) {
-    return () => {
-        let { page, preferences } = articleOf(handle, "Install");
-        let { packages = [], dev = [] } = handle.props;
-        if (packages.length === 0 && dev.length === 0) {
-            throw new Error(`<Install> on ${page.url} names no packages.`);
-        }
-        let selected = preferences.packageManager;
-        return (
-            <div
-                data-code-group
-                mix={css({
-                    margin: [0, 0, t.spacing(4)],
-                    border: `${t.size.hairline} solid ${t.color.border}`,
-                    borderRadius: t.radius.md,
-                    backgroundColor: t.color.code.background,
-                    overflow: "hidden",
-                })}
-            >
-                <form
-                    action="/preferences"
-                    data-pagefind-ignore
-                    data-rmx-history="replace"
-                    data-rmx-reset-scroll="false"
-                    method="post"
-                    mix={css({
-                        margin: 0,
-                        padding: [t.spacing(1), t.spacing(2), 0],
-                        borderBottom: `${t.size.hairline} solid ${t.color.border}`,
-                        backgroundColor: t.color.subtle,
-                    })}
-                >
-                    <input name="preference" type="hidden" value="packageManager" />
-                    <input name="returnTo" type="hidden" value={page.url} />
-                    <div
-                        aria-label="Package manager"
-                        mix={css({ display: "flex", flexWrap: "wrap", gap: t.spacing(0.5) })}
-                        role="group"
-                    >
-                        {PACKAGE_MANAGERS.map(manager => (
-                            <button
-                                aria-pressed={manager === selected ? "true" : "false"}
-                                mix={managerButtonStyle}
-                                name="value"
-                                type="submit"
-                                value={manager}
-                            >
-                                {manager}
-                            </button>
-                        ))}
-                    </div>
-                </form>
-                <div
-                    mix={css({
-                        position: "relative",
-                        "& pre": { ...codeSurface, border: 0, borderRadius: 0 },
-                    })}
-                >
-                    {PACKAGE_MANAGERS.map(manager => (
-                        <div data-manager={manager} hidden={manager !== selected}>
-                            <pre data-language="sh">
-                                <code>
-                                    {installLines(manager, packages, dev).map((line, index) => (
-                                        <>
-                                            {index > 0 ? "\n" : null}
-                                            <span mix={commandStyle}>{line.manager}</span>
-                                            {" add "}
-                                            {line.flag ? (
-                                                <span mix={flagStyle}>{`${line.flag} `}</span>
-                                            ) : null}
-                                            {line.names.join(" ")}
-                                        </>
-                                    ))}
-                                </code>
-                            </pre>
-                        </div>
-                    ))}
-                    <CopyButton
-                        code={installLines(selected, packages, dev)
-                            .map(line =>
-                                [line.manager, "add", line.flag, ...line.names]
-                                    .filter(Boolean)
-                                    .join(" "),
-                            )
-                            .join("\n")}
-                    />
-                </div>
-            </div>
-        );
-    };
-}
-
-let managerButton = combine(
-    control,
-    tva({
-        base: {
-            minHeight: 0,
-            padding: [t.spacing(2), t.spacing(2.5)],
-            border: 0,
-            borderBottom: `${t.size.focus} solid transparent`,
-            borderRadius: 0,
-            fontFamily: t.font.mono,
-            fontSize: t.text.sm,
-            lineHeight: t.text.leading.snug,
-            "&:hover": { backgroundColor: "transparent", color: t.color.text },
-            "&[aria-pressed='true']": { borderBottomColor: t.color.link, color: t.color.text },
-        },
-    }),
-);
-
-let managerButtonStyle = managerButton<HTMLButtonElement>();
-
-let commandStyle = css<HTMLSpanElement>({ color: t.color.code.command });
-
-let flagStyle = css<HTMLSpanElement>({ color: t.color.code.flag });
+// A document awaits `installAlternatives()` from `app/install.ts` at module
+// scope and passes the result: highlighting is asynchronous, rendering is not.
+export { InstallGroup } from "./install-group.tsx";

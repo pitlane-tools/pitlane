@@ -1,4 +1,4 @@
-import { get, post, route } from "remix/routes";
+import { get, route } from "remix/routes";
 
 /**
  * The documentation's URL contract. Documents are addressed by their content
@@ -6,6 +6,5 @@ import { get, post, route } from "remix/routes";
  * the controller decides whether it is a page, a redirect to one, or a 404.
  */
 export let routes = route({
-    preferences: post("/preferences"),
     document: get("/*path"),
 });

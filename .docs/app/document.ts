@@ -34,17 +34,23 @@ export type Preferences = {
 
 export type BuildMode = Preferences["buildMode"];
 
+export type PackageManager = Preferences["packageManager"];
+
+/** What a page shows before, or without, a remembered choice. */
 export const DEFAULT_PREFERENCES: Preferences = {
     packageManager: "npm",
     buildMode: "vite",
 };
 
-export const PREFERENCE_COOKIES: Record<keyof Preferences, string> = {
+/**
+ * The localStorage key remembering each choice. The VitePress site used the
+ * same keys, and the server-rendered reader named its preference cookies after
+ * them.
+ */
+export const PREFERENCE_STORAGE_KEYS: Record<keyof Preferences, string> = {
     packageManager: "pitlane-package-manager",
     buildMode: "pitlane-build-mode",
 };
-
-export const PREFERENCE_MAX_AGE = 31_536_000;
 
 export function markdownPath(url: string): string {
     return url.endsWith("/") ? `${url}index.md` : `${url}.md`;

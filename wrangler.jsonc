@@ -3,15 +3,13 @@
     "name": "pitlane",
     "account_id": "3e1fe2693d3175f5f65ef46352f4f747",
     "compatibility_date": "2026-04-26",
-    "compatibility_flags": ["nodejs_compat"],
     // pitlane.tools is attached as a custom domain on the Cloudflare side; it
     // stays out of this config because CI's API token is scoped to Workers
     // only (no zone permissions), and custom domains persist across deploys.
     "preview_urls": true,
-    "main": ".docs/app/entry.server.tsx",
     "assets": {
         "directory": "./.docs/dist/client",
-        "binding": "ASSETS",
-        "not_found_handling": "none"
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page"
     }
 }

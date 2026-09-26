@@ -1,10 +1,15 @@
 import type { Plugin } from "vite";
 
-import { referenceCodeScripts, referenceCodeStyles } from "./expressive-code.ts";
+import { codeScripts, codeStyles } from "./expressive-code.ts";
 
-const CSS = "virtual:reference-code.css";
-const JS = "virtual:reference-code.js";
+const CSS = "virtual:expressive-code.css";
+const JS = "virtual:expressive-code.js";
 
+/**
+ * Serves the stylesheet and browser script every Expressive Code example
+ * shares as modules the browser entry imports, so Vite emits them with the
+ * rest of its assets.
+ */
 export function expressiveAssets(): Plugin {
     return {
         name: "docs-expressive-assets",
@@ -12,8 +17,8 @@ export function expressiveAssets(): Plugin {
             if (id === CSS || id === JS) return `\0${id}`;
         },
         async load(id) {
-            if (id === `\0${CSS}`) return referenceCodeStyles();
-            if (id === `\0${JS}`) return referenceCodeScripts();
+            if (id === `\0${CSS}`) return codeStyles();
+            if (id === `\0${JS}`) return codeScripts();
         },
     };
 }

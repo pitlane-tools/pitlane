@@ -23,6 +23,7 @@ test("executable MDX failures retain their originating file and line", () => {
     assert.equal(run.status, 1, run.stdout + run.stderr);
     for (let [file, lines] of Object.entries({
         props: [6, 8, 10],
+        install: [4, 6, 8],
         imports: [1, 2],
         expressions: [10, 12],
         "unknown-component": [3],

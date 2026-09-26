@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { mdxToJs } from "satteri";
 
@@ -68,17 +67,4 @@ test("mutually exclusive variant scopes never advertise an unreachable heading",
 </Docs.Vite>
 `);
     assert.deepEqual(data.outline, []);
-});
-
-test("fenced examples cannot collide with an authored module binding", async () => {
-    let { code } = await compile(
-        'export const DocumentationCodeBlock = "authored";\n\n```js\nlet example = true;\n```\n',
-    );
-    let checked = spawnSync(process.execPath, ["--input-type=module", "--check"], {
-        input: code,
-        encoding: "utf8",
-        timeout: 10_000,
-    });
-    assert.ifError(checked.error);
-    assert.equal(checked.status, 0, checked.stderr);
 });

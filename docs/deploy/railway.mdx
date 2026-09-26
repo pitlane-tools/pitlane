@@ -3,7 +3,10 @@ title: Deploy to Railway
 description: Run a Remix 3 app on Railway under Node, Bun, or Deno — the built fetch handler plus one Dockerfile.
 ---
 
-import { Callout, Install } from "../../.docs/app/components/documentation.tsx";
+import { Callout, InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ dev: ["@railway/cli"] });
 
 # Railway
 
@@ -113,7 +116,7 @@ One-time setup: create an empty project at [railway.com/new](https://railway.com
 
 Install the [Railway CLI](https://docs.railway.com/cli) as a dev dependency:
 
-<Install dev={["@railway/cli"]} />
+<InstallGroup alternatives={installation} />
 
 Then every deploy is: build the image, push it, tell Railway to pull it.
 

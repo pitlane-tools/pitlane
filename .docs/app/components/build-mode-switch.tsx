@@ -1,29 +1,34 @@
-import type { Handle } from "remix/ui";
-
 import { css } from "@pitlane/theme";
+import { clientEntry, type Handle, on } from "remix/ui";
 
-import type { BuildMode, DocumentPage } from "../document.ts";
+import type { BuildMode } from "../document.ts";
 
+import { rememberPreference } from "../browser/preferences.ts";
 import { control } from "../styles/controls.ts";
 import { t } from "../theme.ts";
 
 const BUILD_MODE_LABELS: Record<BuildMode, string> = { vite: "Vite", "no-build": "No Build" };
 
-let optionStyle = control<HTMLButtonElement>({ option: true });
+let optionStyle = control<HTMLAnchorElement>({ option: true });
+
+export type BuildModeSwitchProps = {
+    /** The build mode of the page being read. */
+    current: BuildMode;
+    /** The guide's page for each build mode. */
+    variants: Record<BuildMode, string>;
+};
 
 /**
- * Chooses between the Vite and No Build renditions of a two-setup guide. The
- * choice persists, and the server answers with the counterpart page, so this
- * is an ordinary form; Remix submits it as a document navigation.
+ * Links between the Vite and No Build pages of a two-setup guide. The URL
+ * decides which setup a page shows; following one of these links also
+ * remembers the choice, so the navigation offers that setup's guides from then on.
  */
-export function BuildModeSwitch(handle: Handle<{ page: DocumentPage }>) {
-    return () => {
-        let { page } = handle.props;
-        if (!page.buildMode || !page.counterpart) return null;
+export let BuildModeSwitch = clientEntry(
+    import.meta.url,
+    (handle: Handle<BuildModeSwitchProps>) => () => {
+        let { current, variants } = handle.props;
         return (
-            <form
-                action="/preferences"
-                method="post"
+            <div
                 mix={css({
                     gridArea: "switch",
                     display: "flex",
@@ -34,8 +39,6 @@ export function BuildModeSwitch(handle: Handle<{ page: DocumentPage }>) {
                     margin: [0, 0, t.spacing(6)],
                 })}
             >
-                <input name="preference" type="hidden" value="buildMode" />
-                <input name="returnTo" type="hidden" value={page.url} />
                 <span
                     id="build-mode-label"
                     mix={css({ color: t.color.secondary, fontSize: t.text.sm })}
@@ -54,18 +57,19 @@ export function BuildModeSwitch(handle: Handle<{ page: DocumentPage }>) {
                     role="group"
                 >
                     {(Object.keys(BUILD_MODE_LABELS) as BuildMode[]).map(mode => (
-                        <button
-                            aria-pressed={page.buildMode === mode ? "true" : "false"}
-                            mix={optionStyle}
-                            name="value"
-                            type="submit"
-                            value={mode}
+                        <a
+                            aria-current={mode === current ? "page" : undefined}
+                            href={variants[mode]}
+                            mix={[
+                                optionStyle,
+                                on("click", () => rememberPreference("buildMode", mode)),
+                            ]}
                         >
                             {BUILD_MODE_LABELS[mode]}
-                        </button>
+                        </a>
                     ))}
                 </span>
-            </form>
+            </div>
         );
-    };
-}
+    },
+);

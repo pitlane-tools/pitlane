@@ -1,28 +1,46 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { PREFERENCE_CHOICES, PREFERENCE_COOKIES } from "../app/document.ts";
+import { PREFERENCE_CHOICES } from "../app/document.ts";
 
 let origin = process.env.DOCS_TEST_ORIGIN ?? "http://127.0.0.1:8788";
 
-/** What Cloudflare serves as static assets before the Worker can run. */
+/** The published files, which Cloudflare serves with no Worker code. */
 const ASSETS = new URL("../dist/client/", import.meta.url);
 
-/** The Worker this build deploys, rendering in this process as the build's publication does. */
+/** The build renderer must stay independent of request cookies. */
 let app = await import(new URL("../dist/ssr/index.js", import.meta.url).href);
-let { pages } = await app.publication.documents();
 let references = JSON.parse(
     await readFile(new URL("../../docs/.generated/reference.json", import.meta.url), "utf8"),
 ).map(page => page.url);
-let authored = pages.filter(page => page.section !== "api").map(page => page.url);
+
+/**
+ * Every authored page, read from the sources rather than from what the build
+ * published, so an omitted page shrinks the published set and not this one.
+ * Underscored files are partials.
+ */
+let authored = (
+    await Promise.all(
+        ["guides", "deploy"].map(async section =>
+            (await readdir(new URL(`../../docs/${section}/`, import.meta.url)))
+                .filter(name => !name.startsWith("_") && /\.mdx?$/.test(name))
+                .map(name => `/${section}/${name.replace(/\.mdx?$/, "")}`),
+        ),
+    )
+).flat();
+let documents = [...references, ...authored];
 
 /** Every combination of the supported preferences, as the cookies a reader sends with it. */
 let preferences = Object.entries(PREFERENCE_CHOICES)
     .reduce(
         (combinations, [key, choices]) =>
             combinations.flatMap(cookies =>
-                choices.map(choice => cookies.concat(`${PREFERENCE_COOKIES[key]}=${choice}`)),
+                choices.map(choice =>
+                    cookies.concat(
+                        `pitlane-${key === "packageManager" ? "package-manager" : "build-mode"}=${choice}`,
+                    ),
+                ),
             ),
         [[]],
     )
@@ -80,9 +98,9 @@ async function destination(path) {
     assert.fail(`${path} redirects more than four times`);
 }
 
-test("proposal.0004: every reference document is a static file served at its canonical address without the Worker", async () => {
+test("proposal.0004: every public document is a static file served at its canonical address", async () => {
     let unpublished = [];
-    for (let url of references) {
+    for (let url of documents) {
         let file = await asset(htmlFile(url));
         if (file === undefined) {
             unpublished.push(url);
@@ -95,12 +113,12 @@ test("proposal.0004: every reference document is a static file served at its can
         assert.equal(response.headers.get("set-cookie"), null, url);
         assert.equal(await response.text(), file, url);
     }
-    assert.deepEqual(unpublished, [], "reference documents without a published HTML file");
+    assert.deepEqual(unpublished, [], "public documents without a published HTML file");
 });
 
-test("proposal.0004: for every supported preference combination, each reference document renders exactly as its published file", async () => {
+test("proposal.0004: every document renders identically across supported legacy preference cookies", async () => {
     let unpublished = [];
-    for (let url of references) {
+    for (let url of documents) {
         let file = await asset(htmlFile(url));
         if (file === undefined) {
             unpublished.push(url);
@@ -115,11 +133,11 @@ test("proposal.0004: for every supported preference combination, each reference 
             );
         }
     }
-    assert.deepEqual(unpublished, [], "reference documents without a published HTML file");
+    assert.deepEqual(unpublished, [], "public documents without a published HTML file");
 });
 
-test("proposal.0004: other spellings of a reference address redirect to it temporarily, keeping the query", async () => {
-    for (let url of references) {
+test("proposal.0004: alternate document spellings redirect temporarily, preserving the query", async () => {
+    for (let url of documents) {
         let spellings = url.endsWith("/")
             ? [url.slice(0, -1), `${url}index`, `${url}index.html`]
             : [`${url}/`, `${url}.html`];
@@ -129,13 +147,18 @@ test("proposal.0004: other spellings of a reference address redirect to it tempo
     }
 });
 
-test("proposal.0004: authored documents have no static file and are rendered for each request", async () => {
-    for (let url of authored) {
-        for (let path of [`${url}.html`, `${url}/index.html`]) {
-            assert.equal(await asset(path), undefined, `${path} is not published`);
-        }
-        let response = await fetch(new URL(url, origin), { method: "HEAD", redirect: "manual" });
-        assert.equal(response.status, 200, url);
-        assert.equal(response.headers.get("cache-control"), "private, no-store", url);
+test("proposal.0004: legacy file and index spellings preserve their canonical destination and query", async () => {
+    for (let [from, to] of [
+        ["/guides/vite-plugin.html/", "/guides/vite-plugin"],
+        ["/guides/vite-plugin/index/", "/guides/vite-plugin"],
+        ["/guides/vite-plugin/index.html/", "/guides/vite-plugin"],
+        ["/guides/vite-plugin.md/", "/guides/vite-plugin.md"],
+        ["/guides/vite-plugin/index.md/", "/guides/vite-plugin.md"],
+        ["/package/dev.html", "/package/dev/"],
+        ["/package/dev/index.md/", "/package/dev/index.md"],
+        ["/package/content/index-1/index.html/", "/package/content/"],
+        ["/package/content/index-1.md/", "/package/content/index.md"],
+    ]) {
+        assert.equal(await destination(`${from}?source=legacy`), `${to}?source=legacy`);
     }
 });

@@ -3,7 +3,10 @@ title: Deploy to Cloudflare Workers
 description: Run a Remix 3 app on Cloudflare Workers with @pitlane/dev and the Cloudflare Vite plugin — workerd in dev, Miniflare preview, wrangler deploy.
 ---
 
-import { Callout, Install } from "../../.docs/app/components/documentation.tsx";
+import { Callout, InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ dev: ["@cloudflare/vite-plugin", "wrangler"] });
 
 # Cloudflare Workers
 
@@ -19,7 +22,7 @@ Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/w
 
 Install the platform pieces:
 
-<Install dev={["@cloudflare/vite-plugin","wrangler"]} />
+<InstallGroup alternatives={installation} />
 
 Point Cloudflare's plugin at the `ssr` environment and let it own dev-time request handling:
 

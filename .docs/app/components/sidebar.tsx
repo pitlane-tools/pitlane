@@ -1,9 +1,10 @@
-import type { Handle } from "remix/ui";
-
 import { css, type ThemedCSSProps } from "@pitlane/theme";
+import { clientEntry, type Handle } from "remix/ui";
 
 import type { ApiModule, GuideGroup, Navigation, NavigationLink } from "./navigation.ts";
 
+import { onPreferenceChange, rememberedPreference } from "../browser/preferences.ts";
+import { type BuildMode, DEFAULT_PREFERENCES } from "../document.ts";
 import { eyebrow, floatingPanel, inPlacePopover, navLink } from "../styles/controls.ts";
 import { narrow } from "../styles/media.ts";
 import { t } from "../theme.ts";
@@ -176,15 +177,44 @@ function LinkList(handle: Handle<{ links: NavigationLink[] }>) {
         <ul mix={linkListStyle}>
             {handle.props.links.map(link => (
                 <li key={link.url}>
-                    <a
-                        aria-current={link.current ? "page" : undefined}
-                        href={link.url}
-                        mix={linkStyle}
-                    >
-                        {link.title}
-                    </a>
+                    {link.variants ? (
+                        <SetupLink title={link.title} variants={link.variants} />
+                    ) : (
+                        <a
+                            aria-current={link.current ? "page" : undefined}
+                            href={link.url}
+                            mix={linkStyle}
+                        >
+                            {link.title}
+                        </a>
+                    )}
                 </li>
             ))}
         </ul>
     );
 }
+
+type SetupLinkProps = {
+    title: string;
+    variants: Record<BuildMode, string>;
+};
+
+/**
+ * A two-setup guide other than the one being read, linked in the setup the
+ * reader last chose with the build-mode switch, or the default one.
+ */
+export let SetupLink = clientEntry(import.meta.url, (handle: Handle<SetupLinkProps>) => {
+    handle.queueTask(() =>
+        onPreferenceChange("buildMode", () => void handle.update(), handle.signal),
+    );
+
+    return () => {
+        let { title, variants } = handle.props;
+        let setup = rememberedPreference("buildMode") ?? DEFAULT_PREFERENCES.buildMode;
+        return (
+            <a href={variants[setup]} mix={linkStyle}>
+                {title}
+            </a>
+        );
+    };
+});

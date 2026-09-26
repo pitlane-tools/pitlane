@@ -36,7 +36,6 @@ function block(node: Content): string {
     if (node.type !== "element" || DROPPED.has(node.tagName)) return "";
     if (hasProperty(node, "dataPagefindIgnore")) return "";
 
-    if (hasProperty(node, "dataCodeGroup")) return codeGroup(node);
     if (hasProperty(node, "dataCallout")) return callout(node);
 
     switch (node.tagName) {
@@ -51,6 +50,8 @@ function block(node: Content): string {
             return inline(node.children);
         case "pre":
             return fence(node);
+        case "details":
+            return details(node);
         case "ul":
         case "ol":
             return list(node);
@@ -117,11 +118,17 @@ function fence(node: Element): string {
     return `${ticks}${typeof language === "string" && language !== "text" ? language : ""}\n${code}\n${ticks}`;
 }
 
-/** An install group: every package manager's command, each under its name. */
-function codeGroup(node: Element): string {
-    return descendants(node, tab => hasProperty(tab, "dataManager"))
-        .map(tab => `**${String(tab.properties?.dataManager)}**\n\n${blocks(tab.children)}`)
-        .join("\n\n");
+/**
+ * A disclosure, open or not, as its summary in bold and then everything it
+ * reveals; an install group is one per package manager, each under its name.
+ */
+function details(node: Element): string {
+    let summary = node.children.find(
+        (child): child is Element => child.type === "element" && child.tagName === "summary",
+    );
+    let heading = summary ? `**${inline(summary.children)}**` : "";
+    let body = blocks(node.children.filter(child => child !== summary));
+    return [heading, body].filter(Boolean).join("\n\n");
 }
 
 /** A callout as a GitHub alert: its kind, its title in bold, then its body. */

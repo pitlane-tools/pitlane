@@ -1,9 +1,14 @@
-import type { BuildMode, DocumentPage, Preferences } from "../document.ts";
+import { type BuildMode, DEFAULT_PREFERENCES, type DocumentPage } from "../document.ts";
 
 export interface NavigationLink {
     title: string;
     url: string;
     current: boolean;
+    /**
+     * A two-setup guide's page for each build mode, when the link can follow
+     * the reader's remembered setup. `url` is the default setup's page.
+     */
+    variants?: Record<BuildMode, string>;
 }
 
 export interface GuideGroup {
@@ -192,14 +197,11 @@ function toLink(page: DocumentPage, current: DocumentPage, title = page.title): 
 }
 
 /**
- * The sidebar for `page`. A two-mode guide is addressed in the setup the
- * reader chose, except the one being read, which keeps the setup its URL names.
+ * The sidebar for `page`. The guide being read keeps the setup its URL names;
+ * any other two-setup guide links to the default setup's page and carries
+ * both, so the browser can follow the reader's remembered setup instead.
  */
-export function buildNavigation(
-    pages: DocumentPage[],
-    page: DocumentPage,
-    preferences: Preferences,
-): Navigation {
+export function buildNavigation(pages: DocumentPage[], page: DocumentPage): Navigation {
     let index = indexPages(pages);
     if (page.section === "api") {
         return {
@@ -225,14 +227,24 @@ export function buildNavigation(
             links: group.links.map(link => {
                 if ("url" in link.pages) return toLink(link.pages, page, link.title);
                 let variants = link.pages;
-                let selected =
-                    page.buildMode && variants[page.buildMode].url === page.url
-                        ? page
-                        : variants[preferences.buildMode];
-                return toLink(selected, page, link.title);
+                if (page.buildMode && variants[page.buildMode].url === page.url)
+                    return toLink(page, page, link.title);
+                return {
+                    ...toLink(variants[DEFAULT_PREFERENCES.buildMode], page, link.title),
+                    variants: { vite: variants.vite.url, "no-build": variants["no-build"].url },
+                };
             }),
         })),
     };
+}
+
+/** A two-setup guide's page for each build mode, or nothing for any other page. */
+export function buildModeVariants(page: DocumentPage): Record<BuildMode, string> | undefined {
+    let { url, buildMode, counterpart } = page;
+    if (!buildMode || !counterpart) return undefined;
+    return buildMode === "vite"
+        ? { vite: url, "no-build": counterpart }
+        : { vite: counterpart, "no-build": url };
 }
 
 /** The trail above `page`: its section, and for a symbol, the module that exports it. */

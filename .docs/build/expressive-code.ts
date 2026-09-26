@@ -12,7 +12,8 @@ let engine = new ExpressiveCode({
     styleOverrides: { codeFontFamily: t.font.mono },
 });
 
-export async function renderReferenceCode(
+/** Preserves displayed code and fence language for copying and exports; unknown languages fail with source context. */
+export async function renderCode(
     code: string,
     language: string | undefined,
     where: string,
@@ -35,17 +36,21 @@ export async function renderReferenceCode(
     for (let control of selectAll(".header, .copy", renderedGroupAst)) {
         control.properties.dataPagefindIgnore = true;
     }
-    return [...styles].map(style => toHtml(h("style", style))).join("") + toHtml(renderedGroupAst);
+    // Remix scans raw HTML for closing document tags, including inside quoted attributes.
+    let html = toHtml(renderedGroupAst).replace(
+        /(<button\b[^>]*\bdata-code=")([^"]*)/g,
+        (_attribute, prefix: string, code: string) =>
+            prefix + code.replaceAll("<", "&lt;").replaceAll(">", "&gt;"),
+    );
+    return [...styles].map(style => toHtml(h("style", style))).join("") + html;
 }
 
-export async function referenceCodeStyles(): Promise<string> {
-    return [
-        await engine.getBaseStyles(),
-        await engine.getThemeStyles(),
-        `.expressive-code { margin: 0 0 ${t.spacing(4)}; }`,
-    ].join("\n");
+/** The stylesheet every rendered example shares. */
+export async function codeStyles(): Promise<string> {
+    return [await engine.getBaseStyles(), await engine.getThemeStyles()].join("\n");
 }
 
-export async function referenceCodeScripts(): Promise<string> {
+/** Expressive Code's own browser behavior, copying among it. */
+export async function codeScripts(): Promise<string> {
     return (await engine.getJsModules()).join("\n");
 }

@@ -3,7 +3,10 @@ title: Deploy to Netlify
 description: Run a Remix 3 app on Netlify with @pitlane/dev — a one-file Netlify Function wraps the built fetch handler, and the Netlify Vite plugin emulates the platform locally.
 ---
 
-import { Callout, Install } from "../../.docs/app/components/documentation.tsx";
+import { Callout, InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ dev: ["@netlify/vite-plugin"] });
 
 # Netlify
 
@@ -17,7 +20,7 @@ Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the cli
 
 ## Configuration
 
-<Install dev={["@netlify/vite-plugin"]} />
+<InstallGroup alternatives={installation} />
 
 ```ts
 // vite.config.ts

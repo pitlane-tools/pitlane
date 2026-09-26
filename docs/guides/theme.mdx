@@ -3,7 +3,10 @@ title: Theme
 description: Style Remix apps with remix/ui css mixins and @pitlane/theme design tokens.
 ---
 
-import { Install } from "../../.docs/app/components/documentation.tsx";
+import { InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ packages: ["@pitlane/theme"] });
 
 # Theme
 
@@ -21,7 +24,7 @@ That works, but every value is a loose string. Nothing stops `#111` here and `#1
 
 First, install the package. `remix` 3.0.0-rc.1 or later is a peer dependency:
 
-<Install packages={["@pitlane/theme"]} />
+<InstallGroup alternatives={installation} />
 
 ## Define a theme
 

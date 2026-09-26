@@ -16,10 +16,9 @@ export function readStorage(key: string): string | null {
     }
 }
 
-export function writeStorage(key: string, value: string | null): void {
+export function writeStorage(key: string, value: string): void {
     try {
-        if (value === null) window.localStorage.removeItem(key);
-        else window.localStorage.setItem(key, value);
+        window.localStorage.setItem(key, value);
     } catch (error) {
         if (
             blocked(error) ||

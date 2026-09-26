@@ -2,7 +2,7 @@ import type { Handle, RemixNode } from "remix/ui";
 
 import { css, type ThemedCSSProps, tva } from "@pitlane/theme";
 
-import type { DocumentPage, Preferences } from "../document.ts";
+import type { DocumentPage } from "../document.ts";
 
 import clientAssets from "../entry.browser.ts?assets=client";
 import { eyebrow } from "../styles/controls.ts";
@@ -12,7 +12,7 @@ import { Article, Breadcrumbs, prose } from "./article.tsx";
 import { BuildModeSwitch } from "./build-mode-switch.tsx";
 import { SectionBar, SiteHeader } from "./header.tsx";
 import { MarkdownActions } from "./markdown-actions.tsx";
-import { breadcrumbs, buildNavigation, PRIMARY_LINKS } from "./navigation.ts";
+import { breadcrumbs, buildModeVariants, buildNavigation, PRIMARY_LINKS } from "./navigation.ts";
 import { OUTLINE_ID } from "./outline.tsx";
 import { DOCUMENT_NAVIGATION_ID, DocumentNavigation } from "./sidebar.tsx";
 import { documentTitle, OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site.ts";
@@ -21,7 +21,6 @@ export interface ShellProps {
     page: DocumentPage;
     /** Every published page, for the navigation and the breadcrumb trail. */
     pages: DocumentPage[];
-    preferences: Preferences;
     /** The page's compiled body. */
     children?: RemixNode;
 }
@@ -33,8 +32,9 @@ export interface ShellProps {
  */
 export function Shell(handle: Handle<ShellProps>) {
     return () => {
-        let { page, pages, preferences, children } = handle.props;
-        let navigation = buildNavigation(pages, page, preferences);
+        let { page, pages, children } = handle.props;
+        let navigation = buildNavigation(pages, page);
+        let variants = buildModeVariants(page);
         let hasOutline = page.headings.length > 0;
         return (
             <Document description={page.description} title={page.title} url={page.url}>
@@ -65,10 +65,10 @@ export function Shell(handle: Handle<ShellProps>) {
                             <Breadcrumbs title={page.title} trail={breadcrumbs(pages, page)} />
                             <MarkdownActions url={page.url} />
                         </div>
-                        <BuildModeSwitch page={page} />
-                        <Article page={page} preferences={preferences}>
-                            {children}
-                        </Article>
+                        {page.buildMode && variants ? (
+                            <BuildModeSwitch current={page.buildMode} variants={variants} />
+                        ) : null}
+                        <Article page={page}>{children}</Article>
                     </div>
                 </main>
             </Document>

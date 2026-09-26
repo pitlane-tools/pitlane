@@ -18,4 +18,3 @@ export const medium = "@media (56.25rem <= width < 80rem)";
 
 /** Controls that only a script can operate stay out of a page read without one. */
 export const noScript = "@media (scripting: none)";
-export const canHover = "@media (hover: hover)";

@@ -14,20 +14,21 @@ const DOCUMENT = /\.(mdx?)(\?outline)?$/;
 const REFERENCE = normalizePath(fileURLToPath(new URL("../../docs/package/", import.meta.url)));
 
 /**
- * Compiles every imported `.md` and `.mdx` file during the build, so no
- * Markdown, MDX, or highlighter code reaches the Worker.
+ * Compiles every imported `.md` and `.mdx` file as Vite loads it, in the
+ * build and the development server alike, so rendering a document runs no
+ * Markdown or MDX compiler and highlights none of its fenced examples.
  *
  * An authored guide or deployment page becomes a Remix component module.
  * Both formats go through the same Sätteri pipeline and plugins: Markdown
  * through `markdownToJs`, with raw HTML parsed into elements the component
  * can render, and MDX through `mdxToJs`. The module's default export is the
  * document as a function of props, which is what an MDX import is anywhere
- * else.
+ * else. Its fenced examples arrive as finished Expressive Code.
  *
  * A generated reference page becomes a module whose default export is the
  * HTML its article shows: the same `outline()` gives its headings their ids
  * and permalinks, its compatibility anchors stay in place, and every example
- * is an Expressive Code block. A request inserts that string as it is.
+ * is an Expressive Code block. Rendering inserts that string as it is.
  *
  * `file.md?outline` compiles the same file to `export const headings`, the
  * document's outline with each heading's build mode, including the outlines

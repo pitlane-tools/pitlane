@@ -3,7 +3,10 @@ title: Crawler
 description: "How @pitlane/crawler walks a Remix 3 fetch router in memory, and the jobs that walk is good for: sitemaps, link checks, and render smoke tests."
 ---
 
-import { Callout, Install } from "../../.docs/app/components/documentation.tsx";
+import { Callout, InstallGroup } from "../../.docs/app/components/documentation.tsx";
+import { installAlternatives } from "../../.docs/app/install.ts";
+
+export const installation = await installAlternatives({ packages: ["@pitlane/crawler"] });
 
 # Crawler
 
@@ -31,7 +34,7 @@ Writing an app's pages to disk has its own guide in two halves. [Prerendering](/
 
 ## Install
 
-<Install packages={["@pitlane/crawler"]} />
+<InstallGroup alternatives={installation} />
 
 Remix 3 is a peer dependency. The first argument to `crawl()` is anything with a `fetch(request: Request)` method, so a `createRouter()` router works, and so does a built bundle's default export or a hand-written `{ fetch }` object.
 

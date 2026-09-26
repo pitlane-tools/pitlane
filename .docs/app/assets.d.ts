@@ -1,1 +1,1 @@
-declare module "virtual:reference-code.js";
+declare module "virtual:expressive-code.js";

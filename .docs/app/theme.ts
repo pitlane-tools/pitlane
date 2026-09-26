@@ -95,7 +95,6 @@ let primitives = createTheme({
             dialog: "40rem",
             menu: "12rem",
             control: "2rem",
-            copy: "1.875rem",
             touch: "2.75rem",
             icon: "1.125em",
             wordmark: "1.125rem",
@@ -156,11 +155,6 @@ export let { token: t, Theme } = primitives.extend(base => ({
             control: lightDark(base.palette.gray[300], base.palette.gray[700]),
             strong: lightDark(base.palette.gray[400], base.palette.gray[600]),
 
-            code: {
-                background: lightDark(base.palette.gray[50], "#16161b"),
-                command: lightDark(base.palette.blue[600], base.palette.blue[400]),
-                flag: lightDark(base.palette.ink[500], base.palette.ink[400]),
-            },
             callout: {
                 info: {
                     background: lightDark(base.palette.gray[50], base.palette.gray[850]),

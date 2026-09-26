@@ -103,9 +103,9 @@ depends = ["docs:api", "docs:mdx"]
 dir = "{{config_root}}/.docs"
 run = ["vite build", "node legacy-home.mjs"]
 
+# The last build's published files under Cloudflare's local runtime, as they deploy.
 [tasks."docs:serve"]
-dir = "{{config_root}}/.docs"
-run = "vite preview --port 1337"
+run = "wrangler dev --config wrangler.jsonc --port 1337"
 
 [tasks."docs:prose"]
 run = ["vale sync", "vale docs/package docs/guides"]

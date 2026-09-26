@@ -15,10 +15,11 @@ let page = s.object({
  * not their bodies.
  *
  * `contentLayer()` compiles a Markdown body to an HTML string, and a string
- * cannot hold the `CodeBlock` component a fenced example becomes. The build
- * compiles each authored body into a component module instead (`build/compile.ts`),
+ * cannot hold the documentation components an authored page renders, such as
+ * its callouts, build-mode sections, and install groups. The build compiles
+ * each authored body into a component module instead (`build/compile.ts`),
  * which `documents.ts` imports by path; keeping the body here as well would
- * put each page in the Worker twice.
+ * compile and bundle each page twice.
  */
 function metadata(loader: ContentLoader): ContentLoader {
     return {

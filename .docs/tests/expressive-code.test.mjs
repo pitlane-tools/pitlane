@@ -1,14 +1,17 @@
 import fc from "fast-check";
 import assert from "node:assert/strict";
 import test from "node:test";
+import { clientEntry, createElement } from "remix/ui";
+import { renderToString } from "remix/ui/server";
 import { htmlToHast, markdownToHtml } from "satteri";
 
-import { renderReferenceCode } from "../build/expressive-code.ts";
+import { installAlternatives } from "../app/install.ts";
+import { renderCode } from "../build/expressive-code.ts";
 import { htmlToMarkdown } from "../build/markdown.ts";
 
 const WHERE = "docs/package/example.md";
 
-/** Languages reference examples name, and a fence that names none. */
+/** Languages examples name, and a fence that names none. */
 const LANGUAGES = [undefined, "ts", "tsx", "js", "json", "sh", "bash", "html", "css", "yaml"];
 
 let character = fc.constantFrom(..."aZ7 \t<>&\"'`*_#$\\{}[]éλ→😀".split(/(?:)/u), "\u00a0");
@@ -60,15 +63,15 @@ function readFences(markdown) {
 
 /** The text Expressive Code's copy button hands the clipboard, decoded as its script does. */
 function copyPayloads(html) {
-    return elements(htmlToHast(html, { fragment: true }), "button").map(button =>
-        String(button.properties?.dataCode).replace(/\u007f/g, "\n"),
-    );
+    return elements(htmlToHast(html, { fragment: true }), "button")
+        .filter(button => typeof button.properties?.dataCode === "string")
+        .map(button => button.properties.dataCode.replace(/\u007f/g, "\n"));
 }
 
-test("proposal.0004: for any reference example, the Markdown export holds its displayed code and language", async () => {
+test("proposal.0004: for any example, the Markdown export holds its displayed code and language", async () => {
     await fc.assert(
         fc.asyncProperty(example, fc.constantFrom(...LANGUAGES), async (code, language) => {
-            let html = await renderReferenceCode(code, language, WHERE);
+            let html = await renderCode(code, language, WHERE);
             assert.deepEqual(readFences(htmlToMarkdown(html)), {
                 onlyCodeBlocks: true,
                 fences: [{ language: language ?? "", code: displayed(code) }],
@@ -78,10 +81,10 @@ test("proposal.0004: for any reference example, the Markdown export holds its di
     );
 });
 
-test("proposal.0004: for any reference example, copying it yields its displayed code", async () => {
+test("proposal.0004: for any example, copying it yields its displayed code", async () => {
     await fc.assert(
         fc.asyncProperty(example, fc.constantFrom(...LANGUAGES), async (code, language) => {
-            let html = await renderReferenceCode(code, language, WHERE);
+            let html = await renderCode(code, language, WHERE);
             assert.deepEqual(copyPayloads(html), [displayed(code)]);
         }),
         { seed: 4005 },
@@ -90,24 +93,76 @@ test("proposal.0004: for any reference example, copying it yields its displayed 
 
 test("proposal.0004: shell examples copy their comments and blank lines too", async () => {
     let code = "# Install the runtime\nnpm install remix\n\n# Then start it\nnpx remix dev";
-    let html = await renderReferenceCode(code, "sh", WHERE);
+    let html = await renderCode(code, "sh", WHERE);
     assert.deepEqual(copyPayloads(html), [code]);
     assert.deepEqual(readFences(htmlToMarkdown(html)).fences, [{ language: "sh", code }]);
 });
 
 test("proposal.0004: an example opening with a file-name comment keeps that line", async () => {
     let code = "// vite.config.ts\nexport default defineConfig({ plugins: [remix()] });";
-    let html = await renderReferenceCode(code, "ts", WHERE);
+    let html = await renderCode(code, "ts", WHERE);
     assert.deepEqual(copyPayloads(html), [code]);
     assert.deepEqual(readFences(htmlToMarkdown(html)).fences, [{ language: "ts", code }]);
 });
 
+test("proposal.0004: HTML examples cannot swallow the document's hydration data", async () => {
+    let code = '<html lang="en">\n<head></head>\n<body title="a & b"></body>\n</html>';
+    let html = await renderCode(code, "html", WHERE);
+    let Control = clientEntry(
+        "/control.js#Control",
+        () => () => createElement("button", null, "Choose"),
+    );
+    let document = await renderToString(
+        createElement(
+            "html",
+            null,
+            createElement("head"),
+            createElement(
+                "body",
+                null,
+                createElement("div", { innerHTML: html }),
+                createElement(Control),
+            ),
+        ),
+    );
+    let scripts = elements(htmlToHast(document), "script");
+    assert.equal(
+        scripts.filter(script => script.properties?.id === "rmx-data").length,
+        1,
+        "the browser must receive hydration data outside the example's copy attribute",
+    );
+    assert.deepEqual(copyPayloads(document), [code]);
+    assert.deepEqual(readFences(htmlToMarkdown(html)).fences, [{ language: "html", code }]);
+});
+
 test("proposal.0004: an example in a language no highlighter knows fails the build, naming its document", async () => {
     await assert.rejects(
-        renderReferenceCode("let answer = 42;", "not-a-language", WHERE),
+        renderCode("let answer = 42;", "not-a-language", WHERE),
         error =>
             error instanceof Error &&
             error.message.includes(WHERE) &&
             error.message.includes('"not-a-language"'),
     );
+});
+
+test("proposal.0004: an install group offers every package manager's command, each copying what it displays", async () => {
+    let alternatives = await installAlternatives({
+        packages: ["@pitlane/content"],
+        dev: ["satteri", "vite-plugin-satteri"],
+    });
+    let commands = alternatives.map(({ manager, html }) => {
+        let [code] = copyPayloads(html);
+        assert.deepEqual(readFences(htmlToMarkdown(html)).fences, [{ language: "sh", code }]);
+        return [manager, code];
+    });
+    assert.deepEqual(commands, [
+        ["npm", "npm add @pitlane/content\nnpm add -D satteri vite-plugin-satteri"],
+        ["yarn", "yarn add @pitlane/content\nyarn add -D satteri vite-plugin-satteri"],
+        ["pnpm", "pnpm add @pitlane/content\npnpm add -D satteri vite-plugin-satteri"],
+        ["bun", "bun add @pitlane/content\nbun add -D satteri vite-plugin-satteri"],
+        ["deno", "deno add npm:@pitlane/content\ndeno add -D npm:satteri npm:vite-plugin-satteri"],
+        ["vp", "vp add @pitlane/content\nvp add -D satteri vite-plugin-satteri"],
+        ["vlt", "vlt add @pitlane/content\nvlt add -D satteri vite-plugin-satteri"],
+        ["nub", "nub add @pitlane/content\nnub add -D satteri vite-plugin-satteri"],
+    ]);
 });
