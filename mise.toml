@@ -161,17 +161,14 @@ run = "./node_modules/.bin/vite --port 1337"
 [tasks."docs:build"]
 depends = ["docs:api", "docs:mdx"]
 dir = "{{config_root}}/docs"
-run = ["./node_modules/.bin/vite build", "node legacy-home.ts"]
-# VitePress writes its cache under .vitepress/ while building the legacy home page.
+run = "./node_modules/.bin/vite build"
 sources = [
     "../pnpm-lock.yaml",
-    "{package.json,tsconfig.json,vite.config.ts,legacy-home.ts,index.md}",
+    "{package.json,tsconfig.json,vite.config.ts}",
     "app/**",
     "build/**",
     "public/**",
     ".generated/**",
-    ".vitepress/**",
-    "!.vitepress/{cache,dist,.temp}/**",
     "../packages/*/dist/**",
 ]
 outputs = ["dist/**"]

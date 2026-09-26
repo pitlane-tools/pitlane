@@ -7,6 +7,7 @@ import referenceRedirects from "../.generated/reference-redirects.json" with { t
 import { NotFound, Shell } from "./components/shell.tsx";
 import { markdownPath } from "./document.ts";
 import { type Document, type Documents, documents } from "./documents.ts";
+import { Home } from "./home/page.tsx";
 import { routes } from "./routes.ts";
 
 /** Module pages the reference used to publish, by old path, and where each went. */
@@ -19,6 +20,7 @@ let moved = new Map<string, string>(Object.entries(referenceRedirects));
  */
 export default createController(routes, {
     actions: {
+        home: ({ render }) => render(<Home />),
         guide: ({ params, render, url }) => respond(routes.guide.href(params), url, render),
         deploy: ({ params, render, url }) => respond(routes.deploy.href(params), url, render),
         api: ({ params, render, url }) => respond(routes.api.href(params), url, render),

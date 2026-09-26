@@ -46,10 +46,8 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                     },
                 })}
             >
-                {/* The home page is still the previous site, so it loads as a document of its own. */}
                 <a
                     aria-label="Pitlane home"
-                    data-rmx-document
                     href="/"
                     mix={css({
                         display: "inline-flex",

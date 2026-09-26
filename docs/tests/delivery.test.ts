@@ -103,9 +103,9 @@ async function destination(path: string) {
     assert.fail(`${path} redirects more than four times`);
 }
 
-test("proposal.0004: every public document is a static file served at its canonical address", async () => {
+test("every public page is a static file served at its canonical address", async () => {
     let unpublished = [];
-    for (let url of documents) {
+    for (let url of ["/", ...documents]) {
         let file = await asset(htmlFile(url));
         if (file === undefined) {
             unpublished.push(url);
@@ -121,9 +121,9 @@ test("proposal.0004: every public document is a static file served at its canoni
     assert.deepEqual(unpublished, [], "public documents without a published HTML file");
 });
 
-test("proposal.0004: every document renders identically across supported legacy preference cookies", async () => {
+test("every public page renders identically across supported legacy preference cookies", async () => {
     let unpublished = [];
-    for (let url of documents) {
+    for (let url of ["/", ...documents]) {
         let file = await asset(htmlFile(url));
         if (file === undefined) {
             unpublished.push(url);

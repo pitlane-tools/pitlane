@@ -2,9 +2,6 @@
     "$schema": "node_modules/oxlint/configuration_schema.json",
     "ignorePatterns": [
         ".agents/docs/**",
-        "docs/.vitepress/cache/**",
-        "docs/.vitepress/dist/**",
-        "docs/.vitepress/theme/components/snippets/**",
         "node_modules/**",
         "packages/*/dist/**",
         "demos/*/dist/**",

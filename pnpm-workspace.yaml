@@ -17,6 +17,5 @@ allowBuilds:
     # scripts are redundant here.
     esbuild: false
     sharp: false
-    vue-demi: false
 
 minimumReleaseAge: 0

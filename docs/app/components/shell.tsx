@@ -197,7 +197,7 @@ interface DocumentProps {
  * system's color scheme decides the appearance, from the first paint and as
  * it changes, with or without a script.
  */
-function Document(handle: Handle<DocumentProps>) {
+export function Document(handle: Handle<DocumentProps>) {
     return () => {
         let { title, description, url, children } = handle.props;
         let fullTitle = documentTitle(title);

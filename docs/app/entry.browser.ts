@@ -3,6 +3,7 @@ import "virtual:expressive-code.css";
 import "virtual:expressive-code.js";
 
 import "./styles/code-font.css";
+import "./home/type.css";
 import { resolveDocument } from "./browser/navigation.ts";
 import { migrateLegacyCookies } from "./browser/preferences.ts";
 

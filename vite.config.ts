@@ -7,9 +7,6 @@ export default defineConfig({
             ".agents/skills/copyediting/**",
             ".agents/skills/remix/**",
             ".agents/skills/write-better-prose/**",
-            "docs/.vitepress/cache/**",
-            "docs/.vitepress/dist/**",
-            "docs/.vitepress/.temp/**",
             "docs/SETUP.md",
             "docs/superpowers/**",
             "node_modules/**",
@@ -42,25 +39,10 @@ export default defineConfig({
                 files: ["**/.vscode/**"],
                 options: { trailingComma: "all" },
             },
-            {
-                files: [
-                    "docs/.vitepress/theme/components/snippets/*.ts",
-                    "docs/.vitepress/theme/components/snippets/*.tsx",
-                ],
-                options: {
-                    printWidth: 55,
-                },
-            },
         ],
     },
     lint: {
-        ignorePatterns: [
-            ".agents/docs/**",
-            "docs/.vitepress/cache/**",
-            "docs/.vitepress/dist/**",
-            "docs/.vitepress/theme/components/snippets/**",
-            "node_modules/**",
-        ],
+        ignorePatterns: [".agents/docs/**", "node_modules/**"],
         options: {
             typeAware: true,
             typeCheck: true,

@@ -1,7 +1,4 @@
 node_modules
-docs/.vitepress/cache
-docs/.vitepress/dist
-docs/.vitepress/.temp
 .vite
 .DS_Store
 .superpowers/
@@ -13,4 +10,3 @@ dist
 docs/app/content/api
 docs/.generated
 docs/.index
-docs/.legacy-home

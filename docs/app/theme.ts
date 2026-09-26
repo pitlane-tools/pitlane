@@ -2,10 +2,8 @@ import { createTheme, lightDark } from "@pitlane/theme";
 import * as s from "@pitlane/theme/schema";
 
 /**
- * The documentation site's design system. The layout follows the Remix
- * reference docs (pink metadata, quiet grey chrome) while links and text
- * highlights take Pitlane's red. Every semantic color is a `light-dark()`
- * pair, so the operating system's color scheme decides the appearance.
+ * Shared site tokens. Semantic colors use `light-dark()` so the system's
+ * appearance preference works before scripts load.
  */
 let primitives = createTheme({
     schema: {
@@ -42,15 +40,11 @@ let primitives = createTheme({
                 900: "#121216",
                 950: "#0b0b0e",
             },
-            pink: { 400: "#ff5d7a", 600: "#d81b54" },
-            red: {
-                200: "#fecaca",
-                300: "#fca5a5",
-                400: "#f87171",
-                600: "#eb2027",
-                700: "#b91c1c",
-                900: "#7f1d1d",
-            },
+            racingRed: lightDark("#eb2027", "#c65a60"),
+            indigoVelvet: lightDark("#3d348b", "#8a82b2"),
+            mediumSlateBlue: lightDark("#5b5bb6", "#9294ca"),
+            amberFlame: lightDark("#b87813", "#c09a58"),
+            royalGold: lightDark("#a58d2b", "#c2b579"),
         },
         font: {
             sans: [
@@ -154,22 +148,39 @@ export let { token: t, Theme } = primitives.extend(base => ({
             text: lightDark(base.palette.ink[900], base.palette.ink[50]),
             secondary: lightDark(base.palette.ink[500], base.palette.ink[400]),
             faint: lightDark(base.palette.gray[400], base.palette.gray[500]),
-            link: lightDark(base.palette.red[600], base.palette.red[400]),
-            linkHover: lightDark(base.palette.red[700], base.palette.red[300]),
+            link: lightDark(
+                `color-mix(in srgb, ${base.palette.racingRed} 85%, ${base.palette.black})`,
+                `color-mix(in srgb, ${base.palette.racingRed} 80%, ${base.palette.white})`,
+            ),
+            linkHover: lightDark(
+                `color-mix(in srgb, ${base.palette.racingRed} 70%, ${base.palette.black})`,
+                `color-mix(in srgb, ${base.palette.racingRed} 65%, ${base.palette.white})`,
+            ),
             linkUnderline: lightDark(
-                `color-mix(in srgb, ${base.palette.red[600]} 30%, transparent)`,
-                `color-mix(in srgb, ${base.palette.red[400]} 35%, transparent)`,
+                `color-mix(in srgb, ${base.palette.racingRed} 30%, transparent)`,
+                `color-mix(in srgb, ${base.palette.racingRed} 35%, transparent)`,
             ),
             /** The fill behind the navigation link to the page being read. */
             linkCurrent: lightDark(
-                `color-mix(in srgb, ${base.palette.red[600]} 10%, transparent)`,
-                `color-mix(in srgb, ${base.palette.red[400]} 28%, transparent)`,
+                `color-mix(in srgb, ${base.palette.racingRed} 10%, transparent)`,
+                `color-mix(in srgb, ${base.palette.racingRed} 18%, transparent)`,
             ),
             /** Metadata: eyebrows, symbol kinds, module names. */
-            accent: lightDark(base.palette.pink[600], base.palette.pink[400]),
-            brand: base.palette.red[600],
-            danger: lightDark(base.palette.red[700], base.palette.red[400]),
-            selection: lightDark(base.palette.red[200], base.palette.red[900]),
+            accent: lightDark(base.palette.indigoVelvet, base.palette.royalGold),
+            brand: base.palette.racingRed,
+            action: {
+                background: `color-mix(in srgb, ${base.palette.racingRed} 90%, ${base.palette.black})`,
+                hover: `color-mix(in srgb, ${base.palette.racingRed} 80%, ${base.palette.black})`,
+                text: base.palette.white,
+            },
+            danger: lightDark(
+                `color-mix(in srgb, ${base.palette.racingRed} 85%, ${base.palette.black})`,
+                `color-mix(in srgb, ${base.palette.racingRed} 80%, ${base.palette.white})`,
+            ),
+            selection: lightDark(
+                `color-mix(in srgb, ${base.palette.racingRed} 20%, ${base.palette.white})`,
+                `color-mix(in srgb, ${base.palette.racingRed} 45%, ${base.palette.gray[950]})`,
+            ),
             selectionText: lightDark(base.palette.ink[900], base.palette.white),
 
             border: lightDark(base.palette.gray[200], base.palette.gray[800]),
@@ -183,19 +194,37 @@ export let { token: t, Theme } = primitives.extend(base => ({
                     title: lightDark(base.palette.ink[900], base.palette.ink[50]),
                 },
                 tip: {
-                    background: lightDark("#ecfdf3", "#0f2a1c"),
-                    border: lightDark("#a7e6c1", "#1f5a3a"),
-                    title: lightDark("#067647", "#6ce9a6"),
+                    background: lightDark(
+                        `color-mix(in srgb, ${base.palette.mediumSlateBlue} 7%, ${base.palette.white})`,
+                        `color-mix(in srgb, ${base.palette.amberFlame} 8%, ${base.palette.gray[850]})`,
+                    ),
+                    border: lightDark(
+                        `color-mix(in srgb, ${base.palette.mediumSlateBlue} 30%, ${base.palette.white})`,
+                        `color-mix(in srgb, ${base.palette.amberFlame} 40%, ${base.palette.gray[800]})`,
+                    ),
+                    title: lightDark(base.palette.mediumSlateBlue, base.palette.amberFlame),
                 },
                 warning: {
-                    background: lightDark("#fff8e6", "#2d2410"),
-                    border: lightDark("#f2d38a", "#6b5320"),
-                    title: lightDark("#8a5a00", "#fbd168"),
+                    background: lightDark(
+                        `color-mix(in srgb, ${base.palette.royalGold} 18%, ${base.palette.white})`,
+                        base.palette.gray[850],
+                    ),
+                    border: base.palette.amberFlame,
+                    title: lightDark(base.palette.ink[900], base.palette.royalGold),
                 },
                 danger: {
-                    background: lightDark("#fff1f2", "#2d1418"),
-                    border: lightDark("#f5b5bd", "#6b2a33"),
-                    title: lightDark("#b42318", "#fda4af"),
+                    background: lightDark(
+                        `color-mix(in srgb, ${base.palette.racingRed} 5%, ${base.palette.white})`,
+                        base.palette.gray[850],
+                    ),
+                    border: lightDark(
+                        `color-mix(in srgb, ${base.palette.racingRed} 25%, ${base.palette.white})`,
+                        `color-mix(in srgb, ${base.palette.racingRed} 50%, ${base.palette.gray[800]})`,
+                    ),
+                    title: lightDark(
+                        `color-mix(in srgb, ${base.palette.racingRed} 85%, ${base.palette.black})`,
+                        `color-mix(in srgb, ${base.palette.racingRed} 80%, ${base.palette.white})`,
+                    ),
                 },
             },
             /** Expressive Code's frame colors, for chrome drawn around its blocks. */

@@ -13,19 +13,9 @@
         "types": ["node"],
         "verbatimModuleSyntax": true
     },
-    "exclude": [
-        "packages/mdx-checker/*.d.ts",
-        "docs/.vitepress/cache",
-        "docs/.vitepress/dist",
-        "docs/.vitepress/theme/components/snippets",
-        "docs/.vitepress/theme/index.ts",
-        "node_modules"
-    ],
+    "exclude": ["packages/mdx-checker/*.d.ts", "node_modules"],
     "include": [
         "vite.config.ts",
-        "docs/.vitepress/**/*.ts",
-        "docs/.vitepress/**/*.vue",
-        "docs/.vitepress/**/*.tsx",
         ".omp/hooks/*.ts",
         ".omp/tools/**/*.ts",
         "tools/*.ts",

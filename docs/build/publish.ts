@@ -28,7 +28,10 @@ interface ServerEntry {
     publication: { documents(): Promise<Documents> };
 }
 
-/** Prerenders complete documents and derives their exports and search index from the same HTML. */
+/**
+ * Prerenders the home page and every complete document, and derives each
+ * document's exports and search index from the same HTML.
+ */
 export function publish(options: PublishOptions): Plugin {
     let root = process.cwd();
     let server: string | undefined;
@@ -83,6 +86,12 @@ export function publish(options: PublishOptions): Plugin {
                     exported.push({ page, markdown });
                     search.push({ page, article, aliases });
                 }
+
+                // The home page is no document: it has no article to export or index.
+                await write(
+                    join(client, htmlPath("/")),
+                    await rendered(app, new URL("/", options.site.url), 200),
+                );
 
                 // Served with its 404 status wherever no file or redirect answers.
                 await write(
