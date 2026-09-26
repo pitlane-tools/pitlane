@@ -67,12 +67,16 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                         display: "flex",
                         alignItems: "center",
                         gap: t.spacing(6),
+                        // Grey until hovered, like the outline; the section being read is red.
                         "& a": {
-                            color: t.color.link,
+                            color: t.color.secondary,
                             textDecoration: "none",
                             whiteSpace: "nowrap",
-                            "&:hover": { color: t.color.linkHover },
-                            "&[aria-current]": { color: t.color.text },
+                            "&:hover": { color: t.color.text },
+                            "&[aria-current]": {
+                                color: t.color.link,
+                                fontWeight: t.weight.semibold,
+                            },
                         },
                         [compact]: {
                             "&:not(:popover-open)": { display: "none" },
