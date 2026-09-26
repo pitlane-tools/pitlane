@@ -10,8 +10,8 @@ let page = {
     section: "guides",
     buildMode: "vite",
 };
-let title = { id: "example", text: "Example", level: 1 };
-let shared = { id: "configuration", text: "Configuration", level: 2 };
+let title = { depth: 1, slug: "example", text: "Example" };
+let shared = { depth: 2, slug: "configuration", text: "Configuration" };
 
 test("composed pages cannot publish ambiguous heading destinations", () => {
     assert.throws(
@@ -30,6 +30,6 @@ test("headings in mutually exclusive variants do not collide", () => {
             [title, { ...shared, buildMode: "vite" }, { ...shared, buildMode: "no-build" }],
             "docs/guides/example.mdx",
         ),
-        [shared],
+        [{ id: "configuration", text: "Configuration", level: 2 }],
     );
 });

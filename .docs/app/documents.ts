@@ -1,36 +1,11 @@
+import type { CollectionEntry } from "@pitlane/content";
+
 import { createElement, type RemixNode } from "remix/ui";
 
 import type { BuildMode, CompiledHeading, DocumentPage } from "./document.ts";
 
 import { content } from "./content.ts";
 import { outline } from "./outline.ts";
-
-/** An authored body: a function of props, which is what an MDX import is. */
-type Component = (props: Record<string, never>) => RemixNode;
-
-/**
- * Every publishable body, keyed by its path in the repository. `build/compile.ts`
- * compiles each import: an authored guide or deployment page to a component,
- * a generated reference page to the HTML its article shows. The bodies load
- * on demand, the outlines up front.
- */
-let components = import.meta.glob<Component>(
-    ["./docs/guides/*.{md,mdx}", "./docs/deploy/*.{md,mdx}", "!./docs/*/_*"],
-    { base: "../../", import: "default" },
-);
-let references = import.meta.glob<string>("./docs/package/**/*.md", {
-    base: "../../",
-    import: "default",
-});
-let outlines = import.meta.glob<CompiledHeading[]>(
-    [
-        "./docs/guides/*.{md,mdx}",
-        "./docs/deploy/*.{md,mdx}",
-        "./docs/package/**/*.md",
-        "!./docs/*/_*",
-    ],
-    { base: "../../", import: "headings", query: "?outline", eager: true },
-);
 
 /** Another public name the same declaration is exported under. */
 export interface Alias {
@@ -76,22 +51,17 @@ async function load(): Promise<Documents> {
     ]);
     let guideIds = new Set(guides.map(guide => guide.id));
 
-    let all = [
+    let all = await Promise.all([
         ...guides.map(guide =>
-            document(authored("guides", guide.id), {
+            document(guide, {
                 ...page(`/guides/${guide.id}`, "guides", guide.data),
                 ...variant(guide.id, guide.data.build, guideIds),
             }),
         ),
-        ...deploy.map(entry =>
-            document(
-                authored("deploy", entry.id),
-                page(`/deploy/${entry.id}`, "deploy", entry.data),
-            ),
-        ),
+        ...deploy.map(entry => document(entry, page(`/deploy/${entry.id}`, "deploy", entry.data))),
         ...api.map(entry =>
             document(
-                `./${entry.data.source}`,
+                entry,
                 {
                     ...page(entry.data.url, "api", entry.data),
                     module: entry.data.module,
@@ -100,7 +70,7 @@ async function load(): Promise<Documents> {
                 entry.data.aliases,
             ),
         ),
-    ];
+    ]);
 
     return {
         all,
@@ -110,41 +80,27 @@ async function load(): Promise<Documents> {
     };
 }
 
-/** The body key of an authored page, which may be Markdown or MDX. */
-function authored(section: "guides" | "deploy", id: string): string {
-    let key = [`./docs/${section}/${id}.mdx`, `./docs/${section}/${id}.md`].find(
-        candidate => candidate in components,
-    );
-    if (!key) throw new Error(`docs/${section}/${id} has no compiled body.`);
-    return key;
-}
-
-function document(
-    key: string,
-    metadata: Omit<DocumentPage, "headings">,
-    aliases: Alias[] = [],
-): Document {
-    let body = bodyOf(key);
-    let compiled = outlines[key];
-    if (!body || !compiled)
-        throw new Error(`${metadata.url} has no compiled body at ${key.slice(2)}.`);
-    return {
-        page: { ...metadata, headings: outline(metadata, compiled, key.slice(2)) },
-        aliases,
-        body,
-    };
-}
+type Published = CollectionEntry<
+    typeof content.guides | typeof content.deploy | typeof content.api
+>;
 
 /**
- * A body ready for its article: an authored component rendered, or a
- * reference page's prepared HTML inserted as it is.
+ * A page and its body from the entry the content layer compiled. Its heading
+ * list carries each heading's variant context, which the page resolves into
+ * the outline its own variant shows.
  */
-function bodyOf(key: string): (() => Promise<RemixNode>) | undefined {
-    let component = components[key];
-    if (component) return async () => (await component())({});
-    let reference = references[key];
-    if (reference) return async () => createElement("div", { innerHTML: await reference() });
-    return undefined;
+async function document(
+    entry: Published,
+    metadata: Omit<DocumentPage, "headings">,
+    aliases: Alias[] = [],
+): Promise<Document> {
+    let { Content, headings } = await entry.render();
+    let source = entry.filePath ?? `${entry.collection}/${entry.id}`;
+    return {
+        page: { ...metadata, headings: outline(metadata, headings as CompiledHeading[], source) },
+        aliases,
+        body: async () => createElement(Content, {}),
+    };
 }
 
 function page(

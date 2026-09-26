@@ -19,6 +19,7 @@
         "shiki": "^4.0.2",
         "sirv": "^3.0.2",
         "vite": "^8.1.5",
+        "vite-plugin-satteri": "^0.3.5",
         "vite-plus": "^0.2.6"
     }
 }

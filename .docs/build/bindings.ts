@@ -7,7 +7,13 @@ interface DocumentBindings {
     documents: Map<string, string>;
 }
 
-const DOCUMENTATION = new URL("../app/components/documentation.tsx", import.meta.url).href;
+/**
+ * The module the documentation vocabulary comes from, as the tail of the
+ * relative specifier a document imports it by. A body `contentLayer()`
+ * compiles has a virtual id, so the specifier cannot be resolved to the
+ * module's real URL; its path from the repository is what identifies it.
+ */
+const DOCUMENTATION = "/.docs/app/components/documentation.tsx";
 const COMPONENTS: Component[] = ["Vite", "NoBuild", "Include"];
 const EMPTY: DocumentBindings = { components: new Map(), documents: new Map() };
 
@@ -27,8 +33,7 @@ export function bindings(): HastPluginEntry {
             for (let statement of program?.body ?? []) {
                 if (statement.type !== "ImportDeclaration") continue;
                 let source = String(statement.source.value);
-                let documentation =
-                    context.fileURL && new URL(source, context.fileURL).href === DOCUMENTATION;
+                let documentation = source.endsWith(DOCUMENTATION);
                 for (let specifier of statement.specifiers) {
                     let local = specifier.local.name;
                     if (specifier.type === "ImportNamespaceSpecifier") {

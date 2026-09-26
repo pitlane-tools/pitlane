@@ -15,12 +15,11 @@ import { renderCode } from "./expressive-code.ts";
 
 type Element = Extract<HastNode, { type: "element" }>;
 
-const CONTROL = /[\u0000-\u001f]/g;
-const SPECIAL = /[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g;
-const COMBINING = /[\u0300-\u036F]/g;
-
 /** The documentation components whose children only one build mode shows. */
 const VARIANTS: Record<string, BuildMode> = { Vite: "vite", NoBuild: "no-build" };
+
+/** The export `headings()` from `@pitlane/content/satteri` appends to an MDX document. */
+const HEADINGS_EXPORT = /^export const headings = /;
 
 /**
  * One step of a document's outline, in document order: a heading of its own,
@@ -31,35 +30,20 @@ export type OutlineItem =
     | { include: { specifier: string; buildMode?: BuildMode } };
 
 /**
- * The slug VitePress gave a heading, kept so every anchor that reached the old
- * site still lands: NFKD, marks and control characters dropped, runs of
- * punctuation and whitespace collapsed to one dash, a leading digit prefixed.
- */
-export function slugify(text: string): string {
-    return text
-        .normalize("NFKD")
-        .replace(COMBINING, "")
-        .replace(CONTROL, "")
-        .replace(SPECIAL, "-")
-        .replace(/-{2,}/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .replace(/^(\d)/, "_$1")
-        .toLowerCase();
-}
-
-/**
- * Gives every heading the id its anchor links use and a permalink to itself,
- * and records the document's outline as `data.outline`.
+ * Gives every heading a permalink to itself and settles the document's
+ * outline: a heading inside a `<Vite>` or `<NoBuild>` section carries that
+ * build mode, and an `<Include document={binding} />` stands for the headings
+ * of the document `binding` was default-imported from.
  *
- * A repeated slug takes `-1`, `-2`, … in document order. A heading inside a
- * `<Vite>` or `<NoBuild>` section carries that build mode, and an
- * `<Include document={binding} />` stands for the headings of the document
- * `binding` was default-imported from, so a two-mode guide's outline is
- * settled here rather than by rendering either variant.
+ * Runs after `headings()` from `@pitlane/content/satteri`, which gives each
+ * heading its `id` and, on MDX, exports the flat heading list. This plugin
+ * rewrites that export so `entry.render()` hands back the outline with its
+ * variants and includes resolved: each include becomes an import of the
+ * included module's own `headings`, spliced in where the include stood.
+ * Markdown has no variants or includes, so its list is left as it is.
  */
 export function outline(): HastPluginEntry {
     return () => {
-        let taken = new Set<string>();
         let items: OutlineItem[] = [];
 
         let definition: HastPluginDefinition = {
@@ -67,27 +51,28 @@ export function outline(): HastPluginEntry {
             element: {
                 filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
                 visit(node, context) {
+                    let slug = node.properties?.id;
+                    if (typeof slug !== "string") {
+                        throw new Error(
+                            `${where(context, node)} has a heading without an id: run headings() from ` +
+                                "@pitlane/content/satteri before outline().",
+                        );
+                    }
                     let text = context.textContent(node).replace(/\s+/g, " ").trim();
-                    let base = slugify(text);
-                    let id = base;
-                    for (let suffix = 1; taken.has(id); suffix++) id = `${base}-${suffix}`;
-                    taken.add(id);
-
-                    context.setProperty(node, "id", id);
                     context.appendChild(node, {
                         type: "element",
                         tagName: "a",
                         properties: {
                             class: "doc-heading__anchor",
-                            href: `#${id}`,
+                            href: `#${slug}`,
                             "aria-label": `Link to ${text}`,
                         },
                         children: [],
                     });
                     let heading: CompiledHeading = {
-                        id,
+                        depth: Number(node.tagName.slice(1)),
+                        slug,
                         text,
-                        level: Number(node.tagName.slice(1)),
                     };
                     let buildMode = variantOf(node, context);
                     if (buildMode === false) return;
@@ -119,15 +104,54 @@ export function outline(): HastPluginEntry {
                     items.push({ include: buildMode ? { specifier, buildMode } : { specifier } });
                 },
             },
-            after(_root, context) {
+            after(root, context) {
                 context.data.outline = items;
+                if (context.sourceFormat !== "mdx") return;
+                let flat = root.children.find(
+                    child => child.type === "mdxjsEsm" && HEADINGS_EXPORT.test(child.value),
+                );
+                if (!flat) {
+                    throw new Error(
+                        `${where(context)} exports no headings: run headings() from ` +
+                            "@pitlane/content/satteri before outline().",
+                    );
+                }
+                context.replaceNode(flat, { type: "mdxjsEsm", value: outlineModule(items) });
             },
         };
         return definition;
     };
 }
 
-/** Compile authored fences to static HTML; Expressive Code owns their browser enhancement. */
+/**
+ * The outline as ESM. An included document's headings are spliced in where
+ * its `<Include>` stood; inside a `<Vite>` or `<NoBuild>` section they take
+ * that build mode, and those belonging to the other one drop out.
+ */
+function outlineModule(items: OutlineItem[]): string {
+    let imports: string[] = [];
+    let entries = items.map(item => {
+        if ("heading" in item) return JSON.stringify(item.heading);
+        let binding = `included${imports.length}`;
+        imports.push(
+            `import { headings as ${binding} } from ${JSON.stringify(item.include.specifier)};`,
+        );
+        let mode = item.include.buildMode;
+        if (!mode) return `...${binding}`;
+        return (
+            `...${binding}.flatMap(heading => heading.buildMode && heading.buildMode !== ${JSON.stringify(mode)} ` +
+            `? [] : [{ ...heading, buildMode: ${JSON.stringify(mode)} }])`
+        );
+    });
+    return `${imports.join("\n")}\nexport const headings = [${entries.join(",\n")}];`;
+}
+
+/**
+ * Renders every fenced example as finished Expressive Code during the build,
+ * so rendering a document highlights nothing. In MDX the block becomes an
+ * element carrying the HTML; in Markdown, which compiles to HTML, it is
+ * spliced in as it is.
+ */
 export function codeBlocks(): HastPluginEntry {
     let definition: HastPluginDefinition = {
         name: "docs-code-blocks",
@@ -139,42 +163,14 @@ export function codeBlocks(): HastPluginEntry {
                 if (!fenced) return;
 
                 let { text, language } = fenced;
+                let html = await renderCode(text, language, where(context, node));
+                if (context.sourceFormat !== "mdx") return { type: "raw", value: html };
                 return {
                     type: "mdxJsxFlowElement",
                     name: "div",
-                    attributes: [
-                        {
-                            type: "mdxJsxAttribute",
-                            name: "innerHTML",
-                            value: await renderCode(text, language, where(context, node)),
-                        },
-                    ],
+                    attributes: [{ type: "mdxJsxAttribute", name: "innerHTML", value: html }],
                     children: [],
                 };
-            },
-        },
-    };
-    return definition;
-}
-
-/**
- * Replaces every fenced example in a generated reference page with the
- * Expressive Code block rendered for it now, during the build, spliced in as
- * finished HTML. The page is published as that HTML, so its examples are
- * neither components nor hydrated.
- */
-export function referenceCode(): HastPluginEntry {
-    let definition: HastPluginDefinition = {
-        name: "docs-reference-code",
-        element: {
-            filter: ["pre"],
-            async visit(node, context) {
-                let fenced = example(node, context);
-                if (!fenced) return;
-
-                let { text, language } = fenced;
-                let html = await renderCode(text, language, where(context, node));
-                return { type: "raw", value: html };
             },
         },
     };

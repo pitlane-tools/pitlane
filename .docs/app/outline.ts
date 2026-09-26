@@ -1,5 +1,9 @@
 import type { CompiledHeading, DocumentPage, Heading } from "./document.ts";
 
+/**
+ * The outline a page shows: the headings of its own variant, below the title,
+ * checked for the mistakes an author can make across variants and includes.
+ */
 export function outline(
     page: Omit<DocumentPage, "headings">,
     compiled: CompiledHeading[],
@@ -17,19 +21,19 @@ export function outline(
     );
     let destinations = new Set<string>();
     for (let heading of shown) {
-        if (destinations.has(heading.id)) {
+        if (destinations.has(heading.slug)) {
             throw new Error(
-                `${source} repeats heading destination "#${heading.id}". Rename a heading or remove the repeated include.`,
+                `${source} repeats heading destination "#${heading.slug}". Rename a heading or remove the repeated include.`,
             );
         }
-        destinations.add(heading.id);
+        destinations.add(heading.slug);
     }
-    if (!shown.some(heading => heading.level === 1)) {
+    if (!shown.some(heading => heading.depth === 1)) {
         throw new Error(
             `${source} has no top-level heading. Start its body with "# ${page.title}".`,
         );
     }
     return shown
-        .filter(heading => heading.level > 1)
-        .map(({ id, text, level }) => ({ id, text, level }));
+        .filter(heading => heading.depth > 1)
+        .map(({ slug, text, depth }) => ({ id: slug, text, level: depth }));
 }

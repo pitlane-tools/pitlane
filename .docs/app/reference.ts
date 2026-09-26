@@ -14,10 +14,8 @@ interface ReferencePage {
 
 /**
  * Loads the generated API reference: one entry per page listed in the
- * manifest, identified by its URL below `/package/`.
- *
- * Only metadata: `source` names the generated Markdown relative to the
- * repository, and the build compiles that file into the page's body.
+ * manifest, identified by its URL below `/package/`, with the generated
+ * Markdown as its body for `contentLayer()` to compile.
  *
  * `manifest` is the manifest path and `repository` the directory its
  * `sourcePath` values are relative to, both resolved against the content root.
@@ -40,13 +38,12 @@ export function reference(options: { manifest: string; repository: string }): Co
 
             for (let { sourcePath, ...page } of pages) {
                 let id = page.url.replace(/^\/package\//, "").replace(/\/$/, "");
+                let filePath = resolve(repository, sourcePath);
                 context.store.set({
                     id,
-                    data: await context.parseData({
-                        id,
-                        data: { ...page, source: sourcePath },
-                        filePath: resolve(repository, sourcePath),
-                    }),
+                    data: await context.parseData({ id, data: page, filePath }),
+                    filePath,
+                    body: { format: "md", source: await readFile(filePath, "utf8") },
                 });
             }
         },

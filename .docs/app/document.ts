@@ -1,11 +1,17 @@
+import type { Heading as ContentHeading } from "@pitlane/content";
+
+/** A heading the outline lists, as the page shows it. */
 export interface Heading {
     id: string;
     text: string;
     level: number;
 }
 
-/** Build-time headings retain their variant context until a page resolves it. */
-export interface CompiledHeading extends Heading {
+/**
+ * A heading as `entry.render()` lists it, keeping its variant context until
+ * a page resolves it.
+ */
+export interface CompiledHeading extends ContentHeading {
     buildMode?: BuildMode;
 }
 
