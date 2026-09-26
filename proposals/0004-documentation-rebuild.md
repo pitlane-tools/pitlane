@@ -209,7 +209,7 @@ Preview URLs are public to anyone who has them. A green workflow alone is insuff
 
 ## Policies and decisions checked
 
-None: `policies/` and `decisions/` currently contain only their index documents.
+None existed when this proposal was written. Its delivery outcome is recorded as [decision 0001, Static Documentation Delivery](../decisions/0001-static-documentation-delivery.md).
 
 `VISION.md` requires explicit composition, Remix-owned framework behavior, and provider-native hosting. This proposal uses build-time tooling for build-time work and retains Cloudflare configuration. Process references that currently call guides VitePress pages must be updated when the renderer changes; historical proposals remain historical records.
 
