@@ -47,13 +47,7 @@ export let BuildModeSwitch = clientEntry(
                 </span>
                 <span
                     aria-labelledby="build-mode-label"
-                    mix={css({
-                        display: "inline-flex",
-                        padding: t.spacing(0.75),
-                        border: `${t.size.hairline} solid ${t.color.border}`,
-                        borderRadius: t.radius.md,
-                        backgroundColor: t.color.subtle,
-                    })}
+                    mix={css({ display: "inline-flex", gap: t.spacing(1) })}
                     role="group"
                 >
                     {(Object.keys(BUILD_MODE_LABELS) as BuildMode[]).map(mode => (

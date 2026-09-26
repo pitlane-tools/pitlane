@@ -67,16 +67,14 @@ export const control = tva({
                 "&:hover": { borderColor: t.color.strong, backgroundColor: t.color.raised },
             },
         },
-        /** One of a set of alternatives, marked while it is the page being read. */
+        /** One of a set of alternatives, marked like the sidebar's current page while it is the page being read. */
         option: {
             true: {
                 fontSize: t.text.sm,
                 fontWeight: t.weight.medium,
                 "&[aria-current='page']": {
-                    borderColor: t.color.border,
-                    backgroundColor: t.color.raised,
+                    backgroundColor: t.color.selected,
                     color: t.color.text,
-                    boxShadow: t.shadow.sm,
                 },
             },
         },
