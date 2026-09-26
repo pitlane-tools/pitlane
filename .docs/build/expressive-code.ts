@@ -12,11 +12,15 @@ let engine = new ExpressiveCode({
     styleOverrides: { codeFontFamily: t.font.mono },
 });
 
-/** Preserves displayed code and fence language for copying and exports; unknown languages fail with source context. */
+/**
+ * Preserves displayed code and fence language for copying and exports; unknown languages fail with source context.
+ * `meta` takes Expressive Code's per-block options, such as `frame="none"`.
+ */
 export async function renderCode(
     code: string,
     language: string | undefined,
     where: string,
+    meta = "",
 ): Promise<string> {
     let lang = language || "text";
     if (!["text", "txt", "plaintext"].includes(lang) && !Object.hasOwn(bundledLanguages, lang)) {
@@ -25,6 +29,7 @@ export async function renderCode(
     let { renderedGroupAst, renderedGroupContents, styles } = await engine.render({
         code,
         language: lang,
+        meta,
     });
     let displayed = renderedGroupContents[0].codeBlock.code;
     for (let pre of selectAll("pre", renderedGroupAst)) {

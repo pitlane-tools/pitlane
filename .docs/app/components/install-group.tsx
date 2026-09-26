@@ -1,4 +1,4 @@
-import { combine, css, tva } from "@pitlane/theme";
+import { css } from "@pitlane/theme";
 import { clientEntry, type Handle, on, ref } from "remix/ui";
 
 import {
@@ -7,7 +7,6 @@ import {
     rememberPreference,
 } from "../browser/preferences.ts";
 import { DEFAULT_PREFERENCES, type PackageManager, PREFERENCE_STORAGE_KEYS } from "../document.ts";
-import { control } from "../styles/controls.ts";
 import { t } from "../theme.ts";
 
 // Type aliases rather than interfaces: hydrated props must satisfy Remix's
@@ -38,47 +37,87 @@ const RESTORE_DISCLOSURE =
     `{let d=document.currentScript.parentElement;` +
     `d.open=d.dataset.manager===d.parentElement.dataset.restored}`;
 
+// The group draws the frame, so each command drops Expressive Code's own and
+// shares the tabs' background. Its unlayered stylesheet outranks component
+// styles, so this overrides the variables it reads instead, as a string
+// because style objects would kebab-case their mixed-case names.
+const FRAMELESS_CODE =
+    "--ec-brdWd:0px;--ec-brdRad:0px;--ec-frm-frameBoxShdCssVal:none;--ec-codeBg:var(--ec-frm-trmBg)";
+
+// Each disclosure's summary becomes a tab and its content the panel beneath
+// them, which needs `::details-content`. A browser without it stacks the
+// disclosures instead. The row scrolls sideways when the tabs outgrow the
+// column, while the open panel stays pinned at the column's width.
 let groupStyle = css<HTMLDivElement>({
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: [t.spacing(1), t.spacing(0.5)],
     margin: [0, 0, t.spacing(4)],
-    // The group spaces its alternatives, not the article's code-block rhythm.
+    border: `${t.size.codeBorder} solid ${t.color.code.border}`,
+    borderRadius: t.size.codeRadius,
+    backgroundColor: t.color.code.frame,
+    boxShadow: t.shadow.code,
+    overflow: "hidden",
+    "@supports selector(::details-content)": {
+        containerType: "inline-size",
+        display: "grid",
+        gridTemplateColumns: "repeat(var(--tabs), max-content) 1fr",
+        overflowX: "auto",
+        scrollbarWidth: "none",
+        // The rule continues past the last tab.
+        "&::after": { content: '""', gridRow: 1, gridColumn: -2, boxShadow: t.shadow.tabRule },
+    },
     "& .expressive-code": { margin: 0 },
 });
 
-/** A closed alternative sits in a row with the others; an open one takes the full width. */
 let alternativeStyle = css<HTMLDetailsElement>({
-    minWidth: 0,
-    "&[open]": { flexBasis: t.size.full },
+    "@supports selector(::details-content)": {
+        display: "contents",
+        "&::details-content": {
+            gridRow: 2,
+            gridColumn: "1 / -1",
+            position: "sticky",
+            left: 0,
+            width: t.size.container,
+        },
+    },
 });
 
-let summary = combine(
-    control,
-    tva({
-        base: {
-            display: "list-item",
-            minHeight: 0,
-            padding: [t.spacing(1.5), t.spacing(2.5)],
-            border: 0,
-            borderBottom: `${t.size.focus} solid transparent`,
-            borderRadius: 0,
-            fontFamily: t.font.mono,
-            fontSize: t.text.sm,
-            lineHeight: t.text.leading.snug,
-            listStylePosition: "inside",
-            "&:hover": { backgroundColor: "transparent", color: t.color.text },
-            ":is(details[open]) > &": {
-                marginBottom: t.spacing(1.5),
-                borderBottomColor: t.color.link,
-                color: t.color.text,
-            },
-        },
-    }),
-);
+let tabStyle = css<HTMLElement>({
+    display: "flex",
+    alignItems: "center",
+    gap: t.spacing(2),
+    position: "relative",
+    gridRow: 1,
+    height: t.size.tab,
+    padding: [0, t.spacing(3)],
+    color: t.color.secondary,
+    fontSize: t.text.md,
+    fontWeight: t.weight.medium,
+    whiteSpace: "nowrap",
+    listStyle: "none",
+    cursor: "pointer",
+    boxShadow: t.shadow.tabRule,
+    transition: `color ${t.duration.fast} ${t.ease.standard}`,
+    "&::-webkit-details-marker": { display: "none" },
+    "&:hover": { color: t.color.text },
+    // The scrolling group would clip an outline drawn outside the tab.
+    "&&:focus-visible": { outlineOffset: t.size.focusInset },
+    // The open tab is the one being read: it cannot be closed, only replaced.
+    ":is(details[open]) > &": {
+        color: t.color.text,
+        cursor: "default",
+        pointerEvents: "none",
+    },
+    ":is(details[open]) > &::after": {
+        content: '""',
+        position: "absolute",
+        insetInline: t.spacing(2),
+        bottom: 0,
+        height: t.size.focus,
+        borderRadius: t.size.focus,
+        backgroundColor: t.color.link,
+    },
+});
 
-let summaryStyle = summary<HTMLElement>();
+let iconStyle = css<HTMLImageElement>({ flex: "none", width: t.size.icon, height: t.size.icon });
 
 /** The alternative the reader's preference opens: the remembered manager, else npm, else the first. */
 function preferred(alternatives: readonly InstallAlternative[]): PackageManager | undefined {
@@ -93,10 +132,10 @@ function preferred(alternatives: readonly InstallAlternative[]): PackageManager 
 /**
  * An install command for every package manager, each in its own native
  * disclosure, so every command can be read and opened without a script. The
- * alternatives share a disclosure name, so opening one closes the others. The
- * group shows the remembered manager, or its default. Opening another
- * remembers that manager, and every group on the page follows; closing one
- * forgets nothing.
+ * alternatives share a disclosure name, so opening one closes the others, and
+ * they present as a row of tabs over the open command. The group shows the
+ * remembered manager, or its default. Opening another remembers that manager,
+ * and every group on the page follows.
  */
 export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGroupProps>) => {
     let server = typeof document === "undefined";
@@ -149,6 +188,7 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
                         group = node;
                     }),
                 ]}
+                style={{ "--tabs": String(alternatives.length) }}
             >
                 <script>{restorePreferenceScript(alternatives)}</script>
                 {alternatives.map(({ manager, html }) => (
@@ -172,9 +212,29 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
                         name={handle.id}
                         open={opened ? opened.has(manager) : server ? manager === shown : undefined}
                     >
-                        <summary mix={summaryStyle}>{manager}</summary>
+                        <summary
+                            mix={[
+                                tabStyle,
+                                // The open tab ignores the pointer, but a key
+                                // press activates it with a click.
+                                on("click", event => {
+                                    if (event.currentTarget.parentElement?.hasAttribute("open")) {
+                                        event.preventDefault();
+                                    }
+                                }),
+                            ]}
+                        >
+                            <img
+                                alt=""
+                                height="16"
+                                mix={iconStyle}
+                                src={`/icons/${manager}.svg`}
+                                width="16"
+                            />
+                            {manager}
+                        </summary>
                         <script>{RESTORE_DISCLOSURE}</script>
-                        <div innerHTML={html} />
+                        <div innerHTML={html} style={FRAMELESS_CODE} />
                     </details>
                 ))}
             </div>

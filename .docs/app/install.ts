@@ -28,7 +28,9 @@ export async function installAlternatives({
                 .filter(line => line.names.length > 0)
                 .map(line => [line.add, ...line.names.map(specifier)].join(" "))
                 .join("\n");
-            return { manager, html: await renderCode(command, "sh", "An install group") };
+            // The install group's tabs head the command in place of a terminal frame.
+            let html = await renderCode(command, "sh", "An install group", 'frame="none"');
+            return { manager, html };
         }),
     );
 }

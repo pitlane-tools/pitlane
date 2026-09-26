@@ -123,6 +123,7 @@ export let { token: t, Theme } = primitives.extend(base => ({
     schema: {
         color: s.color(),
         size: s.dimension(),
+        shadow: s.shadow(),
     },
     tokens: {
         color: {
@@ -177,6 +178,11 @@ export let { token: t, Theme } = primitives.extend(base => ({
                     title: lightDark("#b42318", "#fda4af"),
                 },
             },
+            /** Expressive Code's frame colors, for chrome drawn around its blocks. */
+            code: {
+                frame: "var(--ec-frm-trmBg)",
+                border: "var(--ec-brdCol)",
+            },
         },
         size: {
             /** Where the article column starts beside the fixed sidebar. */
@@ -196,6 +202,18 @@ export let { token: t, Theme } = primitives.extend(base => ({
             dialogHeight: `min(calc(100dvh - ${base.size.header} - 3rem), 50rem)`,
             disclosureHeight: "min(60dvh, 32rem)",
             viewport: "100dvh",
+            /** The inline size of the nearest size container. */
+            container: "100cqi",
+            tab: "3rem",
+            /** An outline drawn inside its element, clear of a clipping ancestor. */
+            focusInset: `calc(-1 * ${base.size.focus})`,
+            codeBorder: "var(--ec-brdWd)",
+            codeRadius: "calc(var(--ec-brdRad) + var(--ec-brdWd))",
+        },
+        shadow: {
+            code: "var(--ec-frm-frameBoxShdCssVal)",
+            /** The rule under a row of tabs, which the open tab's bar covers. */
+            tabRule: `inset 0 calc(-1 * ${base.size.hairline}) 0 var(--ec-frm-edTabBarBrdBtmCol)`,
         },
     },
 }));
