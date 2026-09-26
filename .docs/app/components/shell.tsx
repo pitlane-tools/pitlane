@@ -257,6 +257,12 @@ let root: ThemedCSSProps = {
     "&, & *, & ::before, & ::after": { boxSizing: "border-box" },
     "& ::selection": { backgroundColor: t.color.selection, color: t.color.selectionText },
     "& :focus-visible": {
+    // Every monospace run, including elements no component styles, sets in
+    // JetBrains Mono with its programming ligatures.
+    "& :where(code, kbd, pre, samp)": {
+        fontFamily: t.font.mono,
+        fontVariantLigatures: "common-ligatures contextual",
+    },
         outline: `${t.size.focus} solid ${t.color.link}`,
         outlineOffset: t.size.focus,
     },
