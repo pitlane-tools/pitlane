@@ -27,3 +27,9 @@ export const scripted = "@media (scripting: enabled)";
  * Pair it with `wide`, the only layout with a sidebar column to collapse.
  */
 export const navCollapsed = ":root[data-nav-collapsed] &";
+
+/**
+ * While the article panel slides after the sidebar toggles. The panel is
+ * transformed then, which makes it the containing block of its fixed corner.
+ */
+export const navSliding = ":root[data-nav-sliding] &";

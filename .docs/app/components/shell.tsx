@@ -11,6 +11,7 @@ import {
     compact,
     medium,
     narrow,
+    navSliding,
     outlineColumn,
     wide,
 } from "../styles/media.ts";
@@ -145,6 +146,8 @@ let main = tva({
                     height: t.radius.panel,
                     background: `radial-gradient(circle at 100% 100%, transparent calc(${t.radius.panel} - 0.5px), ${t.color.canvas} ${t.radius.panel})`,
                     pointerEvents: "none",
+                    // Mid-slide it would be placed against the panel, not the viewport.
+                    [navSliding]: { display: "none" },
                 },
                 [narrow]: {
                     marginInlineStart: 0,

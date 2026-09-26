@@ -30,10 +30,10 @@ let stateTransition = `background-color ${t.duration.fast} ${t.ease.standard}, c
 
 /**
  * The duration and easing of the sidebar collapsing or expanding, for a
- * `transition` list. Only opacity animates: the layout snaps, since animating
- * the article's offset or measure reflows the whole page every frame.
+ * `transition` list. Only transforms and opacity animate: the layout itself
+ * changes once, and the sidebar toggle slides the article panel into place.
  */
-export const collapse = `${t.duration.fast} ${t.ease.standard}`;
+export const collapse = `${t.duration.moderate} ${t.ease.standard}`;
 
 /**
  * A chrome button or link: the header's icon buttons, disclosure toggles, and
