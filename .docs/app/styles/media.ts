@@ -18,3 +18,5 @@ export const medium = "@media (56.25rem <= width < 80rem)";
 
 /** Controls that only a script can operate stay out of a page read without one. */
 export const noScript = "@media (scripting: none)";
+/** Stand-ins for those controls, needed only when they are missing. */
+export const scripted = "@media (scripting: enabled)";

@@ -1,30 +1,82 @@
-import { css } from "@pitlane/theme";
+import { css, type ThemedCSSProps } from "@pitlane/theme";
 import { clientEntry, type Handle, on } from "remix/ui";
 
 import { markdownPath } from "../document.ts";
-import { control, visuallyHidden } from "../styles/controls.ts";
-import { noScript } from "../styles/media.ts";
+import { control, floatingPanel, visuallyHidden } from "../styles/controls.ts";
+import { noScript, scripted } from "../styles/media.ts";
 import { t } from "../theme.ts";
-import { CheckIcon, CloseIcon, CopyIcon, DownloadIcon } from "./icons.tsx";
+import { CheckIcon, CloseIcon, CopyIcon, DocumentIcon, DownloadIcon } from "./icons.tsx";
+import { PopoverToggle } from "./popover-toggle.tsx";
 
+const MENU_ID = "markdown-actions-menu";
+const ANCHOR = "--markdown-actions";
+
+let segment: ThemedCSSProps = control.resolve({});
+
+let groupStyle = css<HTMLDivElement>({
+    display: "inline-flex",
+    alignItems: "stretch",
+    border: `${t.size.hairline} solid ${t.color.control}`,
+    borderRadius: t.radius.md,
+    fontSize: t.text.sm,
+    anchorName: ANCHOR,
+});
+
+let dividerStyle = css<HTMLSpanElement>({
+    width: t.size.hairline,
+    backgroundColor: t.color.control,
+});
+
+// Without a script there is nothing to copy with, so the page's Markdown
+// takes the button's place.
+let viewStandInStyle = css<HTMLAnchorElement>({ ...segment, [scripted]: { display: "none" } });
+
+let menuStyle = css<HTMLDivElement>({
+    ...floatingPanel,
+    inset: "auto",
+    marginTop: t.spacing(1),
+    minWidth: t.size.menu,
+    positionAnchor: ANCHOR,
+    positionArea: "bottom span-left",
+    positionTryFallbacks: "flip-block",
+    fontSize: t.text.sm,
+    "&:popover-open": { display: "flex", flexDirection: "column", gap: t.spacing(0.5) },
+});
+
+let menuItemStyle = css<HTMLAnchorElement>({
+    ...segment,
+    justifyContent: "flex-start",
+    width: t.size.full,
+    padding: [0, t.spacing(2)],
+    color: t.color.text,
+});
+
+/**
+ * One control for the page's Markdown: copying it, with a menu that views or
+ * downloads it.
+ */
 export function MarkdownActions(handle: Handle<{ url: string }>) {
     return () => {
         let source = markdownPath(handle.props.url);
         return (
-            <div
-                data-pagefind-ignore
-                mix={css({
-                    display: "flex",
-                    alignItems: "center",
-                    gap: t.spacing(1),
-                    fontSize: t.text.sm,
-                })}
-            >
+            <div data-pagefind-ignore mix={groupStyle}>
                 <CopyMarkdown source={source} />
-                <a download href={source} mix={control({ tone: "link" })}>
-                    <DownloadIcon />
-                    Download Markdown
+                <a href={source} mix={viewStandInStyle}>
+                    <DocumentIcon />
+                    View as Markdown
                 </a>
+                <span aria-hidden="true" mix={dividerStyle} />
+                <PopoverToggle controls={MENU_ID} icon="chevron" label="More Markdown actions" />
+                <div id={MENU_ID} mix={menuStyle} popover>
+                    <a href={source} mix={menuItemStyle}>
+                        <DocumentIcon />
+                        View as Markdown
+                    </a>
+                    <a download href={source} mix={menuItemStyle}>
+                        <DownloadIcon />
+                        Download Markdown
+                    </a>
+                </div>
             </div>
         );
     };
@@ -86,7 +138,7 @@ export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source:
             <button
                 data-state={state === "idle" ? undefined : state}
                 mix={[
-                    css({ ...control.resolve({ tone: "link" }), [noScript]: { display: "none" } }),
+                    css({ ...control.resolve({}), [noScript]: { display: "none" } }),
                     on("click", copy),
                 ]}
                 type="button"

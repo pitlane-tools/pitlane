@@ -6,7 +6,7 @@ import { compact } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { ChevronIcon, MenuIcon } from "./icons.tsx";
 
-const ICONS = { menu: MenuIcon };
+const ICONS = { menu: MenuIcon, chevron: ChevronIcon };
 
 export type PopoverToggleProps =
     | {
@@ -36,6 +36,7 @@ let toggle = combine(
         variants: {
             layout: {
                 icon: {},
+                chevron: { "&[aria-expanded='true'] svg": { transform: "rotate(180deg)" } },
                 text: {
                     gap: t.spacing(1),
                     minHeight: t.size.touch,
@@ -51,8 +52,8 @@ let toggle = combine(
 );
 
 /**
- * The button that opens and closes a native popover: the compact site menu
- * and the narrow-width document navigation and outline.
+ * The button that opens and closes a native popover: the compact site menu,
+ * the narrow-width document navigation and outline, and the Markdown menu.
  *
  * `popovertarget` does the disclosing, with or without a script. Once
  * hydrated, the button also reports the state as `aria-expanded` and closes
@@ -129,7 +130,10 @@ export let PopoverToggle = clientEntry(import.meta.url, (handle: Handle<PopoverT
                 aria-controls={props.controls}
                 aria-expanded={expanded}
                 aria-label={props.label}
-                mix={toggle({ layout: "icon", compactOnly: props.compactOnly })}
+                mix={toggle({
+                    layout: props.icon === "chevron" ? "chevron" : "icon",
+                    compactOnly: props.compactOnly,
+                })}
                 popovertarget={props.controls}
                 type="button"
             >
