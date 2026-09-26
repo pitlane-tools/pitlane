@@ -11,6 +11,8 @@ import { t } from "../theme.ts";
 
 export const DOCUMENT_NAVIGATION_ID = "docs-navigation";
 
+// Links sit a step inside the headings they belong to, so the nesting reads
+// at a glance.
 let linkList: ThemedCSSProps = {
     display: "flex",
     flexDirection: "column",
@@ -20,13 +22,15 @@ let linkList: ThemedCSSProps = {
     listStyle: "none",
 };
 
-let linkListStyle = css<HTMLUListElement>(linkList);
+let topLinkListStyle = css<HTMLUListElement>(linkList);
+
+let linkListStyle = css<HTMLUListElement>({ ...linkList, paddingInlineStart: t.spacing(4) });
 
 let linkStyle = navLink<HTMLAnchorElement>();
 
 // The sidebar's type follows the Remix API reference: module and section
-// labels in small tracked capitals, group headings a size smaller and quieter,
-// and link rows indented past the group headings.
+// labels in small tracked capitals, and group headings a size smaller and
+// quieter.
 let groupTitleStyle = css<HTMLParagraphElement>({
     ...eyebrow,
     padding: [t.spacing(1.5), t.spacing(2)],
@@ -156,7 +160,7 @@ function ApiModules(handle: Handle<{ modules: ApiModule[] }>) {
                 <details key={module.module} open={module.open}>
                     <summary mix={moduleSummaryStyle}>{module.module}</summary>
                     <div mix={groupsStyle}>
-                        <LinkList links={[module.overview]} />
+                        <LinkList links={[module.overview]} nested={false} />
                         {module.kinds.map(group => (
                             <div key={group.kind}>
                                 <p mix={groupTitleStyle}>{group.title}</p>
@@ -170,9 +174,10 @@ function ApiModules(handle: Handle<{ modules: ApiModule[] }>) {
     );
 }
 
-function LinkList(handle: Handle<{ links: NavigationLink[] }>) {
+/** Links under a group heading are `nested`, a step inside it; a module's overview stands alone. */
+function LinkList(handle: Handle<{ links: NavigationLink[]; nested?: boolean }>) {
     return () => (
-        <ul mix={linkListStyle}>
+        <ul mix={handle.props.nested === false ? topLinkListStyle : linkListStyle}>
             {handle.props.links.map(link => (
                 <li key={link.url}>
                     {link.variants ? (
