@@ -30,7 +30,7 @@ let lettersStyle = css<SVGSVGElement>({
             visibility: "hidden",
             opacity: 0,
             pointerEvents: "none",
-            transition: `opacity ${collapse}, visibility 0s linear ${t.duration.moderate}`,
+            transition: `opacity ${collapse}, visibility 0s linear ${t.duration.fast}`,
         },
     },
 });

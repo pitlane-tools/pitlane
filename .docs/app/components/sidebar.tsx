@@ -104,14 +104,13 @@ export function DocumentNavigation(handle: Handle<{ navigation: Navigation }>) {
                     overflowY: "auto",
                     overscrollBehavior: "contain",
                     [wide]: {
-                        transition: `transform ${collapse}, opacity ${collapse}, visibility 0s`,
-                        // Slides out and fades, then leaves the tab order once out of sight.
+                        transition: `opacity ${collapse}, visibility 0s`,
+                        // Fades, then leaves the tab order once out of sight.
                         [navCollapsed]: {
                             visibility: "hidden",
                             opacity: 0,
-                            transform: `translateX(calc(-1 * (${t.size.sidebar} + ${t.size.gutter})))`,
                             pointerEvents: "none",
-                            transition: `transform ${collapse}, opacity ${collapse}, visibility 0s linear ${t.duration.moderate}`,
+                            transition: `opacity ${collapse}, visibility 0s linear ${t.duration.fast}`,
                         },
                     },
                     [narrow]: {

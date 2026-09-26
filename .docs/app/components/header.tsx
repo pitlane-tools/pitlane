@@ -4,7 +4,7 @@ import { css, tva } from "@pitlane/theme";
 
 import type { DocumentPage } from "../document.ts";
 
-import { collapse, floatingPanel, inPlacePopover, navLinkStates } from "../styles/controls.ts";
+import { floatingPanel, inPlacePopover, navLinkStates } from "../styles/controls.ts";
 import { belowOutlineColumn, compact, narrow, outlineColumn, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { Wordmark } from "./logo.tsx";
@@ -156,7 +156,6 @@ let sectionBar = tva({
         position: "fixed",
         insetBlockStart: t.size.header,
         insetInline: [t.size.panelStart, 0],
-        transition: `inset-inline-start ${collapse}`,
         zIndex: t.layer.sectionBar,
         display: "none",
         alignItems: "center",

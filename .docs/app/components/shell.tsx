@@ -5,7 +5,7 @@ import { css, type ThemedCSSProps, tva } from "@pitlane/theme";
 import type { DocumentPage } from "../document.ts";
 
 import clientAssets from "../entry.browser.ts?assets=client";
-import { collapse, eyebrow } from "../styles/controls.ts";
+import { eyebrow } from "../styles/controls.ts";
 import {
     belowOutlineColumn,
     compact,
@@ -134,7 +134,6 @@ let main = tva({
             docs: {
                 marginInlineStart: t.size.panelStart,
                 borderRadius: [t.radius.panel, 0, 0, t.radius.panel],
-                transition: `margin-inline-start ${collapse}`,
                 // The panel scrolls under the fixed header, taking its rounded
                 // corner along; this redraws the corner where the header ends.
                 "&::before": {
@@ -146,7 +145,6 @@ let main = tva({
                     height: t.radius.panel,
                     background: `radial-gradient(circle at 100% 100%, transparent calc(${t.radius.panel} - 0.5px), ${t.color.canvas} ${t.radius.panel})`,
                     pointerEvents: "none",
-                    transition: `left ${collapse}`,
                 },
                 [narrow]: {
                     marginInlineStart: 0,
@@ -175,7 +173,6 @@ let pageGrid: ThemedCSSProps = {
     gridTemplateAreas: '"actions" "switch" "body"',
     columnGap: t.spacing(10),
     maxWidth: t.size.content,
-    transition: `max-width ${collapse}`,
     [outlineColumn]: {
         gridTemplateColumns: `minmax(0, 1fr) ${t.size.toc}`,
         gridTemplateAreas: '"actions outline" "switch outline" "body outline"',

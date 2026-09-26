@@ -1,7 +1,7 @@
 import { combine, tva } from "@pitlane/theme";
 import { clientEntry, type Handle, on } from "remix/ui";
 
-import { collapse, control } from "../styles/controls.ts";
+import { control } from "../styles/controls.ts";
 import { narrow, navCollapsed, noScript } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { SidebarIcon } from "./icons.tsx";
@@ -16,7 +16,6 @@ let toggle = combine(
             position: "fixed",
             insetBlockStart: t.size.headerControlTop,
             insetInlineStart: t.size.navToggleStart,
-            transition: `inset-inline-start ${collapse}, background-color ${t.duration.fast} ${t.ease.standard}, color ${t.duration.fast} ${t.ease.standard}`,
             [navCollapsed]: { insetInlineStart: t.size.navToggleCollapsedStart },
             [narrow]: { display: "none" },
             [noScript]: { display: "none" },
@@ -28,7 +27,7 @@ let toggleStyle = toggle<HTMLButtonElement>();
 
 /**
  * Collapses the wide layout's sidebar, as the Remix guides do: the column
- * slides away, the article panel widens, the wordmark narrows to its P, and
+ * fades away, the article panel widens, the wordmark narrows to its P, and
  * search folds into an icon beside this button. The choice lasts for the
  * visit's soft navigations, not across reloads, so no stored preference has
  * to be restored before the first paint.
