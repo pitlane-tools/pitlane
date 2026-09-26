@@ -78,7 +78,7 @@ let primitives = createTheme({
             xl: "1.5rem",
             display: "clamp(2rem, 1.5rem + 2vw, 2.75rem)",
             /** Code set inside running text, relative to it. */
-            code: "0.875em",
+            code: "0.8125em",
             leading: { tight: 1.15, snug: 1.3, compact: 1.4, normal: 1.6 },
         },
         tracking: { tight: "-0.015em", tighter: "-0.02em", caps: "0.06em" },
