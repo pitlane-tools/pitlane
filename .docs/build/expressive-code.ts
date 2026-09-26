@@ -4,14 +4,14 @@ import { bundledLanguages } from "shiki/langs";
 
 import { t } from "../app/theme.ts";
 
-// GitHub Dark's surfaces are blue-grey; these neutral greys of the same
-// lightness sit better on the site's own neutral dark chrome.
+// GitHub Dark's surfaces are blue-grey; these are the site's own dark greys,
+// a step lighter than the article panel they sit on.
 const NEUTRAL_DARK_SURFACES: Record<string, string> = {
-    "editor.background": "#212123",
-    "terminal.background": "#1c1c1e",
-    "tab.activeBackground": "#212123",
-    "editorGroupHeader.tabsBackground": "#1c1c1e",
-    "titleBar.activeBackground": "#212123",
+    "editor.background": "#1b1b1f",
+    "terminal.background": "#17171b",
+    "tab.activeBackground": "#1b1b1f",
+    "editorGroupHeader.tabsBackground": "#17171b",
+    "titleBar.activeBackground": "#1b1b1f",
 };
 
 let dark = await loadShikiTheme("github-dark");
