@@ -121,7 +121,7 @@ export const navLink = tva({
         minHeight: t.size.control,
         padding: [t.spacing(1.75), t.spacing(3)],
         borderRadius: t.radius.md,
-        color: t.color.navLink,
+        color: t.color.link,
         fontSize: t.text.md,
         lineHeight: t.text.leading.compact,
         textDecoration: "none",

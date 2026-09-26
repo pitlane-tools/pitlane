@@ -2,9 +2,9 @@ import { createTheme, lightDark } from "@pitlane/theme";
 import * as s from "@pitlane/theme/schema";
 
 /**
- * The documentation site's design system. The palette follows the Remix
- * reference docs (blue links, pink metadata, quiet grey chrome) and keeps
- * Pitlane's red for the wordmark. Every semantic color is a `light-dark()`
+ * The documentation site's design system. The layout follows the Remix
+ * reference docs (pink metadata, quiet grey chrome) while links and text
+ * highlights take Pitlane's red. Every semantic color is a `light-dark()`
  * pair, so the operating system's color scheme decides the appearance.
  */
 let primitives = createTheme({
@@ -42,10 +42,15 @@ let primitives = createTheme({
                 900: "#121216",
                 950: "#0b0b0e",
             },
-            blue: { 300: "#63c2fb", 400: "#2dacf9", 600: "#0578be", 900: "#022f4b" },
             pink: { 400: "#ff5d7a", 600: "#d81b54" },
-            red: { 400: "#f87171", 600: "#eb2027", 700: "#b91c1c" },
-            yellow: { 300: "#ffdf5f", 800: "#7a6400" },
+            red: {
+                200: "#fecaca",
+                300: "#fca5a5",
+                400: "#f87171",
+                600: "#eb2027",
+                700: "#b91c1c",
+                900: "#7f1d1d",
+            },
         },
         font: {
             sans: [
@@ -147,19 +152,17 @@ export let { token: t, Theme } = primitives.extend(base => ({
             text: lightDark(base.palette.ink[900], base.palette.ink[50]),
             secondary: lightDark(base.palette.ink[500], base.palette.ink[400]),
             faint: lightDark(base.palette.gray[400], base.palette.gray[500]),
-            link: lightDark(base.palette.blue[600], base.palette.blue[400]),
-            /** Links in the sidebar and outline, a shade deeper than prose links as in the Remix docs. */
-            navLink: lightDark("#0074c0", base.palette.blue[400]),
-            linkHover: lightDark(base.palette.blue[900], base.palette.blue[300]),
+            link: lightDark(base.palette.red[600], base.palette.red[400]),
+            linkHover: lightDark(base.palette.red[700], base.palette.red[300]),
             linkUnderline: lightDark(
-                `color-mix(in srgb, ${base.palette.blue[600]} 30%, transparent)`,
-                `color-mix(in srgb, ${base.palette.blue[400]} 35%, transparent)`,
+                `color-mix(in srgb, ${base.palette.red[600]} 30%, transparent)`,
+                `color-mix(in srgb, ${base.palette.red[400]} 35%, transparent)`,
             ),
             /** Metadata: eyebrows, symbol kinds, module names. */
             accent: lightDark(base.palette.pink[600], base.palette.pink[400]),
             brand: base.palette.red[600],
             danger: lightDark(base.palette.red[700], base.palette.red[400]),
-            selection: lightDark(base.palette.yellow[300], base.palette.yellow[800]),
+            selection: lightDark(base.palette.red[200], base.palette.red[900]),
             selectionText: lightDark(base.palette.ink[900], base.palette.white),
 
             border: lightDark(base.palette.gray[200], base.palette.gray[800]),
