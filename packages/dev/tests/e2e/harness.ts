@@ -2,8 +2,8 @@ import { execFile, spawn } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-const HARNESS = join(import.meta.dirname, "harness/serve.mjs");
-const DEV_HARNESS = join(import.meta.dirname, "harness/dev-server.mjs");
+const HARNESS = join(import.meta.dirname, "harness/serve.ts");
+const DEV_HARNESS = join(import.meta.dirname, "harness/dev-server.ts");
 
 export interface ServeRequest {
     path: string;

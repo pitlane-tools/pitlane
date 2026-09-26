@@ -34,10 +34,8 @@ export type ThemedCSSMixin<node extends Element = Element> = MixinDescriptor<
  * array value joins with spaces, which is how the box shorthands take
  * a 1–4 tuple. A comma list needs a template string.
  *
- * `css()` is node-generic, exactly like `remix/ui`'s own `css`: the
- * descriptor binds to the element type of the `mix` position it
- * appears in, so write `css({ … })` inline at each element and share
- * {@link ThemedCSSProps} objects, never stored descriptors.
+ * Inline `css()` infers its node type from `mix`. Reusable descriptors need an
+ * explicit type, such as `css<HTMLAnchorElement>(styles)`, matching their elements.
  *
  * Interpolating a token into a template string
  * (`` `1px solid ${t.color.line}` ``) yields a plain string, which the

@@ -1,0 +1,7 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "../../base.json",
+    "entryPoints": ["./src/index.ts", "./src/loaders.ts", "./src/hot.ts"],
+    "tsconfig": "./tsconfig.json",
+    "entryModule": "@fixture/pkg"
+}

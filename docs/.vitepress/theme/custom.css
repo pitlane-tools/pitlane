@@ -1,6 +1,7 @@
 @import "@voidzero-dev/vitepress-theme/src/styles/index.css";
 
 @source './**/*.vue';
+@source not '../../app';
 
 img[src*="logo"] {
     height: 24px;

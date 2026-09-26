@@ -35,8 +35,8 @@ jobs:
             - name: 📦 Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: 🚀 Build docs (VitePress)
-              run: mise run docs:build
+            - name: Build and verify documentation
+              run: mise run docs:test
 
             # `wrangler versions upload` routes zero production traffic to the
             # new version; the preview URL is what reviewers open.

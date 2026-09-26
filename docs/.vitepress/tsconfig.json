@@ -1,0 +1,5 @@
+{
+    "extends": "../../tsconfig.json",
+    "include": ["**/*.ts", "**/*.vue", "**/*.tsx"],
+    "exclude": ["cache", "dist", "theme/components/snippets"]
+}

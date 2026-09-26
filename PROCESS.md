@@ -56,7 +56,7 @@ They may include unit tests, integration tests, end-to-end tests, or other forms
 
 ### Guides
 
-_Guides_ are human-consumable Markdown documentation explaining how the proposed or implemented feature behaves and how it is used.
+_Guides_ are human-consumable Markdown or MDX documentation explaining how the proposed or implemented feature behaves and how it is used.
 
 Guides provide a prose representation of the same behavior represented more formally by the proposal and tests.
 

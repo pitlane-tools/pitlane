@@ -55,7 +55,7 @@ Keep capability and API descriptions on the feature branch, marking unreleased w
 | "The line already says shipped" | Issue #10 was three packages missing from a document that already said "shipped" about others. |
 | "I'll sweep the docs after the release" | That is the sequence that produced #10. `f3c8ffb` is the cleanup nobody had scheduled. |
 | "The PR author would have handled it" | Sometimes they did, on the branch. Where the commits are missing, you write them. |
-| "It's unpublished, and gitignored docs regenerate" | `docs/package/` regenerates. `VISION.md` is hand-written and tracked at the repo root. |
+| "It's unpublished, and gitignored docs regenerate" | `docs/app/content/api/` regenerates. `VISION.md` is hand-written and tracked at the repo root. |
 
 ## 2. Land the PR so the intent outlives the branch
 
@@ -187,7 +187,7 @@ git branch -a --list '*<branch>*'               # expect nothing, in both clones
 The same release makes other files wrong. Check them, fix what this release broke, and **report rather than bundle** anything that was already stale:
 
 - `README.md` — the shipped-package list and its badges
-- `docs/guides/` — a guide showing the old API (and `vale docs/guides/<page>.md` after any edit)
+- `docs/app/content/guides/` — a guide showing the old API (and `vale docs/app/content/guides/<page>.md` after any edit)
 - Tracking issues — `gh issue close <N>` when this release is what closed it, and open one for a gap you found and are not fixing here
 - Dependents you did not touch — a Deno template pinned to `^0.4.0` while the package is at `0.5.1` is a real finding, and a separate PR
 - Packages in this repo that depend on the one you released. `mise run changeset:version` already bumped a workspace dependent whose `workspace:` range demanded it, so that companion bump was in the plan you reviewed. What it cannot decide is a dependent that is **already published** against a range this version leaves behind: `npm view @pitlane/dev dependencies` reports what the published dependent pins, `@pitlane/dev@0.5.1` pins `@pitlane/crawler: ^0.1.0`, and a `0.2.0` does not satisfy that range. Until the dependent publishes too, the release reaches nobody through it. Decide whether it needs a release of its own, and say so either way.

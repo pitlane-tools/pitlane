@@ -1,6 +1,6 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "plugin": ["typedoc-plugin-markdown", "./plugin.mjs"],
+    "plugin": ["typedoc-plugin-markdown", "./plugin.ts"],
     "theme": "pitlane",
     "router": "pitlane",
     "skipErrorChecking": true,
@@ -9,7 +9,6 @@
     "githubPages": false,
     "excludeInternal": true,
     "disableSources": true,
-    "outputFileStrategy": "modules",
     "entryFileName": "index.md",
     "hidePageHeader": true,
     "hideBreadcrumbs": true,

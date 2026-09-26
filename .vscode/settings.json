@@ -1,5 +1,7 @@
 {
     "js/ts.preferences.importModuleSpecifierEnding": "js",
+    "typescript.tsdk": ".mdx/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
 
     "oxc.enable.oxlint": true,
     "oxc.enable.oxfmt": true,
@@ -37,6 +39,9 @@
     },
     "[markdown]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
+    "[mdx]": {
+        "editor.formatOnSave": false
     },
 
     "explorer.fileNesting.enabled": true,

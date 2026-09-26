@@ -10,9 +10,11 @@
         "skipLibCheck": true,
         "strict": true,
         "target": "ES2022",
+        "types": ["node"],
         "verbatimModuleSyntax": true
     },
     "exclude": [
+        "packages/mdx-checker/*.d.ts",
         "docs/.vitepress/cache",
         "docs/.vitepress/dist",
         "docs/.vitepress/theme/components/snippets",
@@ -21,11 +23,12 @@
     ],
     "include": [
         "vite.config.ts",
-        "worker.ts",
         "docs/.vitepress/**/*.ts",
         "docs/.vitepress/**/*.vue",
         "docs/.vitepress/**/*.tsx",
         ".omp/hooks/*.ts",
-        ".omp/tools/**/*.ts"
+        ".omp/tools/**/*.ts",
+        "tools/*.ts",
+        "packages/mdx-checker/*.ts"
     ]
 }

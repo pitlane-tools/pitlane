@@ -8,10 +8,10 @@ import Home from "./layouts/Home.vue";
 import "./custom.css";
 import "virtual:group-icons.css";
 
-const logoDark = "/logo-light.svg";
-const logoLight = "/logo-dark.svg";
-const footerBg = "/media/pitlane-checkered-flag-day.png";
-const monoIcon = "/favicon.svg";
+let logoDark = "/logo-light.svg";
+let logoLight = "/logo-dark.svg";
+let footerBg = "/media/pitlane-checkered-flag-day.png";
+let monoIcon = "/favicon.svg";
 
 export default {
     ...VoidZeroTheme,

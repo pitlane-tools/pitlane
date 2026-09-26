@@ -10,8 +10,7 @@ demos/*/dist
 .vale/
 dist
 .wrangler
-docs/package/content
-docs/package/crawler
-docs/package/dev
-docs/package/theme
-docs/package/data-table-d1
+docs/app/content/api
+docs/.generated
+docs/.index
+docs/.legacy-home

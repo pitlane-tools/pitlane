@@ -1,0 +1,250 @@
+import { createTheme, lightDark } from "@pitlane/theme";
+import * as s from "@pitlane/theme/schema";
+
+/**
+ * The documentation site's design system. The layout follows the Remix
+ * reference docs (pink metadata, quiet grey chrome) while links and text
+ * highlights take Pitlane's red. Every semantic color is a `light-dark()`
+ * pair, so the operating system's color scheme decides the appearance.
+ */
+let primitives = createTheme({
+    schema: {
+        palette: s.color(),
+        font: s.font.family(),
+        weight: s.font.weight(),
+        text: s.group(s.dimension(), { leading: s.number() }),
+        tracking: s.dimension(),
+        spacing: s.scale(),
+        radius: s.dimension(),
+        size: s.dimension(),
+        shadow: s.shadow(),
+        duration: s.duration(),
+        ease: s.easing(),
+        layer: s.number(),
+    },
+    tokens: {
+        palette: {
+            white: "#ffffff",
+            black: "#000000",
+            ink: { 50: "#e7e7ea", 400: "#a0a6b0", 500: "#5d6470", 900: "#1b1b1f" },
+            gray: {
+                50: "#f7f7f8",
+                100: "#f3f5f7",
+                150: "#eef0f3",
+                200: "#e5e7eb",
+                300: "#d1d5db",
+                400: "#9ca3af",
+                500: "#6b7280",
+                600: "#52525b",
+                700: "#3a3a42",
+                800: "#26262d",
+                850: "#18181d",
+                900: "#121216",
+                950: "#0b0b0e",
+            },
+            pink: { 400: "#ff5d7a", 600: "#d81b54" },
+            red: {
+                200: "#fecaca",
+                300: "#fca5a5",
+                400: "#f87171",
+                600: "#eb2027",
+                700: "#b91c1c",
+                900: "#7f1d1d",
+            },
+        },
+        font: {
+            sans: [
+                "ui-sans-serif",
+                "system-ui",
+                "-apple-system",
+                "Segoe UI",
+                "Roboto",
+                "Helvetica",
+                "Arial",
+                "sans-serif",
+            ],
+            mono: [
+                "JetBrains Mono Variable",
+                "ui-monospace",
+                "SFMono-Regular",
+                "SF Mono",
+                "Menlo",
+                "Consolas",
+                "monospace",
+            ],
+        },
+        weight: { regular: 400, medium: 500, semibold: 600, bold: 700 },
+        text: {
+            "3xs": "0.625rem",
+            "2xs": "0.6875rem",
+            xs: "0.75rem",
+            sm: "0.8125rem",
+            md: "0.875rem",
+            base: "1rem",
+            lg: "1.125rem",
+            xl: "1.5rem",
+            display: "clamp(2rem, 1.5rem + 2vw, 2.75rem)",
+            /** Code set inside running text, relative to it. */
+            code: "0.8125em",
+            leading: { tight: 1.15, snug: 1.3, compact: 1.4, normal: 1.6 },
+        },
+        tracking: {
+            tight: "-0.015em",
+            tighter: "-0.02em",
+            caps: "0.06em",
+            /** The looser caps of a navigation heading set at label size. */
+            label: "0.05em",
+        },
+        spacing: "0.25rem",
+        radius: { sm: "4px", md: "8px", lg: "10px", xl: "12px", panel: "16px", full: "999px" },
+        size: {
+            header: "4rem",
+            sectionBar: "3rem",
+            gutter: "1.5rem",
+            sidebar: "15rem",
+            toc: "15rem",
+            // Both measures grow by the sidebar column while the reader has
+            // collapsed it, which sets `--docs-reclaimed`.
+            prose: "calc(48rem + var(--docs-reclaimed, 0px))",
+            content: "calc(65rem + var(--docs-reclaimed, 0px))",
+            dialog: "40rem",
+            menu: "12rem",
+            control: "2rem",
+            touch: "2.75rem",
+            icon: "1.125em",
+            wordmark: "1.125rem",
+            hairline: "1px",
+            focus: "2px",
+            full: "100%",
+        },
+        shadow: {
+            sm: "0 1px 2px rgb(0 0 0 / 0.07)",
+            lg: "0 16px 34px rgb(0 0 0 / 0.16)",
+        },
+        duration: { fast: "150ms", moderate: "300ms" },
+        ease: { standard: [0.4, 0, 0.2, 1] },
+        layer: { sectionBar: 48, header: 50, skip: 100 },
+    },
+    modes: {
+        // Motion collapses to nothing for readers who ask for less of it.
+        reducedMotion: {
+            media: "(prefers-reduced-motion: reduce)",
+            tokens: { duration: { fast: "0s", moderate: "0s" } },
+        },
+    },
+});
+
+export let { token: t, Theme } = primitives.extend(base => ({
+    schema: {
+        color: s.color(),
+        size: s.dimension(),
+        shadow: s.shadow(),
+    },
+    tokens: {
+        color: {
+            canvas: lightDark(base.palette.gray[100], base.palette.gray[950]),
+            surface: lightDark(base.palette.white, base.palette.gray[900]),
+            raised: lightDark(base.palette.white, base.palette.gray[850]),
+            subtle: lightDark(base.palette.gray[50], base.palette.gray[850]),
+            muted: lightDark(base.palette.gray[150], base.palette.gray[800]),
+            hover: lightDark("rgb(0 0 0 / 0.05)", "rgb(255 255 255 / 0.06)"),
+            selected: lightDark("rgb(0 0 0 / 0.08)", "rgb(255 255 255 / 0.1)"),
+            backdrop: lightDark("rgb(0 0 0 / 0.5)", "rgb(0 0 0 / 0.72)"),
+
+            text: lightDark(base.palette.ink[900], base.palette.ink[50]),
+            secondary: lightDark(base.palette.ink[500], base.palette.ink[400]),
+            faint: lightDark(base.palette.gray[400], base.palette.gray[500]),
+            link: lightDark(base.palette.red[600], base.palette.red[400]),
+            linkHover: lightDark(base.palette.red[700], base.palette.red[300]),
+            linkUnderline: lightDark(
+                `color-mix(in srgb, ${base.palette.red[600]} 30%, transparent)`,
+                `color-mix(in srgb, ${base.palette.red[400]} 35%, transparent)`,
+            ),
+            /** The fill behind the navigation link to the page being read. */
+            linkCurrent: lightDark(
+                `color-mix(in srgb, ${base.palette.red[600]} 10%, transparent)`,
+                `color-mix(in srgb, ${base.palette.red[400]} 28%, transparent)`,
+            ),
+            /** Metadata: eyebrows, symbol kinds, module names. */
+            accent: lightDark(base.palette.pink[600], base.palette.pink[400]),
+            brand: base.palette.red[600],
+            danger: lightDark(base.palette.red[700], base.palette.red[400]),
+            selection: lightDark(base.palette.red[200], base.palette.red[900]),
+            selectionText: lightDark(base.palette.ink[900], base.palette.white),
+
+            border: lightDark(base.palette.gray[200], base.palette.gray[800]),
+            control: lightDark(base.palette.gray[300], base.palette.gray[700]),
+            strong: lightDark(base.palette.gray[400], base.palette.gray[600]),
+
+            callout: {
+                info: {
+                    background: lightDark(base.palette.gray[50], base.palette.gray[850]),
+                    border: lightDark(base.palette.gray[200], base.palette.gray[800]),
+                    title: lightDark(base.palette.ink[900], base.palette.ink[50]),
+                },
+                tip: {
+                    background: lightDark("#ecfdf3", "#0f2a1c"),
+                    border: lightDark("#a7e6c1", "#1f5a3a"),
+                    title: lightDark("#067647", "#6ce9a6"),
+                },
+                warning: {
+                    background: lightDark("#fff8e6", "#2d2410"),
+                    border: lightDark("#f2d38a", "#6b5320"),
+                    title: lightDark("#8a5a00", "#fbd168"),
+                },
+                danger: {
+                    background: lightDark("#fff1f2", "#2d1418"),
+                    border: lightDark("#f5b5bd", "#6b2a33"),
+                    title: lightDark("#b42318", "#fda4af"),
+                },
+            },
+            /** Expressive Code's frame colors, for chrome drawn around its blocks. */
+            code: {
+                frame: "var(--ec-frm-trmBg)",
+                border: "var(--ec-brdCol)",
+            },
+        },
+        size: {
+            /**
+             * Where the article panel starts: beside the sidebar column, or at
+             * the gutter while the sidebar is collapsed, which sets the property.
+             */
+            panelStart: `var(--docs-panel-start, calc(${base.size.sidebar} + ${base.size.gutter} * 2))`,
+            /** The P of the wordmark, at the wordmark's height. */
+            brandMark: `calc(${base.size.wordmark} * 337 / 148)`,
+            /** The sidebar toggle: at the sidebar column's end, or beside the P once collapsed. */
+            navToggleStart: `calc(${base.size.gutter} + ${base.size.sidebar} - ${base.size.control})`,
+            navToggleCollapsedStart: `calc(${base.size.gutter} + ${base.size.wordmark} * 337 / 148 + 1.25rem)`,
+            /** The search button beside the collapsed sidebar's toggle. */
+            collapsedSearchStart: `calc(${base.size.gutter} + ${base.size.wordmark} * 337 / 148 + 1.25rem + ${base.size.control} + 0.25rem)`,
+            /** A header control centered in the header's height. */
+            headerControlTop: `calc((${base.size.header} - ${base.size.control}) / 2)`,
+            /** The sidebar's links begin below the search field that heads its column. */
+            sidebarTop: `calc(${base.size.header} + ${base.size.control} + 1rem)`,
+            belowHeader: `calc(100dvh - ${base.size.header})`,
+            belowBars: `calc(100dvh - ${base.size.header} - ${base.size.sectionBar})`,
+            barsHeight: `calc(${base.size.header} + ${base.size.sectionBar})`,
+            /** The article panel's top padding while the section bar overlays it. */
+            belowSectionBar: `calc(${base.size.sectionBar} + 3.25rem)`,
+            /** Fragment targets land clear of the fixed bars above them. */
+            anchorOffset: `calc(${base.size.header} + 1.5rem)`,
+            anchorOffsetBars: `calc(${base.size.header} + ${base.size.sectionBar} + 1rem)`,
+            outlineTop: `calc(${base.size.header} + 3.25rem)`,
+            dialogWidth: `min(${base.size.dialog}, calc(100vw - 2rem))`,
+            dialogHeight: `min(calc(100dvh - ${base.size.header} - 3rem), 50rem)`,
+            disclosureHeight: "min(60dvh, 32rem)",
+            viewport: "100dvh",
+            /** The inline size of the nearest size container. */
+            container: "100cqi",
+            tab: "3rem",
+            /** An outline drawn inside its element, clear of a clipping ancestor. */
+            focusInset: `calc(-1 * ${base.size.focus})`,
+            codeBorder: "var(--ec-brdWd)",
+            codeRadius: "calc(var(--ec-brdRad) + var(--ec-brdWd))",
+        },
+        shadow: {
+            /** The rule under a row of tabs, which the open tab's bar covers. */
+            tabRule: `inset 0 calc(-1 * ${base.size.hairline}) 0 var(--ec-frm-edTabBarBrdBtmCol)`,
+        },
+    },
+}));

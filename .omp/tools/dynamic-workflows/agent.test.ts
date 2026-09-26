@@ -3,6 +3,7 @@ import type { ExecutorOptions } from "@oh-my-pi/pi-coding-agent/task/executor";
 import {
     getActiveSkills as defaultGetActiveSkills,
     type CustomToolContext,
+    Settings,
     type Skill,
 } from "@oh-my-pi/pi-coding-agent";
 import {
@@ -210,16 +211,16 @@ interface ContextOptions {
 }
 
 function makeContext(options: ContextOptions = {}): CustomToolContext {
-    let settingsValues: Record<string, unknown> = {
+    let settings = Settings.isolated({
         "task.disabledAgents": options.disabledAgents ?? [],
         "task.agentModelOverrides": options.agentModelOverrides ?? {},
-    };
+    });
     return {
         sessionManager: {
             getArtifactsDir: () => options.artifactsDir ?? null,
             getArtifactManager: () => options.artifactManager ?? null,
         },
-        settings: { get: (key: string) => settingsValues[key] },
+        settings,
         modelRegistry: {},
         localProtocolOptions: options.localProtocolOptions,
     } as unknown as CustomToolContext;

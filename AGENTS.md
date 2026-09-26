@@ -47,14 +47,14 @@ A plausible implementation plan is not evidence that the problem is understood.
 | **Policies** | `policies/` | Rules future work must keep enforcing. |
 | **Decisions** | `decisions/` | Architectural choices, with the context that produced them. |
 | **Proposals** | `proposals/` | The specification for one change. Preserved as history after it ships. |
-| **Guides** | `docs/guides/` | Published prose explaining how a feature behaves and how it is used. |
+| **Guides** | `docs/app/content/guides/` | Published prose explaining how a feature behaves and how it is used. |
 | **Previews** | CI | The cheapest real artifact through which a human can exercise the change. |
 | **Tests** | `packages/<name>/` | Executable specifications of the behavior a proposal describes. |
 | **Code** | `packages/<name>/` | The implementation. |
 
 Records are numbered `<NNNN>-<slug>.md` and carry `id`, `status`, and `title` frontmatter. `.agents/templates/` holds the canonical shape of each, and `mise run validate` enforces it.
 
-Guides are the deliberate exception. They are published VitePress pages, they keep VitePress's `title` and `description` frontmatter, and the validator never reads them — a second record-shaped contract on the same pages would buy a reverse pointer the proposal already carries in prose. They are still a process artifact: written from the proposal, before the code.
+Guides are the deliberate exception. They are published Markdown or MDX pages with `title` and `description` frontmatter, and the record validator never reads them — a second record-shaped contract on the same pages would buy a reverse pointer the proposal already carries in prose. They are still a process artifact: written from the proposal, before the code.
 
 The record itself is not published. `docs/` is what [pitlane.tools](https://pitlane.tools) builds, and `VISION.md`, `proposals/`, `policies/`, and `decisions/` all sit outside it.
 
@@ -130,7 +130,7 @@ Skills: `.agents/skills/writing-a-proposal/`, plus `.agents/skills/grounding-a-p
 Strictly ordered, and it ends with review. Each artifact is an independent representation of the same intent; writing them out of order lets the code decide what "correct" means. A bounded slice you hand off goes to the `implementer` agent, with the brief described under Agent roles.
 
 1. **Tests first.** Failing tests for the behavior the proposal's Detailed design specifies. `vp test` from inside `packages/<name>`.
-2. **Guides next.** Written from the proposal, not from the code, into `docs/guides/`. Then compare them against the tests and confirm they describe the same behavior.
+2. **Guides next.** Written from the proposal, not from the code, into `docs/app/content/guides/`. Then compare them against the tests and confirm they describe the same behavior.
 3. **Code last.** Implement against proposal, tests, and guides until `mise run check` and the package's own `vp test` and `vp run build` pass.
 
 **Which of these a change needs is a judgement.** The order is not — when you write two of them, write them in this order. A change with no user-visible surface needs no guide, and inventing one produces documentation nobody reads. A change with nothing meaningfully testable needs no test, though say so out loud rather than skipping quietly: "hard to test" and "not worth testing" are different claims and only one of them is a reason.
@@ -341,13 +341,13 @@ Releasing a package that the [templates](https://github.com/pitlane-tools/templa
 
 ## Package reference docs are generated
 
-Every page under `docs/package/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`dev.json`, `theme.json`, `crawler.json`, `data-table-d1.json`), each extending `base.json`, which registers the local theme and router in `plugin.mjs`. `mise run docs:api` runs them all.
+Every page under `docs/app/content/api/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`dev.json`, `theme.json`, `crawler.json`, `data-table-d1.json`), each extending `base.json`, which registers the local theme and router in `plugin.mjs`. `mise run docs:api` runs them all.
 
-Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/package/<name>`. Adding a documented package means adding a config there plus a line in the `docs:api` task.
+Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/app/content/api/<name>`. Adding a documented package means adding a config there plus a line in the `docs:api` task.
 
 `.typedoc/` is also a workspace package, and that is deliberate. TypeDoc is built on the TypeScript JS compiler API, which TypeScript 7 does not ship — 7 is a Go binary, and TypeDoc's peer range stops at 6.0.x. Its `package.json` therefore holds `typescript` as an alias for `@typescript/typescript6`, while the repo root and every package are on real `typescript@7`. `docs:api` runs from `.typedoc/` so TypeDoc picks up its own copy. Do not move TypeDoc back to the root: that is what made `typescript` mean 6 repo-wide, which in turn forced `@typescript/native-preview` on the `vp pack` declaration build.
 
-Never edit a file under `docs/package/`; the next build overwrites it. Change the TSDoc comment in `packages/<name>/src/` instead. Narrative documentation belongs in `docs/guides/`.
+Never edit a file under `docs/app/content/api/`; the next build overwrites it. Change the TSDoc comment in `packages/<name>/src/` instead. Narrative documentation belongs in `docs/app/content/guides/`.
 
 ## Docs prose linting
 
@@ -355,10 +355,10 @@ Hand-written user-facing docs are linted with [Vale](https://vale.sh) using the 
 
 The oh-my-pi hook at `.omp/hooks/vale-prose.ts` automates this: after every successful `edit`/`write` touching those directories, it appends Vale's findings to the tool result, so the agent sees prose feedback immediately. The hook loads at session start and no-ops when `vale` is missing.
 
-**When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/guides/`, and fix the findings before committing:**
+**When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/app/content/guides/`, and fix the findings before committing:**
 
 ```sh
-vale docs/guides/styling.md   # one page
+vale docs/app/content/guides/styling.md   # one page
 mise run docs:prose           # sync styles + lint all user-facing docs
 ```
 
