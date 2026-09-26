@@ -2,7 +2,7 @@ import { css, type ThemedCSSProps } from "@pitlane/theme";
 import { clientEntry, type Handle, on } from "remix/ui";
 
 import { markdownPath } from "../document.ts";
-import { control, floatingPanel, visuallyHidden } from "../styles/controls.ts";
+import { control, floatingPanel, joinedSegment, visuallyHidden } from "../styles/controls.ts";
 import { noScript, scripted } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { CheckIcon, CloseIcon, CopyIcon, DocumentIcon, DownloadIcon } from "./icons.tsx";
@@ -11,13 +11,14 @@ import { PopoverToggle } from "./popover-toggle.tsx";
 const MENU_ID = "markdown-actions-menu";
 const ANCHOR = "--markdown-actions";
 
-let segment: ThemedCSSProps = control.resolve({});
+let segment: ThemedCSSProps = { ...control.resolve({}), ...joinedSegment };
 
 let groupStyle = css<HTMLDivElement>({
     display: "inline-flex",
     alignItems: "stretch",
     border: `${t.size.hairline} solid ${t.color.control}`,
     borderRadius: t.radius.md,
+    overflow: "hidden",
     fontSize: t.text.sm,
     anchorName: ANCHOR,
 });
@@ -44,7 +45,7 @@ let menuStyle = css<HTMLDivElement>({
 });
 
 let menuItemStyle = css<HTMLAnchorElement>({
-    ...segment,
+    ...control.resolve({}),
     justifyContent: "flex-start",
     width: t.size.full,
     padding: [0, t.spacing(2)],
@@ -66,7 +67,12 @@ export function MarkdownActions(handle: Handle<{ url: string }>) {
                     View as Markdown
                 </a>
                 <span aria-hidden="true" mix={dividerStyle} />
-                <PopoverToggle controls={MENU_ID} icon="chevron" label="More Markdown actions" />
+                <PopoverToggle
+                    controls={MENU_ID}
+                    icon="chevron"
+                    joined
+                    label="More Markdown actions"
+                />
                 <div id={MENU_ID} mix={menuStyle} popover>
                     <a href={source} mix={menuItemStyle}>
                         <DocumentIcon />
@@ -137,10 +143,7 @@ export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source:
         <>
             <button
                 data-state={state === "idle" ? undefined : state}
-                mix={[
-                    css({ ...control.resolve({}), [noScript]: { display: "none" } }),
-                    on("click", copy),
-                ]}
+                mix={[css({ ...segment, [noScript]: { display: "none" } }), on("click", copy)]}
                 type="button"
             >
                 {state === "copied" ? (

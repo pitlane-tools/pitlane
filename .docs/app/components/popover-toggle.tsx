@@ -1,7 +1,7 @@
 import { combine, tva } from "@pitlane/theme";
 import { clientEntry, type Handle } from "remix/ui";
 
-import { control } from "../styles/controls.ts";
+import { control, joinedSegment } from "../styles/controls.ts";
 import { compact } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { ChevronIcon, MenuIcon } from "./icons.tsx";
@@ -17,6 +17,8 @@ export type PopoverToggleProps =
           label: string;
           /** Shown only while the primary navigation is folded into a menu. */
           compactOnly?: boolean;
+          /** One segment of a bordered group that clips its corners. */
+          joined?: boolean;
       }
     | {
           controls: string;
@@ -47,6 +49,7 @@ let toggle = combine(
             compactOnly: {
                 true: { display: "none", [compact]: { display: "inline-flex" } },
             },
+            joined: { true: joinedSegment },
         },
     }),
 );
@@ -133,6 +136,7 @@ export let PopoverToggle = clientEntry(import.meta.url, (handle: Handle<PopoverT
                 mix={toggle({
                     layout: props.icon === "chevron" ? "chevron" : "icon",
                     compactOnly: props.compactOnly,
+                    joined: props.joined,
                 })}
                 popovertarget={props.controls}
                 type="button"

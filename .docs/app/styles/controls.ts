@@ -82,6 +82,15 @@ export const control = tva({
     defaultVariants: { tone: "ghost" },
 });
 
+/**
+ * A control that is one segment of a bordered group clipping its corners: its
+ * hover fill reaches the group's edges, and its focus ring stays inside.
+ */
+export const joinedSegment: ThemedCSSProps = {
+    borderRadius: 0,
+    "&&:focus-visible": { outlineOffset: t.size.focusInset },
+};
+
 /** A panel floating over the page: menus and narrow-width disclosures. */
 export const floatingPanel: ThemedCSSProps = {
     margin: 0,
