@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-09-21
+updated: 2026-09-26
 ---
 
 # Pitlane Vision
@@ -568,6 +568,20 @@ let author = await content.authors.getEntry(post.data.author);
 ```
 
 `ContentLoader` collections populate on their first read and cache successful loads. `LiveLoader` collections answer each read afresh. During a Vite build, `contentLayer()` from `@pitlane/content/vite` waits for declaration evaluation, then loads and validates the `ContentLoader` collections into the bundle; live loaders stay untouched. This is the path for Cloudflare Workers and other hosts without a filesystem. Markdown and MDX prebuilding also uses `vite-plugin-satteri`; the [content guide](https://pitlane.tools/guides/content) gives the plugin setup and the runtime-only alternative.
+
+### What the documentation site exposed
+
+Rebuilding [pitlane.tools](https://pitlane.tools) on Remix and Pitlane (proposal 0004) was the first complex content site built on these packages, and the first real test of whether Pitlane's layer makes such a site as direct to build as Astro with Starlight does. Astro v7 uses the same Sätteri processor Pitlane does, so the comparison is about what each layer builds on top of it. `@pitlane/content` held up: `contentLayer()` prebuilds MDX into components, `entry.render()` hands back `Content` and `headings`, and `vite-plugin-satteri`'s options configure the processor once for every collection. Four gaps remained, each of which the site filled with its own code under `.docs/build/` and `.docs/app/components/`. They are the next work on the content side, in this order.
+
+**Prerender is a primitive, not a pipeline.** `remix({ prerender })` renders routes and writes HTML, then stops. A static site also needs a `404.html` served with a real 404 status, a `_redirects` file for alternate spellings and moved pages, `sitemap.xml`, and a hook to derive other artifacts from each rendered page: Markdown twins, `llms.txt`, a search index. The docs site reimplemented route enumeration and the render loop in a 185-line Vite plugin to add those. `@pitlane/dev` should own them: a not-found route rendered to `404.html`, declared redirects written in the host's format, a sitemap from the crawled paths, and a per-document hook run after each render. A content site should be able to reach fully static output from the option alone, the way an Astro site does from its default output mode.
+
+**Expressive Code has no packaged integration.** Astro adds it in one command. Here a site must construct the engine, expose its stylesheet and script as virtual modules, run its hast plugin inside `satteri()`, escape `<` and `>` in its quoted attributes because Remix scans raw HTML for closing tags, and carry `rawStyles()` so its `<style>` survives `@remix-run/ui`'s escaping. About a hundred lines that every site would rewrite. This belongs in a package, most likely a subpath of `@pitlane/content` beside `satteri`, exporting the hast plugin and the Vite plugin together.
+
+**Search has no package.** Starlight ships Pagefind indexing and a search dialog with no configuration. The docs site indexes its prerendered articles by hand, loads the engine lazily, reshapes hits, and renders a 450-line dialog. Indexing is a prerender post-render concern, which is the hook above; the dialog is a Remix component any content site needs. Both should ship, probably as `@pitlane/search` over Pagefind, with the dialog styled by `@pitlane/theme`.
+
+**There is no documentation theme.** The remaining 2,800 lines are the Starlight-equivalent: the shell, a sidebar generated from the content tree, the page outline, tabs, callouts, install-command groups, build-variant switching, remembered preferences, and a collapsible sidebar. Proposal 0004 deferred extracting them until the site worked and showed a reusable boundary. It works, and the boundary is visible. Whether Pitlane owns a documentation theme is a product decision to take deliberately, not an extraction to fall into; the `pitlane` umbrella's "one cohesive documentation surface" argues for it.
+
+The site also exercised the line between framework and application in one way worth keeping in mind: for a while it bypassed `contentLayer()` and compiled its own bodies, on the belief that the content layer could not hold documentation components. It could. When a site reaches around a package, first check whether the package already does the thing.
 
 ### Head metadata — `@pitlane/meta`
 
