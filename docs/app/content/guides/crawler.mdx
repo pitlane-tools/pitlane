@@ -40,7 +40,7 @@ Remix 3 is a peer dependency. The first argument to `crawl()` is anything with a
 
 ## Exporting a static site
 
-Writing every response to disk has moved to its own guide: [prerendering without a build](/guides/prerendering-no-build) covers the loop, where each response belongs on disk, and what to do about assets.
+Writing every response to disk has moved into [prerendering without a build](/guides/prerendering-no-build), which covers the loop, where each response belongs on disk, and what to do about assets.
 
 ## Generating a sitemap
 
@@ -67,7 +67,7 @@ ${urls
 </urlset>`;
 ```
 
-The `Content-Type` check keeps JSON endpoints out of the file; redirects never arrive in the first place. Sorting keeps the output stable, so a rebuild produces no diff when nothing changed.
+The `Content-Type` check keeps JSON endpoints out of the file. Redirects never arrive in the first place. Sorting keeps the output stable, so a rebuild produces no diff when nothing changed.
 
 ## Checking for broken links in CI
 

@@ -108,7 +108,7 @@ export function csv(options: { file: string; idColumn?: string }): ContentLoader
 }
 ```
 
-`watchedPaths` is what a development host watches to notice a change. Report the files or directories your loader read. Omit it and the collection is simply not watched. A loader with no local files has nothing to report, which is why it is optional.
+`watchedPaths` is what a development host watches to notice a change. Report the files or directories your loader read. Omit it and the collection is simply not watched. A loader with no local files has nothing to report, so it is optional.
 
 Pass a schema that describes the columns, and every row is validated:
 
@@ -424,7 +424,7 @@ A loader is a package that exports a factory. Keep `@pitlane/content` a **peer**
 
 Nothing in this package needs to be imported at runtime to write a loader. `ContentLoader` and `LiveLoader` are types, which means a published loader can have no runtime dependency on `@pitlane/content` at all.
 
-[Astro's loader ecosystem](https://github.com/ascorbic/astro-loaders) is worth reading for prior art on what makes a good one: a narrow option object, sensible ids derived from the source, errors that name the source, and a schema the consumer can extend rather than one you impose.
+[Astro's loader ecosystem](https://github.com/ascorbic/astro-loaders) is worth reading for prior art on what makes a good one, such as a narrow option object, sensible ids derived from the source, errors that name the source, and a schema the consumer can extend rather than one you impose.
 
 ## Limitations
 

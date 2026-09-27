@@ -1,21 +1,21 @@
 ---
 title: Deploy to GitHub Pages
-description: "Deploy a Remix 3 app to GitHub Pages — SPA mode with remix({ server: false }) or a fully prerendered build — covering the base path and the 404.html fallback a project site needs."
+description: "Deploy a Remix 3 app to GitHub Pages, in SPA mode with remix({ server: false }) or as a fully prerendered build, covering the base path and the 404.html fallback a project site needs."
 ---
 
 import { Callout } from "../../components/documentation.tsx";
 
 # GitHub Pages
 
-[GitHub Pages](https://pages.github.com) serves static files only — there is no server runtime. Two kinds of Remix 3 app produce output it can serve: a client-only app in [SPA mode](/guides/spa), and a server-rendered app whose pages are all [prerendered](/guides/prerendering) at build time. (Need a server at runtime? Pick a target with one: [Cloudflare](/deploy/cloudflare), [Netlify](/deploy/netlify), [Vercel](/deploy/vercel), or [Railway](/deploy/railway).)
+[GitHub Pages](https://pages.github.com) serves static files only. There is no server runtime. A client-only app in [SPA mode](/guides/spa) works, and so does a server-rendered app whose pages are all [prerendered](/guides/prerendering) at build time. (Need a server at runtime? [Cloudflare](/deploy/cloudflare), [Netlify](/deploy/netlify), [Vercel](/deploy/vercel), and [Railway](/deploy/railway) all have one.)
 
 <Callout kind="tip" title="Start from the template">
 
-`npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+`npx giget github:pitlane-tools/templates/github-pages my-app` scaffolds a working guest book app wired for this guide. See [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 
 </Callout>
 
-A client-only app runs `remix()` in [SPA mode](/guides/spa): `server: false` turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), which is why it earns its place in a static build.
+A client-only app runs `remix()` in [SPA mode](/guides/spa): `server: false` turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), so it is worth keeping in a static build.
 
 ## Setup
 
@@ -105,11 +105,11 @@ export default defineConfig({
 });
 ```
 
-`true` covers every static path in the route map, read from the server entry's `routes` export; an explicit list, a function, or `spider: true` covers the rest — Pages has no server, so every URL the site answers must be in the output. See [where the paths come from](/guides/prerendering#where-the-paths-come-from).
+`true` covers every static path in the route map, read from the server entry's `routes` export; an explicit list, a function, or `spider: true` covers the rest. Pages has no server, so every URL the site answers must be in the output. See [where the paths come from](/guides/prerendering#where-the-paths-come-from).
 
-Each path lands as `<path>/index.html` under `dist/client`, next to the hashed assets, so the workflow below uploads `dist/client` instead of `dist` — and skips the `404.html` copy: deep links hit real files, and a URL outside the prerendered set is a real 404.
+Each path lands as `<path>/index.html` under `dist/client`, beside the hashed assets, so the workflow below uploads `dist/client` instead of `dist` and skips the `404.html` copy: deep links hit real files, and a URL outside the prerendered set is a real 404.
 
-The base path quirk holds, spelled differently: declare the routes under the base and set Vite's `base` to match. Output is written relative to the base — a route on `/<repo>/blog` still writes `blog/index.html`, because Pages mounts the uploaded directory at `/<repo>/`:
+The base path quirk holds, spelled differently: declare the routes under the base and set Vite's `base` to match. Output is written relative to the base. A route on `/<repo>/blog` still writes `blog/index.html`, because Pages mounts the uploaded directory at `/<repo>/`:
 
 ```ts
 // app/routes.ts
@@ -123,7 +123,7 @@ export let routes = route({
 
 ## Deploy with GitHub Actions
 
-GitHub Pages deploys through Actions — there is no separate CLI deploy. Enable it once under **Settings → Pages → Source: GitHub Actions**, then:
+GitHub Pages deploys through Actions. There is no separate CLI deploy. Enable it once under **Settings → Pages → Source: GitHub Actions**, then:
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -169,4 +169,4 @@ jobs:
               uses: actions/deploy-pages@v4
 ```
 
-Every push to `main` publishes; the deployment URL shows up on the workflow run and under the repository's **Environments**.
+Every push to `main` publishes. The deployment URL shows up on the workflow run and under the repository's **Environments**.

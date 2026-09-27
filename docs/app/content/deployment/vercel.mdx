@@ -1,6 +1,6 @@
 ---
 title: Deploy to Vercel
-description: Run a Remix 3 app on Vercel with @pitlane/dev and the Nitro Vite plugin — Vercel Functions via the Build Output API.
+description: "Run a Remix 3 app on Vercel with @pitlane/dev and the Nitro Vite plugin, which produces Vercel Functions through the Build Output API."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
@@ -10,11 +10,11 @@ export const installation = await installAlternatives({ dev: ["nitro"] });
 
 # Vercel
 
-Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target: Vercel injects `VERCEL=1` into builds, Nitro auto-selects its `vercel` preset, and the output lands in Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly — no framework preset, build command, or output directory to configure by hand.
+Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target. Vercel injects `VERCEL=1` into builds, so Nitro auto-selects its `vercel` preset and emits Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly. There is no **Framework Preset**, build command, or output directory to configure by hand.
 
 <Callout kind="tip" title="Start from the template">
 
-`npx giget github:pitlane-tools/templates/vercel my-app` scaffolds a working guest book app wired for this guide — see [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+`npx giget github:pitlane-tools/templates/vercel my-app` scaffolds a working guest book app wired for this guide. See [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 
 </Callout>
 
@@ -35,7 +35,7 @@ export default defineConfig({
 
 `serverHandler: false` hands dev-time request handling to Nitro's dev server, which runs the same fetch handler Nitro packages for production.
 
-Server routes run as [Vercel Functions](https://vercel.com/docs/functions) on Fluid compute — standard Web APIs, scale-to-zero. Client assets are served from Vercel's CDN.
+Server routes run as [Vercel Functions](https://vercel.com/docs/functions) on Fluid compute, with standard Web APIs and scale-to-zero. Client assets are served from Vercel's CDN.
 
 ## Local development and preview
 
@@ -49,7 +49,7 @@ Locally, Nitro builds its portable Node output; the Vercel-specific `.vercel/out
 
 ## Deploy with the CLI
 
-Link the project once, then always deploy **prebuilt** — the artifact built on your machine (or CI) is the artifact that ships, and Vercel's build system never runs:
+Link the project once, then always deploy **prebuilt**. The artifact built on your machine (or CI) is the artifact that reaches production, and Vercel's build system never runs:
 
 ```sh
 vpx vercel login
@@ -63,7 +63,7 @@ vpx vercel build --prod && vpx vercel deploy --prebuilt --prod   # production
 
 <Callout kind="warning" title={<>Don't use plain <code>vercel</code></>}>
 
-A plain `vercel` / `vercel --prod` uploads _source_ and builds on Vercel's infrastructure — skip it. The Vite build point stays in your CI.
+A plain `vercel` / `vercel --prod` uploads _source_ and builds on Vercel's infrastructure. Skip it. The Vite build point stays in your CI.
 
 </Callout>
 
@@ -106,15 +106,15 @@ jobs:
             - run: vpx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 ```
 
-`vercel build` runs the Vite build with Vercel's environment applied (so Nitro emits `.vercel/output`), and `--prebuilt` uploads that directory as-is — the build you tested is the build that ships.
+`vercel build` runs the Vite build with Vercel's environment applied (so Nitro emits `.vercel/output`), and `--prebuilt` uploads that directory as-is. The build you tested is the build that reaches production.
 
 ## Environment variables
 
-Define them per environment in the Vercel dashboard (**Settings → Environment Variables**) or with `vercel env add`. They reach the server handler as `process.env.*`; `vercel env pull` writes a local `.env.local` for development.
+Define them per environment in the Vercel dashboard (**Settings → Environment Variables**) or with `vercel env add`. They reach the server handler as `process.env.*`. `vercel env pull` writes a local `.env.local` for development.
 
 ## Client-only apps
 
-A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `nitro/vite`: `server: false` builds no server environment, so there is nothing for Nitro to package. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), which is why it earns its place in a static build.
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `nitro/vite`: `server: false` builds no server environment, so there is nothing for Nitro to package. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), so it is worth keeping in a static build.
 
 ```html
 <!-- index.html -->
@@ -190,4 +190,4 @@ export default defineConfig({
 }
 ```
 
-Deploys are unchanged — build prebuilt, upload the artifact: `vpx vercel build --prod && vpx vercel deploy --prebuilt --prod`, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
+Deploys are unchanged. Build prebuilt, then upload the artifact: `vpx vercel build --prod && vpx vercel deploy --prebuilt --prod`, or use the same [GitHub Actions workflow](#deploy-with-github-actions) above.

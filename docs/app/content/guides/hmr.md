@@ -167,13 +167,13 @@ Production drops the tag and serves zero JavaScript, since the hydration markers
 
 ### Client-rendered apps
 
-`remix({ server: false })` is the mirror image: everything renders in the browser, so component HMR is the whole story and there is no server data to revalidate. `<HMR />` resolves to the inert component, and the requirements table above does not apply. The client entry is whatever `index.html` loads, and there are no server environments to name.
+`remix({ server: false })` is the mirror image. Everything renders in the browser, so component HMR is the whole story and there is no server data to revalidate. `<HMR />` resolves to the inert component, and the requirements table above does not apply. The client entry is whatever `index.html` loads. There are no server environments to name.
 
 This is also the only mode that currently works under Vite's experimental bundled dev mode, component hot-swap included. See [Single-page apps](/guides/spa) for the whole mode.
 
 ## Limits
 
-**A shared module the browser imports can render stale output.** Editing a non-component module that a hydrated island imports (a constants file, a formatting helper) updates the island's boundary and keeps its state, but the rendered output can keep showing the previous value, including after an interaction re-renders the component. Reload to pick it up. Component modules and server-only modules are the two reliable boundaries.
+**A shared module the browser imports can render stale output.** Editing a non-component module that a hydrated island imports (a constants file or a formatting helper) updates the island's boundary and keeps its state. The rendered output can keep showing the previous value, including after an interaction re-renders the component. Reload to pick it up. Component modules and server-only modules are the two reliable boundaries.
 
 **The first edit after a dependency change can be missed.** Installing or re-pinning a dependency makes Vite rebuild its client dependency cache. The first edit after that reaches the server but not the browser. One reload settles it. The cause is Vite's dependency prebundling rather than the plugin.
 
