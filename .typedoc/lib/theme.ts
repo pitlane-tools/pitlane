@@ -153,6 +153,16 @@ export class SymbolThemeContext extends MarkdownThemeContext {
                     .join("\n"),
             );
         }
+        // A `declare module` block's own comment is unreliable (TypeDoc hands it
+        // a file's leading comment), so its members carry the documentation.
+        let ambient = (model.children ?? []).filter(child => child.kind === ReflectionKind.Module);
+        if (ambient.length > 0) {
+            md.push("## Module declarations");
+            for (let declared of ambient) {
+                md.push(`### \`"${declared.name}"\``);
+                md.push(this.partials.members(declared.children ?? [], { headingLevel: 4 }));
+            }
+        }
         return md.join("\n\n");
     }
 

@@ -355,3 +355,21 @@ test("a module overview's own headings are not repeated as compatibility anchors
     assert.match(overview, /\[Loaders guide\]\(https:\/\/example\.com\/guides\/loaders\)/);
     assert.doesNotMatch(overview, /<a id="see"><\/a>/);
 });
+
+test("ambient module declarations are documented on their module's page, not as pages of their own", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg", {
+        entryPoints: ["index", "loaders", "hot"]
+            .map(name => path.join(fixture, "src", `${name}.ts`))
+            .concat(path.join(fixture, "src", "ambient.d.ts")),
+    });
+    assert.ok(!pages(root).some(page => page.startsWith("ambient/")), pages(root).join(", "));
+    let overview = read(root, "ambient.md");
+    assert.match(overview, /^# @fixture\/pkg\/ambient$/m);
+    assert.match(overview, /Ambient declarations an app opts into/);
+    assert.match(overview, /^### `"\*\?raw"`$/m);
+    assert.match(overview, /The file's text\./);
+    assert.match(overview, /^### `"fixture:dev"`$/m);
+    assert.match(overview, /Probe/);
+    assert.match(overview, /Renders nothing\./);
+});

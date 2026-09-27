@@ -69,6 +69,16 @@ export class SymbolRouter extends MemberRouter {
             });
             return;
         }
+        // `declare module "…"` inside a public module is part of that module's
+        // page: its specifier (`*?assets`, `pitlane:dev`) is no URL segment.
+        if (reflection.kind === ReflectionKind.Module) {
+            this.buildAnchors(reflection, reflection.parent!);
+            reflection.traverse(child => {
+                this.buildAnchors(child, reflection.parent!);
+                return true;
+            });
+            return;
+        }
         let isSymbolPage =
             this.modules.isTopLevel(reflection) &&
             this.getPageKind(reflection) === PageKind.Reflection;
