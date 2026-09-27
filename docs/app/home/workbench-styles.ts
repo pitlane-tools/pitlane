@@ -22,22 +22,28 @@ export let workbench = css<HTMLDivElement>({
     "& [data-workbench-bar]": { borderBottom: `1px solid ${t.color.border}` },
     "& [data-workbench-bar] > :first-child": { color: t.color.accent },
     "& [data-workbench-footer]": { borderTop: `1px solid ${t.color.border}` },
-    "& fieldset": {
+    "& [data-package-options]": {
         minWidth: 0,
         border: 0,
         borderRight: `1px solid ${t.color.border}`,
         padding: 0,
         margin: 0,
     },
-    "& legend": {
+    "& [data-package-legend]": {
         float: "left",
         width: "100%",
         color: t.color.secondary,
         padding: "1.25rem",
         fontSize: "0.8125rem",
+        margin: 0,
     },
-    "& label": {
+    "& [data-package-choice]": {
         clear: "both",
+        width: "100%",
+        border: 0,
+        background: "transparent",
+        font: "inherit",
+        textAlign: "start",
         display: "flex",
         gap: "0.75rem",
         alignItems: "center",
@@ -47,15 +53,20 @@ export let workbench = css<HTMLDivElement>({
         cursor: "pointer",
         transition: "background-color 120ms ease-out",
     },
-    "& label:hover": { backgroundColor: t.color.hover },
-    "& label:has(input:checked)": { backgroundColor: t.color.linkCurrent },
-    "& label:has(input:checked) strong": { color: t.color.link },
+    "& [data-package-choice]:hover": { backgroundColor: t.color.hover },
+    "& label:has(input:checked), & [data-package-choice][aria-selected='true']": {
+        backgroundColor: t.color.linkCurrent,
+    },
+    "& label:has(input:checked) strong, & [aria-selected='true'] strong": { color: t.color.link },
+    "& label:has(input:focus-visible)": {
+        outline: `2px solid ${t.color.link}`,
+        outlineOffset: "-2px",
+    },
     "& input": {
-        accentColor: t.color.link,
-        width: "1rem",
-        height: "1rem",
-        margin: 0,
-        flexShrink: 0,
+        position: "absolute",
+        width: "1px",
+        height: "1px",
+        opacity: 0,
     },
     "& strong": {
         display: "block",
@@ -80,7 +91,7 @@ export let workbench = css<HTMLDivElement>({
     "& [data-code-package]": { display: "none", padding: "1.5rem 2rem 2rem" },
     ...Object.fromEntries(
         ["dev", "content", "theme", "crawler", "d1"].map(id => [
-            `&:has(input[value="${id}"]:checked) [data-code-package="${id}"]`,
+            `&:has(input[value="${id}"]:checked) [data-code-package="${id}"], &:has([data-package="${id}"][aria-selected="true"]) [data-code-package="${id}"]`,
             { display: "block" },
         ]),
     ),
@@ -98,14 +109,18 @@ export let workbench = css<HTMLDivElement>({
     "& .expressive-code": { fontSize: "0.8125rem" },
     "@media (max-width: 760px)": {
         gridTemplateColumns: "minmax(0, 1fr)",
-        "& fieldset": {
+        "& [data-package-options]": {
             display: "flex",
             flexWrap: "wrap",
             borderRight: 0,
             borderBottom: `1px solid ${t.color.border}`,
         },
-        "& legend": { padding: "0.75rem 1rem" },
-        "& label": { padding: "0.75rem 1rem", flex: "1 1 10rem", minHeight: "3.5rem" },
+        "& [data-package-legend]": { padding: "0.75rem 1rem" },
+        "& [data-package-choice]": {
+            padding: "0.75rem 1rem",
+            flex: "1 1 10rem",
+            minHeight: "3.5rem",
+        },
         "& strong": { fontSize: "0.75rem" },
         "& small, & [data-package-note]": { display: "none" },
         "& [data-code-package]": { padding: "1.25rem 1rem" },

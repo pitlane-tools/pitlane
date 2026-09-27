@@ -40,7 +40,7 @@ let primitives = createTheme({
                 900: "#121216",
                 950: "#0b0b0e",
             },
-            racingRed: lightDark("#eb2027", "#c65a60"),
+            racingRed: lightDark("#eb2027", "#d93d44"),
             indigoVelvet: lightDark("#3d348b", "#8a82b2"),
             mediumSlateBlue: lightDark("#5b5bb6", "#9294ca"),
             amberFlame: lightDark("#b87813", "#c09a58"),
@@ -166,7 +166,7 @@ export let { token: t, Theme } = primitives.extend(base => ({
                 `color-mix(in srgb, ${base.palette.racingRed} 18%, transparent)`,
             ),
             /** Metadata: eyebrows, symbol kinds, module names. */
-            accent: lightDark(base.palette.indigoVelvet, base.palette.royalGold),
+            accent: base.palette.indigoVelvet,
             brand: base.palette.racingRed,
             action: {
                 background: `color-mix(in srgb, ${base.palette.racingRed} 90%, ${base.palette.black})`,
@@ -196,13 +196,13 @@ export let { token: t, Theme } = primitives.extend(base => ({
                 tip: {
                     background: lightDark(
                         `color-mix(in srgb, ${base.palette.mediumSlateBlue} 7%, ${base.palette.white})`,
-                        `color-mix(in srgb, ${base.palette.amberFlame} 8%, ${base.palette.gray[850]})`,
+                        `color-mix(in srgb, ${base.palette.mediumSlateBlue} 8%, ${base.palette.gray[850]})`,
                     ),
                     border: lightDark(
                         `color-mix(in srgb, ${base.palette.mediumSlateBlue} 30%, ${base.palette.white})`,
-                        `color-mix(in srgb, ${base.palette.amberFlame} 40%, ${base.palette.gray[800]})`,
+                        `color-mix(in srgb, ${base.palette.mediumSlateBlue} 40%, ${base.palette.gray[800]})`,
                     ),
-                    title: lightDark(base.palette.mediumSlateBlue, base.palette.amberFlame),
+                    title: base.palette.mediumSlateBlue,
                 },
                 warning: {
                     background: lightDark(

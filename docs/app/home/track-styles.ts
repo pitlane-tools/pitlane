@@ -120,9 +120,9 @@ export let pitLane = css<SVGPathElement>({
 export let mark = css<SVGElement>({
     fill: "transparent",
     strokeLinecap: "square",
-    "&[data-mark='start']": { stroke: t.color.text, strokeWidth: 3 },
+    "&[data-mark='start']": { stroke: t.palette.royalGold, strokeWidth: 3 },
     "&[data-mark='direction']": {
-        stroke: t.color.secondary,
+        stroke: t.palette.amberFlame,
         strokeWidth: 1.5,
         strokeLinejoin: "miter",
     },
