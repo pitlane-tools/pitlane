@@ -10,7 +10,7 @@ export const installation = await installAlternatives({ dev: ["@pitlane/dev"] })
 
 # Using the Vite plugin
 
-This guide covers living with `remix()` from `@pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
+This guide covers living with [`remix()`](/package/dev/function/remix) from `@pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
 
 ## Installation
 
@@ -40,7 +40,7 @@ Everything the plugin does orbits three files you own:
 
 ## Options
 
-Every option has a sensible default. Most projects pass none.
+Every option has a sensible default. Most projects pass none. [`RemixPluginOptions`](/package/dev/interface/RemixPluginOptions) documents each one.
 
 ```ts
 remix({
@@ -79,7 +79,7 @@ The switch removes the server, not the server rendering. An app that wants a bro
 
 ## The asset runtime
 
-Server-rendered HTML has to name the hashed client assets. The plugin's answer is the `?assets=` import query plus `mergeAssets` from `@pitlane/dev/runtime`:
+Server-rendered HTML has to name the hashed client assets. The plugin's answer is the `?assets=` import query plus [`mergeAssets`](/package/dev/runtime/variable/mergeAssets) from `@pitlane/dev/runtime`:
 
 ```tsx
 // app/document.tsx
@@ -108,7 +108,7 @@ export function Document() {
 }
 ```
 
-Each result is `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json`:
+Each result is an [`ImportedAssets`](/package/dev/runtime/interface/ImportedAssets), `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json`:
 
 ```jsonc
 { "compilerOptions": { "types": ["@pitlane/dev/assets"] } }

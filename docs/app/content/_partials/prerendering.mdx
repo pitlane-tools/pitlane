@@ -6,7 +6,7 @@ A page whose content does not change per request does not need a server on the c
 
 <Vite>
 
-`remix({ prerender })` renders those pages during `vite build` and writes the HTML into the client output.
+[`remix({ prerender })`](/package/dev/interface/RemixPluginOptions#prerender) renders those pages during `vite build` and writes the HTML into the client output.
 
 ```ts
 // vite.config.ts
@@ -22,7 +22,7 @@ export default defineConfig({
 
 <NoBuild>
 
-[`@pitlane/crawler`](/package/crawler/) walks the app from a script and hands back each response with the path it belongs at on disk. The whole job is a `for await` loop and two filesystem calls:
+[`crawl()`](/package/crawler/function/crawl) from [`@pitlane/crawler`](/package/crawler/) walks the app from a script and hands back each response with the path it belongs at on disk. The whole job is a `for await` loop and two filesystem calls:
 
 ```ts
 import { crawl } from "@pitlane/crawler";
@@ -44,7 +44,19 @@ The [crawling guide](/guides/crawler#install) has the install command for your p
 
 There is no separate rendering path. A `Request` goes through the same fetch handler production runs, and the response that comes back is the page. Route handlers, middleware, and components behave exactly as they do at runtime, because they are the same code answering the same request.
 
-Both setups write the same thing, real HTML at real paths, and differ only in what drives the rendering. The control at the top of the page chooses which setup this guide describes.
+Both setups write the same thing, real HTML at real paths, and differ only in what drives the rendering.
+
+<Vite>
+
+This page describes the Vite build, and [Prerendering without a build](/guides/prerendering-no-build) describes doing the same job from a script, for an app with no bundler.
+
+</Vite>
+
+<NoBuild>
+
+This page describes the script, for an app with no bundler, and [Prerendering](/guides/prerendering) describes the same job in a Vite build, where `remix({ prerender })` runs the crawl for you.
+
+</NoBuild>
 
 ## Where the paths come from
 
@@ -82,7 +94,7 @@ remix({
 
 ### A function
 
-When the list needs a database, a CMS, or a filesystem walk, pass a function. It receives `getStaticPaths()`, which is the `true` behavior on demand, so the per-slug half is the only part you write:
+When the list needs a database, a CMS, or a filesystem walk, pass a function. It receives [`getStaticPaths()`](/package/dev/interface/PrerenderContext#getstaticpaths), which is the `true` behavior on demand, so the per-slug half is the only part you write:
 
 ```ts
 remix({
@@ -98,7 +110,7 @@ remix({
 
 ### The object form
 
-`paths` takes any of the three above, and two more options come with it:
+`paths` takes any of the three above, and two more options come with it, all documented on [`PrerenderConfig`](/package/dev/interface/PrerenderConfig):
 
 ```ts
 remix({
@@ -120,7 +132,7 @@ remix({
 crawl(router, { paths: ["/", "/about", "/pricing"], spider: false });
 ```
 
-`staticPaths(routes)` fills the half of that list the route map already knows. It returns every path the app can serve with no params, which leaves the per-slug half as the only part you write:
+[`staticPaths(routes)`](/package/crawler/function/staticPaths) fills the half of that list the route map already knows. It returns every path the app can serve with no params, which leaves the per-slug half as the only part you write:
 
 ```ts
 import { crawl, staticPaths } from "@pitlane/crawler";

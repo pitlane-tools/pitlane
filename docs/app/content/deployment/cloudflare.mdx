@@ -10,7 +10,7 @@ export const installation = await installAlternatives({ dev: ["@cloudflare/vite-
 
 # Cloudflare Workers
 
-Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/workers/) by composing `remix()` with [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/). Cloudflare's plugin owns the runtime story end to end: dev requests run inside [workerd](https://github.com/cloudflare/workerd) (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and `wrangler deploy` publishes it.
+Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/workers/) by composing [`remix()`](/package/dev/function/remix) with [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/). Cloudflare's plugin owns the runtime story end to end: dev requests run inside [workerd](https://github.com/cloudflare/workerd) (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and `wrangler deploy` publishes it.
 
 <Callout kind="tip" title="Start from the template">
 
@@ -24,7 +24,7 @@ Install the platform pieces:
 
 <InstallGroup alternatives={installation} />
 
-Point Cloudflare's plugin at the `ssr` environment and let it own dev-time request handling:
+Point Cloudflare's plugin at the `ssr` environment and let it own dev-time request handling with [`serverHandler: false`](/package/dev/interface/RemixPluginOptions#serverhandler):
 
 ```ts
 // vite.config.ts
@@ -80,7 +80,7 @@ Importing `cloudflare:workers` makes the SSR bundle resolvable only inside worke
 
 </Callout>
 
-A D1 binding gets you a `remix/data-table` database through [`@pitlane/data-table-d1`](/guides/cloudflare-d1), which supplies the async driver D1 needs in place of the synchronous SQLite one.
+A D1 binding gets you a `remix/data-table` database through [`createD1Database()`](/package/data-table-d1/function/createD1Database) from [`@pitlane/data-table-d1`](/guides/cloudflare-d1), which supplies the async driver D1 needs in place of the synchronous SQLite one.
 
 ## Prerendering and frame navigation
 
@@ -92,7 +92,7 @@ Prefer [separate prerendered frame URLs](/guides/prerendering#fully-static-frame
 
 Prerender `/platform/` as a complete document and `/_frames/main/platform/` as frame content. Use `href="/platform/"`, `data-rmx-target="main"`, and `data-rmx-src="/_frames/main/platform/"` on the link. Remix fetches the frame URL while keeping `/platform/` in the address bar. Use the frame URL for the initial `<Frame src>` too.
 
-Keep the server entry for build-time rendering and list both kinds of route in `prerender`. A portable app can build with `remix({ prerender: [...] })` alone. An app that needs Cloudflare bindings while rendering can keep the Cloudflare Vite plugin for the build. Deploy only `dist/client` with a separate assets-only configuration:
+Keep the server entry for build-time rendering and list both kinds of route in [`prerender`](/package/dev/interface/RemixPluginOptions#prerender). A portable app can build with `remix({ prerender: [...] })` alone. An app that needs Cloudflare bindings while rendering can keep the Cloudflare Vite plugin for the build. Deploy only `dist/client` with a separate assets-only configuration:
 
 ```jsonc
 // wrangler.static.jsonc

@@ -423,6 +423,8 @@ Generic-Vite projects have one vite by construction and are unaffected.
 - Deployment: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare), [Netlify](https://pitlane.tools/deploy/netlify), [Vercel](https://pitlane.tools/deploy/vercel), [Railway](https://pitlane.tools/deploy/railway), [Deno Deploy](https://pitlane.tools/deploy/deno-deploy), [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 - [API reference](https://pitlane.tools/package/dev/)
 
+For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and any page URL with `.md` appended returns that page as Markdown, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).
+
 ## License
 
 MIT

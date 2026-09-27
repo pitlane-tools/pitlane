@@ -10,7 +10,7 @@ export const installation = await installAlternatives({ dev: ["nitro"] });
 
 # Vercel
 
-Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing `remix()` with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target. Vercel injects `VERCEL=1` into builds, so Nitro auto-selects its `vercel` preset and emits Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly. There is no **Framework Preset**, build command, or output directory to configure by hand.
+Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing [`remix()`](/package/dev/function/remix) with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target. Vercel injects `VERCEL=1` into builds, so Nitro auto-selects its `vercel` preset and emits Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly. There is no **Framework Preset**, build command, or output directory to configure by hand.
 
 <Callout kind="tip" title="Start from the template">
 
@@ -33,7 +33,7 @@ export default defineConfig({
 });
 ```
 
-`serverHandler: false` hands dev-time request handling to Nitro's dev server, which runs the same fetch handler Nitro packages for production.
+[`serverHandler: false`](/package/dev/interface/RemixPluginOptions#serverhandler) hands dev-time request handling to Nitro's dev server, which runs the same fetch handler Nitro packages for production.
 
 Server routes run as [Vercel Functions](https://vercel.com/docs/functions) on Fluid compute, with standard Web APIs and scale-to-zero. Client assets are served from Vercel's CDN.
 
