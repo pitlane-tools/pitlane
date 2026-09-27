@@ -19,13 +19,16 @@ export function Home() {
             title="Your Remix app. Race ready."
             url="/"
         >
-            <SiteHeader search="header" />
+            <SiteHeader home search="header" />
             <div data-home mix={home}>
                 <main id="main-content" tabindex={-1}>
                     <section aria-labelledby="home-title" data-home-hero>
                         <div data-hero-copy>
+                            <div aria-hidden="true" data-home-brand>
+                                <Wordmark />
+                            </div>
                             <p data-team-label>
-                                <span aria-hidden="true">▰</span> THE REMIX PIT CREW
+                                <span aria-hidden="true">▰</span> The Remix pit crew
                             </p>
                             <h1 id="home-title">
                                 Your Remix app.
@@ -45,9 +48,9 @@ export function Home() {
                                 </a>
                             </div>
                             <div data-hero-footnote>
-                                <span>REMIX 3</span>
-                                <span>WEB STANDARDS</span>
-                                <span>OPEN SOURCE</span>
+                                <span mix={css({ textTransform: "uppercase" })}>Remix</span>
+                                <span mix={css({ textTransform: "uppercase" })}>Web Standards</span>
+                                <span mix={css({ textTransform: "uppercase" })}>Open Source</span>
                             </div>
                         </div>
                         <TrackMonitor />
@@ -75,7 +78,7 @@ export function Home() {
                     </section>
                     <section aria-labelledby="start-title" data-home-close>
                         <div>
-                            <p>YOUR NEXT SESSION</p>
+                            <p>Your next session</p>
                             <h2 id="start-title">
                                 Let’s get you
                                 <br />
@@ -94,6 +97,7 @@ export function Home() {
                     <span>Built with the tools you’re looking at.</span>
                     <div>
                         <a href="https://github.com/pitlane-tools/pitlane">GitHub ↗</a>
+                        <a href="https://bsky.app/profile/pitlane.tools">Bluesky ↗</a>
                         <a href="https://github.com/pitlane-tools/pitlane/blob/main/LICENSE">
                             MIT License
                         </a>
@@ -122,7 +126,7 @@ function Deployment() {
             </div>
             <div data-deployment-grid>
                 <div data-deployment-intro>
-                    <span mix={css({ color: t.color.accent })}>DEPLOYMENT CONTROL</span>
+                    <span mix={css({ color: t.color.accent })}>Deployment control</span>
                     <p>
                         One fetch handler.
                         <br />

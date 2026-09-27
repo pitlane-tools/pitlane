@@ -15,6 +15,15 @@ export let home = css<HTMLDivElement>({
         outlineOffset: t.spacing(1),
     },
     "& main, & footer": { maxWidth: "1360px", marginInline: "auto" },
+    "& [data-home-brand]": {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "4rem",
+        marginBottom: "1.75rem",
+    },
+    "& [data-home-brand] > span": { gap: "1rem" },
+    "& [data-home-brand] svg": { height: "clamp(1.75rem, 3vw, 2.5rem)", width: "auto" },
     "& [data-home-hero]": {
         display: "grid",
         gridTemplateColumns: "1.05fr 1fr",
@@ -26,6 +35,7 @@ export let home = css<HTMLDivElement>({
     "& [data-hero-copy]": { minWidth: 0 },
     "& [data-team-label]": {
         fontFamily: t.font.mono,
+        textTransform: "uppercase",
         fontSize: "0.75rem",
         color: t.color.secondary,
         margin: "0 0 1.75rem",
@@ -76,7 +86,11 @@ export let home = css<HTMLDivElement>({
         overflow: "hidden",
     },
     "& [data-deployment-intro]": { padding: "2rem", alignSelf: "center" },
-    "& [data-deployment-intro] > span": { fontFamily: t.font.mono, fontSize: "0.6875rem" },
+    "& [data-deployment-intro] > span": {
+        fontFamily: t.font.mono,
+        fontSize: "0.6875rem",
+        textTransform: "uppercase",
+    },
     "& [data-deployment-intro] > p": { fontSize: "1.5rem", lineHeight: 1.3, margin: "1.5rem 0" },
     "& [data-deployment-intro] > a": {
         color: t.color.secondary,
@@ -127,7 +141,12 @@ export let home = css<HTMLDivElement>({
         background: t.color.surface,
         color: t.color.text,
     },
-    "& [data-home-close] p": { fontFamily: t.font.mono, fontSize: "0.6875rem", margin: "0 0 1rem" },
+    "& [data-home-close] p": {
+        fontFamily: t.font.mono,
+        fontSize: "0.6875rem",
+        margin: "0 0 1rem",
+        textTransform: "uppercase",
+    },
     "& [data-home-close] h2": {
         fontFamily: display,
         fontSize: "clamp(2.25rem, 4vw, 3.75rem)",
@@ -145,7 +164,7 @@ export let home = css<HTMLDivElement>({
         fontSize: "0.75rem",
         color: t.color.secondary,
     },
-    "& [data-home-footer] > div": { display: "flex", gap: "1.5rem" },
+    "& [data-home-footer] > div": { display: "flex", gap: "1.5rem", flexWrap: "wrap" },
     "& [data-home-footer] a": { textUnderlineOffset: "0.25em" },
     "@media (max-width: 1050px)": {
         "& [data-home-hero]": { gap: "2rem" },

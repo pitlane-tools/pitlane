@@ -4,6 +4,7 @@ import { css, tva } from "@pitlane/theme";
 
 import type { DocumentPage } from "../document.ts";
 
+import { HomeBrand } from "../home/home-brand.tsx";
 import { floatingPanel, inPlacePopover, navLinkStates } from "../styles/controls.ts";
 import { belowOutlineColumn, compact, narrow, outlineColumn, wide } from "../styles/media.ts";
 import { t } from "../theme.ts";
@@ -21,11 +22,12 @@ export interface SiteHeaderProps {
     section?: DocumentPage["section"];
     /** Documentation pages head the sidebar column with the search field. */
     search: "sidebar" | "header";
+    home?: boolean;
 }
 
 export function SiteHeader(handle: Handle<SiteHeaderProps>) {
     return () => {
-        let { section, search } = handle.props;
+        let { section, search, home } = handle.props;
         let inGuides = section === "guides" || section === "deploy";
         return (
             <header
@@ -46,20 +48,25 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                     },
                 })}
             >
-                <a
-                    aria-label="Pitlane home"
-                    href="/"
-                    mix={css({
-                        display: "inline-flex",
-                        alignItems: "center",
-                        height: t.spacing(10),
-                        marginInlineEnd: "auto",
-                        color: t.color.text,
-                    })}
-                >
-                    <Wordmark />
-                </a>
+                {home ? (
+                    <HomeBrand />
+                ) : (
+                    <a
+                        aria-label="Pitlane home"
+                        href="/"
+                        mix={css({
+                            display: "inline-flex",
+                            alignItems: "center",
+                            height: t.spacing(10),
+                            marginInlineEnd: "auto",
+                            color: t.color.text,
+                        })}
+                    >
+                        <Wordmark />
+                    </a>
+                )}
                 {search === "sidebar" ? <SidebarToggle controls={DOCUMENT_NAVIGATION_ID} /> : null}
+                <SearchDialog placement={search} />
                 <nav
                     aria-label="Primary"
                     id={PRIMARY_NAVIGATION_ID}
@@ -70,6 +77,7 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                         gap: t.spacing(1),
                         "& a": {
                             ...navLinkStates,
+                            fontWeight: t.weight.semibold,
                             padding: [t.spacing(1.5), t.spacing(3)],
                             borderRadius: t.radius.md,
                             textDecoration: "none",
@@ -111,7 +119,6 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                     <a href={REPOSITORY_URL}>GitHub</a>
                 </nav>
                 <div mix={css({ display: "flex", alignItems: "center", gap: t.spacing(1) })}>
-                    <SearchDialog placement={search} />
                     <PopoverToggle
                         compactOnly
                         controls={PRIMARY_NAVIGATION_ID}
