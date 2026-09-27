@@ -22,8 +22,8 @@ export let home = css<HTMLDivElement>({
         height: "3rem",
         marginBottom: "1.25rem",
     },
-    "& [data-home-brand] > span": { gap: "0.75rem" },
-    "& [data-home-brand] svg": { height: "clamp(1.625rem, 2.5vw, 2rem)", width: "auto" },
+    "& [data-home-brand] > span": { gap: "clamp(0.95rem, 1.5vw, 1.25rem)" },
+    "& [data-home-brand] svg": { height: "clamp(2.5rem, 3.75vw, 3.25rem)", width: "auto" },
     "& [data-home-hero]": {
         display: "grid",
         gridTemplateColumns: "1.05fr 1fr",
@@ -44,7 +44,7 @@ export let home = css<HTMLDivElement>({
     "& h1": {
         fontFamily: display,
         fontWeight: 550,
-        fontSize: "clamp(2.75rem, 4.5vw, 4.75rem)",
+        fontSize: "clamp(2.25rem, 3.5vw, 3.5rem)",
         lineHeight: 1.08,
         letterSpacing: "-0.045em",
         margin: 0,
@@ -172,7 +172,7 @@ export let home = css<HTMLDivElement>({
     },
     "@media (max-width: 820px)": {
         "& [data-home-hero]": { gridTemplateColumns: "1fr", paddingBlock: "2.5rem", gap: "2.5rem" },
-        "& h1": { fontSize: "clamp(2.5rem, 9vw, 4.75rem)" },
+        "& h1": { fontSize: "clamp(2rem, 7vw, 3.5rem)" },
         "& [data-hero-description]": { maxWidth: "36rem" },
         "& [data-deployment-grid]": { gridTemplateColumns: "1fr" },
         "& [data-deployment] ul": { borderLeft: 0, borderTop: `1px solid ${t.color.border}` },

@@ -66,7 +66,7 @@ A narrow early script restores each disclosure before its command is parsed, pre
 
 ## Editor and command-line diagnostics
 
-Install the recommended **MDX** VS Code extension (`unifiedjs.vscode-mdx`). Open the repository workspace so its checked-in settings and `docs/tsconfig.json` apply. The workspace selects `.mdx/node_modules/typescript/lib` for the editor integration; `.mdx/` pins MDX language server 0.6.4 with TypeScript 6.0.3. Repository and package checks remain on TypeScript 7.
+Install the recommended **MDX** VS Code extension (`unifiedjs.vscode-mdx`). Open the repository workspace so `docs/app/content/tsconfig.json` applies. `packages/mdx-checker/` pins MDX language server 0.6.4 with TypeScript 6.0.3. Repository and package checks remain on TypeScript 7.
 
 Executable MDX supports component-prop diagnostics, expression checks, completion, hover, and definition navigation. Imports resolve to real Remix component types. Unknown components must be imported rather than added to a permissive global declaration.
 
