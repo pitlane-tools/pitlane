@@ -281,6 +281,10 @@ let root: ThemedCSSProps = {
         outlineOffset: t.size.focus,
     },
     "& :where(button, input, select, textarea)": { font: "inherit", color: "inherit" },
+    // No popover here dims the page, and iOS Safari reads a popover's
+    // transparent `::backdrop`, which covers the viewport, as a dimming layer:
+    // it fills the area under its toolbar with the opaque page color.
+    "& [popover]::backdrop": { display: "none" },
     // Every monospace run, including elements no component styles, sets in
     // JetBrains Mono with its programming ligatures.
     "& :where(code, kbd, pre, samp)": {

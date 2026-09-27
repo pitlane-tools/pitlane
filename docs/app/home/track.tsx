@@ -128,7 +128,6 @@ export let TrackMonitor = clientEntry(import.meta.url, (handle: Handle) => {
                 <li data-runner="lead">P1 Remix + Pitlane</li>
                 <li data-runner="field">P2–P4 Other frameworks</li>
             </ul>
-            <figcaption></figcaption>
         </figure>
     );
 });

@@ -60,6 +60,9 @@ let groupStyle = css<HTMLDivElement>({
         gridTemplateColumns: "repeat(var(--tabs), max-content) 1fr",
         overflowX: "auto",
         scrollbarWidth: "none",
+        // The open panel is sticky inside this scroller, so a rubber-band
+        // past the tabs would carry the whole card with it.
+        overscrollBehaviorX: "none",
         // The rule continues past the last tab.
         "&::after": { content: '""', gridRow: 1, gridColumn: -2, boxShadow: t.shadow.tabRule },
     },

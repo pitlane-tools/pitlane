@@ -40,9 +40,17 @@ let toggle = combine(
                 icon: {},
                 chevron: { "&[aria-expanded='true'] svg": { transform: "rotate(180deg)" } },
                 text: {
+                    position: "relative",
                     gap: t.spacing(1),
-                    minHeight: t.size.touch,
                     padding: [0, t.spacing(2)],
+                    // The fill stays clear of the section bar's edges; the
+                    // invisible extension keeps a full touch-sized target.
+                    "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        insetBlock: t.size.touchOverhang,
+                        insetInline: 0,
+                    },
                     "&[aria-expanded='true'] svg": { transform: "rotate(180deg)" },
                 },
             },

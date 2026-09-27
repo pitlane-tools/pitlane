@@ -4,14 +4,9 @@ import { t } from "../theme.ts";
 
 let hairline = `${t.size.hairline} solid ${t.color.border}`;
 
-/**
- * The monitor: a bar with the map's name, the map, then the legend and the
- * caption side by side where they fit and stacked where they do not.
- */
+/** The monitor: a bar with the map's name, the map, then the legend. */
 export let figure = css({
     containerType: "inline-size",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 18rem), 1fr))",
     margin: 0,
     border: hairline,
     borderRadius: t.radius.panel,
@@ -21,7 +16,6 @@ export let figure = css({
     fontFamily: t.font.mono,
     fontSize: t.text.xs,
     lineHeight: t.text.leading.compact,
-    "& > :not(ul, figcaption)": { gridColumn: "1 / -1" },
     "& [data-track-bar]": {
         display: "flex",
         alignItems: "center",
@@ -52,11 +46,6 @@ export let figure = css({
     "& [data-runner='lead']::before": { backgroundColor: t.color.brand },
     "& [data-runner='field']": { color: t.color.secondary },
     "& [data-runner='field']::before": { backgroundColor: t.color.secondary },
-    "& figcaption": {
-        padding: [t.spacing(3), t.spacing(4)],
-        borderTop: hairline,
-        color: t.color.secondary,
-    },
 });
 
 export let map = css<SVGSVGElement>({

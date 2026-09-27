@@ -94,6 +94,8 @@ export function SiteHeader(handle: Handle<SiteHeaderProps>) {
                                 gap: t.spacing(1),
                                 padding: [t.spacing(2), t.spacing(4), t.spacing(4)],
                                 borderRadius: 0,
+                                // The header's own rule is the panel's top edge.
+                                borderTop: 0,
                                 backgroundColor: t.color.canvas,
                             },
                             "&:popover-open a": {

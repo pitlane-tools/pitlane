@@ -268,6 +268,8 @@ export let { token: t, Theme } = primitives.extend(base => ({
             tab: "3rem",
             /** An outline drawn inside its element, clear of a clipping ancestor. */
             focusInset: `calc(-1 * ${base.size.focus})`,
+            /** How far a control-height button's hit area reaches to a full touch target. */
+            touchOverhang: `calc((${base.size.control} - ${base.size.touch}) / 2)`,
             codeBorder: "var(--ec-brdWd)",
             codeRadius: "calc(var(--ec-brdRad) + var(--ec-brdWd))",
         },
