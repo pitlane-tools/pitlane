@@ -22,6 +22,11 @@ export let home = css<HTMLDivElement>({
         maxWidth: "100%",
         height: "3rem",
         marginBottom: "1.25rem",
+        // It shrinks into the fixed header as the page scrolls, over the
+        // header's background; the header's own link takes clicks there.
+        position: "relative",
+        zIndex: `calc(${t.layer.header} + 1)`,
+        pointerEvents: "none",
     },
     "& [data-home-brand] > span": { minWidth: 0, maxWidth: "100%" },
     "& [data-home-brand] svg": {

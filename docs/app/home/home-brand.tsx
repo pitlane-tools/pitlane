@@ -6,51 +6,91 @@ import { t } from "../theme.ts";
 export let HomeBrand = clientEntry(import.meta.url, (handle: Handle) => {
     let link: HTMLAnchorElement | undefined;
 
+    // As the page scrolls, the masthead's wordmark shrinks into the header and
+    // hands over to the header's own. Only the large copy is ever scaled, and
+    // only down: an enlarged small copy is a stretched bitmap on the compositor.
+    // A scroll timeline runs the animations off the main thread (Safari 26.4+,
+    // Chromium); elsewhere scroll events seek the same paused animations.
     handle.queueTask(() => {
         let masthead = document.querySelector<HTMLElement>("[data-home-brand]");
         if (!link || !masthead) return;
         let anchor = link;
+        let source = masthead;
         let reduced = matchMedia("(prefers-reduced-motion: reduce)");
-        let frame = 0;
-        let horizontal = 0;
-        let vertical = 0;
+        let scrollTimeline = "ScrollTimeline" in window;
+        let animations: Animation[] = [];
         let distance = 1;
-        let scale = 1;
+        let frame = 0;
+        let measuredWidth = -1;
 
-        function draw() {
+        function seek() {
             frame = 0;
-            let remaining = 1 - Math.min(1, Math.max(0, window.scrollY / distance));
-            anchor.style.transform = reduced.matches
-                ? "none"
-                : `translate(${horizontal * remaining}px, ${vertical * remaining}px) scale(${1 + (scale - 1) * remaining})`;
+            let progress = Math.min(1, Math.max(0, window.scrollY / distance));
+            for (let animation of animations) animation.currentTime = progress * 1000;
         }
 
-        function measure() {
-            anchor.style.transform = "none";
+        function animate(element: HTMLElement, keyframes: Keyframe[]): Animation {
+            if (scrollTimeline) {
+                return element.animate(keyframes, {
+                    fill: "both",
+                    timeline: new ScrollTimeline({ source: document.documentElement }),
+                    rangeStart: "0px",
+                    rangeEnd: `${distance}px`,
+                });
+            }
+            let animation = element.animate(keyframes, { duration: 1000, fill: "both" });
+            animation.pause();
+            return animation;
+        }
+
+        function start() {
+            for (let animation of animations) animation.cancel();
+            animations = [];
+            measuredWidth = window.innerWidth;
+            if (reduced.matches) return;
             let destination = anchor.getBoundingClientRect();
-            let source = masthead!.getBoundingClientRect();
-            horizontal = source.left + source.width / 2 - destination.left - destination.width / 2;
-            vertical =
-                source.top +
+            let origin = source.getBoundingClientRect();
+            let horizontal =
+                destination.left + destination.width / 2 - origin.left - origin.width / 2;
+            let vertical =
+                origin.top +
                 window.scrollY +
-                source.height / 2 -
+                origin.height / 2 -
                 destination.top -
                 destination.height / 2;
-            distance = Math.max(source.height, vertical);
-            scale = masthead!.firstElementChild!.getBoundingClientRect().width / destination.width;
-            masthead!.style.visibility = reduced.matches ? "visible" : "hidden";
-            draw();
+            let scale = destination.width / source.firstElementChild!.getBoundingClientRect().width;
+            distance = Math.max(origin.height, vertical);
+            // The masthead scrolls up with the page by itself; the translation
+            // adds only what carries it onto the header's wordmark at the end.
+            let travel = `translate(${horizontal}px, ${distance - vertical}px) scale(${scale})`;
+            // The two wordmarks swap at the end of the travel rather than cross-fading.
+            animations = [
+                animate(source, [{ transform: "none" }, { transform: travel }]),
+                animate(source, [{ opacity: 1, easing: "step-end" }, { opacity: 0 }]),
+                animate(anchor, [{ opacity: 0, easing: "step-end" }, { opacity: 1 }]),
+            ];
+            if (!scrollTimeline) seek();
         }
 
-        function schedule() {
-            if (!frame && !reduced.matches) frame = requestAnimationFrame(draw);
+        function scroll() {
+            if (!frame && !scrollTimeline && animations.length > 0) {
+                frame = requestAnimationFrame(seek);
+            }
         }
 
-        window.addEventListener("scroll", schedule, { passive: true, signal: handle.signal });
-        window.addEventListener("resize", measure, { signal: handle.signal });
-        reduced.addEventListener("change", measure, { signal: handle.signal });
-        handle.signal.addEventListener("abort", () => cancelAnimationFrame(frame));
-        measure();
+        // iOS resizes as its toolbar collapses mid-scroll; only a new width moves the masthead.
+        function resize() {
+            if (window.innerWidth !== measuredWidth) start();
+        }
+
+        window.addEventListener("scroll", scroll, { passive: true, signal: handle.signal });
+        window.addEventListener("resize", resize, { signal: handle.signal });
+        reduced.addEventListener("change", start, { signal: handle.signal });
+        handle.signal.addEventListener("abort", () => {
+            cancelAnimationFrame(frame);
+            for (let animation of animations) animation.cancel();
+        });
+        start();
     });
 
     return () => (
@@ -65,7 +105,6 @@ export let HomeBrand = clientEntry(import.meta.url, (handle: Handle) => {
                     height: t.spacing(10),
                     marginInlineEnd: "auto",
                     color: t.color.text,
-                    transformOrigin: "center",
                 }),
                 ref(node => {
                     link = node;
