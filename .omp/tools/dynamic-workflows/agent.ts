@@ -12,6 +12,10 @@ import {
     type AgentDefinition,
 } from "@oh-my-pi/pi-coding-agent/task";
 import { runSubprocess } from "@oh-my-pi/pi-coding-agent/task/executor";
+import {
+    cfgTaskAgentModelOverrides,
+    cfgTaskDisabledAgents,
+} from "@oh-my-pi/pi-coding-agent/task/settings";
 import { buildOutputValidator } from "@oh-my-pi/pi-coding-agent/tools/output-schema-validator";
 
 import {
@@ -111,7 +115,7 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
             throw new Error(`Unknown agent "${request.agent}". Available: ${available}`);
         }
 
-        let disabledAgents = context.settings?.get("task.disabledAgents") ?? [];
+        let disabledAgents = context.settings ? cfgTaskDisabledAgents.get(context.settings) : [];
         if (disabledAgents.includes(profile.name)) {
             throw new Error(
                 `Agent "${profile.name}" is disabled in settings. Enable it via /agents, or use a different agent type.`,
@@ -135,7 +139,9 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
         }
         let safeProfile: AgentDefinition = { ...profile, spawns: undefined, tools };
 
-        let settingsModels = context.settings?.get("task.agentModelOverrides") ?? {};
+        let settingsModels = context.settings
+            ? cfgTaskAgentModelOverrides.get(context.settings)
+            : {};
         let modelOverride = request.model ?? settingsModels[profile.name];
 
         let index = ++this.#index;

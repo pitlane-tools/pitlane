@@ -1,0 +1,5 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "mdx": { "checkMdx": true },
+    "include": ["**/*.mdx", "../components/*.tsx"]
+}

@@ -3,6 +3,6 @@
     "extends": "./base.json",
     "entryPoints": ["../packages/crawler/src/index.ts"],
     "tsconfig": "../packages/crawler/tsconfig.json",
-    "out": "../docs/package/crawler",
+    "out": "../docs/app/content/api/crawler",
     "entryModule": "@pitlane/crawler"
 }

@@ -25,9 +25,13 @@ afterEach(async () => {
  * the fixture imports `remix` and `@pitlane/content`, and resolution for those
  * only works from somewhere inside the workspace.
  */
-async function devServer(options?: { entry?: string }) {
+async function devServer(options?: { entry?: string; files?: Record<string, string> }) {
     let root = await mkdtemp(fileURLToPath(new URL("./.tmp-dev-", import.meta.url)));
     await cp(fixture, root, { recursive: true });
+    // Before the server exists, so its watcher never reports these as edits.
+    for (let [path, contents] of Object.entries(options?.files ?? {})) {
+        await writeFile(join(root, path), contents);
+    }
     let server = await createServer({
         root,
         logLevel: "silent",
@@ -42,7 +46,7 @@ async function devServer(options?: { entry?: string }) {
         },
         plugins: [
             satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
-            contentLayer(options),
+            contentLayer({ entry: options?.entry }),
         ],
     });
     open.push({ server, root });
@@ -142,16 +146,17 @@ describe("contentLayer() in dev", () => {
     });
 
     it("recovers from a first prebuild that failed", async () => {
-        let { server, root } = await devServer();
-
         // Broken before the server ever prebuilt successfully, so the plugin
         // never learned which paths to watch. Fixing the file has to take
         // effect anyway; otherwise the author's only move is a restart, right
         // after being shown an error and told to fix it.
-        await writeFile(
-            join(root, "app/content/blog/hello.md"),
-            "---\ntitle: 7\npublishedOn: not-a-date\n---\n\n# Broken\n",
-        );
+        //
+        // Broken before the server starts, not after: chokidar drops a change
+        // within 50ms of the last one it reported for that file, and a fast
+        // failing prebuild lands the fix inside that window, so it never
+        // reaches the plugin.
+        let broken = "---\ntitle: 7\npublishedOn: not-a-date\n---\n\n# Broken\n";
+        let { server, root } = await devServer({ files: { "app/content/blog/hello.md": broken } });
 
         await expect(blogIds(server, "/app/content.ts")).rejects.toThrow(/Failed to parse entry/);
 

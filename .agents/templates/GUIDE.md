@@ -3,7 +3,7 @@ title: <Sentence case>
 description: <One sentence stating what the reader can do, used as the page description.>
 ---
 
-<!-- Add the page to the shared `guides` sidebar array in docs/.vitepress/config.ts. -->
+<!-- Add the page to `GUIDE_GROUPS` in docs/app/components/navigation.ts, the sidebar serving both /guides/ and /deploy/. -->
 
 # <Sentence case>
 

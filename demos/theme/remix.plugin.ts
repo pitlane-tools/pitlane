@@ -1,5 +1,5 @@
 import type { Program } from "oxc-parser";
-import type { PluginOption } from "vite-plus";
+import type { PluginOption } from "vite";
 
 import fullstack from "@hiogawa/vite-plugin-fullstack";
 import MagicString from "magic-string";

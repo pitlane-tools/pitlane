@@ -73,7 +73,7 @@ packages/
 ├── dev/              # @pitlane/dev — the remix() Vite plugin
 ├── pitlane/          # pitlane — reserved name, the future umbrella
 └── theme/            # @pitlane/theme — type-safe styling
-docs/                 # pitlane.tools — VitePress + TypeDoc, deployed to Cloudflare Workers
+docs/                 # pitlane.tools — Remix + TypeDoc, deployed to Cloudflare Workers
 demos/                # example apps run by hand: content-vite, content-runtime, theme, tui
 ```
 
@@ -84,7 +84,7 @@ The repo is a pnpm workspace. Repo-level tasks run through [Mise](https://mise.j
 ```sh
 mise install                # node, pnpm, and vale; the postinstall hook installs dependencies
 
-mise run docs:dev           # docs site (typedoc + vitepress) on http://localhost:1337
+mise run docs:dev           # docs site (typedoc + vite) on http://localhost:1337
 mise run check              # what CI runs: oxfmt --check, oxlint, tsc
 mise run docs:prose         # vale over the hand-written docs
 

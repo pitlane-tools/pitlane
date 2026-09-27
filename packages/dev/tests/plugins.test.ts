@@ -26,7 +26,7 @@ function throwError(error: unknown): never {
     throw typeof error === "string" ? new Error(error) : error;
 }
 
-const configContext: ConfigPluginContext = {
+let configContext: ConfigPluginContext = {
     error: throwError,
     info() {},
     warn() {},
@@ -34,7 +34,7 @@ const configContext: ConfigPluginContext = {
     meta: { rollupVersion: "", rolldownVersion: "", viteVersion: "" },
 };
 
-const serverContext: MinimalPluginContextWithoutEnvironment = {
+let serverContext: MinimalPluginContextWithoutEnvironment = {
     error: throwError,
     info() {},
     warn() {},

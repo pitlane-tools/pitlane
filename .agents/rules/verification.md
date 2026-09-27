@@ -29,7 +29,7 @@ Skipping a step is lying.
 | The repo gates pass | `mise run check` exit 0, this turn | One of its steps run alone |
 | The record is valid | `mise run validate` exit 0, this turn | Frontmatter that reads correctly |
 | The record tooling works | `mise run tools:test` exit 0, this turn | `mise run validate` passing on today's record |
-| Published prose is clean | `vale docs/guides/<page>.md`, or `mise run docs:prose`, no findings | The hook's report from before your last edit |
+| Published prose is clean | `vale docs/app/content/guides/<page>.md`, or `mise run docs:prose`, no findings | The hook's report from before your last edit |
 | Bug fixed | The failing reproduction now passes | Code changed, "I think it's fixed" |
 | Regression test works | The full red-green proof below | The test passing once against the fix |
 | Subagent finished | `git status` and `git diff` show the changes | The subagent's own success report |

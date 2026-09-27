@@ -1,0 +1,6 @@
+{
+    "extends": "../../../packages/mdx-checker/tsconfig.base.json",
+    "mdx": { "checkMdx": true },
+    "include": ["**/*.mdx"],
+    "exclude": ["api"]
+}
