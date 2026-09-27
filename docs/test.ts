@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { readdir } from "node:fs/promises";
 import { createInterface } from "node:readline";
+import { stripVTControlCharacters } from "node:util";
 
 // The published files under Cloudflare's local runtime, configured exactly as
 // they deploy: static assets only, with no Worker code for any request.
@@ -33,7 +34,10 @@ try {
         );
         server.stdout.pipe(process.stdout);
         createInterface({ input: server.stdout }).on("line", line => {
-            let ready = line.match(/Ready on (http:\/\/127\.0\.0\.1:\d+)/);
+            // Vite+ tasks run with FORCE_COLOR, so Wrangler colors the URL.
+            let ready = stripVTControlCharacters(line).match(
+                /Ready on (http:\/\/127\.0\.0\.1:\d+)/,
+            );
             if (ready) resolve(ready[1]);
         });
         server.stderr.pipe(process.stderr);
