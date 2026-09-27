@@ -20,8 +20,14 @@ export let workbench = css<HTMLDivElement>({
         color: t.color.secondary,
     },
     "& [data-workbench-bar]": { borderBottom: `1px solid ${t.color.border}` },
-    "& [data-workbench-bar] > :first-child": { color: t.color.accent },
-    "& [data-workbench-footer]": { borderTop: `1px solid ${t.color.border}` },
+    "& [data-workbench-bar] > :first-child": {
+        color: t.color.accent,
+        textTransform: "uppercase",
+    },
+    "& [data-workbench-footer]": {
+        borderTop: `1px solid ${t.color.border}`,
+        textTransform: "uppercase",
+    },
     "& [data-package-options]": {
         minWidth: 0,
         border: 0,
@@ -82,18 +88,21 @@ export let workbench = css<HTMLDivElement>({
         color: t.color.secondary,
         marginTop: "0.25rem",
     },
-    "& [data-package-note]": {
-        margin: "1.5rem 1.25rem",
-        color: t.color.secondary,
-        fontSize: "0.875rem",
-        lineHeight: 1.7,
+    "& [data-package-panels]": {
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        minWidth: 0,
     },
-    "& [data-package-panels]": { minWidth: 0 },
-    "& [data-code-package]": { display: "none", padding: "1.5rem 2rem 2rem" },
+    "& [data-code-package]": {
+        gridArea: "1 / 1",
+        minWidth: 0,
+        visibility: "hidden",
+        padding: "1.5rem 2rem 2rem",
+    },
     ...Object.fromEntries(
         ["dev", "content", "theme", "crawler", "d1"].map(id => [
             `&:has(input[value="${id}"]:checked) [data-code-package="${id}"], &:has([data-package="${id}"][aria-selected="true"]) [data-code-package="${id}"]`,
-            { display: "block" },
+            { visibility: "visible" },
         ]),
     ),
     "& h3": { fontSize: "1.375rem", margin: 0, fontWeight: 500 },
@@ -128,7 +137,7 @@ export let workbench = css<HTMLDivElement>({
             minHeight: "3.5rem",
         },
         "& strong": { fontSize: "0.75rem" },
-        "& small, & [data-package-note]": { display: "none" },
+        "& small": { display: "none" },
         "& [data-code-package]": { padding: "1.25rem 1rem" },
         "& [data-workbench-bar], & [data-workbench-footer]": {
             fontSize: "0.625rem",

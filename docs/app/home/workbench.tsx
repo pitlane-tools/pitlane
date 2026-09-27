@@ -9,19 +9,12 @@ export function Workbench() {
     return () => (
         <div mix={workbench}>
             <div data-workbench-bar>
-                <span>PACKAGE INSPECTOR</span>
+                <span>Package inspector</span>
                 <span>5 independent packages</span>
             </div>
-            <div>
-                <PackageTabs
-                    options={examples.map(({ id, name, purpose }) => ({ id, name, purpose }))}
-                />
-                <p data-package-note>
-                    Take what you need.
-                    <br />
-                    Leave what you don’t.
-                </p>
-            </div>
+            <PackageTabs
+                options={examples.map(({ id, name, purpose }) => ({ id, name, purpose }))}
+            />
             <div data-package-panels>
                 {examples.map(example => (
                     <section
@@ -42,8 +35,8 @@ export function Workbench() {
                 ))}
             </div>
             <div data-workbench-footer>
-                <span>EXPLICIT CONFIGURATION</span>
-                <span mix={css({ color: t.color.callout.tip.title })}>YOURS TO COMPOSE</span>
+                <span>Explicit configuration</span>
+                <span mix={css({ color: t.color.callout.tip.title })}>Yours to compose</span>
             </div>
         </div>
     );
