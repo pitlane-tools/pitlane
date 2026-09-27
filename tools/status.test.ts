@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { DerivedStatus, Facts, Proposal } from "./status.ts";
 
-import { deriveStatus, formatStatus } from "./status.ts";
+import { deriveStatus, formatStatus, selectProposal } from "./status.ts";
 
 function facts(overrides: Partial<Facts> = {}): Facts {
     return {
@@ -191,10 +191,9 @@ test("flags a draft pull request when the proposal is in active review", () => {
 
 test("surfaces a heuristic proposal selection and its other candidates", () => {
     let input = facts({
-        proposal: proposal("draft", 0, { pullRequest: "2" }),
+        proposal: proposal("draft"),
         proposalSelection: {
             otherCandidates: [{ id: "proposal.0002", title: "Other feature" }],
-            pullRequestMismatch: true,
         },
     });
     let status = deriveStatus(input);
@@ -204,12 +203,56 @@ test("surfaces a heuristic proposal selection and its other candidates", () => {
             kind: "ambiguous-proposal-selection",
             selected: "proposal.0001",
             otherCandidates: [{ id: "proposal.0002", title: "Other feature" }],
-            pullRequestMismatch: true,
-            proposalPullRequest: "2",
-            pullRequestNumber: 1,
         },
     ]);
     assert.match(formatStatus(input, status), /proposal\.0002/);
+});
+
+const CURRENT_PULL_REQUEST = {
+    number: 29,
+    isDraft: true,
+    url: "https://github.com/owner/repo/pull/29",
+    title: "Changesets",
+};
+
+test("never selects another pull request's proposal for a known pull request", () => {
+    let elsewhere = proposal("draft", 0, {
+        id: "proposal.0003",
+        pullRequest: "https://github.com/owner/repo/pull/17",
+    });
+    let sameNumberElsewhere = proposal("draft", 0, {
+        id: "proposal.0004",
+        pullRequest: "https://github.com/other/repo/pull/29",
+    });
+    let selection = selectProposal([elsewhere, sameNumberElsewhere], CURRENT_PULL_REQUEST);
+
+    assert.equal(selection.proposal, null);
+    assert.deepEqual(selection.otherCandidates, []);
+});
+
+test("matches a proposal linked by this pull request's own URL", () => {
+    let linked = proposal("draft", 0, { pullRequest: `${CURRENT_PULL_REQUEST.url}/` });
+
+    assert.equal(selectProposal([linked], CURRENT_PULL_REQUEST).proposal, linked);
+});
+
+test("prefers the proposal linked to the pull request over newer unlinked drafts", () => {
+    let linked = proposal("awaiting-implementation", 0, { id: "proposal.0002", pullRequest: "29" });
+    let unlinked = proposal("draft", 0, { id: "proposal.0005", pullRequest: "" });
+    let selection = selectProposal([unlinked, linked], CURRENT_PULL_REQUEST);
+
+    assert.equal(selection.proposal, linked);
+    assert.deepEqual(selection.otherCandidates, []);
+});
+
+test("falls back to an unlinked in-flight proposal, naming the others it passed over", () => {
+    let elsewhere = proposal("draft", 0, { id: "proposal.0006", pullRequest: "17" });
+    let newest = proposal("draft", 0, { id: "proposal.0005" });
+    let older = proposal("active-review", 0, { id: "proposal.0004" });
+    let selection = selectProposal([older, elsewhere, newest], CURRENT_PULL_REQUEST);
+
+    assert.equal(selection.proposal, newest);
+    assert.deepEqual(selection.otherCandidates, [older]);
 });
 
 test("surfaces unresolved clarification markers and unpushed commits", () => {

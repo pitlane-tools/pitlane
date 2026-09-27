@@ -5,6 +5,11 @@
     "imports": {
         "#/*": "./app/*"
     },
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
     "dependencies": {
         "@hiogawa/vite-plugin-fullstack": "^0.0.11",
         "@pitlane/content": "workspace:*",

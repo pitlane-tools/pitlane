@@ -46,7 +46,6 @@ interface ProposalSummary {
 
 interface ProposalSelection {
     otherCandidates: ProposalSummary[];
-    pullRequestMismatch: boolean;
 }
 
 export interface Facts {
@@ -71,9 +70,6 @@ type Notice =
           kind: "ambiguous-proposal-selection";
           selected: string | undefined;
           otherCandidates: ProposalSummary[];
-          pullRequestMismatch: boolean;
-          proposalPullRequest: string | undefined;
-          pullRequestNumber: number | undefined;
       };
 
 export type DerivedStatus = Step & { notices: Notice[] };
@@ -374,33 +370,35 @@ function proposalNumber(proposal: Proposal): number {
     return Number(proposal.id?.match(/(\d+)$/)?.[1] ?? -1);
 }
 
-function matchesPullRequest(proposal: Proposal, pullRequest: PullRequest | null | undefined) {
-    let number = String(pullRequest?.number);
-    return (
-        pullRequest &&
-        (proposal.pullRequest === number || proposal.pullRequest?.endsWith(`/pull/${number}`))
-    );
+/**
+ * Whether a proposal's `pull-request` field names this pull request: its bare
+ * number, or its URL. Numbers repeat across repositories, so a URL counts only
+ * when it is this pull request's own.
+ */
+function matchesPullRequest(proposal: Proposal, pullRequest: PullRequest) {
+    let link = proposal.pullRequest?.trim().replace(/\/+$/, "");
+    return link === String(pullRequest.number) || link === pullRequest.url.replace(/\/+$/, "");
 }
 
-function selectProposal(proposals: Proposal[], pullRequest: PullRequest | null) {
+/**
+ * The proposal this work belongs to: the one linked to the current pull
+ * request, or else the newest in-flight proposal. With a known pull request,
+ * a proposal linked to a different pull request is never a candidate, because
+ * its phase and next step describe other work.
+ */
+export function selectProposal(proposals: Proposal[], pullRequest: PullRequest | null) {
     let ordered = [...proposals].sort(
         (left, right) => proposalNumber(right) - proposalNumber(left),
     );
     let matched =
         pullRequest && ordered.find(proposal => matchesPullRequest(proposal, pullRequest));
-    let nonTerminal = ordered.filter(({ status }) => NON_TERMINAL_STATUSES.has(status));
-    let proposal = matched ?? nonTerminal[0] ?? null;
-    let otherCandidates = matched ? [] : nonTerminal.filter(candidate => candidate !== proposal);
-    return {
-        proposal,
-        otherCandidates,
-        pullRequestMismatch: Boolean(
-            proposal &&
-            pullRequest &&
-            proposal.pullRequest &&
-            !matchesPullRequest(proposal, pullRequest),
-        ),
-    };
+    if (matched) return { proposal: matched, otherCandidates: [] };
+
+    let candidates = ordered.filter(
+        ({ status, pullRequest: linked }) =>
+            NON_TERMINAL_STATUSES.has(status) && !(pullRequest && linked),
+    );
+    return { proposal: candidates[0] ?? null, otherCandidates: candidates.slice(1) };
 }
 
 function successorFor(proposals: Proposal[], proposal: Proposal): Proposal | undefined {
@@ -450,7 +448,6 @@ export function gatherFacts(root = process.cwd()): Facts {
         proposalSuccessor,
         proposalSelection: {
             otherCandidates: selection.otherCandidates.map(({ id, title }) => ({ id, title })),
-            pullRequestMismatch: selection.pullRequestMismatch,
         },
     };
 }
@@ -465,18 +462,11 @@ function noticesFor(facts: Facts): Notice[] {
         notices.push({ kind: "draft-active-review" });
     if (facts.proposal?.status === "implemented" && facts.pullRequest?.isMerged === false)
         notices.push({ kind: "implemented-unmerged" });
-    if (
-        facts.proposal &&
-        ((facts.proposalSelection?.otherCandidates?.length ?? 0) > 0 ||
-            facts.proposalSelection?.pullRequestMismatch)
-    ) {
+    if (facts.proposal && (facts.proposalSelection?.otherCandidates?.length ?? 0) > 0) {
         notices.push({
             kind: "ambiguous-proposal-selection",
             selected: facts.proposal.id,
             otherCandidates: facts.proposalSelection!.otherCandidates,
-            pullRequestMismatch: facts.proposalSelection!.pullRequestMismatch,
-            proposalPullRequest: facts.proposal.pullRequest,
-            pullRequestNumber: facts.pullRequest?.number,
         });
     }
     return notices;
@@ -512,12 +502,6 @@ function noticeLine(notice: Notice): string {
     if (notice.kind === "implemented-unmerged")
         return "Warning: proposal is implemented, but the pull request is not merged.";
     let candidates = notice.otherCandidates.map(({ id, title }) => `${id} (${title})`).join(", ");
-    if (notice.pullRequestMismatch) {
-        let mismatch = `selected ${notice.selected} references ${notice.proposalPullRequest}, not current PR #${notice.pullRequestNumber}`;
-        return candidates
-            ? `Warning: ${mismatch}. Other candidates: ${candidates}.`
-            : `Warning: ${mismatch}.`;
-    }
     return `Warning: heuristic selected ${notice.selected}. Other candidates: ${candidates}.`;
 }
 

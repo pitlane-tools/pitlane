@@ -3,11 +3,12 @@
 `@pitlane/content` with a bundler: `contentLayer()` resolves the collections during the build and inlines them, and `vite-plugin-satteri` compiles the Markdown bodies into the bundle.
 
 ```sh
-pnpm --filter pitlane-content-vite-demo exec vp build
-pnpm --filter pitlane-content-vite-demo exec vp preview
+pnpm --filter pitlane-content-vite-demo run dev       # dev server
+pnpm --filter pitlane-content-vite-demo run build
+pnpm --filter pitlane-content-vite-demo run preview
 ```
 
-Build and preview rather than `vp dev`, because `vp dev` currently fails for every app using `@pitlane/dev`: [#19](https://github.com/pitlane-tools/pitlane/issues/19). That is unrelated to content, and the build path is the one worth seeing here anyway.
+The scripts run the demo's own Vite rather than the copy `vp dev` bundles. `@hiogawa/vite-plugin-fullstack`, which `@pitlane/dev` builds on, checks the dev environment against its own Vite's classes, so a server created by a second copy fails its `isRunnableDevEnvironment` assertion. The build path is still the one worth seeing here.
 
 Pair it with [`../content-runtime`](../content-runtime), which serves the same collections with no bundler at all. The two demos exist to be compared:
 
@@ -21,7 +22,7 @@ To see that the content really is in the bundle, delete the source files and ser
 
 ```sh
 mv app/content /tmp/content-hidden
-pnpm --filter pitlane-content-vite-demo exec vp preview   # every page still renders
+pnpm --filter pitlane-content-vite-demo run preview   # every page still renders
 mv /tmp/content-hidden app/content
 ```
 
