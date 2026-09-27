@@ -63,6 +63,17 @@ let groupStyle = css<HTMLDivElement>({
         position: "relative",
         // A scrollbar under a long command would outgrow the reserved height.
         "& pre": { scrollbarWidth: "none" },
+        // The rule under the tabs belongs to the group, so it stays put while
+        // the row scrolls; the tabs, positioned later, paint the open bar over it.
+        "&::before": {
+            content: '""',
+            position: "absolute",
+            insetBlockStart: 0,
+            insetInline: 0,
+            height: t.size.tab,
+            boxShadow: t.shadow.tabRule,
+            pointerEvents: "none",
+        },
     },
     "& .expressive-code": { margin: 0 },
 });
@@ -78,12 +89,10 @@ function reservedLines(lines: number) {
 let tabsStyle = css<HTMLDivElement>({
     "@supports selector(::details-content)": {
         display: "grid",
-        gridTemplateColumns: "repeat(var(--tabs), max-content) 1fr",
+        gridTemplateColumns: "repeat(var(--tabs), max-content)",
         paddingBottom: t.size.codePaddingBlock,
         overflowX: "auto",
         scrollbarWidth: "none",
-        // The rule continues past the last tab.
-        "&::after": { content: '""', gridRow: 1, gridColumn: -2, boxShadow: t.shadow.tabRule },
     },
 });
 
@@ -112,7 +121,7 @@ let tabStyle = css<HTMLElement>({
     whiteSpace: "nowrap",
     listStyle: "none",
     cursor: "pointer",
-    boxShadow: t.shadow.tabRule,
+    "@supports not selector(::details-content)": { boxShadow: t.shadow.tabRule },
     transition: `color ${t.duration.fast} ${t.ease.standard}`,
     "&::-webkit-details-marker": { display: "none" },
     "&:hover": { color: t.color.text },
