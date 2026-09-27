@@ -31,7 +31,7 @@ The homepage uses the reader's shared header, surfaces, borders, and corner radi
 
 The package selector presents tabs without radio circles. With JavaScript, it exposes a tablist with one selected tab and associated panel; arrow keys follow its vertical desktop or horizontal mobile orientation, and Home/End jump to the first/last package. The mobile tab row scrolls the focused choice fully into view. Without JavaScript, visually hidden native radios retain selection and keyboard behavior in a stacked layout. Enhancement preserves an existing choice and its focus.
 
-The inspector reserves the tallest package panel's height at each viewport width so switching tabs does not move the sections below it. The homepage wordmark starts enlarged and centered above the left-hand hero copy, then docks into the shared navigation as the page scrolls. Reduced motion leaves static hero and navigation logos instead. Search precedes the primary navigation, whose links keep the same position across the homepage and documentation.
+The inspector reserves the tallest package panel's height at each viewport width so switching tabs does not move the sections below it. The homepage wordmark starts enlarged on the same left edge as the hero copy, then docks into the shared navigation as the page scrolls. Reduced motion leaves static hero and navigation logos instead. Search precedes the primary navigation, whose links keep the same position across the homepage and documentation.
 
 ## Author Markdown and MDX
 

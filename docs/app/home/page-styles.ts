@@ -18,12 +18,12 @@ export let home = css<HTMLDivElement>({
     "& [data-home-brand]": {
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        height: "4rem",
-        marginBottom: "1.75rem",
+        width: "fit-content",
+        height: "3rem",
+        marginBottom: "1.25rem",
     },
-    "& [data-home-brand] > span": { gap: "1rem" },
-    "& [data-home-brand] svg": { height: "clamp(1.75rem, 3vw, 2.5rem)", width: "auto" },
+    "& [data-home-brand] > span": { gap: "0.75rem" },
+    "& [data-home-brand] svg": { height: "clamp(1.625rem, 2.5vw, 2rem)", width: "auto" },
     "& [data-home-hero]": {
         display: "grid",
         gridTemplateColumns: "1.05fr 1fr",
