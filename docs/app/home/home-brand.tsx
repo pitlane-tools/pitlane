@@ -105,6 +105,9 @@ export let HomeBrand = clientEntry(import.meta.url, (handle: Handle) => {
                     height: t.spacing(10),
                     marginInlineEnd: "auto",
                     color: t.color.text,
+                    // Hidden from the first paint rather than once the swap
+                    // animation starts, which would flash it at the top.
+                    "@media (prefers-reduced-motion: no-preference)": { opacity: 0 },
                 }),
                 ref(node => {
                     link = node;
