@@ -3,6 +3,6 @@
     "compilerOptions": {
         "types": ["node"]
     },
-    "include": ["plugin.ts", "plugin.test.ts", "lib/**/*.ts"],
+    "include": ["build.ts", "plugin.ts", "plugin.test.ts", "lib/**/*.ts"],
     "exclude": ["fixtures", "node_modules"]
 }
