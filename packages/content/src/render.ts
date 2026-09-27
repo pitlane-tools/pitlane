@@ -303,8 +303,8 @@ async function importFrom(
         // A module with an attributes clause is refused without it, so the
         // clause the author wrote has to reach the import that replaces theirs.
         return (await (attributes
-            ? import(resolved, { with: attributes })
-            : import(resolved))) as Record<string, unknown>;
+            ? import(/* @vite-ignore */ resolved, { with: attributes })
+            : import(/* @vite-ignore */ resolved))) as Record<string, unknown>;
     } catch (error) {
         let cause = error instanceof Error ? error.message : String(error);
         throw new Error(`"${where}" imports "${specifier}", which could not be loaded: ${cause}`, {
