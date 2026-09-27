@@ -165,6 +165,11 @@ export let home = css<HTMLDivElement>({
         color: t.color.secondary,
     },
     "& [data-home-footer] > div": { display: "flex", gap: "1.5rem", flexWrap: "wrap" },
+    "& [data-home-footer] > div > a": {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.375rem",
+    },
     "& [data-home-footer] a": { textUnderlineOffset: "0.25em" },
     "@media (max-width: 1050px)": {
         "& [data-home-hero]": { gap: "2rem" },

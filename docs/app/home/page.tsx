@@ -1,5 +1,6 @@
 import { css } from "remix/ui";
 
+import { BrandIcon } from "../components/brand-icon.tsx";
 import { SiteHeader } from "../components/header.tsx";
 import { Wordmark } from "../components/logo.tsx";
 import { Document } from "../components/shell.tsx";
@@ -87,10 +88,10 @@ export function Home() {
                     </span>
                     <div>
                         <a href="https://github.com/pitlane-tools/pitlane" target="_blank">
-                            GitHub ↗
+                            <BrandIcon name="github" /> GitHub ↗
                         </a>
                         <a href="https://bsky.app/profile/pitlane.tools" target="_blank">
-                            Bluesky ↗
+                            <BrandIcon name="bluesky" /> Bluesky ↗
                         </a>
                         <a
                             href="https://github.com/pitlane-tools/pitlane/blob/main/LICENSE"

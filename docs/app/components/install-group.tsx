@@ -8,6 +8,7 @@ import {
 } from "../browser/preferences.ts";
 import { DEFAULT_PREFERENCES, type PackageManager, PREFERENCE_STORAGE_KEYS } from "../document.ts";
 import { t } from "../theme.ts";
+import { BrandIcon } from "./brand-icon.tsx";
 
 // Type aliases rather than interfaces: hydrated props must satisfy Remix's
 // serializable index signature, which interfaces do not implicitly have.
@@ -115,8 +116,6 @@ let tabStyle = css<HTMLElement>({
     },
 });
 
-let iconStyle = css<HTMLImageElement>({ flex: "none", width: t.size.icon, height: t.size.icon });
-
 /** The alternative the reader's preference opens: the remembered manager, else npm, else the first. */
 function preferred(alternatives: readonly InstallAlternative[]): PackageManager | undefined {
     let remembered = rememberedPreference("packageManager");
@@ -222,13 +221,7 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
                                 }),
                             ]}
                         >
-                            <img
-                                alt=""
-                                height="16"
-                                mix={iconStyle}
-                                src={`/icons/${manager}.svg`}
-                                width="16"
-                            />
+                            <BrandIcon name={manager} />
                             {manager}
                         </summary>
                         <script>{RESTORE_DISCLOSURE}</script>
