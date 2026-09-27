@@ -8,28 +8,43 @@ import type {
 import type { Heading } from "./types.ts";
 
 /**
- * The base slug for a heading with no letters or digits at all (`## ---`). An
- * empty `id` is invalid HTML and makes the anchor a bare `#`, which lands
- * nowhere; a fixed word plus the usual collision suffix keeps such headings
- * addressable and distinct.
+ * The base slug for a heading that slugs to nothing at all, such as `## ***` or
+ * `## 🎉`. GitHub answers the empty string there; an empty `id` is invalid HTML
+ * and makes the anchor a bare `#`, which lands nowhere, so a fixed word plus
+ * the usual collision suffix keeps such headings addressable and distinct. This
+ * is the one case where these slugs are deliberately not GitHub's.
  */
 const FALLBACK_SLUG = "heading";
 
 /**
- * The slug for `text`, kept distinct from every slug `taken` already holds by
+ * Every character GitHub's slugger removes: anything that is not alphabetic, a
+ * combining mark, a decimal digit, connector punctuation, a space, or a hyphen.
+ * Marks are kept because dropping them would shatter Devanagari, Hebrew, and
+ * Arabic words into bare consonants; letters of every script are kept so a
+ * Japanese or Cyrillic heading slugs to its own text rather than to nothing.
+ *
+ * `github-slugger` ships this set as a table generated from Unicode 13, while a
+ * regular expression matches against whatever Unicode version the engine
+ * carries. A character assigned after Unicode 13 therefore survives here and
+ * would be stripped there; nothing assigned in Unicode 13 or earlier differs.
+ */
+const STRIPPED = /[^\p{Alphabetic}\p{M}\p{Nd}\p{Pc} -]/gu;
+
+/**
+ * The slug for `text`, built the way GitHub builds a heading's `id`: lowercase
+ * it, remove every stripped character, then turn each remaining space into a
+ * hyphen. Nothing is collapsed and nothing is trimmed, so `Databases & Data
+ * Loading` slugs to `databases--data-loading` and `## ---` to `---`. Astro slugs
+ * with the same algorithm, so a table of contents written by hand against
+ * either of them keeps landing after a move to Pitlane.
+ *
+ * The result is then kept distinct from every slug `taken` already holds by
  * suffixing `-1`, `-2`, … The map remembers the last suffix tried for a base so
  * a document of a hundred identical headings stays linear, and the loop covers
  * the case where the suffixed candidate is itself a real heading's slug.
  */
 function uniqueSlug(text: string, taken: Map<string, number>): string {
-    // Unicode letters and numbers, plus the combining marks that belong to
-    // them: a Japanese or Cyrillic heading has to slug to its own text rather
-    // than to nothing, and dropping marks would shatter Devanagari, Hebrew, and
-    // Arabic words into bare consonants.
-    let base = text
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}\p{M}]+/gu, "-")
-        .replace(/^-+|-+$/g, "");
+    let base = text.toLowerCase().replace(STRIPPED, "").replaceAll(" ", "-");
     if (!base) base = FALLBACK_SLUG;
     let suffix = taken.get(base) ?? 0;
     let slug = base;
