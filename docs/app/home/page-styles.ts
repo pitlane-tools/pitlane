@@ -22,8 +22,8 @@ export let home = css<HTMLDivElement>({
         height: "3rem",
         marginBottom: "1.25rem",
     },
-    "& [data-home-brand] > span": { gap: "clamp(0.95rem, 1.5vw, 1.25rem)" },
-    "& [data-home-brand] svg": { height: "clamp(2.5rem, 3.75vw, 3.25rem)", width: "auto" },
+    "& [data-home-brand] > span": { gap: "clamp(1rem, 1.75vw, 1.75rem)" },
+    "& [data-home-brand] svg": { height: "clamp(3.5rem, 4.75vw, 4.25rem)", width: "auto" },
     "& [data-home-hero]": {
         display: "grid",
         gridTemplateColumns: "1.05fr 1fr",

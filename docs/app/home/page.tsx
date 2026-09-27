@@ -28,29 +28,19 @@ export function Home() {
                                 <Wordmark />
                             </div>
                             <p data-team-label>
-                                <span aria-hidden="true">▰</span> The Remix pit crew
+                                <span aria-hidden="true">▰</span> Your Remix pit crew
                             </p>
-                            <h1 id="home-title">
-                                Your Remix app.
-                                <br />
-                                <em>Race ready.</em>
-                            </h1>
                             <p data-hero-description>
-                                Build, style, and ship. Independent packages that put your Remix app
-                                on the grid.
+                                Pitlane gives you composable packages to help you put your{" "}
+                                <a href="https://remix.run">Remix</a> app on the grid.
                             </p>
                             <div data-hero-actions>
                                 <a href={routes.guide.href({ slug: "vite-plugin" })} mix={action}>
                                     Get started <span aria-hidden="true">↗</span>
                                 </a>
                                 <a data-secondary-action href="#packages">
-                                    Inspect the packages <span aria-hidden="true">↓</span>
+                                    See all packages <span aria-hidden="true">↓</span>
                                 </a>
-                            </div>
-                            <div data-hero-footnote>
-                                <span mix={css({ textTransform: "uppercase" })}>Remix</span>
-                                <span mix={css({ textTransform: "uppercase" })}>Web Standards</span>
-                                <span mix={css({ textTransform: "uppercase" })}>Open Source</span>
                             </div>
                         </div>
                         <TrackMonitor />
@@ -58,9 +48,8 @@ export function Home() {
                     <section aria-labelledby="packages-title" data-home-section id="packages">
                         <div mix={sectionHeading}>
                             <h2 id="packages-title">
-                                Your tools. <span>Your setup.</span>
+                                Composable packages. <span>Built on Web APIs.</span>
                             </h2>
-                            <p>Small packages. Nothing hidden under the hood.</p>
                         </div>
                         <Workbench />
                     </section>
@@ -68,17 +57,13 @@ export function Home() {
                     <section aria-labelledby="lap-title" data-home-section id="lap-time">
                         <div mix={sectionHeading}>
                             <h2 id="lap-title">
-                                A short stop.
-                                <br />
-                                <span>A long way to go.</span>
+                                A pit crew that can help you deploy in <span>no time flat.</span>
                             </h2>
-                            <p>From a fresh directory to your first build.</p>
                         </div>
                         <LapClock />
                     </section>
                     <section aria-labelledby="start-title" data-home-close>
                         <div>
-                            <p>Your next session</p>
                             <h2 id="start-title">
                                 Let’s get you
                                 <br />
@@ -86,7 +71,7 @@ export function Home() {
                             </h2>
                         </div>
                         <a href={routes.guide.href({ slug: "vite-plugin" })} mix={action}>
-                            Build with Pitlane <span aria-hidden="true">↗</span>
+                            Start building with Pitlane <span aria-hidden="true">↗</span>
                         </a>
                     </section>
                 </main>
@@ -94,11 +79,23 @@ export function Home() {
                     <a aria-label="Pitlane home" href="/">
                         <Wordmark />
                     </a>
-                    <span>Built with the tools you’re looking at.</span>
+                    <span>
+                        Built with Pitlane, <a href="https://remix.run">Remix</a>,{" "}
+                        <a href="https://viteplus.dev">Vite+</a>, &{" "}
+                        <a href="https://www.cloudflare.com/products/workers">Cloudflare Workers</a>
+                        .
+                    </span>
                     <div>
-                        <a href="https://github.com/pitlane-tools/pitlane">GitHub ↗</a>
-                        <a href="https://bsky.app/profile/pitlane.tools">Bluesky ↗</a>
-                        <a href="https://github.com/pitlane-tools/pitlane/blob/main/LICENSE">
+                        <a href="https://github.com/pitlane-tools/pitlane" target="_blank">
+                            GitHub ↗
+                        </a>
+                        <a href="https://bsky.app/profile/pitlane.tools" target="_blank">
+                            Bluesky ↗
+                        </a>
+                        <a
+                            href="https://github.com/pitlane-tools/pitlane/blob/main/LICENSE"
+                            target="_blank"
+                        >
                             MIT License
                         </a>
                     </div>
@@ -109,12 +106,12 @@ export function Home() {
 }
 
 let platforms = [
-    { name: "Cloudflare", slug: "cloudflare", detail: "Workers" },
-    { name: "Netlify", slug: "netlify", detail: "Functions" },
-    { name: "Vercel", slug: "vercel", detail: "Functions" },
-    { name: "Railway", slug: "railway", detail: "Node.js" },
+    { name: "Cloudflare", slug: "cloudflare", detail: "workerd" },
+    { name: "Netlify", slug: "netlify", detail: "Node.js" },
+    { name: "Vercel", slug: "vercel", detail: "Node.js" },
+    { name: "Railway", slug: "railway", detail: "Node.js, Bun, or Deno" },
     { name: "Deno Deploy", slug: "deno-deploy", detail: "Deno" },
-    { name: "GitHub Pages", slug: "github-pages", detail: "Static" },
+    { name: "GitHub Pages", slug: "github-pages", detail: "Browser" },
 ];
 
 function Deployment() {
@@ -122,19 +119,16 @@ function Deployment() {
         <section aria-labelledby="deployment-title" data-deployment data-home-section>
             <div mix={sectionHeading}>
                 <h2 id="deployment-title">Pick your circuit.</h2>
-                <p>Your app stays yours. Your platform stays explicit.</p>
+                <p>Deploy your Remix app anywhere JavaScript runs.</p>
             </div>
             <div data-deployment-grid>
                 <div data-deployment-intro>
                     <span mix={css({ color: t.color.accent })}>Deployment control</span>
                     <p>
-                        One fetch handler.
+                        The same fetch handler.
                         <br />
-                        Your choice of host.
+                        Any JavaScript runtime.
                     </p>
-                    <a href={routes.deploy.href({ slug: "cloudflare" })}>
-                        Find your deployment guide <span aria-hidden="true">↗</span>
-                    </a>
                 </div>
                 <ul>
                     {platforms.map(platform => (

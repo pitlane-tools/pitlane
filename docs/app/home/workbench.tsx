@@ -1,6 +1,3 @@
-import { css } from "@pitlane/theme";
-
-import { t } from "../theme.ts";
 import { examples } from "./examples.ts";
 import { PackageTabs } from "./package-tabs.tsx";
 import { workbench } from "./workbench-styles.ts";
@@ -10,7 +7,7 @@ export function Workbench() {
         <div mix={workbench}>
             <div data-workbench-bar>
                 <span>Package inspector</span>
-                <span>5 independent packages</span>
+                <span>5 packages</span>
             </div>
             <PackageTabs
                 options={examples.map(({ id, name, purpose }) => ({ id, name, purpose }))}
@@ -33,10 +30,6 @@ export function Workbench() {
                         </a>
                     </section>
                 ))}
-            </div>
-            <div data-workbench-footer>
-                <span>Explicit configuration</span>
-                <span mix={css({ color: t.color.callout.tip.title })}>Yours to compose</span>
             </div>
         </div>
     );

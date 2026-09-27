@@ -8,7 +8,7 @@ let sources = [
         purpose: "Build & develop",
         file: "vite.config.ts",
         guide: "vite-plugin",
-        description: "Development, server and browser builds. One Vite plugin.",
+        description: "Development, server, and browser builds, all in one Vite plugin.",
         code: `import { remix } from "@pitlane/dev";
 import { defineConfig } from "vite";
 

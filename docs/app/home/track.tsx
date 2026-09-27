@@ -89,10 +89,10 @@ export let TrackMonitor = clientEntry(import.meta.url, (handle: Handle) => {
             ]}
         >
             <div data-track-bar>
-                <span>Track map · Mosport</span>
+                <span>Grand Prix Circuit · Motorsport Park</span>
             </div>
             <svg
-                aria-label="Map of the Grand Prix circuit at Canadian Tire Motorsport Park (Mosport), turns 1 to 10 numbered clockwise from the start/finish line: the red Pitlane car leads three grey anonymous cars in an illustrative race."
+                aria-label="Map of the Grand Prix circuit at Canadian Tire Motorsport Park, turns 1 to 10 numbered clockwise from the start/finish line: the red Pitlane car leads three grey anonymous cars in an illustrative race."
                 mix={map}
                 role="img"
                 viewBox="-16 -16 632 392"
@@ -125,13 +125,10 @@ export let TrackMonitor = clientEntry(import.meta.url, (handle: Handle) => {
                 ))}
             </svg>
             <ul data-track-legend>
-                <li data-runner="lead">P1 Pitlane</li>
-                <li data-runner="field">P2–P4 Anonymous field</li>
+                <li data-runner="lead">P1 Remix + Pitlane</li>
+                <li data-runner="field">P2–P4 Other frameworks</li>
             </ul>
-            <figcaption>
-                Canadian Tire Motorsport Park, Grand Prix circuit · Illustrative race · not a
-                benchmark
-            </figcaption>
+            <figcaption></figcaption>
         </figure>
     );
 });

@@ -162,7 +162,7 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
             >
                 <div mix={barStyle}>
                     <span>Cloudflare template</span>
-                    <span>{SECTORS.length} sectors</span>
+                    <span>{SECTORS.length} laps</span>
                 </div>
                 <div mix={readoutStyle}>
                     <div>
@@ -186,7 +186,7 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                     <ol aria-hidden="true" mix={stripStyle}>
                         {lap.map(sector => (
                             <li key={sector.command}>
-                                <span mix={css(label)}>S{sector.number}</span>
+                                <span mix={css(label)}>L{sector.number}</span>
                                 <span mix={marker<HTMLSpanElement>({ state: sector.state })} />
                             </li>
                         ))}
@@ -199,7 +199,7 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                             mix={row<HTMLLIElement>({ state: sector.state, total: sector.total })}
                         >
                             <span mix={sectorLabel<HTMLSpanElement>({ total: sector.total })}>
-                                S{sector.number}
+                                L{sector.number}
                             </span>
                             <span
                                 data-lap-time
@@ -242,7 +242,7 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                 </ol>
                 <div mix={footStyle}>
                     <a href={routes.deploy.href({ slug: "cloudflare" })} mix={linkStyle}>
-                        Deploy it to Cloudflare Workers →
+                        Deploy on Cloudflare Workers →
                     </a>
                 </div>
             </div>

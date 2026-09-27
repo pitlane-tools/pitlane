@@ -10,7 +10,8 @@ export const SECTORS: readonly Sector[] = [
         split: 1800,
         result: "Scaffolded",
     },
-    { command: "cd my-app && vp install", split: 5500, result: "Installed" },
-    { command: "vp run dev", split: 1650, result: "Dev server up" },
-    { command: "vp build", split: 12750, result: "Built" },
+    { command: "cd my-app && vp install", split: 6000, result: "Installed" },
+    { command: "vpx wrangler d1 create my-app-db", split: 4800, result: "Provisioned" },
+    { command: "vp run dev", split: 1650, result: "Running at :1612" },
+    { command: "git push && gh run watch 18374291056", split: 12750, result: "Deployed" },
 ];
