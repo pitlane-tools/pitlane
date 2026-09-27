@@ -5,6 +5,7 @@
 
     "oxc.enable.oxlint": true,
     "oxc.enable.oxfmt": true,
+    "oxc.fmt.configPath": "./vite.config.ts",
 
     "editor.codeActionsOnSave": {
         "source.fixAll.oxc": "explicit",
@@ -47,16 +48,15 @@
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
-        "package.json": ".npmrc, .node-version, pnpm-*.yaml, package-lock.json, workspace.json",
+        "package.json": ".node-version, pnpm-*.yaml, package-lock.json, workspace.json",
         // FIXME: Why isn't this nesting pattern working?
         "README.md": "AGENTS.md, CLAUDE.md",
-        "vite.config.*": "*.plugin.ts, .oxfmtrc.json*, .oxlintrc.json*"
+        "vite.config.*": "*.plugin.ts"
     },
     "files.exclude": {
         ".wrangler": true,
         ".superpowers": true,
         ".vale": true,
-        ".mise": true,
         ".typedoc": true,
         "dist": true,
         "worker-configuration.d.ts": true

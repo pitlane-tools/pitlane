@@ -10,10 +10,10 @@ Read `AGENTS.md` and `.agents/skills/implementing-a-proposal/SKILL.md` before to
 
 Work in this order, skipping a stage only when your brief says it does not apply:
 
-1. **Failing test.** Write it for one observable behavior, run it, and watch it fail for the missing behavior rather than a typo or setup error. `vp test` from inside `packages/<name>`; `mise run tools:test` for the record tooling.
+1. **Failing test.** Write it for one observable behavior, run it, and watch it fail for the missing behavior rather than a typo or setup error. `vp test` from inside `packages/<name>`; `vp run tools:test` for the record tooling.
 2. **Guide.** For user-facing behavior, write it into `docs/guides/` from the proposal, never from code, then compare it against the failing test.
 3. **Code.** The minimum that makes the test pass, against the proposal, tests, and guide.
-4. **Gates.** `mise run check`, plus `vp test` and `vp run build` in every package you changed.
+4. **Gates.** `vp run check`, plus `vp test` and `vp run build` in every package you changed.
 
 Local implementation decisions are yours. These are not:
 

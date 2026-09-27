@@ -5,7 +5,7 @@
 #
 # The process scopes are built into the hook and need no entry here: proposal,
 # policy, decision, guides, docs, tools, ci, agents, skills, rules, templates,
-# hooks, mise, readme, vision, treewide. Neither does a real
+# hooks, readme, vision, treewide. Neither does a real
 # proposals/<NNNN>-<slug>.md filename, used as `0007-export-queue: ...`.
 
 # Implemented packages, packages/<name>
@@ -35,8 +35,8 @@ mdx-checker
 # takes the scope of what it changes.
 release
 
-# The repo toolchain itself: .oxfmtrc.jsonc, .oxlintrc.jsonc, vite.config.ts,
-# tsconfig.json, .npmrc
+# The repo toolchain itself: the root vite.config.ts (format, lint, and task
+# definitions), .node-version, tsconfig.json
 tooling
 
 # Dependency upgrades, and housekeeping with no narrower home

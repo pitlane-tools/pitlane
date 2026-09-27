@@ -388,7 +388,7 @@ The proposal and relevant pull request history therefore form part of the long-t
 
 Package changes are captured with their implementation in `.changeset/*.md` notes containing the affected packages, semver intent, and consumer-facing explanation. Feature pull requests leave versions and numbered changelog sections unchanged. Accepted work may be merged and remain unreleased; its notes wait for a human request.
 
-On request, the agent reviews the complete `mise run changeset:status` plan with me, including computed dependent bumps. `mise run changeset:version` then consumes the pending notes, updates versions and changelogs, and refreshes the lockfile. The preparation is committed and reviewed under the normal repository rules. Preparing versions does not authorize publication.
+On request, the agent reviews the complete `vp run changeset:status` plan with me, including computed dependent bumps. `vp run changeset:version` then consumes the pending notes, updates versions and changelogs, and refreshes the lockfile. The preparation is committed and reviewed under the normal repository rules. Preparing versions does not authorize publication.
 
 In this repository that mechanism is a Git tag plus a published GitHub release on `main`, which is the only trigger `.github/workflows/publish.yml` listens for. The ordering around it — what must be updated before the merge, and what is still in its pre-release state after the tag — is `.agents/skills/releasing-pitlane-packages/SKILL.md`. A package that the starter templates depend on adds one more rule, in `.agents/skills/adopting-packages-into-templates/SKILL.md`: publish the package first, then merge the companion templates branch.
 

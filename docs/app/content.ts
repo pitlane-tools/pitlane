@@ -12,7 +12,7 @@ let page = s.object({
 
 /**
  * The published corpus: authored guides and deployment pages, and the API
- * reference `mise run docs:api` generates. Drafts and shared partials sit
+ * reference `vp run docs:api` generates. Drafts and shared partials sit
  * outside these globs (`_`-prefixed files, `_partials/`), so they are
  * authoring inputs the build compiles into pages without ever becoming one.
  *

@@ -24,9 +24,14 @@ export default function (pi: HookAPI): void {
         // invoke with repo-relative paths from the repo root.
         let files = prose.map(path => relative(ctx.cwd, path).replaceAll("\\", "/"));
 
+        // Vale is a workspace devDependency, which is not on PATH unless the
+        // session was started through the package manager.
+        let vale = join(ctx.cwd, "node_modules", ".bin", "vale");
+        if (!existsSync(vale)) return;
+
         let report: string;
         try {
-            let result = (await pi.exec("vale", ["--output=line", ...files], {
+            let result = (await pi.exec(vale, ["--output=line", ...files], {
                 cwd: ctx.cwd,
             })) as { stdout?: string; stderr?: string; code?: number; exitCode?: number };
             let output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
@@ -36,7 +41,7 @@ export default function (pi: HookAPI): void {
                     ? `no prose findings in ${files.join(", ")}`
                     : output;
         } catch {
-            // Vale is not installed; the manual fallback in AGENTS.md applies.
+            // Vale could not run; the manual fallback in AGENTS.md applies.
             return;
         }
 

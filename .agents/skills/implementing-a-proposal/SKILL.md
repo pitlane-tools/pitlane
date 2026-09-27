@@ -32,7 +32,7 @@ Never parallel-dispatch implementers onto the same files. Do not split a coheren
 
 For each slice, in the order that protects shared boundaries:
 
-1. Curate a brief with the applicable Detailed design, governing records, affected artifacts, nearby conventions, and commands from `mise tasks`.
+1. Curate a brief with the applicable Detailed design, governing records, affected artifacts, nearby conventions, and commands from `vp run`.
 2. Make external behavior and scope explicit. Do not make the implementer infer omitted intent.
 3. Dispatch one implementer and instruct it not to commit.
 4. Require the ordered cycle below and clean quality gates before the next review gate.
@@ -77,10 +77,10 @@ When behavior warrants a test, that test is evidence only once you watched it fa
 | Stage | Required action |
 | --- | --- |
 | **RED** | Write one focused test for one observable behavior from Detailed design. Name it idiomatically with the proposal id and behavior it verifies. |
-| **Verify RED** | Run it — `vp test` from inside `packages/<name>`, or `mise run tools:test` for the record tooling. Confirm an expected assertion fails because behavior is missing — not because of setup, an import, or a typo. If it passes, correct the test. |
+| **Verify RED** | Run it — `vp test` from inside `packages/<name>`, or `vp run tools:test` for the record tooling. Confirm an expected assertion fails because behavior is missing — not because of setup, an import, or a typo. If it passes, correct the test. |
 | **Guide** | For user-facing behavior, write the guide from the proposal and compare it against the failing test before writing code. |
 | **GREEN** | Write the minimum production code that makes the test pass. Do not add untested defenses, future flexibility, or unrelated refactors. |
-| **Verify GREEN** | Run the test and the relevant suite — `vp test` in the package, `mise run tools:test` when the record tooling changed. Confirm they pass with no warnings, leaked logs, or skipped success. |
+| **Verify GREEN** | Run the test and the relevant suite — `vp test` in the package, `vp run tools:test` when the record tooling changed. Confirm they pass with no warnings, leaked logs, or skipped success. |
 | **Refactor** | Remove duplication and improve the design while tests stay green. Add no behavior. Then begin the next RED test. |
 
 Never commit while red. At a green natural boundary, follow [`.agents/rules/commit-discipline.md`](../../rules/commit-discipline.md).
@@ -119,9 +119,9 @@ Write for someone who has never read the proposal and never will. Explain what t
 
 Guides live at `docs/app/content/guides/<slug>.md` and are published on the docs site. Find the guide that already owns the workflow and extend it in the usual case. Add a guide only when no guide covers the workflow or combining them would make audience or behavior ambiguous. Do not duplicate overlapping instructions. Use [`.agents/templates/GUIDE.md`](../../templates/GUIDE.md) when adding a guide.
 
-Preserve the page's frontmatter: `title` and `description` stay accurate, because both feed the page title and its meta and Open Graph description. A new page also needs an entry in `GUIDE_GROUPS` in `docs/app/components/navigation.ts`, the sidebar serving both `/guides/` and `/deploy/`. The build does not fail without that entry; it publishes a page the site never links to. Links between pages are checked: `mise run docs:build` fails on a link to a page that does not exist, so a guide and the pages it links land together. Vale lints published prose — `.omp/hooks/vale-prose.ts` reports findings after every edit under `docs/app/content/guides/`, and `mise run docs:prose` runs it over all of it.
+Preserve the page's frontmatter: `title` and `description` stay accurate, because both feed the page title and its meta and Open Graph description. A new page also needs an entry in `GUIDE_GROUPS` in `docs/app/components/navigation.ts`, the sidebar serving both `/guides/` and `/deploy/`. The build does not fail without that entry; it publishes a page the site never links to. Links between pages are checked: `vp run docs:build` fails on a link to a page that does not exist, so a guide and the pages it links land together. Vale lints published prose — `.omp/hooks/vale-prose.ts` reports findings after every edit under `docs/app/content/guides/`, and `vp run docs:prose` runs it over all of it.
 
-Never hand-edit anything under `docs/app/content/api/`. That tree is TypeDoc output — gitignored, and overwritten by the next `mise run docs:api`. API prose belongs in the TSDoc comment in `packages/<name>/src/`; narrative prose belongs in `docs/app/content/guides/`.
+Never hand-edit anything under `docs/app/content/api/`. That tree is TypeDoc output — gitignored, and overwritten by the next `vp run docs:api`. API prose belongs in the TSDoc comment in `packages/<name>/src/`; narrative prose belongs in `docs/app/content/guides/`.
 
 | Include | Exclude |
 | --- | --- |
@@ -153,9 +153,9 @@ If an unknown failure appears, stop implementation and use [`.agents/skills/syst
 
 ## 4. Quality gates, excellence pass, and inline reviews
 
-Run `mise run check`, which depends on `docs:build`, `validate`, and `tools:test` before it runs `oxfmt --check`, `oxlint`, and `tsc`. A changed package also needs `vp test` and `vp run build` from inside `packages/<name>`. Follow [`.agents/rules/verification.md`](../../rules/verification.md) for completion evidence.
+Run `vp run check`, which depends on `docs:build`, `validate`, and `tools:test` before it runs `vp check` and `tsc`. A changed package also needs `vp test` and `vp run build` from inside `packages/<name>`. Follow [`.agents/rules/verification.md`](../../rules/verification.md) for completion evidence.
 
-A consumer-visible package change carries a release note on the branch. Run `mise run changeset` to name the affected packages and semver level, then commit the note with the work under its scope. Write the body for someone deciding whether to upgrade; Changesets uses it in the generated changelog. Repository tooling and agent-process changes need no package note. Feature work leaves version bumps and numbered changelog entries to `mise run changeset:version`, run later on human request.
+A consumer-visible package change carries a release note on the branch. Run `vp run changeset` to name the affected packages and semver level, then commit the note with the work under its scope. Write the body for someone deciding whether to upgrade; Changesets uses it in the generated changelog. Repository tooling and agent-process changes need no package note. Feature work leaves version bumps and numbered changelog entries to `vp run changeset:version`, run later on human request.
 
 Once the behavior works and the gates are clean, run [`.agents/skills/excellence-pass/`](../excellence-pass/) over the result before either inline review: it asks whether this is the implementation that should remain, not merely whether it passes. An implementation improvement goes back to the implementer as a bounded correction, after which the affected gates and this pass run again. A finding that changes intended behavior goes back to the proposal and the human instead of being settled in code.
 

@@ -4,21 +4,20 @@
 
 ## Run the reader
 
-Install the tool versions in `mise.toml`, then run these commands from the repository root:
+With Vite+ installed globally, run these commands from the repository root:
 
 ```sh
-mise install
-pnpm install --frozen-lockfile
-mise run docs:dev
+vp install
+vp run docs:dev
 ```
 
-`docs:dev` builds the publication assets, then starts Vite on port 1337. Open `http://localhost:1337/guides/vite-plugin`. Application and content edits go through Vite; search and downloadable Markdown use the last build's static assets. Rerun `mise run docs:build` to refresh those assets, or `mise run docs:api` after changing a package's TSDoc.
+`docs:dev` builds the publication assets, then starts Vite on port 1337. Open `http://localhost:1337/guides/vite-plugin`. Application and content edits go through Vite; search and downloadable Markdown use the last build's static assets. Rerun `vp run docs:build` to refresh those assets, or `vp run docs:api` after changing a package's TSDoc.
 
 ```sh
-mise run docs:build
-mise run docs:serve
-mise run docs:test
-mise run check
+vp run docs:build
+vp run docs:serve
+vp run docs:test
+vp run check
 ```
 
 `docs:build` builds the reader's workspace dependencies, compiles content, checks MDX, and prerenders the public documents. `docs:serve` serves the published assets through Cloudflare's local runtime. `docs:test` builds the reader and exercises static delivery, redirects, content, and genuine 404s. `check` runs the repository's remaining gates too.
@@ -79,12 +78,12 @@ Install the recommended **MDX** VS Code extension (`unifiedjs.vscode-mdx`). Open
 Executable MDX supports component-prop diagnostics, expression checks, completion, hover, and definition navigation. Imports resolve to real Remix component types. Unknown components must be imported rather than added to a permissive global declaration.
 
 ```sh
-mise run docs:mdx
+vp run docs:mdx
 ```
 
 This command checks diagnostic fixtures, then visits every included authored MDX page and partial, including unreferenced partials. Failures report the originating file, line, and column. The fixture check requires invalid props, unresolved imports, invalid expressions, unknown components, and syntax errors to remain detectable.
 
-Do not format MDX with the repository's Markdown formatter. Oxfmt currently changes executable MDX syntax; `.oxfmtrc.jsonc` excludes it and workspace MDX format-on-save is disabled. Vale still checks published MDX prose.
+Do not format MDX with the repository's Markdown formatter. Oxfmt currently changes executable MDX syntax; the `fmt` block in the root `vite.config.ts` excludes it and workspace MDX format-on-save is disabled. Vale still checks published MDX prose.
 
 ## Reference and deployment
 

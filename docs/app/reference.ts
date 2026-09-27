@@ -1,6 +1,6 @@
 import type { ContentLoader } from "@pitlane/content";
 
-/** One published reference page, as `mise run docs:api` describes it. */
+/** One published reference page, as `vp run docs:api` describes it. */
 interface ReferencePage {
     url: string;
     title: string;

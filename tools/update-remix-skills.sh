@@ -1,9 +1,8 @@
-#!/usr/bin/env zsh
-#MISE description="Vendor and update the official Remix agent skills with Rosie"
+#!/bin/sh
+# Vendors the official Remix agent skills into .agents/skills/remix.
 
 set -eu
 
-mkdir -p ./.agents/skills/remix
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 

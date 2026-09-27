@@ -7,7 +7,7 @@
 - [ ] Proposal settled by the human (`status: awaiting-implementation`)
 - [ ] Tests written first
 - [ ] Guides written from the proposal
-- [ ] Quality gates pass (`mise run check`, plus `vp test` and `vp run build` per package)
+- [ ] Quality gates pass (`vp run check`, plus `vp test` and `vp run build` per package)
 - [ ] Cross-artifact review complete
 - [ ] Adversarial review converged
 - [ ] Preview confirmed working and linked
