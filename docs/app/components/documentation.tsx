@@ -2,8 +2,6 @@ import type { Handle, RemixNode } from "remix/ui";
 
 import { tva } from "@pitlane/theme";
 
-import type { Preferences } from "../document.ts";
-
 import { t } from "../theme.ts";
 import { Article } from "./article.tsx";
 
@@ -98,20 +96,21 @@ export function Callout(handle: Handle<CalloutProps>) {
 
 /** The part of a guide that applies only to an application built with Vite. */
 export function Vite(handle: Handle<{ children?: RemixNode }>) {
-    return variant(handle, "vite", "Vite");
+    let page = pageWithBuildMode(handle, "Vite");
+    return () => (page.buildMode === "vite" ? handle.props.children : null);
 }
 
 /** The part of a guide that applies only to an application with no bundler. */
 export function NoBuild(handle: Handle<{ children?: RemixNode }>) {
-    return variant(handle, "no-build", "NoBuild");
+    let page = pageWithBuildMode(handle, "NoBuild");
+    return () => (page.buildMode === "no-build" ? handle.props.children : null);
 }
 
-/** A section kept on the page for its setup, named by the page's `build:` frontmatter, and dropped on the other. */
-function variant(
-    handle: Handle<{ children?: RemixNode }>,
-    mode: Preferences["buildMode"],
-    tag: string,
-) {
+/**
+ * The page a build-specific section sits on, which must name its setup in the
+ * `build:` frontmatter so the section is kept on one and dropped on the other.
+ */
+function pageWithBuildMode(handle: Handle<{ children?: RemixNode }>, tag: string) {
     let { page } = articleOf(handle, tag);
     if (!page.buildMode) {
         throw new Error(
@@ -120,7 +119,7 @@ function variant(
                 `"build: no-build".`,
         );
     }
-    return () => (page.buildMode === mode ? handle.props.children : null);
+    return page;
 }
 
 // A document awaits `installAlternatives()` from `app/install.ts` at module
