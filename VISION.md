@@ -160,7 +160,7 @@ Five packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite p
 Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
 
 1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
-2. `@pitlane/content` — shipped at 0.2.0.
+2. `@pitlane/content` — shipped at 0.2.1.
 3. `@pitlane/meta`
 4. `@pitlane/sprites`
 5. `@pitlane/image`
@@ -533,7 +533,7 @@ export default createController(routes.shop, {
 
 ### Content layer — `@pitlane/content`
 
-`@pitlane/content@0.2.0` declares schema-validated collections with `createContent` and loaders from `@pitlane/content/loaders`. Construction is synchronous and performs no loading. Reads and rendering remain asynchronous, and collections support typed references to one another.
+`@pitlane/content@0.2.1` declares schema-validated collections with `createContent` and loaders from `@pitlane/content/loaders`. Construction is synchronous and performs no loading. Reads and rendering remain asynchronous, and collections support typed references to one another.
 
 ```ts
 import { createContent } from "@pitlane/content";
