@@ -181,7 +181,8 @@ type KeywordProps = Omit<CSS.Properties<DimensionToken | 0, DurationToken>, keyo
  * slot.
  *
  * Two layers stack. Token-mapped longhands enforce the matching token
- * brand plus a small set of CSS keywords and the literal `0`. Every
+ * brand plus the small set of CSS keywords the table lists, and the
+ * literal `0` where the value is a length. Every
  * other property carries csstype's value union, so closed-grammar
  * properties such as `display`, `position`, `resize`, and `overflow`
  * only accept their real keywords. Unknown keys — nested selectors,
@@ -198,8 +199,10 @@ type KeywordProps = Omit<CSS.Properties<DimensionToken | 0, DurationToken>, keyo
  * | `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, the logical padding start/end forms, `fontSize`, `textIndent`, `outlineOffset`, the four corner radii, `rowGap`, `columnGap` | `DimensionToken \| 0 \| Wide` |
  * | `letterSpacing`, `wordSpacing` | `DimensionToken \| 0 \| "normal" \| Wide` |
  * | `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`, `outlineWidth` | `DimensionToken \| 0 \| "thin" \| "medium" \| "thick" \| Wide` |
- * | `padding`, `margin`, `inset`, `borderRadius` (box shorthands) | a single value as the longhand, or a tuple of 1–4 such values, space-joined |
- * | `gap`, `paddingBlock`, `paddingInline`, `marginBlock`, `marginInline`, `insetBlock`, `insetInline` | the longhand value, or a 2-tuple |
+ * | `padding`, `borderRadius` | a single value as the longhand, or a tuple of 1–4 `DimensionToken \| 0` values, space-joined |
+ * | `margin`, `inset` | a single value as the longhand, or a tuple of 1–4 `DimensionToken \| 0 \| "auto"` values, space-joined |
+ * | `gap`, `paddingBlock`, `paddingInline` | the longhand value, or a 2-tuple of `DimensionToken \| 0` |
+ * | `marginBlock`, `marginInline`, `insetBlock`, `insetInline` | the longhand value, or a 2-tuple of `DimensionToken \| 0 \| "auto"` |
  * | `fontFamily` | `FontFamilyToken \| Wide` |
  * | `fontWeight` | `FontWeightToken \| "normal" \| "bold" \| "lighter" \| "bolder" \| Wide` |
  * | `lineHeight` | `NumberToken \| DimensionToken \| "normal" \| Wide` |
@@ -208,6 +211,8 @@ type KeywordProps = Omit<CSS.Properties<DimensionToken | 0, DurationToken>, keyo
  * | `transitionTimingFunction`, `animationTimingFunction` | `CubicBezierToken \| "ease" \| "linear" \| "ease-in" \| "ease-out" \| "ease-in-out" \| "step-start" \| "step-end" \| Wide` |
  * | `boxShadow`, `textShadow` | `ShadowToken \| "none" \| Wide` |
  * | every other CSS property | csstype's union for that property, with `dimension` tokens for lengths and `duration` tokens for times |
+ *
+ * Tuple items take no CSS-wide keyword; `Wide` applies only to a single value.
  *
  * @see {@link css}
  */

@@ -148,6 +148,10 @@ export interface RemixPluginOptions {
  *
  * @example SPA mode, with no server and index.html as the entry
  * ```ts
+ * // vite.config.ts
+ * import { remix } from "@pitlane/dev";
+ * import { defineConfig } from "vite";
+ *
  * export default defineConfig({
  *     plugins: [remix({ server: false })],
  * });
