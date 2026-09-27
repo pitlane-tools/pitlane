@@ -51,16 +51,20 @@ async function load(): Promise<Documents> {
         content.api.getCollection(),
     ]);
     let guideIds = new Set(guides.map(guide => guide.id));
+    let deployIds = new Set(deploy.map(entry => entry.id));
 
     let all = await Promise.all([
         ...guides.map(guide =>
             document(guide, {
                 ...page(routes.guide.href({ slug: guide.id }), "guides", guide.data),
-                ...variant(guide.id, guide.data.build, guideIds),
+                ...variant(guide.id, guide.data.build, guideIds, "guides", routes.guide),
             }),
         ),
         ...deploy.map(entry =>
-            document(entry, page(routes.deploy.href({ slug: entry.id }), "deploy", entry.data)),
+            document(entry, {
+                ...page(routes.deploy.href({ slug: entry.id }), "deploy", entry.data),
+                ...variant(entry.id, entry.data.build, deployIds, "deployment", routes.deploy),
+            }),
         ),
         ...api.map(entry =>
             document(
@@ -124,23 +128,25 @@ function page(
 }
 
 /**
- * A two-mode guide names its counterpart by convention, `<slug>` for the Vite
- * page and `<slug>-no-build` for the No Build one, so a `build:` declaration
- * whose sibling is missing fails here rather than publishing a switch that
- * leads nowhere.
+ * A two-mode page names its counterpart by convention, `<slug>` for the Vite
+ * page and `<slug>-no-build` for the No Build one, within its own collection,
+ * so a `build:` declaration whose sibling is missing fails here rather than
+ * publishing a switch that leads nowhere.
  */
 function variant(
     id: string,
     mode: BuildMode | undefined,
-    guideIds: ReadonlySet<string>,
+    ids: ReadonlySet<string>,
+    directory: string,
+    route: { href(params: { slug: string }): string },
 ): Pick<DocumentPage, "buildMode" | "counterpart"> {
     if (!mode) return {};
     let sibling = mode === "vite" ? `${id}-no-build` : id.replace(/-no-build$/, "");
-    if (sibling === id || !guideIds.has(sibling)) {
+    if (sibling === id || !ids.has(sibling)) {
         throw new Error(
-            `docs/app/content/guides/${id} declares "build: ${mode}", but its ` +
-                `${mode === "vite" ? "No Build" : "Vite"} counterpart docs/app/content/guides/${sibling} does not exist.`,
+            `docs/app/content/${directory}/${id} declares "build: ${mode}", but its ` +
+                `${mode === "vite" ? "No Build" : "Vite"} counterpart docs/app/content/${directory}/${sibling} does not exist.`,
         );
     }
-    return { buildMode: mode, counterpart: routes.guide.href({ slug: sibling }) };
+    return { buildMode: mode, counterpart: route.href({ slug: sibling }) };
 }
