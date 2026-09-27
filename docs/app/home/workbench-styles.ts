@@ -39,6 +39,7 @@ export let workbench = css<HTMLDivElement>({
     },
     "& [data-package-choice]": {
         clear: "both",
+        position: "relative",
         width: "100%",
         border: 0,
         background: "transparent",
@@ -54,7 +55,7 @@ export let workbench = css<HTMLDivElement>({
         transition: "background-color 120ms ease-out",
     },
     "& [data-package-choice]:hover": { backgroundColor: t.color.hover },
-    "& label:has(input:checked), & [data-package-choice][aria-selected='true']": {
+    "& [data-package-choice]:has(input:checked), & [data-package-choice][aria-selected='true']": {
         backgroundColor: t.color.linkCurrent,
     },
     "& label:has(input:checked) strong, & [aria-selected='true'] strong": { color: t.color.link },
@@ -111,10 +112,13 @@ export let workbench = css<HTMLDivElement>({
         gridTemplateColumns: "minmax(0, 1fr)",
         "& [data-package-options]": {
             display: "flex",
-            flexWrap: "nowrap",
-            overflowX: "auto",
+            flexDirection: "column",
             borderRight: 0,
             borderBottom: `1px solid ${t.color.border}`,
+        },
+        "& [data-package-options][data-enhanced='true']": {
+            flexDirection: "row",
+            overflowX: "auto",
         },
         "& [data-package-legend]": { display: "none" },
         "& [data-package-choice]": {

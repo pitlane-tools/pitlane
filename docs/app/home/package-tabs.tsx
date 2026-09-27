@@ -19,6 +19,12 @@ export let PackageTabs = clientEntry(
         let restoreFocus = nativeChoice !== null && document.activeElement === nativeChoice;
         let vertical = true;
 
+        function focusSelected() {
+            let tab = document.getElementById(`package-tab-${handle.props.options[selected]!.id}`);
+            tab?.focus({ preventScroll: true });
+            tab?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+
         handle.queueTask(() => {
             let compact = matchMedia("(max-width: 760px)");
             let update = () => {
@@ -26,9 +32,7 @@ export let PackageTabs = clientEntry(
                 enhanced = true;
                 void handle.update().then(() => {
                     if (!restoreFocus) return;
-                    document
-                        .getElementById(`package-tab-${handle.props.options[selected]!.id}`)
-                        ?.focus();
+                    focusSelected();
                     restoreFocus = false;
                 });
             };
@@ -41,8 +45,7 @@ export let PackageTabs = clientEntry(
             function select(index: number, focus = false) {
                 selected = index;
                 void handle.update().then(() => {
-                    if (focus)
-                        document.getElementById(`package-tab-${options[index]!.id}`)?.focus();
+                    if (focus) focusSelected();
                 });
             }
             function navigate(event: KeyboardEvent) {
@@ -59,6 +62,7 @@ export let PackageTabs = clientEntry(
                 <div
                     aria-label="Packages"
                     aria-orientation={enhanced ? (vertical ? "vertical" : "horizontal") : undefined}
+                    data-enhanced={enhanced}
                     data-package-options
                     role={enhanced ? "tablist" : "group"}
                 >

@@ -29,7 +29,7 @@ The circuit drawing adapts [Mosport-CTMP.svg](https://upload.wikimedia.org/wikip
 
 The homepage uses the reader's shared header, surfaces, borders, and corner radii, with self-hosted Instrument Sans for its display headings. `docs/app/theme.ts` holds paired light and dark variants of five brand colors: racing red, indigo velvet, medium slate blue, amber flame, and royal gold. Red remains primary in both appearances, with a moderately softened dark variant. Indigo and blue provide secondary accents for monitor labels, track annotations, clock values, and completed sectors in both modes. Gold and amber are tertiary accents on the track's start/finish and direction markers and in warning callouts. Semantic roles follow the system appearance without JavaScript across the homepage, guides, and API reference.
 
-The package selector presents tabs without radio circles. With JavaScript, it exposes a tablist with one selected tab and associated panel; arrow keys follow its vertical desktop or horizontal mobile orientation, and Home/End jump to the first/last package. Without JavaScript, visually hidden native radios retain selection and keyboard behavior.
+The package selector presents tabs without radio circles. With JavaScript, it exposes a tablist with one selected tab and associated panel; arrow keys follow its vertical desktop or horizontal mobile orientation, and Home/End jump to the first/last package. The mobile tab row scrolls the focused choice fully into view. Without JavaScript, visually hidden native radios retain selection and keyboard behavior in a stacked layout. Enhancement preserves an existing choice and its focus.
 
 ## Author Markdown and MDX
 
