@@ -108,7 +108,7 @@ export function Document() {
 }
 ```
 
-Each result is an [`ImportedAssets`](/package/dev/runtime/interface/ImportedAssets), `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json`:
+Each result is an [`ImportedAssets`](/package/dev/runtime/interface/ImportedAssets), `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json` with [`@pitlane/dev/assets`](/package/dev/assets):
 
 ```jsonc
 { "compilerOptions": { "types": ["@pitlane/dev/assets"] } }
