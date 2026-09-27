@@ -33,6 +33,8 @@ The package selector presents tabs without radio circles. With JavaScript, it ex
 
 The inspector reserves the tallest package panel's height at each viewport width so switching tabs does not move the sections below it. The homepage wordmark starts enlarged on the same left edge as the hero copy, then docks into the shared navigation as the page scrolls. Reduced motion leaves static hero and navigation logos instead. Search precedes the primary navigation, whose links keep the same position across the homepage and documentation.
 
+The wordmark uses the checkered-flag P as the first letter of “Pitlane”, joined directly to “itlane”. Its hero SVGs shrink proportionally to fit narrow content areas; the closing call to action wraps when needed. Every page shares `SiteFooter`, including guides, API reference, deployment pages, and the 404 page. Its wordmark is monochrome, with the checkered flag at 50% opacity, and remains complete when the documentation sidebar is collapsed.
+
 Footer social links and package-manager tabs use monochrome CSS masks in `BrandIcon`, inheriting the link or tab's text color. Bun and Deno switch to distinct dark-mode artwork through `prefers-color-scheme`, including without JavaScript. Their light/dark pairs and the vlt mark come from [the archived loop documentation assets](https://github.com/markmals-archive/loop-docs/tree/main/public); GitHub and Bluesky use [Simple Icons](https://simpleicons.org/) marks. The remaining package marks retain their existing silhouettes with colored regions flattened. npm and nub use vector lettering cutouts rather than nested SVG masks, preserving sharp edges when zoomed.
 
 ## Author Markdown and MDX

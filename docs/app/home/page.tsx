@@ -1,6 +1,6 @@
 import { css } from "remix/ui";
 
-import { BrandIcon } from "../components/brand-icon.tsx";
+import { SiteFooter } from "../components/footer.tsx";
 import { SiteHeader } from "../components/header.tsx";
 import { Wordmark } from "../components/logo.tsx";
 import { Document } from "../components/shell.tsx";
@@ -76,32 +76,8 @@ export function Home() {
                         </a>
                     </section>
                 </main>
-                <footer data-home-footer>
-                    <a aria-label="Pitlane home" href="/">
-                        <Wordmark />
-                    </a>
-                    <span>
-                        Built with Pitlane, <a href="https://remix.run">Remix</a>,{" "}
-                        <a href="https://viteplus.dev">Vite+</a>, &{" "}
-                        <a href="https://www.cloudflare.com/products/workers">Cloudflare Workers</a>
-                        .
-                    </span>
-                    <div>
-                        <a href="https://github.com/pitlane-tools/pitlane" target="_blank">
-                            <BrandIcon name="github" /> GitHub ↗
-                        </a>
-                        <a href="https://bsky.app/profile/pitlane.tools" target="_blank">
-                            <BrandIcon name="bluesky" /> Bluesky ↗
-                        </a>
-                        <a
-                            href="https://github.com/pitlane-tools/pitlane/blob/main/LICENSE"
-                            target="_blank"
-                        >
-                            MIT License
-                        </a>
-                    </div>
-                </footer>
             </div>
+            <SiteFooter />
         </Document>
     );
 }

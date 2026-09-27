@@ -18,6 +18,7 @@ import {
 import { t, Theme } from "../theme.ts";
 import { Article, prose } from "./article.tsx";
 import { BuildModeSwitch } from "./build-mode-switch.tsx";
+import { SiteFooter } from "./footer.tsx";
 import { SectionBar, SiteHeader } from "./header.tsx";
 import { MarkdownActions } from "./markdown-actions.tsx";
 import { buildModeVariants, buildNavigation, PRIMARY_LINKS } from "./navigation.ts";
@@ -75,6 +76,7 @@ export function Shell(handle: Handle<ShellProps>) {
                         <Article page={page}>{children}</Article>
                     </div>
                 </main>
+                <SiteFooter docs />
             </Document>
         );
     };
@@ -115,6 +117,7 @@ export function NotFound() {
                     </ul>
                 </div>
             </main>
+            <SiteFooter />
         </Document>
     );
 }
