@@ -1,17 +1,14 @@
 import { css } from "@pitlane/theme";
-import { clientEntry, type Handle, on, ref } from "remix/ui";
+import { clientEntry, type Handle, ref } from "remix/ui";
 
 import { routes } from "../routes.ts";
-import { visuallyHidden } from "../styles/controls.ts";
 import { SECTORS } from "./lap-sequence.ts";
 import {
     barStyle,
     boardStyle,
-    buttonStyle,
     captionStyle,
     clockStyle,
-    commandStyle,
-    controlsStyle,
+    command,
     footStyle,
     label,
     linkStyle,
@@ -19,7 +16,7 @@ import {
     readoutStyle,
     row,
     rowsStyle,
-    sectorStyle,
+    sectorLabel,
     split,
     status,
     stripStyle,
@@ -31,13 +28,13 @@ const ENDS = SECTORS.reduce<number[]>(
     [],
 );
 const LAP = ENDS.at(-1) ?? 0;
+/** How long a finished lap stays on the board before the next one starts. */
+const HOLD = 2000;
 
-type Mode = "complete" | "running" | "paused";
-type SectorState = "done" | "live" | "paused" | "pending";
+type SectorState = "done" | "live" | "pending";
 
 const STATE_LABELS: Record<Exclude<SectorState, "done">, string> = {
     live: "Running",
-    paused: "Paused",
     pending: "Waiting",
 };
 
@@ -56,31 +53,28 @@ function sectorAt(ms: number): number {
 
 /**
  * The template's lap from scaffold to build: four real commands against a
- * running clock. The markup is the finished lap. In a browser the lap runs
- * once when the board scrolls into view, unless the reader prefers reduced
- * motion, and Replay runs it again on request. The clock stops while the
+ * running clock. The markup is the finished lap. In a browser the laps start
+ * when the board scrolls into view and repeat, each finished lap held for a
+ * moment, unless the reader prefers reduced motion. The clock stops while the
  * board is off screen or the tab is hidden.
  */
 export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
-    let mode: Mode = "complete";
+    /** Time into the current lap and the hold after it. */
     let elapsed = LAP;
+    /** Whether the laps have started and the reader has not asked for less motion. */
+    let looping = false;
     /** `performance.now()` at the lap's zero, while the timer runs. */
     let origin = 0;
     let frame = 0;
     let onScreen = false;
-    /** Whether the lap has run once, by itself or on request. */
-    let started = false;
-    /** Whether the reader started the current run, so its end is worth announcing. */
-    let requested = false;
-    let announcement = "";
     let board: HTMLElement | undefined;
     let clock: HTMLElement | undefined;
     let timestamps: HTMLElement[] = [];
 
     // The clock writes its own text between renders; a render happens only
-    // when a sector changes hands or the reader acts.
+    // when a sector changes hands or a lap starts.
     function showTime() {
-        let timestamp = lapTime(elapsed);
+        let timestamp = lapTime(Math.min(elapsed, LAP));
         let text = clock?.firstChild;
         if (text && text.nodeValue !== timestamp) text.nodeValue = timestamp;
         let activeTime = timestamps[sectorAt(elapsed)]?.firstChild;
@@ -94,72 +88,48 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
 
     function tick() {
         let sector = sectorAt(elapsed);
-        elapsed = Math.min(performance.now() - origin, LAP);
-        if (elapsed >= LAP) {
-            frame = 0;
-            mode = "complete";
-            announcement = requested ? `Lap complete in ${lapTime(LAP)}` : "";
-            void handle.update();
-            return;
+        let now = performance.now();
+        elapsed = now - origin;
+        if (elapsed >= LAP + HOLD) {
+            origin = now;
+            elapsed = 0;
         }
         showTime();
         if (sectorAt(elapsed) !== sector) void handle.update();
         frame = window.requestAnimationFrame(tick);
     }
 
-    /** Runs the timer while the lap is running and the reader can see it. */
+    /** Runs the timer while the laps loop and the reader can see them. */
     function drive() {
         halt();
-        if (mode !== "running" || !onScreen || document.hidden) return;
+        if (!looping || !onScreen || document.hidden) return;
         origin = performance.now() - elapsed;
         frame = window.requestAnimationFrame(tick);
-    }
-
-    function start() {
-        started = true;
-        elapsed = 0;
-        mode = "running";
-        showTime();
-        drive();
-        void handle.update();
-    }
-
-    function replay() {
-        requested = true;
-        announcement = "Lap restarted";
-        start();
-    }
-
-    function pauseOrResume() {
-        if (mode === "complete") return;
-        if (mode === "running") {
-            halt();
-            mode = "paused";
-            announcement = `Paused at ${lapTime(elapsed)}`;
-        } else {
-            mode = "running";
-            announcement = "Resumed";
-            drive();
-        }
-        void handle.update();
     }
 
     handle.queueTask(() => {
         if (!board) return;
         let reduced = matchMedia("(prefers-reduced-motion: reduce)");
-        reduced.addEventListener(
-            "change",
-            () => {
-                if (reduced.matches && mode === "running") pauseOrResume();
-            },
-            { signal: handle.signal },
-        );
-        // The lap starts once the board clears the bottom quarter of the screen.
+
+        function sync() {
+            if (reduced.matches) {
+                looping = false;
+                elapsed = LAP;
+            } else if (onScreen && !looping) {
+                looping = true;
+                elapsed = 0;
+            }
+            showTime();
+            drive();
+            void handle.update();
+        }
+
+        reduced.addEventListener("change", sync, { signal: handle.signal });
+        // The laps start once the board clears the bottom quarter of the screen.
         let observer = new IntersectionObserver(
             ([entry]) => {
                 onScreen = entry?.isIntersecting ?? false;
-                if (onScreen && !started && !reduced.matches) start();
-                else drive();
+                sync();
             },
             { rootMargin: "0px 0px -25% 0px" },
         );
@@ -172,15 +142,14 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
     });
 
     return () => {
-        let current = mode === "complete" ? -1 : sectorAt(elapsed);
+        let current = sectorAt(elapsed);
         let lap = SECTORS.map((sector, index) => {
             let state: SectorState = "live";
             if (current === -1 || index < current) state = "done";
             else if (index > current) state = "pending";
-            else if (mode === "paused") state = "paused";
-            return { ...sector, number: index + 1, state };
+            let total = current === -1 && index === SECTORS.length - 1;
+            return { ...sector, number: index + 1, state, total };
         });
-        let idle = mode === "complete";
 
         return (
             <div
@@ -210,7 +179,7 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                             ]}
                             role="timer"
                         >
-                            {lapTime(elapsed)}
+                            {lapTime(Math.min(elapsed, LAP))}
                         </span>
                         <p mix={captionStyle}>Illustrative sequence · not a benchmark</p>
                     </div>
@@ -225,12 +194,20 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                 </div>
                 <ol aria-label="Commands" mix={rowsStyle}>
                     {lap.map(sector => (
-                        <li key={sector.command} mix={row<HTMLLIElement>({ state: sector.state })}>
-                            <span mix={sectorStyle}>S{sector.number}</span>
+                        <li
+                            key={sector.command}
+                            mix={row<HTMLLIElement>({ state: sector.state, total: sector.total })}
+                        >
+                            <span mix={sectorLabel<HTMLSpanElement>({ total: sector.total })}>
+                                S{sector.number}
+                            </span>
                             <span
                                 data-lap-time
                                 mix={[
-                                    split<HTMLSpanElement>({ state: sector.state }),
+                                    split<HTMLSpanElement>({
+                                        state: sector.state,
+                                        total: sector.total,
+                                    }),
                                     ref(node => {
                                         timestamps[sector.number - 1] = node;
                                     }),
@@ -244,10 +221,18 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                                               : elapsed,
                                       )}
                             </span>
-                            <pre mix={commandStyle} tabindex={0}>
+                            <pre
+                                mix={command<HTMLPreElement>({ total: sector.total })}
+                                tabindex={0}
+                            >
                                 <code>{sector.command}</code>
                             </pre>
-                            <span mix={status<HTMLSpanElement>({ state: sector.state })}>
+                            <span
+                                mix={status<HTMLSpanElement>({
+                                    state: sector.state,
+                                    total: sector.total,
+                                })}
+                            >
                                 {sector.state === "done"
                                     ? sector.result
                                     : STATE_LABELS[sector.state]}
@@ -256,30 +241,10 @@ export let LapClock = clientEntry(import.meta.url, (handle: Handle) => {
                     ))}
                 </ol>
                 <div mix={footStyle}>
-                    <div mix={controlsStyle}>
-                        <button
-                            aria-label="Replay lap"
-                            mix={[buttonStyle, on("click", replay)]}
-                            type="button"
-                        >
-                            Replay
-                        </button>
-                        <button
-                            aria-disabled={idle ? "true" : undefined}
-                            aria-label={mode === "paused" ? "Resume lap clock" : "Pause lap clock"}
-                            mix={[buttonStyle, on("click", pauseOrResume)]}
-                            type="button"
-                        >
-                            {mode === "paused" ? "Resume" : "Pause"}
-                        </button>
-                    </div>
                     <a href={routes.deploy.href({ slug: "cloudflare" })} mix={linkStyle}>
                         Deploy it to Cloudflare Workers →
                     </a>
                 </div>
-                <span mix={css(visuallyHidden)} role="status">
-                    {announcement}
-                </span>
             </div>
         );
     };

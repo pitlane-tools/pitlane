@@ -5,9 +5,8 @@ import { t } from "../theme.ts";
 let hairline = `${t.size.hairline} solid ${t.color.border}`;
 
 /**
- * The monitor: a bar with the map's name and its one control, the map, then
- * the legend and the caption side by side where they fit and stacked where
- * they do not.
+ * The monitor: a bar with the map's name, the map, then the legend and the
+ * caption side by side where they fit and stacked where they do not.
  */
 export let figure = css({
     containerType: "inline-size",
@@ -26,10 +25,9 @@ export let figure = css({
     "& [data-track-bar]": {
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
         minHeight: t.size.touch,
         borderBottom: hairline,
-        paddingInlineStart: t.spacing(4),
+        paddingInline: t.spacing(4),
         color: t.color.accent,
         letterSpacing: t.tracking.caps,
         textTransform: "uppercase",
@@ -59,34 +57,6 @@ export let figure = css({
         borderTop: hairline,
         color: t.color.secondary,
     },
-});
-
-/** The Pause and Play button, the full height of the bar and ruled off from its name. */
-export let controlStyle = css<HTMLButtonElement>({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: t.spacing(2),
-    minWidth: t.size.touch,
-    minHeight: t.size.touch,
-    margin: 0,
-    padding: [0, t.spacing(4)],
-    border: 0,
-    borderInlineStart: hairline,
-    borderRadius: 0,
-    backgroundColor: "transparent",
-    color: t.color.text,
-    font: "inherit",
-    letterSpacing: t.tracking.caps,
-    textTransform: "uppercase",
-    cursor: "pointer",
-    "&:hover": { backgroundColor: t.color.canvas },
-    "&:focus-visible": {
-        outline: `${t.size.focus} solid ${t.color.link}`,
-        outlineOffset: t.size.focusInset,
-    },
-    "& svg": { width: t.spacing(3), height: t.spacing(3), fill: "currentColor" },
-    // Only a script moves the cars, so only a script offers to stop them.
-    "@media (scripting: none)": { display: "none" },
 });
 
 export let map = css<SVGSVGElement>({

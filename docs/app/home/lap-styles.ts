@@ -1,6 +1,6 @@
 import { css, scale, type ThemedCSSProps, tva } from "@pitlane/theme";
 
-import { compact, noScript } from "../styles/media.ts";
+import { compact } from "../styles/media.ts";
 import { t } from "../theme.ts";
 import { SECTORS } from "./lap-sequence.ts";
 
@@ -26,6 +26,9 @@ let focusRing: ThemedCSSProps = {
 
 let hairline = `${t.size.hairline} solid ${t.color.border}`;
 let fade = `color ${t.duration.fast} ${t.ease.standard}, background-color ${t.duration.fast} ${t.ease.standard}`;
+
+// Once the lap is over, the last sector's row holds the lap time, all of it in red.
+let lapTotal = { true: { color: t.color.link } };
 
 export let boardStyle = css<HTMLDivElement>({
     border: hairline,
@@ -59,7 +62,7 @@ export let readoutStyle = css<HTMLDivElement>({
 export let clockStyle = css<HTMLSpanElement>({
     ...mono,
     display: "block",
-    color: t.color.accent,
+    color: t.color.link,
     fontSize: scale(t.text.display)(2.25),
     fontWeight: t.weight.medium,
     letterSpacing: t.tracking.tighter,
@@ -96,7 +99,6 @@ export let marker = tva({
         state: {
             done: { backgroundColor: t.color.callout.tip.title },
             live: { backgroundColor: t.color.link },
-            paused: { backgroundColor: t.color.secondary },
             pending: {},
         },
     },
@@ -114,7 +116,8 @@ export let row = tva({
         rowGap: t.spacing(1),
         padding: [t.spacing(2.5), t.spacing(4)],
         borderBottom: hairline,
-        // The running sector carries the selected-signal rule on its edge.
+        // The running sector, and the last one once the lap is over, carry the
+        // selected-signal rule on their edge.
         borderInlineStart: `${t.size.focus} solid transparent`,
         [compact]: {
             gridTemplateColumns: "3rem minmax(0, 1fr) auto",
@@ -125,13 +128,16 @@ export let row = tva({
         state: {
             done: {},
             live: { borderInlineStartColor: t.color.link },
-            paused: { borderInlineStartColor: t.color.secondary },
             pending: {},
         },
+        total: { true: { borderInlineStartColor: t.color.link } },
     },
 });
 
-export let sectorStyle = css<HTMLSpanElement>({ ...label, gridArea: "sector" });
+export let sectorLabel = tva({
+    base: { ...label, gridArea: "sector" },
+    variants: { total: lapTotal },
+});
 
 export let split = tva({
     base: {
@@ -147,26 +153,29 @@ export let split = tva({
         state: {
             done: {},
             live: { color: t.color.link },
-            paused: { color: t.color.secondary },
             pending: { color: t.color.secondary },
         },
+        total: lapTotal,
     },
 });
 
 // Only the command scrolls when a narrow column cannot hold it. Focusable, as
 // Expressive Code's blocks are, so a keyboard can scroll it too.
-export let commandStyle = css<HTMLPreElement>({
-    ...focusRing,
-    gridArea: "command",
-    minWidth: 0,
-    margin: 0,
-    overflowX: "auto",
-    color: t.color.text,
-    fontFamily: t.font.mono,
-    fontSize: t.text.sm,
-    lineHeight: t.text.leading.normal,
-    whiteSpace: "pre",
-    scrollbarWidth: "thin",
+export let command = tva({
+    base: {
+        ...focusRing,
+        gridArea: "command",
+        minWidth: 0,
+        margin: 0,
+        overflowX: "auto",
+        color: t.color.text,
+        fontFamily: t.font.mono,
+        fontSize: t.text.sm,
+        lineHeight: t.text.leading.normal,
+        whiteSpace: "pre",
+        scrollbarWidth: "thin",
+    },
+    variants: { total: lapTotal },
 });
 
 export let status = tva({
@@ -184,45 +193,16 @@ export let status = tva({
         state: {
             done: { color: t.color.callout.tip.title },
             live: { color: t.color.link },
-            paused: { color: t.color.secondary },
             pending: {},
         },
+        total: lapTotal,
     },
 });
 
 export let footStyle = css<HTMLDivElement>({
     display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: t.spacing(3),
+    justifyContent: "flex-end",
     padding: [t.spacing(3), t.spacing(4)],
-});
-
-export let controlsStyle = css<HTMLDivElement>({
-    display: "flex",
-    gap: t.spacing(2),
-    [noScript]: { display: "none" },
-});
-
-export let buttonStyle = css<HTMLButtonElement>({
-    ...label,
-    ...focusRing,
-    minWidth: t.spacing(26),
-    minHeight: t.size.touch,
-    padding: [0, t.spacing(4)],
-    border: hairline,
-    borderRadius: t.radius.md,
-    backgroundColor: "transparent",
-    color: t.color.text,
-    cursor: "pointer",
-    transition: fade,
-    "&:hover": { backgroundColor: t.color.canvas },
-    "&[aria-disabled='true']": {
-        color: t.color.secondary,
-        cursor: "default",
-        "&:hover": { backgroundColor: "transparent" },
-    },
 });
 
 export let linkStyle = css<HTMLAnchorElement>({
