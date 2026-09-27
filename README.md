@@ -62,7 +62,7 @@ Because every template is the same app, diffing any two shows exactly what a pla
 - API reference, generated from source: [`@pitlane/dev`](https://pitlane.tools/package/dev/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/content`](https://pitlane.tools/package/content/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
 - Deploy guides: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare) · [Netlify](https://pitlane.tools/deploy/netlify) · [Vercel](https://pitlane.tools/deploy/vercel) · [Railway](https://pitlane.tools/deploy/railway) · [Deno Deploy](https://pitlane.tools/deploy/deno-deploy) · [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 
-For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and any page URL with `.md` appended returns that page as Markdown, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).
+For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).
 
 ## Repository
 

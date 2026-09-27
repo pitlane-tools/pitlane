@@ -116,7 +116,7 @@ The loaders, schema validation, and query methods work with any [Standard Schema
 - [Custom loaders](https://pitlane.tools/guides/content#custom-loaders)
 - [API reference](https://pitlane.tools/package/content/)
 
-For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and any page URL with `.md` appended returns that page as Markdown, such as [`https://pitlane.tools/guides/content.md`](https://pitlane.tools/guides/content.md).
+For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/content.md`](https://pitlane.tools/guides/content.md).
 
 ## License
 
