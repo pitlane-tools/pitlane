@@ -22,7 +22,9 @@ Then:
 
 ```sh
 cd demos/theme
-vp dev     # dev server
-vp build   # production build
-vp preview # serve the production build
+vp run dev     # dev server
+vp run build   # production build
+vp run preview # serve the production build
 ```
+
+These scripts run the demo's own Vite rather than the copy `vp dev` bundles. `@hiogawa/vite-plugin-fullstack` checks the dev environment against its own Vite's classes, so a server created by a second copy fails its `isRunnableDevEnvironment` assertion.
