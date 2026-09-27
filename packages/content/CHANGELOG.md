@@ -1,5 +1,23 @@
 # @pitlane/content
 
+## 0.2.2
+
+### Patch Changes
+
+- 6be8e56: Documentation only. No code changed.
+
+    - Every README now says where the documentation is published as Markdown for AI agents and other LLM tools: `https://pitlane.tools/llms.txt` indexes every page, `https://pitlane.tools/llms-full.txt` holds them all in one file, and any page URL with `.md` appended returns that page as Markdown.
+    - The `@pitlane/content` README gains the Vite setup the content guide describes. That setup covers the `satteri` and `vite-plugin-satteri` dev dependencies, and a `vite.config.ts` registering `satteri()` with `jsxImportSource: "remix/ui"`, `headings()`, `rawStyles()`, and `contentLayer()` before `remix()`. Before this, the README named `contentLayer()` but not the plugins it has to sit beside, and an MDX file compiled without `jsxImportSource: "remix/ui"` is a React component rather than a Remix one.
+    - The `@pitlane/content` entry-point table lists `@pitlane/content/hot`, and the README describes the four `@pitlane/content/internal/*` entry points as internal and unstable, with what each one is for: reuse by a plugin for a bundler other than Vite.
+
+- d4dfade: Documentation comments, plus two type-only exports from `@pitlane/content`. No runtime behavior changed.
+
+    - `@pitlane/content` now exports the `Content` and `ReferenceSchema` types. `Content<T>` is what `createContent()` returns, and `ReferenceSchema<C>` is what `c.reference(collection)` returns. Both already appeared in those signatures; now code can import them by name.
+    - The TSDoc that editors show and the reference at pitlane.tools is built from now covers more. `remix()` and `createContent()` have examples. The package entry points and the main functions link to their guides. `RemixPluginOptions`, `PrerenderConfig`, `PrerenderOption`, `CrawlOptions`, `D1DatabaseOptions`, `D1DriverOptions`, `D1Meta`, `D1PreparedStatement`, and `D1Result` have summaries. Every `@pitlane/content` entry point and the `@pitlane/theme/default` and `@pitlane/theme/dtcg` entry points have module summaries.
+    - `loaders.file()` describes the file shapes it accepts and when `options.parser` is required. `ThemeResult.extend()` describes what its patch may hold. `DefaultTheme` lists its top-level token groups.
+
+    `@pitlane/dev/assets` documents each `?assets` import form and `pitlane:dev`, and has its own reference page.
+
 ## 0.2.1
 
 ### Patch Changes
