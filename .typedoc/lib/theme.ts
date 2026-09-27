@@ -1,4 +1,10 @@
-import type { DeclarationReflection, Options, ReferenceReflection, Reflection } from "typedoc";
+import type {
+    DeclarationHierarchy,
+    DeclarationReflection,
+    Options,
+    ReferenceReflection,
+    Reflection,
+} from "typedoc";
 import type { MarkdownPageEvent } from "typedoc-plugin-markdown";
 
 import { ReflectionKind } from "typedoc";
@@ -31,6 +37,68 @@ export class SymbolThemeContext extends MarkdownThemeContext {
         this.templates.reflection = page =>
             this.router.modules.get(page.model) ? this.overview(page.model) : reflection(page);
         this.partials.pageTitle = () => this.page.model.name;
+        // An anonymous function type names its parameters and nothing else by
+        // default, so a callback's argument type had no place on the page.
+        let functionType = this.partials.functionType;
+        this.partials.functionType = (model, options) =>
+            functionType(model, { ...options, forceParameterType: true });
+        let members = this.partials.members;
+        this.partials.members = (model, options) => this.summarizedMembers(model, options, members);
+        this.partials.hierarchy = (model, options) => this.hierarchy(model, options.headingLevel);
+    }
+
+    // The upstream partial joins several bases of one declaration with a dot,
+    // which reads as a qualified name (`KeywordProps`.`TokenMappedProps`).
+    hierarchy(model: DeclarationHierarchy, headingLevel: number): string {
+        let sections: string[] = [];
+        let list = (level: DeclarationHierarchy) =>
+            level.types
+                .map(
+                    type =>
+                        `- ${this.helpers.getHierarchyType(type, { isTarget: level.isTarget || false })}`,
+                )
+                .join("\n");
+        let prefix = "#".repeat(headingLevel);
+        for (let level: DeclarationHierarchy | undefined = model; level?.next; level = level.next) {
+            if (level.isTarget) {
+                sections.push(`${prefix} Extended by`, list(level.next));
+            } else {
+                sections.push(`${prefix} Extends`, list(level));
+            }
+        }
+        return sections.join("\n\n");
+    }
+
+    // Members inherited from a base named by `summarizeInheritedFrom` are
+    // counted rather than rendered one by one: such a base re-exports a large
+    // external vocabulary the page's own description already characterizes.
+    summarizedMembers(
+        model: DeclarationReflection[],
+        options: Parameters<MarkdownThemeContext["partials"]["members"]>[1],
+        members: MarkdownThemeContext["partials"]["members"],
+    ): string {
+        let bases = this.options.getValue("summarizeInheritedFrom") as string[];
+        let baseOf = (member: DeclarationReflection) =>
+            bases.find(base => member.inheritedFrom?.name.startsWith(`${base}.`));
+        let counts = new Map<string, number>();
+        for (let member of model) {
+            let base = baseOf(member);
+            if (base) counts.set(base, (counts.get(base) ?? 0) + 1);
+        }
+        if (counts.size === 0) {
+            return members(model, options);
+        }
+        let noun = options.groupTitle?.toLowerCase() ?? "members";
+        return [
+            members(
+                model.filter(member => !baseOf(member)),
+                options,
+            ),
+            ...[...counts].map(
+                ([base, count]) =>
+                    `${count} more ${noun} are inherited from \`${base}\` and not listed individually.`,
+            ),
+        ].join("\n\n");
     }
 
     // Every link is root-relative, so a page reads the same wherever the
@@ -44,16 +112,21 @@ export class SymbolThemeContext extends MarkdownThemeContext {
     overview(model: DeclarationReflection): string {
         let { name } = this.router.modules.get(model)!;
         let anchors = legacyAnchors(this);
+        let comment = model.comment
+            ? this.partials.comment(model.comment, { headingLevel: 2 })
+            : undefined;
+        // The page's own headings already carry these ids.
         let currentHeadings = new Set([
             legacySlug(name),
             ...[...KIND_SEGMENTS.keys()].map(kind => legacySlug(ReflectionKind.pluralString(kind))),
+            ...[...(comment ?? "").matchAll(/^#+ (.*)$/gm)].map(([, title]) => legacySlug(title)),
         ]);
         let previousHeadings = (anchors.get(model) ?? [])
             .filter(anchor => !currentHeadings.has(anchor))
             .map(anchor => `<a id="${anchor}"></a>`);
         let md = [...previousHeadings, `# ${name}`];
-        if (model.comment) {
-            md.push(this.partials.comment(model.comment, { headingLevel: 2 }));
+        if (comment) {
+            md.push(comment);
         }
         let groups = new Map<ReflectionKind, OverviewEntry[]>(
             [...KIND_SEGMENTS.keys()].map(kind => [kind, []]),

@@ -67,6 +67,7 @@ test("proposal.0004: every top-level export gets one page at <module>/<kind>/<na
     await generate(root, "pkg");
     assert.deepEqual(pages(root), [
         "class/Widget.md",
+        "function/define.md",
         "function/render.md",
         "hot.md",
         "hot/interface/FileEvent.md",
@@ -74,8 +75,10 @@ test("proposal.0004: every top-level export gets one page at <module>/<kind>/<na
         "index.md",
         "interface/ContentBuilder.md",
         "interface/Reference.md",
+        "interface/Styles.md",
         "loaders.md",
         "loaders/function/load.md",
+        "loaders/variable/make.md",
     ]);
 });
 
@@ -281,4 +284,64 @@ test("proposal.0004: reference.json accumulates packages across runs and drops a
     assert.ok(!urls.includes("/package/pkg/loaders"));
     assert.ok(urls.includes("/package/pkg/class/Widget"));
     assert.ok(urls.includes("/package/other/interface/Reference"));
+});
+
+test("a function-typed parameter shows each callback parameter's type, linked", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    assert.match(
+        read(root, "function/define.md"),
+        /\(`c`: \[`ContentBuilder`\]\(\/package\/pkg\/interface\/ContentBuilder\)\) => `T`/,
+    );
+    assert.match(
+        read(root, "loaders/function/load.md"),
+        /\(`widget`: \[`Widget`\]\(\/package\/pkg\/class\/Widget\)\) => `string`/,
+    );
+});
+
+test("a variable's page shows its declared type, never the implementation it is assigned", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let page = read(root, "loaders/variable/make.md");
+    assert.doesNotMatch(page, /makeWidget/);
+    assert.match(page, /^const make: \(name(: string)?\) => Widget;$/m);
+});
+
+test("members inherited from a summarized base are counted, not listed", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg", {
+        summarizeInheritedFrom: ["Passthrough"],
+    } as Partial<TypeDocOptions>);
+    let page = read(root, "interface/Styles.md");
+    assert.match(page, /^### gap\?$/m, "members of other bases stay listed");
+    assert.doesNotMatch(page, /^### (display|position)\?$/m);
+    assert.match(
+        page,
+        /2 more properties are inherited from `Passthrough` and not listed individually\./,
+    );
+});
+
+test("without the option, inherited members are listed", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let page = read(root, "interface/Styles.md");
+    assert.match(page, /^### display\?$/m);
+    assert.doesNotMatch(page, /not listed individually/);
+});
+
+test("an interface extending several bases lists each base on its own line", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let page = read(root, "interface/Styles.md");
+    let extended = page.match(/^## Extends\n\n((?:- .*\n?)+)/m)?.[1];
+    assert.deepEqual(extended?.trimEnd().split("\n"), ["- `Passthrough`", "- `Mapped`"]);
+});
+
+test("a module overview's own headings are not repeated as compatibility anchors", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let overview = read(root, "loaders.md");
+    assert.match(overview, /^## See$/m);
+    assert.match(overview, /\[Loaders guide\]\(https:\/\/example\.com\/guides\/loaders\)/);
+    assert.doesNotMatch(overview, /<a id="see"><\/a>/);
 });
