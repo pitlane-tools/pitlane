@@ -220,10 +220,20 @@ test("never selects another pull request's proposal for a known pull request", (
         id: "proposal.0003",
         pullRequest: "https://github.com/owner/repo/pull/17",
     });
-    let selection = selectProposal([elsewhere], CURRENT_PULL_REQUEST);
+    let sameNumberElsewhere = proposal("draft", 0, {
+        id: "proposal.0004",
+        pullRequest: "https://github.com/other/repo/pull/29",
+    });
+    let selection = selectProposal([elsewhere, sameNumberElsewhere], CURRENT_PULL_REQUEST);
 
     assert.equal(selection.proposal, null);
     assert.deepEqual(selection.otherCandidates, []);
+});
+
+test("matches a proposal linked by this pull request's own URL", () => {
+    let linked = proposal("draft", 0, { pullRequest: `${CURRENT_PULL_REQUEST.url}/` });
+
+    assert.equal(selectProposal([linked], CURRENT_PULL_REQUEST).proposal, linked);
 });
 
 test("prefers the proposal linked to the pull request over newer unlinked drafts", () => {

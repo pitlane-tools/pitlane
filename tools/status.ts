@@ -370,12 +370,14 @@ function proposalNumber(proposal: Proposal): number {
     return Number(proposal.id?.match(/(\d+)$/)?.[1] ?? -1);
 }
 
-function matchesPullRequest(proposal: Proposal, pullRequest: PullRequest | null | undefined) {
-    let number = String(pullRequest?.number);
-    return (
-        pullRequest &&
-        (proposal.pullRequest === number || proposal.pullRequest?.endsWith(`/pull/${number}`))
-    );
+/**
+ * Whether a proposal's `pull-request` field names this pull request: its bare
+ * number, or its URL. Numbers repeat across repositories, so a URL counts only
+ * when it is this pull request's own.
+ */
+function matchesPullRequest(proposal: Proposal, pullRequest: PullRequest) {
+    let link = proposal.pullRequest?.trim().replace(/\/+$/, "");
+    return link === String(pullRequest.number) || link === pullRequest.url.replace(/\/+$/, "");
 }
 
 /**
