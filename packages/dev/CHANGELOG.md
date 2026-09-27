@@ -1,5 +1,12 @@
 # @pitlane/dev
 
+## 0.6.3
+
+### Patch Changes
+
+- 48c5ab2: Prerender every build through the server bundle that build just produced. When two builds ran in the same process, such as a watch rebuild or consecutive builds in a test run, prerendering could reuse the first build's fetch handler and route map. This happened when both bundles had the same modification time, or when the plugin ran under Vite's module runner (for example, in Vitest). Pages could then render stale content, or a build could pass that should have failed.
+- 460e23a: Recommend separate prerendered frame URLs as the default workaround for documents being served into frames. Document links use `data-rmx-src` for the static frame response, preserving fully static navigation without frame headers or runtime SSR. Document Cloudflare assets-only deployment; retain Worker-first rendering as an optional hybrid alternative. The app supplies the frame routes and link attributes. The plugin's API and generated output are unchanged.
+
 ## 0.6.2
 
 Published 2026-09-21. [npm](https://www.npmjs.com/package/@pitlane/dev/v/0.6.2) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/dev%400.6.2) · [Source](https://github.com/pitlane-tools/pitlane/commit/b725843491ad0c36c61c83d44466134f76dbd615).

@@ -1,5 +1,11 @@
 # @pitlane/theme
 
+## 0.4.3
+
+### Patch Changes
+
+- 4aa9d11: Clarify that fixed CSS mixin descriptors can be shared when created with an explicit element type. Inline calls still infer that type from `mix`; sharing style objects remains appropriate across different element types. The API and runtime behavior are unchanged.
+
 ## 0.4.2
 
 Published 2026-09-21. [npm](https://www.npmjs.com/package/@pitlane/theme/v/0.4.2) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/theme%400.4.2) · [Source](https://github.com/pitlane-tools/pitlane/commit/b725843491ad0c36c61c83d44466134f76dbd615).

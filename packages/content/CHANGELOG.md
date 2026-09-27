@@ -1,5 +1,18 @@
 # @pitlane/content
 
+## 0.2.0
+
+### Minor Changes
+
+- 87ec1f6: Give headings the ids GitHub gives them. `headings()` now lowercases a heading, removes every character outside letters, marks, digits, and connector punctuation, and turns each space into a hyphen without collapsing or trimming any of them — the algorithm GitHub uses, and the one Astro's `rehype-heading-ids` uses through the same `github-slugger` package. `## Databases & Data Loading` was `databases-data-loading` and is now `databases--data-loading`; `## Jenni’s Quesadillas` was `jenni-s-quesadillas` and is now `jennis-quesadillas`.
+
+    A heading containing punctuation or symbols can therefore get a different `id` than it did before — `## Hello World!` keeps `hello-world`, but `## Databases & Data Loading` does not — so an anchor written by hand against the old ids needs checking once. In exchange, a table of contents carried over from GitHub or Astro keeps landing without being rewritten. A heading that slugs to nothing at all, such as `## 🎉`, still falls back to `heading` rather than to the empty `id` GitHub produces, and a later `## Heading` in the same document then takes `heading-1`.
+
+### Patch Changes
+
+- f8b0db5: Keep content prebuilds from deleting the running app's optimized browser dependencies. This fixes `504 (Outdated Optimize Dep)` errors that could leave MDX updates and client-side navigation broken until the dev server restarted.
+- 98e8a77: Vite no longer warns that it cannot analyze a dynamic import in `@pitlane/content` when an app using `contentLayer()` starts its dev server. The runtime import of a document's resolved dependencies is now marked `/* @vite-ignore */`, since its target is only known at request time.
+
 ## 0.1.1
 
 Published 2026-09-21. [npm](https://www.npmjs.com/package/@pitlane/content/v/0.1.1) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/%40pitlane/content%400.1.1) · [Source](https://github.com/pitlane-tools/pitlane/commit/b725843491ad0c36c61c83d44466134f76dbd615).
