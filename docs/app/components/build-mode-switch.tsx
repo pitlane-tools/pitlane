@@ -1,13 +1,10 @@
 import { css } from "@pitlane/theme";
 import { clientEntry, type Handle, on } from "remix/ui";
 
-import type { BuildMode } from "../document.ts";
-
 import { rememberPreference } from "../browser/preferences.ts";
+import { BUILD_MODE_LABELS, type BuildMode } from "../document.ts";
 import { control } from "../styles/controls.ts";
 import { t } from "../theme.ts";
-
-const BUILD_MODE_LABELS: Record<BuildMode, string> = { vite: "Vite", "no-build": "No Build" };
 
 let optionStyle = control<HTMLAnchorElement>({ option: true });
 

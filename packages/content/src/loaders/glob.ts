@@ -45,6 +45,8 @@ let formats: Record<string, (text: string) => Document> = {
  *
  * `pattern` is an ordinary runtime value — computed, read from the environment,
  * or assembled in a loop — because nothing about it is read statically.
+ *
+ * @see {@link https://pitlane.tools/guides/content | Content guide}
  */
 export function glob(options: {
     pattern: string | string[];

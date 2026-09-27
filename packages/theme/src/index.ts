@@ -9,6 +9,8 @@
  * helpers enforce the token palette at the type level on top of
  * `remix/ui`'s `css()` mixin.
  *
+ * @see {@link https://pitlane.tools/guides/theme | Theme guide}
+ *
  * @module @pitlane/theme
  */
 

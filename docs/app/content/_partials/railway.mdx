@@ -330,7 +330,7 @@ Set them per service in the dashboard (**Variables**) or `railway variable set K
 
 ## Client-only apps
 
-A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no `server.ts` and no runtime process. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr). `vite build` emits a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
+A client-only Remix 3 app runs [`remix()`](/package/dev/function/remix) in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no `server.ts` and no runtime process. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr). `vite build` emits a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
 
 ```html
 <!-- index.html -->

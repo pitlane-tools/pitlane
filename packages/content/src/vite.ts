@@ -1,3 +1,12 @@
+/**
+ * The {@link contentLayer} Vite plugin, which resolves every collection
+ * during the build and inlines the entries into the bundle, so a host with no
+ * filesystem serves the same collections.
+ *
+ * @see {@link https://pitlane.tools/guides/content | Content guide}
+ *
+ * @module
+ */
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -30,6 +39,8 @@ type Resolution = NonNullable<UserConfig["resolve"]>;
  *
  * The result is a host with no filesystem serving the collections the
  * application declared, with no change to the declarations.
+ *
+ * @see {@link https://pitlane.tools/guides/content | Content guide}
  */
 export function contentLayer(options?: { entry?: string }): Plugin {
     let entry = options?.entry ?? "app/content.ts";

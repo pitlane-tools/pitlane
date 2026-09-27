@@ -2,8 +2,7 @@ import type { Handle, RemixNode } from "remix/ui";
 
 import { css, type ThemedCSSProps, tva } from "@pitlane/theme";
 
-import type { DocumentPage } from "../document.ts";
-
+import { type DocumentPage, markdownPath } from "../document.ts";
 import clientAssets from "../entry.browser.ts?assets=client";
 import { eyebrow } from "../styles/controls.ts";
 import {
@@ -217,6 +216,13 @@ export function Document(handle: Handle<DocumentProps>) {
                     <title>{fullTitle}</title>
                     <meta content={description} name="description" />
                     {canonical ? <link href={canonical} rel="canonical" /> : null}
+                    {url ? (
+                        <link
+                            href={`${SITE_URL}${markdownPath(url)}`}
+                            rel="alternate"
+                            type="text/markdown"
+                        />
+                    ) : null}
                     <meta content={SITE_NAME} property="og:site_name" />
                     <meta content="website" property="og:type" />
                     <meta content={fullTitle} property="og:title" />

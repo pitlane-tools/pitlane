@@ -28,7 +28,7 @@ First, install the package. `remix` 3.0.0-rc.1 or later is a peer dependency:
 
 ## Define a theme
 
-A theme has a schema tree, a token tree, and optional modes. Define it once, such as in `app/theme.ts`, then export the typed accessor, raw-value resolver, and component:
+A theme has a schema tree, a token tree, and optional modes. Define it once with [`createTheme()`](/package/theme/function/createTheme), such as in `app/theme.ts`, then export the typed accessor, raw-value resolver, and component:
 
 ```ts
 import { createTheme, lightDark } from "@pitlane/theme";
@@ -73,25 +73,25 @@ Token values are the CSS they become. Each schema decides its leaf shape. It can
 
 ### Choose schemas
 
-The schema names the type for each token or group. Import the factories as `s` to keep those declarations separate from the token values.
+The schema names the type for each token or group. Import the [factories](/package/theme/schema) from `@pitlane/theme/schema` as `s` to keep those declarations separate from the token values.
 
 | Factory | Token type | Accepted authored value |
 | --- | --- | --- |
-| `s.color()` | `color` | CSS color text, including `light-dark()`, `color-mix()`, and `currentColor` |
-| `s.dimension()` | `dimension` | CSS length text, including `clamp()`, `calc()`, `em`, and `%` |
-| `s.duration()` | `duration` | CSS time text, including `ms`, `s`, and `calc()` |
-| `s.number()` | `number` | A finite number |
-| `s.easing()` | `cubicBezier` | `cubic-bezier(...)` text or a four-number tuple |
-| `s.shadow()` | `shadow` | CSS shadow text, including `inset` |
-| `s.border()` | `border` | CSS border shorthand text |
-| `s.transition()` | `transition` | CSS transition shorthand text |
-| `s.gradient()` | `gradient` | CSS gradient function text |
-| `s.stroke()` | `strokeStyle` | `solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`, `outset`, or `inset` |
-| `s.font.family()` | `fontFamily` | A font name or an array of font names |
-| `s.font.weight()` | `fontWeight` | A number from 1 through 1000, or `thin`, `hairline`, `extra-light`, `ultra-light`, `light`, `normal`, `regular`, `book`, `medium`, `semi-bold`, `demi-bold`, `bold`, `extra-bold`, `ultra-bold`, `black`, `heavy`, `extra-black`, or `ultra-black` |
-| `s.scale()` | `dimension` | One base length whose accessor multiplies it |
-| `s.any()` | None | A string or number emitted verbatim |
-| `s.group(self, children)` | Inherited from `self` | A typed node with schema overrides for children |
+| [`s.color()`](/package/theme/schema/function/color) | `color` | CSS color text, including `light-dark()`, `color-mix()`, and `currentColor` |
+| [`s.dimension()`](/package/theme/schema/function/dimension) | `dimension` | CSS length text, including `clamp()`, `calc()`, `em`, and `%` |
+| [`s.duration()`](/package/theme/schema/function/duration) | `duration` | CSS time text, including `ms`, `s`, and `calc()` |
+| [`s.number()`](/package/theme/schema/function/number) | `number` | A finite number |
+| [`s.easing()`](/package/theme/schema/function/easing) | `cubicBezier` | `cubic-bezier(...)` text or a four-number tuple |
+| [`s.shadow()`](/package/theme/schema/function/shadow) | `shadow` | CSS shadow text, including `inset` |
+| [`s.border()`](/package/theme/schema/function/border) | `border` | CSS border shorthand text |
+| [`s.transition()`](/package/theme/schema/function/transition) | `transition` | CSS transition shorthand text |
+| [`s.gradient()`](/package/theme/schema/function/gradient) | `gradient` | CSS gradient function text |
+| [`s.stroke()`](/package/theme/schema/function/stroke) | `strokeStyle` | `solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`, `outset`, or `inset` |
+| [`s.font.family()`](/package/theme/schema/variable/font) | `fontFamily` | A font name or an array of font names |
+| [`s.font.weight()`](/package/theme/schema/variable/font) | `fontWeight` | A number from 1 through 1000, or `thin`, `hairline`, `extra-light`, `ultra-light`, `light`, `normal`, `regular`, `book`, `medium`, `semi-bold`, `demi-bold`, `bold`, `extra-bold`, `ultra-bold`, `black`, `heavy`, `extra-black`, or `ultra-black` |
+| [`s.scale()`](/package/theme/schema/function/scale) | `dimension` | One base length whose accessor multiplies it |
+| [`s.any()`](/package/theme/schema/function/any) | None | A string or number emitted verbatim |
+| [`s.group(self, children)`](/package/theme/schema/function/group) | Inherited from `self` | A typed node with schema overrides for children |
 
 `s.group(self, children)` gives a group a type and lets specific children use another type. In the example, `control.height.sm` inherits `s.dimension()`, while `control.color.default` uses `s.color()`. `default` is an ordinary token name. The schema stores its own type separately, so no token name is reserved.
 
@@ -103,7 +103,7 @@ t.spacing(0.5); // calc(var(--spacing) * 0.5)
 t.spacing.token; // var(--spacing)
 ```
 
-The module-level `scale()` applies the same operation to an ordinary dimension, duration, or number token:
+The module-level [`scale()`](/package/theme/function/scale) applies the same operation to an ordinary dimension, duration, or number token:
 
 ```ts
 import { scale } from "@pitlane/theme";
@@ -117,7 +117,7 @@ Declare `s.any()` for CSS values without a token type, such as `animation` value
 
 A reference to another token is a property access on the layer below. There is no string syntax for one, so every reference is checked by the compiler and renaming a token breaks its references at build time rather than in the stylesheet.
 
-`extend` deep-merges a patch with its base. Its callback receives the accessor of the preceding layer:
+[`extend`](/package/theme/interface/ThemeResult#extend) deep-merges a patch with its base. Its callback receives the accessor of the preceding layer:
 
 ```ts
 let baseTheme = createTheme({
@@ -158,7 +158,7 @@ let shadows = baseTheme.extend(base => ({
 
 That emits `--shadow-card: 0 1px 2px var(--color-white);`, so a mode override of `color.white` reaches the shadow.
 
-`select` replaces a theme with a projection. It retains selected tokens, and its output paths decide the resulting custom-property names, so a projection can reshape and rename a tree:
+[`select`](/package/theme/interface/ThemeResult#select) replaces a theme with a projection. It retains selected tokens, and its output paths decide the resulting custom-property names, so a projection can reshape and rename a tree:
 
 ```ts
 let publicTheme = baseTheme.select(base => ({
@@ -169,7 +169,7 @@ let publicTheme = baseTheme.select(base => ({
 publicTheme.token.brand.primary; // var(--brand-primary)
 ```
 
-`@pitlane/theme/default` exports `DefaultTheme`, a `<Theme />` component built from Tailwind v4 primitives. It has colors, spacing, radii, fonts, and other primitives. Semantic names belong in the theme that extends it. Select the primitives an application uses before rendering the theme:
+`@pitlane/theme/default` exports [`DefaultTheme`](/package/theme/default/variable/DefaultTheme), a `<Theme />` component built from Tailwind v4 primitives. It has colors, spacing, radii, fonts, and other primitives. Semantic names belong in the theme that extends it. Select the primitives an application uses before rendering the theme:
 
 ```ts
 import { createTheme } from "@pitlane/theme";
@@ -194,7 +194,7 @@ export let {
 }));
 ```
 
-Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise `ThemeError`, including a reference whose type does not match its position, a reference to an untyped token, a projection that drops a token something it kept refers to, a CSS variable collision, an undeclared token, a mode that overrides an unknown token, and a token tree passed without the `tokens` key that wraps it.
+Validation runs when `createTheme` compiles the theme. Invalid values raise `ValidationError` from `remix/data-schema`. Its `issues` array contains every invalid value with its path and diagnostic. `ValidationError.message` is generic. Structural failures raise [`ThemeError`](/package/theme/class/ThemeError), including a reference whose type does not match its position, a reference to an untyped token, a projection that drops a token something it kept refers to, a CSS variable collision, an undeclared token, a mode that overrides an unknown token, and a token tree passed without the `tokens` key that wraps it.
 
 ## Install the tokens
 
@@ -217,7 +217,7 @@ function App() {
 
 ## Use tokens in styles
 
-`css` from `@pitlane/theme` is remix/ui's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:
+[`css`](/package/theme/function/css) from `@pitlane/theme` is remix/ui's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:
 
 ```tsx
 import { css } from "@pitlane/theme";
@@ -234,13 +234,13 @@ import { t } from "./theme.ts";
 />;
 ```
 
-Inline `css()` infers the element type from `mix`. For fixed styles reused on one element type, create a descriptor once with an explicit type, such as `css<HTMLAnchorElement>({ color: t.color.page })`. Share `ThemedCSSProps` objects instead when the same styles are used on different element types.
+Inline `css()` infers the element type from `mix`. For fixed styles reused on one element type, create a descriptor once with an explicit type, such as `css<HTMLAnchorElement>({ color: t.color.page })`. Share [`ThemedCSSProps`](/package/theme/interface/ThemedCSSProps) objects instead when the same styles are used on different element types.
 
 Off-palette literals fail to compile. Keywords such as `transparent` and literal `0` stay legal. Properties outside the token-mapped set carry [csstype](https://github.com/frenic/csstype)'s value union, so `resize: "vertical"` autocompletes and `resize: "diagonal"` is a type error, while open-grammar properties such as `background` and `gridTemplateColumns` take any string. Template interpolation covers shorthands: `` border: `1px solid ${t.color.gray[900]}` ``.
 
 ## Dark mode
 
-Use `lightDark(light, dark)` for a color whose value follows the active CSS color scheme. The `color.page` token in the theme above becomes `light-dark(#fff, #171717)`, and responds to the operating-system preference without a theme mode. `lightDark()` accepts accessor references too, so its colors can still be overridden in a later layer.
+Use [`lightDark(light, dark)`](/package/theme/function/lightDark) for a color whose value follows the active CSS color scheme. The `color.page` token in the theme above becomes `light-dark(#fff, #171717)`, and responds to the operating-system preference without a theme mode. `lightDark()` accepts accessor references too, so its colors can still be overridden in a later layer.
 
 `light-dark()` resolves against the `color-scheme` property, and an undeclared `color-scheme` behaves as light, so the function would otherwise keep its light value on a dark system. `<Theme />` declares `color-scheme: light dark` on `:root` whenever a token uses the function. Declare a narrower value yourself to override it.
 
@@ -284,7 +284,7 @@ Call `setColorScheme(undefined)` to return control to the operating-system prefe
 
 ## Variants with Theme Variance Authority
 
-`tva` (Theme Variance Authority) is a cva-style variant resolver. It takes brand-enforced style objects instead of class strings and returns a `mix`-ready descriptor:
+[`tva`](/package/theme/function/tva) (Theme Variance Authority) is a cva-style variant resolver. It takes brand-enforced style objects instead of class strings and returns a `mix`-ready descriptor:
 
 ```ts
 import { tva } from "@pitlane/theme";
@@ -353,7 +353,7 @@ button({ intent: undefined }); // still "primary"
 
 ## Compose components with combine
 
-`combine` merges tva components into one, like cva's `compose`. The composed component accepts the union of both prop sets and keeps each input's defaults:
+[`combine`](/package/theme/function/combine) merges tva components into one, like cva's `compose`. The composed component accepts the union of both prop sets and keeps each input's defaults:
 
 ```ts
 import { combine, tva } from "@pitlane/theme";
@@ -373,7 +373,7 @@ export let pillButton = combine(button, rounded);
 
 ## Mix with plain stylesheets
 
-`mix` and `className` compose on the same element, so tokens and existing CSS coexist. `cx` joins class values, compatible with clsx:
+`mix` and `className` compose on the same element, so tokens and existing CSS coexist. [`cx`](/package/theme/function/cx) joins class values, compatible with clsx:
 
 ```tsx
 import { css, cx } from "@pitlane/theme";
@@ -385,7 +385,7 @@ import { css, cx } from "@pitlane/theme";
 
 ## TypeScript
 
-`TVAProps` extracts a component's variant props, like cva's `VariantProps`:
+[`TVAProps`](/package/theme/type/TVAProps) extracts a component's variant props, like cva's `VariantProps`:
 
 ```ts
 import type { TVAProps } from "@pitlane/theme";

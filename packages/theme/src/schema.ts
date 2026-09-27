@@ -13,6 +13,8 @@
  * let schema = { color: s.color(), spacing: s.scale() };
  * ```
  *
+ * @see {@link https://pitlane.tools/guides/theme#choose-schemas | Theme guide: Choose schemas}
+ *
  * @module @pitlane/theme/schema
  */
 

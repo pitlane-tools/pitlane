@@ -142,13 +142,7 @@ export default defineConfig({
             "docs:api": {
                 dependsOn: ["docs:packages"],
                 cwd: TYPEDOC,
-                command: [
-                    "./node_modules/.bin/typedoc --options content.json",
-                    "./node_modules/.bin/typedoc --options crawler.json",
-                    "./node_modules/.bin/typedoc --options data-table-d1.json",
-                    "./node_modules/.bin/typedoc --options dev.json",
-                    "./node_modules/.bin/typedoc --options theme.json",
-                ],
+                command: "node build.ts",
                 // Each run rewrites the pages and index the previous run wrote.
                 input: [{ auto: true }, "!docs/app/content/api/**", "!docs/.generated/**"],
             },

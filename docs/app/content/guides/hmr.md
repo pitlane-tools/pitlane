@@ -147,7 +147,7 @@ Overlapping revalidations coalesce in the browser too. A revalidation that arriv
 | A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island | `<HMR />` renders nothing and revalidation never runs |
 | `serverEnvironments` matches your config | It selects which environment classifies files as server-only | Neither half can tell client from server |
 
-If a platform plugin renames the server environment, pass the same names to `remix({ serverEnvironments })`. `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
+If a platform plugin renames the server environment, pass the same names to [`remix({ serverEnvironments })`](/package/dev/interface/RemixPluginOptions#serverenvironments). `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
 
 Nothing here depends on navigation, so an app that installs its own `navigate` listener and stops Remix from seeing navigations still revalidates normally.
 

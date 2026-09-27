@@ -12,16 +12,21 @@ export interface D1Binding {
     exec(query: string): Promise<unknown>;
 }
 
+/** A statement {@link D1Binding.prepare} returns, before it runs. */
 export interface D1PreparedStatement {
+    /** Binds values to the statement's `?` placeholders, in order. */
     bind(...values: unknown[]): D1PreparedStatement;
+    /** Runs the statement and resolves to every row it returned, plus its metadata. */
     all(): Promise<D1Result>;
 }
 
+/** What one statement produced: its rows, empty for a write, and D1's metadata. */
 export interface D1Result {
     results: Record<string, unknown>[];
     meta: D1Meta;
 }
 
+/** What D1 reports about one statement it ran. */
 export interface D1Meta {
     /** Rows written by the statement. D1 reports 0 for reads. */
     changes: number;

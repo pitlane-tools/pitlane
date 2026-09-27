@@ -1,0 +1,116 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import type { DocumentPage } from "../app/document.ts";
+
+import { exportDocument, markdownFile, markdownLinks } from "../build/exports.ts";
+
+const SITE = { url: "https://pitlane.tools", name: "Pitlane", description: "Remix 3." };
+
+function page(url: string, title: string, extra: Partial<DocumentPage> = {}): DocumentPage {
+    return {
+        url,
+        title,
+        description: `About ${title}.`,
+        section: "guides",
+        headings: [],
+        ...extra,
+    };
+}
+
+let hmr = page("/guides/hmr", "Hot module replacement");
+let dev = page("/package/dev/", "@pitlane/dev", { section: "api", module: "@pitlane/dev" });
+let vite = page("/guides/prerendering", "Prerendering", {
+    buildMode: "vite",
+    counterpart: "/guides/prerendering-no-build",
+});
+let noBuild = page("/guides/prerendering-no-build", "Prerendering (no build)", {
+    buildMode: "no-build",
+    counterpart: "/guides/prerendering",
+});
+/** The home page and four documents. */
+let link = markdownLinks(SITE, ["/", ...[hmr, dev, vite, noBuild].map(({ url }) => url)]);
+
+function article(body: string, heading = "Prerendering") {
+    return `<article><h1 id="top">${heading}<a class="doc-heading__anchor" href="#top"></a></h1>${body}</article>`;
+}
+
+test("links to published pages lead to their Markdown, absolute, keeping the fragment", () => {
+    for (let [href, expected] of [
+        ["/guides/hmr", "https://pitlane.tools/guides/hmr.md"],
+        ["/guides/hmr#state", "https://pitlane.tools/guides/hmr.md#state"],
+        ["/guides/hmr/", "https://pitlane.tools/guides/hmr.md"],
+        ["https://pitlane.tools/guides/hmr#state", "https://pitlane.tools/guides/hmr.md#state"],
+        ["https://pitlane.tools/guides/hmr/", "https://pitlane.tools/guides/hmr.md"],
+        ["/package/dev/", "https://pitlane.tools/package/dev/index.md"],
+        ["/package/dev", "https://pitlane.tools/package/dev/index.md"],
+        ["/package/dev/#install", "https://pitlane.tools/package/dev/index.md#install"],
+        ["/", "https://pitlane.tools/index.md"],
+        ["https://pitlane.tools", "https://pitlane.tools/index.md"],
+        // Not published documents: an asset, an unknown path, another site, an anchor.
+        ["/media/pitlane-lockup.png", "/media/pitlane-lockup.png"],
+        ["/docs", "/docs"],
+        ["https://remix.run/docs", "https://remix.run/docs"],
+        ["https://pitlane.tools.example/guides/hmr", "https://pitlane.tools.example/guides/hmr"],
+        ["#state", "#state"],
+    ]) {
+        assert.equal(link(href!), expected, href);
+    }
+});
+
+test("an exported page's links and images follow the same rule", () => {
+    let { body } = exportDocument(
+        noBuild,
+        article(
+            '<p>See <a href="/guides/hmr#state">HMR</a>, <a href="https://remix.run">Remix</a>, and <img alt="Lockup" src="/media/lockup.png">.</p>',
+            "Prerendering",
+        ),
+        link,
+    );
+    assert.match(body, /\[HMR\]\(https:\/\/pitlane\.tools\/guides\/hmr\.md#state\)/);
+    assert.match(body, /\[Remix\]\(https:\/\/remix\.run\)/);
+    assert.match(body, /!\[Lockup\]\(\/media\/lockup\.png\)/);
+});
+
+test("a two-setup page names its build mode and links its counterpart's Markdown", () => {
+    let exported = exportDocument(noBuild, article("<p>Body.</p>"), link);
+    let file = markdownFile(SITE, exported);
+    let [, frontmatter, rest] = file.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/)!;
+    assert.equal(
+        frontmatter,
+        [
+            'title: "Prerendering (no build)"',
+            'description: "About Prerendering (no build)."',
+            'url: "https://pitlane.tools/guides/prerendering-no-build"',
+            'buildMode: "no-build"',
+            'counterpart: "https://pitlane.tools/guides/prerendering.md"',
+        ].join("\n"),
+    );
+    assert.equal(
+        rest,
+        "# Prerendering (no build)\n\n" +
+            "This guide for: [Vite](https://pitlane.tools/guides/prerendering.md) · **No Build**\n\n" +
+            "Body.\n",
+    );
+    let other = markdownFile(SITE, exportDocument(vite, article("<p>Body.</p>"), link));
+    assert.match(
+        other,
+        /^# Prerendering\n\nThis guide for: \*\*Vite\*\* · \[No Build\]\(https:\/\/pitlane\.tools\/guides\/prerendering-no-build\.md\)\n\n/m,
+    );
+});
+
+test("a single-setup page has no build mode, and its one heading is its title", () => {
+    let file = markdownFile(SITE, exportDocument(hmr, article("<p>Body.</p>", "HMR"), link));
+    assert.equal(
+        file,
+        '---\ntitle: "Hot module replacement"\ndescription: "About Hot module replacement."\n' +
+            'url: "https://pitlane.tools/guides/hmr"\n---\n\n# Hot module replacement\n\nBody.\n',
+    );
+});
+
+test("an article with more than one level-one heading cannot be exported", () => {
+    assert.throws(
+        () => exportDocument(hmr, article("<h1>Again</h1><p>Body.</p>"), link),
+        /\/guides\/hmr/,
+    );
+});

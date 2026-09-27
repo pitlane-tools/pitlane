@@ -37,6 +37,10 @@ export interface D1BatchResult {
  */
 export type D1TransactionMode = "throw" | "unsafe-nonatomic";
 
+/**
+ * The options {@link D1DatabaseDriver} accepts: the D1-specific half of
+ * {@link D1DatabaseOptions}, which {@link createD1Database} passes through.
+ */
 export interface D1DriverOptions {
     onStatement?: D1StatementObserver;
     transactions?: D1TransactionMode;

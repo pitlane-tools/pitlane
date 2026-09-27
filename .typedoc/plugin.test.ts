@@ -67,15 +67,19 @@ test("proposal.0004: every top-level export gets one page at <module>/<kind>/<na
     await generate(root, "pkg");
     assert.deepEqual(pages(root), [
         "class/Widget.md",
+        "function/define.md",
         "function/render.md",
         "hot.md",
         "hot/interface/FileEvent.md",
         "hot/interface/Reference.md",
         "index.md",
         "interface/ContentBuilder.md",
+        "interface/PrintStyles.md",
         "interface/Reference.md",
+        "interface/Styles.md",
         "loaders.md",
         "loaders/function/load.md",
+        "loaders/variable/make.md",
     ]);
 });
 
@@ -281,4 +285,91 @@ test("proposal.0004: reference.json accumulates packages across runs and drops a
     assert.ok(!urls.includes("/package/pkg/loaders"));
     assert.ok(urls.includes("/package/pkg/class/Widget"));
     assert.ok(urls.includes("/package/other/interface/Reference"));
+});
+
+test("a function-typed parameter shows each callback parameter's type, linked", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    assert.match(
+        read(root, "function/define.md"),
+        /\(`c`: \[`ContentBuilder`\]\(\/package\/pkg\/interface\/ContentBuilder\)\) => `T`/,
+    );
+    assert.match(
+        read(root, "loaders/function/load.md"),
+        /\(`widget`: \[`Widget`\]\(\/package\/pkg\/class\/Widget\)\) => `string`/,
+    );
+});
+
+test("a variable's page shows its declared type, never the implementation it is assigned", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let page = read(root, "loaders/variable/make.md");
+    assert.doesNotMatch(page, /makeWidget/);
+    assert.match(page, /^const make: \(name(: string)?\) => Widget;$/m);
+});
+
+test("members inherited from a summarized base are counted, not listed", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg", {
+        summarizeInheritedFrom: ["Passthrough"],
+    } as Partial<TypeDocOptions>);
+    let page = read(root, "interface/Styles.md");
+    assert.match(page, /^### gap\?$/m, "members of other bases stay listed");
+    assert.doesNotMatch(page, /^### (display|position)\?$/m);
+    assert.match(
+        page,
+        /2 more properties are inherited from `Passthrough` and not listed individually\./,
+    );
+});
+
+test("without the option, inherited members are listed", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let page = read(root, "interface/Styles.md");
+    assert.match(page, /^### display\?$/m);
+    assert.doesNotMatch(page, /not listed individually/);
+});
+
+test("a hierarchy lists each base and each derived interface on its own line", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let list = (page: string, heading: string) =>
+        page
+            .match(new RegExp(`^## ${heading}\\n\\n((?:- .*\\n?)+)`, "m"))?.[1]
+            .trimEnd()
+            .split("\n");
+    let styles = read(root, "interface/Styles.md");
+    assert.deepEqual(list(styles, "Extends"), ["- `Passthrough`", "- `Mapped`"]);
+    assert.deepEqual(list(styles, "Extended by"), [
+        "- [`PrintStyles`](/package/pkg/interface/PrintStyles)",
+    ]);
+    let print = read(root, "interface/PrintStyles.md");
+    assert.deepEqual(list(print, "Extends"), ["- [`Styles`](/package/pkg/interface/Styles)"]);
+});
+
+test("a module overview's own headings are not repeated as compatibility anchors", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg");
+    let overview = read(root, "loaders.md");
+    assert.match(overview, /^## See$/m);
+    assert.match(overview, /\[Loaders guide\]\(https:\/\/example\.com\/guides\/loaders\)/);
+    assert.doesNotMatch(overview, /<a id="see"><\/a>/);
+});
+
+test("ambient module declarations are documented on their module's page, not as pages of their own", async t => {
+    let root = temporaryRoot(t);
+    await generate(root, "pkg", {
+        entryPoints: ["index", "loaders", "hot"]
+            .map(name => path.join(fixture, "src", `${name}.ts`))
+            .concat(path.join(fixture, "src", "ambient.d.ts")),
+    });
+    assert.ok(!pages(root).some(page => page.startsWith("ambient/")), pages(root).join(", "));
+    let overview = read(root, "ambient.md");
+    assert.match(overview, /^# @fixture\/pkg\/ambient$/m);
+    assert.match(overview, /Ambient declarations an app opts into/);
+    assert.match(overview, /^### `"\*\?raw"`$/m);
+    assert.match(overview, /The file's text\./);
+    assert.match(overview, /^### `"fixture:dev"`$/m);
+    assert.match(overview, /Probe/);
+    assert.match(overview, /Renders nothing\./);
 });

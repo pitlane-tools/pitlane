@@ -20,7 +20,7 @@ The content package enables you to render content from anywhere, whether it live
 
 <Vite>
 
-`@pitlane/content` is a runtime dependency. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and `contentLayer()` calls `satteri` directly to retrieve a Markdown file's heading list.
+`@pitlane/content` is a runtime dependency. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and [`contentLayer()`](/package/content/vite/function/contentLayer) calls `satteri` directly to retrieve a Markdown file's heading list.
 
 <InstallGroup alternatives={viteInstallation} />
 
@@ -48,7 +48,7 @@ When writing a custom `LiveLoader` that returns a Markdown body which renders at
 
 ## Configuring Vite
 
-Register two plugins in your Vite config, before `remix()`:
+Register two plugins in your Vite config, before [`remix()`](/package/dev/function/remix):
 
 ```ts
 // vite.config.ts
@@ -71,7 +71,7 @@ export default defineConfig({
 });
 ```
 
-`satteri()` compiles Markdown and MDX bodies during the build. `jsxImportSource: "remix/ui"` is required. It is what makes a compiled MDX file a Remix component rather than a React one. `headings()` collects the heading list that `render()` returns, and `rawStyles()` keeps the CSS inside a `<style>` element intact, which any content with a highlighted code block produces.
+`satteri()` compiles Markdown and MDX bodies during the build. `jsxImportSource: "remix/ui"` is required. It is what makes a compiled MDX file a Remix component rather than a React one. [`headings()`](/package/content/satteri/function/headings) collects the heading list that `render()` returns, and [`rawStyles()`](/package/content/satteri/function/rawStyles) keeps the CSS inside a `<style>` element intact, which any content with a highlighted code block produces.
 
 `contentLayer()` executes `app/content.ts` in Node during the build and inlines every collection's entries into the bundle. Entry data becomes plain values, and Markdown bodies become modules the bundler compiles, so a deployed application never reads the filesystem. That is what lets the same collections run on Cloudflare Workers. Keep that module to collection declarations, with no `cloudflare:workers` imports and nothing that needs a live server. A module at another path is named with `entry`:
 
@@ -122,26 +122,26 @@ export let content = createContent(c => ({
 }));
 ```
 
-Two types of content collections are available. A `ContentLoader` collection loads its data once, and a live collection fetches it on every request. Both use:
+Two types of content collections are available. A [`ContentLoader`](/package/content/interface/ContentLoader) collection loads its data once, and a live collection fetches it on every request. Both use:
 
 - A required `loader` to retrieve your content and data from wherever it is stored and make it available to your project through content-focused APIs.
 - A required `schema` that allows you to define the expected shape of each entry for type safety and validation.
 
 Collections stored locally in your repo or on your filesystem can use one of the two provided loaders (from `@pitlane/content/loaders`) to fetch data from Markdown, MDX, YAML, or JSON files. Point the content client to the location of your content, define your data schema, and you're good to go with a blog or another content-heavy, mostly static site in no time!
 
-By writing a `ContentLoader` or a `LiveLoader` yourself, you can fetch remote data from any external source, such as a CMS, database, or headless payment system, once or live on demand.
+By writing a `ContentLoader` or a [`LiveLoader`](/package/content/interface/LiveLoader) yourself, you can fetch remote data from any external source, such as a CMS, database, or headless payment system, once or live on demand.
 
 ## Defining Content Collections
 
 <NoBuild>
 
-All of your content collections are defined using the `createContent()` function from `@pitlane/content`. There is no special location your collections must be defined in. Our demos use `app/content.ts` by convention.
+All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `@pitlane/content`. There is no special location your collections must be defined in. Our demos use `app/content.ts` by convention.
 
 </NoBuild>
 
 <Vite>
 
-All of your content collections are defined using the `createContent()` function from `@pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `@pitlane/content` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
+All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `@pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `@pitlane/content` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
 
 </Vite>
 
@@ -181,7 +181,7 @@ export let content = createContent(c => ({
 }));
 ```
 
-You can then use the `getCollection()` and `getEntry()` methods on each content collection to query your content collections' data and render your content.
+You can then use the [`getCollection()`](/package/content/interface/Collection#getcollection) and [`getEntry()`](/package/content/interface/Collection#getentry) methods on each content collection to query your content collections' data and render your content.
 
 ## Defining the Collection Schema
 
@@ -232,7 +232,7 @@ Frontmatter is parsed as YAML, so `pubDate: 2026-01-02` is already a `Date` and 
 
 ### Defining Datatypes
 
-`remix/data-schema` is one [Standard Schema](https://standardschema.dev) validator. Any other works too, because that is all a schema is asked for, with one catch: `c.reference()` has to nest inside a combinator that accepts a foreign schema, which `s.object()` does and Zod's `z.object()` does not.
+`remix/data-schema` is one [Standard Schema](https://standardschema.dev) validator. Any other works too, because that is all a schema is asked for, with one catch: [`c.reference()`](/package/content/interface/ContentBuilder#reference) has to nest inside a combinator that accepts a foreign schema, which `s.object()` does and Zod's `z.object()` does not.
 
 ### Defining Collection References
 
@@ -293,7 +293,7 @@ Pointing at an entry that does not exist is only discovered on lookup, where `ge
 
 ## Included Loaders
 
-Pitlane provides two built-in loaders (`glob()` and `file()`) for reading your local content. Pass the location of your data in your project or on your filesystem, and these loaders read the files and parse them into entries.
+Pitlane provides two built-in loaders ([`glob()`](/package/content/loaders/function/glob) and [`file()`](/package/content/loaders/function/file)) for reading your local content. Pass the location of your data in your project or on your filesystem, and these loaders read the files and parse them into entries.
 
 ### The `glob()` Loader
 
@@ -467,7 +467,7 @@ export let content = createContent(c => ({
 }));
 ```
 
-A custom loader gets everything a built-in one gets: schema validation, `getCollection()` and `getEntry()`, and `render()` when its entries carry a Markdown or MDX body. Both interfaces are documented in the [`@pitlane/content`](/package/content/) reference.
+A custom loader gets everything a built-in one gets: schema validation, `getCollection()` and `getEntry()`, and `render()` when its entries carry a Markdown or MDX body. The reference documents both interfaces, [`ContentLoader`](/package/content/interface/ContentLoader) and [`LiveLoader`](/package/content/interface/LiveLoader).
 
 ## Querying Collections
 
@@ -550,7 +550,7 @@ export default createController(routes, {
 
 ### Rendering Body Content
 
-Once queried, you can render Markdown and MDX entries to HTML by calling the entry's `render()` method. It resolves to a `Content` component and a list of all rendered headings:
+Once queried, you can render Markdown and MDX entries to HTML by calling the entry's [`render()`](/package/content/interface/Entry#render) method. It resolves to a `Content` component and a list of all rendered headings:
 
 ```tsx
 // app/actions/blog.tsx
@@ -620,7 +620,7 @@ Markdown has no such requirement and renders anywhere Sätteri runs.
 
 A component can also take an entire collection entry as a prop.
 
-Use the `CollectionEntry` type to correctly type your component's props. It takes the collection itself rather than its name, so it inherits every property of that collection's schema and cannot drift from it:
+Use the [`CollectionEntry`](/package/content/type/CollectionEntry) type to correctly type your component's props. It takes the collection itself rather than its name, so it inherits every property of that collection's schema and cannot drift from it:
 
 ```tsx
 // app/ui/blog-card.tsx
@@ -875,7 +875,7 @@ export let content = createContent(c => ({ ... }));
 await hotContent(content);
 ```
 
-This call is safe to leave in place for production. `hotContent()` does nothing unless the process is supervised by [`remix/node-hmr`](https://github.com/remix-run/remix/tree/main/packages/node-hmr), whose `run()` starts `server.ts` as a child process and watches its source. A development script that calls it, started with `NODE_ENV=development`, is the whole setup. Save an edited post and the collection it belongs to is discarded, then the page reloads. A collection whose files did not change keeps what it had.
+This call is safe to leave in place for production. [`hotContent()`](/package/content/hot/function/hotContent) does nothing unless the process is supervised by [`remix/node-hmr`](https://github.com/remix-run/remix/tree/main/packages/node-hmr), whose `run()` starts `server.ts` as a child process and watches its source. A development script that calls it, started with `NODE_ENV=development`, is the whole setup. Save an edited post and the collection it belongs to is discarded, then the page reloads. A collection whose files did not change keeps what it had.
 
 <Callout kind="warning" title="A new content file needs a restart">
 
@@ -889,18 +889,18 @@ This call is safe to leave in place for production. `hotContent()` does nothing 
 
 {/* - [Creating a Content Loader](/guides/content-loaders): reading from anywhere other than the filesystem */}
 
-- [`@pitlane/content`](/package/content/): `createContent()` and the types
-- [`@pitlane/content/loaders`](/package/content/loaders): `glob()` and `file()`
+- [`@pitlane/content`](/package/content/): [`createContent()`](/package/content/function/createContent) and the types
+- [`@pitlane/content/loaders`](/package/content/loaders): [`glob()`](/package/content/loaders/function/glob) and [`file()`](/package/content/loaders/function/file)
 
 <Vite>
 
-- [`@pitlane/content/satteri`](/package/content/satteri): the `headings()` and `rawStyles()` plugins
-- [`@pitlane/content/vite`](/package/content/vite): the `contentLayer()` plugin
+- [`@pitlane/content/satteri`](/package/content/satteri): the [`headings()`](/package/content/satteri/function/headings) and [`rawStyles()`](/package/content/satteri/function/rawStyles) plugins
+- [`@pitlane/content/vite`](/package/content/vite): the [`contentLayer()`](/package/content/vite/function/contentLayer) plugin
 
 </Vite>
 
 <NoBuild>
 
-- [`@pitlane/content/hot`](/package/content/hot): `hotContent()`
+- [`@pitlane/content/hot`](/package/content/hot): [`hotContent()`](/package/content/hot/function/hotContent)
 
 </NoBuild>

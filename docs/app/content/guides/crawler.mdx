@@ -36,7 +36,7 @@ Writing an app's pages to disk has its own guide in two halves. [Prerendering](/
 
 <InstallGroup alternatives={installation} />
 
-Remix 3 is a peer dependency. The first argument to `crawl()` is anything with a `fetch(request: Request)` method, so a `createRouter()` router works, and so does a built bundle's default export or a hand-written `{ fetch }` object.
+Remix 3 is a peer dependency. The first argument to [`crawl()`](/package/crawler/function/crawl) is anything with a `fetch(request: Request)` method, so a `createRouter()` router works, and so does a built bundle's default export or a hand-written `{ fetch }` object.
 
 ## Exporting a static site
 
@@ -116,7 +116,7 @@ Or keep it on and pick different starting points, which walks those subtrees and
 crawl(router, { paths: ["/docs"] });
 ```
 
-`concurrency` sets how many paths are in flight at once. Rendering happens in process, so the useful value depends on how much of a render waits on I/O. Start at the default of 1 and measure.
+`concurrency` sets how many paths are in flight at once. Rendering happens in process, so the useful value depends on how much of a render waits on I/O. Start at the default of 1 and measure. [`CrawlOptions`](/package/crawler/interface/CrawlOptions) lists every option.
 
 ## Where a crawl stops
 
@@ -136,7 +136,7 @@ crawl(router, {
 
 ## Asking what pages exist
 
-`staticPaths()` answers the question that comes before a crawl: which paths can this app serve with no params?
+[`staticPaths()`](/package/crawler/function/staticPaths) answers the question that comes before a crawl: which paths can this app serve with no params?
 
 ```ts
 import { staticPaths } from "@pitlane/crawler";

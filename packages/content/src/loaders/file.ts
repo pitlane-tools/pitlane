@@ -14,6 +14,8 @@ import { read } from "./read.ts";
  * TOML reader — is typed as returning a JSON-value union, which a narrower
  * type rejects. `entriesOf` refuses an unusable result by name, so demanding
  * the caller narrow first would buy a wrapper and no safety.
+ *
+ * @inline
  */
 type Parser = (text: string) => unknown;
 
@@ -22,6 +24,13 @@ type Parser = (text: string) => unknown;
  *
  * Every entry is data rather than a document: a file of records has no body to
  * render, so `render()` on one of these entries is a mistake and says so.
+ *
+ * The file holds either an object whose keys are entry ids or an array of
+ * entries that each carry an `id`. `.json`, `.yaml`, and `.yml` parse without
+ * options; any other format needs `options.parser`, which turns the file's
+ * text into that object or array.
+ *
+ * @see {@link https://pitlane.tools/guides/content | Content guide}
  */
 export function file(fileName: string, options?: { parser?: Parser }): ContentLoader {
     // Nothing is resolved here. `createContent` runs this factory at module

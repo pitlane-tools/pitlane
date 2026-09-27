@@ -38,6 +38,12 @@ export type PrerenderPaths = (
  */
 export type PrerenderPathsOption = boolean | string[] | PrerenderPaths;
 
+/**
+ * The object form of the `prerender` option: which paths to render, plus how
+ * many to render at once and whether to follow the links they contain.
+ *
+ * @see {@link https://pitlane.tools/guides/prerendering#the-object-form | Prerendering guide: The object form}
+ */
 export interface PrerenderConfig {
     /**
      * The paths to prerender.
@@ -62,6 +68,14 @@ export interface PrerenderConfig {
     spider?: boolean;
 }
 
+/**
+ * Everything `remix({ prerender })` accepts: `true` for every static path in
+ * the route map, `false` for none, an explicit path list, a function that
+ * computes one, or a {@link PrerenderConfig} that adds `concurrency` and
+ * `spider`.
+ *
+ * @see {@link https://pitlane.tools/guides/prerendering | Prerendering guide}
+ */
 export type PrerenderOption = PrerenderPathsOption | PrerenderConfig;
 
 function isPrerenderConfig(option: PrerenderOption): option is PrerenderConfig {

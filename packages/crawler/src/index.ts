@@ -4,6 +4,9 @@
  * socket, a server, or a browser. `staticPaths()` answers the question that
  * comes first: which paths a route map can serve with no params.
  *
+ * @see {@link https://pitlane.tools/guides/crawler | Crawler guide}
+ * @see {@link https://pitlane.tools/guides/prerendering-no-build | Prerendering guide, without a build}
+ *
  * @module @pitlane/crawler
  */
 export { crawl } from "./crawl.ts";

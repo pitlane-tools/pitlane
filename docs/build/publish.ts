@@ -9,7 +9,19 @@ import type { Documents } from "../app/documents.ts";
 import type { SearchDocument } from "./pagefind.ts";
 
 import { type DocumentPage, markdownPath } from "../app/document.ts";
-import { type Exported, llmsFull, llmsIndex, markdownExport, sitemap } from "./exports.ts";
+import {
+    type Exported,
+    exportDocument,
+    exportHome,
+    type Home,
+    headersFile,
+    llmsFull,
+    llmsIndex,
+    markdownFile,
+    markdownLinks,
+    readingOrder,
+    sitemap,
+} from "./exports.ts";
 import { writeSearchIndex } from "./pagefind.ts";
 
 export interface PublishOptions {
@@ -25,12 +37,13 @@ export interface PublishOptions {
 /** What publication reads from the built server entry. */
 interface ServerEntry {
     default: { fetch(request: Request): Response | Promise<Response> };
-    publication: { documents(): Promise<Documents> };
+    publication: { documents(): Promise<Documents>; home: Home };
 }
 
 /**
  * Prerenders the home page and every complete document, and derives each
- * document's exports and search index from the same HTML.
+ * page's exports and search index from the same HTML, or, for the home page,
+ * from what it shows.
  */
 export function publish(options: PublishOptions): Plugin {
     let root = process.cwd();
@@ -74,23 +87,36 @@ export function publish(options: PublishOptions): Plugin {
                 }
                 let app = await importServer(server);
                 let published = await app.publication.documents();
-                let exported: Exported[] = [];
+                let { pages } = published;
+                let urls = ["/", ...pages.map(page => page.url)];
+                let link = markdownLinks(options.site, urls);
+                let exported = new Map<string, Exported>();
                 let search: SearchDocument[] = [];
 
                 for (let { page, aliases } of published.all) {
                     let html = await rendered(app, new URL(page.url, options.site.url), 200);
                     await write(join(client, htmlPath(page.url)), html);
                     let article = articleOf(html, page.url);
-                    let markdown = markdownExport(page, article);
-                    await write(join(client, markdownPath(page.url)), markdown);
-                    exported.push({ page, markdown });
+                    let markdown = exportDocument(page, article, link);
+                    await write(
+                        join(client, markdownPath(page.url)),
+                        markdownFile(options.site, markdown),
+                    );
+                    exported.set(page.url, markdown);
                     search.push({ page, article, aliases });
                 }
 
-                // The home page is no document: it has no article to export or index.
+                // The home page is no document: it has no article to index, and
+                // its Markdown says what it shows rather than converting it.
                 await write(
                     join(client, htmlPath("/")),
                     await rendered(app, new URL("/", options.site.url), 200),
+                );
+                let { home } = app.publication;
+                let homeMarkdown = exportHome(options.site, home, pages, link);
+                await write(
+                    join(client, markdownPath("/")),
+                    markdownFile(options.site, homeMarkdown),
                 );
 
                 // Served with its 404 status wherever no file or redirect answers.
@@ -101,11 +127,18 @@ export function publish(options: PublishOptions): Plugin {
                 let moved = JSON.parse(
                     await readFile(resolve(root, options.moved), "utf8"),
                 ) as Record<string, string>;
-                await write(join(client, "_redirects"), redirects(published.pages, moved));
+                await write(join(client, "_redirects"), redirects(pages, moved));
+                await write(join(client, "_headers"), headersFile(options.site, urls));
 
-                let { pages } = published;
-                await write(join(client, "llms.txt"), llmsIndex(options.site, exported));
-                await write(join(client, "llms-full.txt"), llmsFull(exported));
+                await write(
+                    join(client, "llms.txt"),
+                    llmsIndex(options.site, home, pages, exported),
+                );
+                let order = readingOrder(pages).flatMap(section => section.urls);
+                await write(
+                    join(client, "llms-full.txt"),
+                    llmsFull(options.site, [homeMarkdown, ...order.map(url => exported.get(url)!)]),
+                );
                 await write(
                     join(client, "sitemap.xml"),
                     sitemap(

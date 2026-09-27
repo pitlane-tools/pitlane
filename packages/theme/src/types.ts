@@ -101,6 +101,7 @@ export type DeepPartialTokens<T> = 0 extends 1 & T
           [K in keyof T]?: T[K] extends Leaf ? TokenValue : DeepPartialTokens<T[K]>;
       };
 
+/** A token value, as opposed to a group of tokens. @inline */
 type Leaf = number | readonly (number | string)[] | string;
 
 // `never` is assignable to every brand, so an undeclared leaf resolves to

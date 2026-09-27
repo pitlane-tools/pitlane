@@ -5,7 +5,7 @@ description: "How remix({ server: false }) sets up a client-rendered Remix 3 app
 
 # Single-page apps
 
-Some Remix 3 apps have no server. The router runs in the browser. The build is a folder of static files, and the host is a CDN. `remix({ server: false })` is the switch for those apps.
+Some Remix 3 apps have no server. The router runs in the browser. The build is a folder of static files, and the host is a CDN. [`remix({ server: false })`](/package/dev/interface/RemixPluginOptions#server) is the switch for those apps.
 
 ```ts
 // vite.config.ts

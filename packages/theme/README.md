@@ -128,6 +128,8 @@ A layer's declarations follow the ones they reference, which moves them later in
 - [Theme guide](https://pitlane.tools/guides/theme)
 - [API reference](https://pitlane.tools/package/theme/)
 
+For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/theme.md`](https://pitlane.tools/guides/theme.md).
+
 ## License
 
 MIT

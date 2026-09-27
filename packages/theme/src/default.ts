@@ -1,3 +1,15 @@
+/**
+ * Tailwind CSS v4's default primitive theme as a ready-made
+ * {@link DefaultTheme} component: colors, spacing, radii, fonts,
+ * shadows, easing, and the rest of Tailwind's primitives. Select the
+ * primitives an application uses, and give them semantic names, in a
+ * theme built from it.
+ *
+ * @see {@link https://pitlane.tools/guides/theme | Theme guide}
+ *
+ * @module @pitlane/theme/default
+ */
+
 import type { TokenSchema } from "./schema.ts";
 import type { ThemeComponent } from "./theme.ts";
 
@@ -580,6 +592,13 @@ let theme = createTheme({ schema, tokens });
 
 /**
  * Tailwind CSS v4.3.2's default primitive theme.
+ *
+ * Its top-level token groups are `font`, `color`, `spacing` (a
+ * `scale` token), `breakpoint`, `container`, `text`, `fontWeight`,
+ * `tracking`, `leading`, `radius`, `shadow`, `insetShadow`,
+ * `dropShadow`, `textShadow`, `ease`, `animate`, `blur`,
+ * `perspective`, `aspect`, `default`, and `maxWidth`, named as
+ * Tailwind names its theme variables.
  *
  * Text-scale line heights are available at `t.text.lineHeight.*`.
  * Their generated custom-property names differ from Tailwind's

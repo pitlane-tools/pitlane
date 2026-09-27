@@ -5,5 +5,5 @@ export const OG_IMAGE = `${SITE_URL}/media/pitlane-lockup.png`;
 
 /** The browser tab and social titles of a page. */
 export function documentTitle(title: string): string {
-    return `${title} | ${SITE_NAME}`;
+    return title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
 }

@@ -4,6 +4,11 @@
  * replacement for components and server-rendered data, and a preview server,
  * for any Vite or Vite+ project.
  *
+ * @see {@link https://pitlane.tools/guides/vite-plugin | Vite plugin guide}
+ * @see {@link https://pitlane.tools/guides/hmr | Hot module replacement guide}
+ * @see {@link https://pitlane.tools/guides/spa | Single-page apps guide}
+ * @see {@link https://pitlane.tools/guides/prerendering | Prerendering guide}
+ *
  * @module @pitlane/dev
  */
 import type { Plugin, PluginOption } from "vite";
@@ -26,6 +31,12 @@ export type {
     PrerenderPathsOption,
 } from "./prerender.ts";
 
+/**
+ * The options {@link remix} accepts. Every one has a default, and most
+ * projects pass none.
+ *
+ * @see {@link https://pitlane.tools/guides/vite-plugin#options | Vite plugin guide: Options}
+ */
 export interface RemixPluginOptions {
     /**
      * Client entry module, used as the client environment's build input.
@@ -114,6 +125,37 @@ export interface RemixPluginOptions {
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
  * `nitro/vite`), or the built fetch handler runs directly on Node, Bun, and
  * Deno.
+ *
+ * @param options - Entry modules, SPA mode, prerendering, and dev serving; see {@link RemixPluginOptions}
+ * @returns The plugins, passed to Vite as one entry of `plugins`
+ * @throws Error when `server: false` is combined with `prerender`
+ *
+ * @see {@link https://pitlane.tools/guides/vite-plugin | Vite plugin guide}
+ * @see {@link https://pitlane.tools/guides/hmr | Hot module replacement guide}
+ * @see {@link https://pitlane.tools/guides/spa | Single-page apps guide}
+ * @see {@link https://pitlane.tools/guides/prerendering | Prerendering guide}
+ *
+ * @example
+ * ```ts
+ * // vite.config.ts
+ * import { remix } from "@pitlane/dev";
+ * import { defineConfig } from "vite";
+ *
+ * export default defineConfig({
+ *     plugins: [remix()],
+ * });
+ * ```
+ *
+ * @example SPA mode, with no server and index.html as the entry
+ * ```ts
+ * // vite.config.ts
+ * import { remix } from "@pitlane/dev";
+ * import { defineConfig } from "vite";
+ *
+ * export default defineConfig({
+ *     plugins: [remix({ server: false })],
+ * });
+ * ```
  */
 export function remix(options: RemixPluginOptions = {}): PluginOption {
     let {

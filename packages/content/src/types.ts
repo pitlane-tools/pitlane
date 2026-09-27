@@ -91,7 +91,14 @@ export interface ChainableSchema<Input, Output> {
     transform: <Next>(transformer: (value: Output) => Next) => ChainableSchema<Input, Next>;
 }
 
-/** The schema `c.reference(collection)` returns. */
+/**
+ * The schema `c.reference(collection)` returns: a Standard Schema that reads
+ * an entry id (a string) and outputs a {@link Reference} into `collection`.
+ *
+ * It composes inside `remix/data-schema`'s `s.object`, `s.array`, and
+ * `s.optional` like any other schema. It does not check that the target entry
+ * exists; a dangling id surfaces as `getEntry` resolving to `undefined`.
+ */
 export type ReferenceSchema<C extends string> = ChainableSchema<string, Reference<C>>;
 
 /** A heading collected from a Markdown or MDX document. */
@@ -217,7 +224,11 @@ export interface ContentBuilder {
     reference<C extends string>(collection: C): ReferenceSchema<C>;
 }
 
-/** The object `createContent` returns: one {@link Collection} per key. */
+/**
+ * The object `createContent` returns: one {@link Collection} per key of the
+ * definitions its callback returned, named after that key and typed by the
+ * output of that collection's schema.
+ */
 export type Content<T extends Record<string, CollectionDefinition>> = {
     [K in keyof T]: Collection<K & string, InferSchema<T[K]["schema"]>>;
 };

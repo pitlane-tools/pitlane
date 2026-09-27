@@ -5,6 +5,8 @@
  * Node-only build tooling. Nothing here belongs in a Worker bundle, which is
  * why it is a separate entry point from the driver.
  *
+ * @see {@link https://pitlane.tools/guides/cloudflare-d1#migrations | Cloudflare D1 guide: Migrations}
+ *
  * @module @pitlane/data-table-d1/migrations
  */
 import { mkdir, readdir, unlink, writeFile } from "node:fs/promises";
@@ -70,6 +72,8 @@ const GENERATED = /^\d{4,14}_.+\.sql$/;
  *
  * await generateD1Migrations({ to: "db/d1-migrations" });
  * ```
+ *
+ * @see {@link https://pitlane.tools/guides/cloudflare-d1#migrations | Cloudflare D1 guide: Migrations}
  */
 export async function generateD1Migrations(
     options: GenerateD1MigrationsOptions,

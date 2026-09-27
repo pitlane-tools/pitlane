@@ -344,9 +344,9 @@ Releasing a package that the [templates](https://github.com/pitlane-tools/templa
 
 ## Package reference docs are generated
 
-Every page under `docs/app/content/api/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`dev.json`, `theme.json`, `crawler.json`, `data-table-d1.json`), each extending `base.json`, which registers the local theme and router in `plugin.mjs`. `vp run docs:api` runs them all.
+Every page under `docs/app/content/api/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`content.json`, `crawler.json`, `data-table-d1.json`, `dev.json`, `theme.json`), each extending `base.json`, which registers the local theme and router in `plugin.ts`. `vp run docs:api` runs them all through `.typedoc/build.ts`, as one command, because every run merges into the same `docs/.generated/reference*.json` files and a separately cached run would replay a stale copy of them.
 
-Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/app/content/api/<name>`. Adding a documented package means adding a config there plus a command in the `docs:api` task in the root `vite.config.ts`.
+Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/app/content/api/<name>`. Adding a documented package means adding a config there plus its name in `CONFIGS` in `.typedoc/build.ts`.
 
 `.typedoc/` is also a workspace package, and that is deliberate. TypeDoc is built on the TypeScript JS compiler API, which TypeScript 7 does not ship — 7 is a Go binary, and TypeDoc's peer range stops at 6.0.x. Its `package.json` therefore holds `typescript` as an alias for `@typescript/typescript6`, while the repo root and every package are on real `typescript@7`. `docs:api` runs from `.typedoc/` so TypeDoc picks up its own copy. Do not move TypeDoc back to the root: that is what made `typescript` mean 6 repo-wide, which in turn forced `@typescript/native-preview` on the `vp pack` declaration build.
 

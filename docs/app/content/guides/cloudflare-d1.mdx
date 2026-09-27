@@ -20,7 +20,7 @@ import { env } from "cloudflare:workers";
 export let db = createD1Database(env.DB);
 ```
 
-That is an ordinary `Database`. Queries, writes, migrations, and schema inspection all come from `remix/data-table` unchanged:
+[`createD1Database()`](/package/data-table-d1/function/createD1Database) returns a [`D1Database`](/package/data-table-d1/class/D1Database), which is an ordinary `Database`. Queries, writes, migrations, and schema inspection all come from `remix/data-table` unchanged:
 
 ```ts
 let post = await db.create(Post, { title: "Hello" }, { returnRow: true });
@@ -53,7 +53,7 @@ Nothing else is required. Now you can start using the D1 database in your Cloudf
 
 Author migrations as `data-table` migrations, compile them to `.sql`, and let Wrangler apply them. The same generated files go to the local and the deployed database, so production runs what you tested.
 
-`generateD1Migrations` does the compiling:
+[`generateD1Migrations`](/package/data-table-d1/migrations/function/generateD1Migrations) does the compiling:
 
 ```ts
 // db/generate-migrations.ts
@@ -97,7 +97,7 @@ Two details worth knowing about the generated directory. Files are written verba
 
 ## Knowing what a query cost
 
-D1 bills on rows read and rows written, and its analytics report per database. That tells you the app got expensive, not which query did it. Every D1 response already carries the numbers per statement, and the driver already reads that metadata, so `onStatement` hands them over instead of discarding them:
+D1 bills on rows read and rows written, and its analytics report per database. That tells you the app got expensive, not which query did it. Every D1 response already carries the numbers per statement, and the driver already reads that metadata, so [`onStatement`](/package/data-table-d1/interface/D1DatabaseOptions#onstatement) hands them over instead of discarding them:
 
 ```ts
 let usage = { rowsRead: 0, rowsWritten: 0 };
@@ -134,7 +134,7 @@ Failing at the call is the point. The alternative is failing halfway through a w
 
 #### When several writes must commit together
 
-Use `db.batch()`. `batch()` is D1's one atomic primitive: it takes every statement up front and commits them as a unit, which is exactly why it cannot back `transaction()` and exactly why it can back this.
+Use [`db.batch()`](/package/data-table-d1/class/D1Database#batch). `batch()` is D1's one atomic primitive: it takes every statement up front and commits them as a unit, which is exactly why it cannot back `transaction()` and exactly why it can back this.
 
 ```ts
 import { sql } from "remix/data-table";

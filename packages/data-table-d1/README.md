@@ -145,6 +145,8 @@ It is vendored because `@remix-run/data-table-sqlite` exports exactly `createSql
 - [API reference](https://pitlane.tools/package/data-table-d1/)
 - [`@pitlane/data-table-d1/migrations` reference](https://pitlane.tools/package/data-table-d1/migrations)
 
+For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/cloudflare-d1.md`](https://pitlane.tools/guides/cloudflare-d1.md).
+
 ## License
 
 MIT
