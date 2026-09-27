@@ -6,7 +6,17 @@ export let PackageTabs = clientEntry(
     import.meta.url,
     (handle: Handle<{ options: PackageOption[] }>) => {
         let enhanced = false;
-        let selected = 0;
+        let nativeChoice =
+            typeof document === "undefined"
+                ? null
+                : document.querySelector<HTMLInputElement>(
+                      'input[name="homepage-package"]:checked',
+                  );
+        let selected = Math.max(
+            0,
+            handle.props.options.findIndex(option => option.id === nativeChoice?.value),
+        );
+        let restoreFocus = nativeChoice !== null && document.activeElement === nativeChoice;
         let vertical = true;
 
         handle.queueTask(() => {
@@ -14,7 +24,13 @@ export let PackageTabs = clientEntry(
             let update = () => {
                 vertical = !compact.matches;
                 enhanced = true;
-                void handle.update();
+                void handle.update().then(() => {
+                    if (!restoreFocus) return;
+                    document
+                        .getElementById(`package-tab-${handle.props.options[selected]!.id}`)
+                        ?.focus();
+                    restoreFocus = false;
+                });
             };
             compact.addEventListener("change", update, { signal: handle.signal });
             update();
@@ -76,7 +92,7 @@ export let PackageTabs = clientEntry(
                                 key={option.id}
                             >
                                 <input
-                                    checked={index === 0}
+                                    checked={index === selected}
                                     name="homepage-package"
                                     type="radio"
                                     value={option.id}

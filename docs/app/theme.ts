@@ -44,7 +44,7 @@ let primitives = createTheme({
             indigoVelvet: lightDark("#3d348b", "#8a82b2"),
             mediumSlateBlue: lightDark("#5b5bb6", "#9294ca"),
             amberFlame: lightDark("#b87813", "#c09a58"),
-            royalGold: lightDark("#a58d2b", "#c2b579"),
+            royalGold: lightDark("#9b8225", "#c2b579"),
         },
         font: {
             sans: [

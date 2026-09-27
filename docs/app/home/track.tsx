@@ -1,6 +1,7 @@
 import { css } from "@pitlane/theme";
 import { clientEntry, type Handle, on, ref } from "remix/ui";
 
+import { t } from "../theme.ts";
 import { TURNS } from "./mosport.ts";
 import {
     DIRECTION,
@@ -115,6 +116,7 @@ export let TrackMonitor = clientEntry(import.meta.url, (handle: Handle) => {
                 <path d={TRACK} mix={track} />
                 <path d={TRACK} mix={centreLine} />
                 <path d={PIT_LANE} mix={pitLane} />
+                <line {...START_LINE} mix={css({ stroke: t.color.canvas, strokeWidth: 7 })} />
                 <line {...START_LINE} data-mark="start" mix={mark} />
                 <path d={DIRECTION} data-mark="direction" mix={mark} />
                 {TURNS.map(turn => (

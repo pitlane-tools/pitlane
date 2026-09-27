@@ -58,7 +58,7 @@ export let workbench = css<HTMLDivElement>({
         backgroundColor: t.color.linkCurrent,
     },
     "& label:has(input:checked) strong, & [aria-selected='true'] strong": { color: t.color.link },
-    "& label:has(input:focus-visible)": {
+    "& label:has(input:focus-visible), & [data-package-choice]:focus-visible": {
         outline: `2px solid ${t.color.link}`,
         outlineOffset: "-2px",
     },
@@ -111,14 +111,16 @@ export let workbench = css<HTMLDivElement>({
         gridTemplateColumns: "minmax(0, 1fr)",
         "& [data-package-options]": {
             display: "flex",
-            flexWrap: "wrap",
+            flexWrap: "nowrap",
+            overflowX: "auto",
             borderRight: 0,
             borderBottom: `1px solid ${t.color.border}`,
         },
-        "& [data-package-legend]": { padding: "0.75rem 1rem" },
+        "& [data-package-legend]": { display: "none" },
         "& [data-package-choice]": {
             padding: "0.75rem 1rem",
-            flex: "1 1 10rem",
+            flex: "0 0 auto",
+            width: "auto",
             minHeight: "3.5rem",
         },
         "& strong": { fontSize: "0.75rem" },
