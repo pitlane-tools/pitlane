@@ -1,0 +1,423 @@
+import { Callout, InstallGroup, NoBuild, Vite } from "../../components/documentation.tsx";
+import { installAlternatives } from "../../install.ts";
+
+export const installation = await installAlternatives({ dev: ["@railway/cli"] });
+
+# Railway
+
+<Vite>
+
+Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process. No platform plugin is involved. `vite build` produces `dist/ssr/index.js` (your fetch handler) and `dist/client/` (static assets that the `staticFiles` middleware in your router serves), and a Dockerfile runs whichever runtime you choose.
+
+<Callout kind="tip" title="Start from a template">
+
+`npx giget github:pitlane-tools/templates/railway-node my-app` (or `railway-bun`, `railway-deno`) scaffolds a working guest book app wired for this guide. See [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+
+</Callout>
+
+The Dockerfile is **built in your CI, never by Railway**: CI runs `docker build` (the Vite build happens inside it, under your control) and pushes the image to [GitHub Container Registry](https://ghcr.io). The Railway service [deploys that pre-built image](https://docs.railway.com/quick-start#deploying-your-project---from-a-docker-image). Railway only pulls and runs. It injects a `PORT` environment variable at runtime. Your server binds `0.0.0.0:$PORT`.
+
+Add a `.dockerignore` so builds stay small and reproducible:
+
+```
+node_modules
+dist
+.git
+```
+
+</Vite>
+
+<NoBuild>
+
+Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process that runs straight from source. Nothing compiles the app ahead of time. The image installs dependencies and starts `server.ts`, and [`remix/assets`](https://github.com/remix-run/remix/tree/main/packages/assets) compiles each browser module the first time a browser asks for it, the same way it does in development.
+
+<Callout kind="tip" title="Start from the Remix starter">
+
+`npx remix@next new my-app` scaffolds an app with no build step. This guide deploys it with one change to its asset server, under Node, Bun, or Deno.
+
+</Callout>
+
+The Dockerfile is **built in your CI, never by Railway**. CI runs `docker build` and pushes the image to [GitHub Container Registry](https://ghcr.io), and installing dependencies is the only work inside that build. The Railway service [deploys that pre-built image](https://docs.railway.com/quick-start#deploying-your-project---from-a-docker-image). Railway only pulls and runs. It injects a `PORT` environment variable at runtime, which the starter's `server.ts` already reads.
+
+Add a `.dockerignore`. Leaving out `node_modules` matters more than usual here. The asset server compiles with native addons, and the image needs the binaries for its own platform rather than the ones installed for yours.
+
+```
+node_modules
+.git
+```
+
+## Production assets
+
+The starter's `app/assets.ts` already reads `NODE_ENV`: outside development it stops watching files and minifies what it serves. Add fingerprinting, which is what Remix recommends for a deployment:
+
+```ts
+// app/assets.ts
+export const assets = createAssetServer({
+    // ...
+    minify: !isDevelopment,
+    watch: isDevelopment,
+    fingerprint: !isDevelopment,
+});
+```
+
+Every asset URL then carries a content hash, `/assets/app/actions/public/entry.@xnRkP3.ts`, and is served with `Cache-Control: public, max-age=31536000, immutable`. Fingerprinting and file watching cannot be combined, so both follow the same flag.
+
+An unset `NODE_ENV` counts as development, so each Dockerfile below sets it to `production`. The starter's `start` script runs that mode locally, under Node, before you build an image:
+
+```sh
+npm start
+```
+
+</NoBuild>
+
+## Node
+
+<Vite>
+
+The Node template's `server.ts` already reads `PORT` (Node runs TypeScript directly):
+
+```ts
+// server.ts
+import * as http from "node:http";
+import { createRequestListener } from "remix/node-fetch-server";
+
+// @ts-expect-error - built output has no types
+import ssr from "./dist/ssr/index.js";
+
+let server = http.createServer(createRequestListener(request => ssr.fetch(request)));
+server.listen(process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000);
+```
+
+```dockerfile
+# Dockerfile
+FROM node:24-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build && npm prune --omit=dev
+
+ENV NODE_ENV=production
+CMD ["node", "server.ts"]
+```
+
+The exec-form `CMD` is fine here because `server.ts` reads `process.env.PORT` itself.
+
+</Vite>
+
+<NoBuild>
+
+`remix/node-tsx` is the loader that lets Node run the app's `.tsx` files. It comes with `remix` and needs Node 24.3 or later. Production dependencies are everything the server needs, since nothing is compiled ahead of time:
+
+```dockerfile
+# Dockerfile
+FROM node:24-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY . .
+
+ENV NODE_ENV=production
+CMD ["node", "--import", "remix/node-tsx", "server.ts"]
+```
+
+The starter has no lockfile. Run `npm install` once to create the `package-lock.json` this Dockerfile installs from.
+
+</NoBuild>
+
+## Bun
+
+<Vite>
+
+Bun's automatic serving of default-exported `fetch` handlers doesn't apply cleanly here: `bun run` passes its `Server` object as a second argument and routes through its own server wrapper, which breaks the router's action dispatch (form `POST`s fall through to the index render). Wrap the built entry in a three-line `Bun.serve` server instead:
+
+```ts
+// server.ts
+// @ts-expect-error - built output has no types
+import ssr from "./dist/ssr/index.js";
+
+let server = Bun.serve({
+    port: process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000,
+    fetch: request => ssr.fetch(request),
+});
+```
+
+```dockerfile
+# Dockerfile
+FROM oven/bun:1-alpine
+WORKDIR /app
+
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY . .
+RUN bun run build
+
+ENV NODE_ENV=production
+CMD ["bun", "server.ts"]
+```
+
+</Vite>
+
+<NoBuild>
+
+Bun runs TypeScript and JSX natively and takes the JSX settings from `tsconfig.json`, so it runs the starter's `server.ts` as it is, `node:http` server included:
+
+```dockerfile
+# Dockerfile
+FROM oven/bun:1-alpine
+WORKDIR /app
+
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+COPY . .
+
+ENV NODE_ENV=production
+CMD ["bun", "server.ts"]
+```
+
+Run `bun install` once to create the `bun.lock` this Dockerfile installs from.
+
+Bun does not resolve [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) that start with `#/`. The starter uses relative imports and is unaffected. If your app maps `"#/*"` in `package.json`, give the pattern a name, such as `"#app/*"`.
+
+</NoBuild>
+
+## Deno
+
+<Vite>
+
+The built entry matches `deno serve`'s default-export contract exactly. One flag matters: `deno serve` does not read `$PORT` itself, so pass it explicitly, and use the **shell-form `CMD`**, because exec-form (`CMD ["deno", …]`) never expands environment variables:
+
+```dockerfile
+# Dockerfile
+FROM denoland/deno:alpine
+WORKDIR /app
+
+COPY . .
+RUN deno install --allow-scripts
+RUN deno task build
+
+# Shell form so Railway's injected $PORT expands.
+CMD deno serve -A --port=$PORT dist/ssr/index.js
+```
+
+(`-A` grants the runtime permissions the server code needs. Tighten to specific `--allow-*` flags once you know your app's surface.)
+
+</Vite>
+
+<NoBuild>
+
+Deno runs TypeScript and JSX natively and installs from `package.json`. It reads the JSX settings from `tsconfig.json`, so it too runs the starter's `server.ts` as it is:
+
+```dockerfile
+# Dockerfile
+FROM denoland/deno:debian
+WORKDIR /app
+
+COPY package.json deno.lock ./
+RUN deno install --frozen
+
+COPY . .
+
+ENV NODE_ENV=production
+CMD ["deno", "run", "-A", "server.ts"]
+```
+
+Run `deno install` once to create the `deno.lock` this Dockerfile installs from.
+
+Use the Debian image. On `denoland/deno:alpine` the install picks the musl build of the asset server's native addons, and Deno cannot load that build there, so the server exits before it starts listening.
+
+The exec-form `CMD` is fine here because `server.ts` reads `process.env.PORT` itself. (`-A` grants the runtime permissions the server code needs. Tighten to specific `--allow-*` flags once you know your app's surface.)
+
+</NoBuild>
+
+## Deploy with the CLI
+
+One-time setup: create an empty project at [railway.com/new](https://railway.com/new). Add a service with **Docker Image** as the source (e.g. `ghcr.io/<user>/my-remix-app:latest`). [Private images](https://docs.railway.com/builds/private-registries) need registry credentials. Generate a domain under **Settings → Networking**, because services are private by default.
+
+Install the [Railway CLI](https://docs.railway.com/cli) as a dev dependency:
+
+<InstallGroup alternatives={installation} />
+
+Then every deploy is a build, a push, and a `railway redeploy` that tells Railway to pull it.
+
+```sh
+docker build -t ghcr.io/<user>/my-remix-app:latest .
+docker push ghcr.io/<user>/my-remix-app:latest
+
+vpx railway login
+vpx railway link            # link this directory to the project once
+vpx railway redeploy --service my-remix-app --yes
+```
+
+`railway redeploy` re-pulls the image tag and rolls the service. The platform uploads no source and runs no build.
+
+## Deploy with GitHub Actions
+
+<Vite>
+
+Create a project-scoped token (**Project Settings → Tokens**) and store it as the `RAILWAY_TOKEN` repository secret. The workflow builds the image (running the Vite build inside `docker build`, in CI), pushes it to GHCR with the built-in `GITHUB_TOKEN`, and redeploys the service:
+
+</Vite>
+
+<NoBuild>
+
+Create a project-scoped token (**Project Settings → Tokens**) and store it as the `RAILWAY_TOKEN` repository secret. The workflow builds the image (installing dependencies inside `docker build`, in CI), pushes it to GHCR with the built-in `GITHUB_TOKEN`, and redeploys the service:
+
+</NoBuild>
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  push: true
+                  tags: ghcr.io/${{ github.repository }}:latest
+
+            - uses: voidzero-dev/setup-vp@v1
+
+            - run: vp install --frozen-lockfile
+
+            - run: vpx railway redeploy --service my-remix-app --yes
+              env:
+                  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+```
+
+<Vite>
+
+`--service` names the Railway service to roll (`railway status` lists them). The Vite build point is the `docker build` step, which runs in CI under your control and never on the platform.
+
+</Vite>
+
+<NoBuild>
+
+`--service` names the Railway service to roll (`railway status` lists them). The image the workflow pushes holds your source and its installed dependencies, nothing more.
+
+</NoBuild>
+
+## Environment variables
+
+Set them per service in the dashboard (**Variables**) or `railway variable set KEY=value`. Railway injects `PORT`. Define your own only if you need a fixed port. `railway run <cmd>` injects the service's variables into a local process for parity debugging.
+
+<Vite>
+
+## Client-only apps
+
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no `server.ts` and no runtime process. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr). `vite build` emits a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
+
+```html
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My Remix App</title>
+        <script type="module" src="/app/main.tsx"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+</html>
+```
+
+```tsx
+// app/main.tsx
+import { createRoot, on, type Handle } from "remix/ui";
+
+function App(handle: Handle) {
+    let count = 0;
+
+    return () => (
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
+            Count: {count}
+        </button>
+    );
+}
+
+createRoot(document.getElementById("app")!).render(<App />);
+```
+
+```jsonc
+// tsconfig.json
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+```
+
+```ts
+// vite.config.ts
+import { remix } from "@pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix({ server: false })],
+});
+```
+
+The Caddyfile binds Railway's injected port and rewrites deep links to `index.html`:
+
+```
+# Caddyfile
+:{$PORT}
+root * /srv
+encode gzip
+try_files {path} /index.html
+file_server
+```
+
+```dockerfile
+# Dockerfile
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM caddy:alpine
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv
+```
+
+Deploys are unchanged: the same image flow (`docker build` + push + `railway redeploy`) from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
+
+</Vite>
+
+<Callout kind="tip" title="Platform features">
+
+However the image arrives, the service gets automatic SSL, [custom domains](https://docs.railway.com/networking/domains), per-PR [preview environments](https://docs.railway.com/environments#pr-environments), and an optional [built-in CDN](https://docs.railway.com/networking/cdn).
+
+</Callout>
