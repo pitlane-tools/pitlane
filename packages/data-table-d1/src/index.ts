@@ -7,6 +7,8 @@
  * synchronous client and cannot bridge that gap, so this package pairs the
  * SQLite SQL compiler with a driver written against D1's async API.
  *
+ * @see {@link https://pitlane.tools/guides/cloudflare-d1 | Cloudflare D1 guide}
+ *
  * @module @pitlane/data-table-d1
  */
 export type { D1Binding, D1Meta, D1PreparedStatement, D1Result } from "./d1.ts";

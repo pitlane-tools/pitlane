@@ -32,6 +32,41 @@ import { HOT_COLLECTION } from "./symbols.ts";
  *
  * Under `contentLayer()`, registers deferred population work. The plugin
  * awaits it after evaluating the declarations and before emitting the bundle.
+ *
+ * @param build - Receives the {@link ContentBuilder} and returns one
+ * collection per key, each declared with `c.collection({ loader, schema })`
+ * @returns One {@link Collection} per key of the object `build` returned
+ * @throws Error when `c.reference()` names a collection `build` did not declare
+ *
+ * @see {@link https://pitlane.tools/guides/content | Content guide}
+ * @see {@link https://pitlane.tools/guides/content-no-build | Content guide, without a build}
+ *
+ * @example
+ * ```ts
+ * // app/content.ts
+ * import { createContent } from "@pitlane/content";
+ * import * as loaders from "@pitlane/content/loaders";
+ * import * as s from "remix/data-schema";
+ * import * as coerce from "remix/data-schema/coerce";
+ *
+ * export let content = createContent(c => ({
+ *     blog: c.collection({
+ *         loader: loaders.glob({ base: "app/content/blog", pattern: "*.{md,mdx}" }),
+ *         schema: s.object({
+ *             title: s.string(),
+ *             pubDate: coerce.date(),
+ *             author: c.reference("authors"),
+ *         }),
+ *     }),
+ *     authors: c.collection({
+ *         loader: loaders.file("app/content/authors.json"),
+ *         schema: s.object({ name: s.string() }),
+ *     }),
+ * }));
+ *
+ * let posts = await content.blog.getCollection();
+ * let post = await content.blog.getEntry("hello-world");
+ * ```
  */
 export function createContent<T extends Record<string, CollectionDefinition>>(
     build: (c: ContentBuilder) => T,

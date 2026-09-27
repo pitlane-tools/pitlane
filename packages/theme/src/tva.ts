@@ -88,6 +88,7 @@ export type TVAProps<F> = F extends TVAFn<infer V> ? Selection<V> : never;
  *
  * @see {@link TVAConfig} for the configuration shape.
  * @see {@link TVAProps} to extract the props type.
+ * @see {@link https://pitlane.tools/guides/theme#variants-with-theme-variance-authority | Theme guide: Variants with Theme Variance Authority}
  *
  * @example
  * ```ts

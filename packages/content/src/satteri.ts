@@ -1,3 +1,14 @@
+/**
+ * Sätteri plugins that Markdown and MDX entry bodies need:
+ * {@link headings} collects the heading list `render()` returns, and
+ * {@link rawStyles} keeps the CSS inside a `<style>` element intact. With a
+ * Vite build, register both with `vite-plugin-satteri`; without one,
+ * `render()` applies them itself.
+ *
+ * @see {@link https://pitlane.tools/guides/content | Content guide}
+ *
+ * @module
+ */
 import type {
     HastPluginDefinition,
     HastPluginEntry,

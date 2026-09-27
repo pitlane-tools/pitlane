@@ -1,3 +1,15 @@
+/**
+ * Conversion between themes and W3C Design Tokens Community Group
+ * (DTCG) 2025.10 documents. {@link fromDTCG} turns a DTCG document into
+ * the schema and token trees {@link "@pitlane/theme"!createTheme} accepts;
+ * {@link toDTCG} exports a theme back to DTCG, keeping values DTCG
+ * cannot express in a Pitlane extension.
+ *
+ * @see {@link https://pitlane.tools/guides/theme | Theme guide}
+ *
+ * @module @pitlane/theme/dtcg
+ */
+
 import type { TokenType } from "./brands.ts";
 import type { SchemaNode, SchemaTag, TokenSchema } from "./schema.ts";
 import type { ThemeComponent, ThemeResult } from "./theme.ts";
@@ -139,7 +151,7 @@ const HEX_RE = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i;
 
 /**
  * Converts a W3C DTCG 2025.10 document into the schema tree and bare token
- * tree {@link createTheme} accepts.
+ * tree {@link "@pitlane/theme"!createTheme} accepts.
  *
  * A token resolves its type in DTCG order: its own `$type`, the resolved type
  * of a whole-value `{reference}`, then the nearest ancestor group's `$type`.
@@ -148,7 +160,7 @@ const HEX_RE = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i;
  * supported because one typography value would need several custom properties.
  *
  * Runtime JSON cannot preserve literal paths, so using this init with
- * {@link createTheme} produces an unbranded accessor. Generate TypeScript from
+ * {@link "@pitlane/theme"!createTheme} produces an unbranded accessor. Generate TypeScript from
  * the result for the typed path.
  *
  * @param document - A DTCG document using `$value`, `$type`, and dotted references

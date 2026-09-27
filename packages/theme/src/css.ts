@@ -43,6 +43,7 @@ export type ThemedCSSMixin<node extends Element = Element> = MixinDescriptor<
  *
  * @see {@link ThemedCSSProps} for the accepted per-property values.
  * @see {@link ThemedCSSMixin} for the returned descriptor.
+ * @see {@link https://pitlane.tools/guides/theme#use-tokens-in-styles | Theme guide: Use tokens in styles}
  *
  * @example
  * ```tsx

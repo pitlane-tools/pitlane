@@ -39,6 +39,9 @@ function isRoute(value: unknown): value is RouteLike {
  *
  * @param routes The route map, usually the one the app's router is built from.
  * @returns The static paths, sorted.
+ *
+ * @see {@link https://pitlane.tools/guides/crawler#asking-what-pages-exist | Crawler guide: Asking what pages exist}
+ * @see {@link https://pitlane.tools/guides/prerendering-no-build#where-the-paths-come-from | Prerendering guide, without a build: Where the paths come from}
  */
 export function staticPaths(routes: RouteMap): string[] {
     let paths = new Set<string>();

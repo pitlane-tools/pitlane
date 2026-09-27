@@ -22,6 +22,14 @@ export interface CrawlResult {
     response: Response;
 }
 
+/**
+ * What {@link crawl} fetches and how: the starting paths, whether to follow
+ * links and queue assets, how many requests run at once, and hooks for
+ * `nofollow` pages and redirects. Every option has a default, so
+ * `crawl(router)` walks everything reachable from `/`.
+ *
+ * @see {@link https://pitlane.tools/guides/crawler | Crawler guide}
+ */
 export interface CrawlOptions {
     /**
      * Paths to start from.
@@ -87,6 +95,9 @@ export interface CrawlTarget {
  * @param router The router to crawl.
  * @param options Crawl options.
  * @returns An async iterator of results, one per fetched path.
+ *
+ * @see {@link https://pitlane.tools/guides/crawler | Crawler guide}
+ * @see {@link https://pitlane.tools/guides/prerendering-no-build | Prerendering guide, without a build}
  */
 export async function* crawl(
     router: CrawlTarget,

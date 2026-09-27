@@ -1,3 +1,12 @@
+/**
+ * Browser reloads during development when a file behind a collection
+ * changes, for servers that `remix/node-hmr` supervises rather than Vite.
+ * See {@link hotContent}.
+ *
+ * @see {@link https://pitlane.tools/guides/content-no-build | Content guide, without a build}
+ *
+ * @module
+ */
 import * as path from "node:path";
 
 import { contentRoot } from "./prebuild.ts";
@@ -48,6 +57,8 @@ interface HotCollection {
  * follow this module into a Worker bundle.
  *
  * @param content The object `createContent` returned.
+ *
+ * @see {@link https://pitlane.tools/guides/content-no-build | Content guide, without a build}
  */
 export async function hotContent(content: Record<string, unknown>): Promise<void> {
     if (!process.env.REMIX_NODE_HMR) return;

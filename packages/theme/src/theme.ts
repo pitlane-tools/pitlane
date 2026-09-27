@@ -87,7 +87,11 @@ export interface ThemeResult<T> {
      * The callback form receives this theme's accessor, so a patch can
      * reference what it extends.
      *
-     * @param patch - The tokens and schema to merge, or a callback returning them
+     * @param patch - The tokens and schema to merge, or a callback returning
+     * them: a {@link ThemePatch} whose `schema` and `tokens` types are kept
+     * exactly. `schema` is optional when the patch only adds tokens to
+     * namespaces the theme already types. `modes` may override any token of
+     * the merged tree, including tokens the patch itself does not declare.
      * @returns A new theme
      * @throws ThemeError when the patch holds no `tokens` group
      */
@@ -151,6 +155,7 @@ type ExtendPatch<T, schema, tokens> = {
  * @throws ValidationError on one or more invalid values
  *
  * @see {@link ThemeInit} for the accepted shape.
+ * @see {@link https://pitlane.tools/guides/theme#define-a-theme | Theme guide: Define a theme}
  *
  * @example
  * ```ts
