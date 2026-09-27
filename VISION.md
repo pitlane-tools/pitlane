@@ -1108,6 +1108,8 @@ The build happens in the developer's shell or CI, under application control. The
 | Deno Deploy  | `vp build && deno deploy --app <name> --prod`                                 |
 | GitHub Pages | upload `dist/` and deploy it with the official GitHub Pages actions           |
 
+Railway and Deno Deploy also have No Build paths, for an app that runs from source with `remix/assets` compiling browser modules on request. Railway's image only installs dependencies before `railway redeploy`; Deno Deploy runs `deno install` on its builders and `deno deploy --app <name> --prod` uploads the source. The other targets bundle server code themselves or have no runtime, so they have no No Build path.
+
 Migration execution is an explicit application step rather than an implicit side effect of every deploy. A workflow that needs migrations runs the adapter or provider's migration command before uploading the new artifact and aborts on failure.
 
 There is no universal Pitlane deploy action. Each target template includes a native GitHub Actions workflow whose credentials, build point, artifact, and deploy command are visible. For Cloudflare:
