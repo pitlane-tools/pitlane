@@ -30,13 +30,10 @@ export let BuildModeSwitch = clientEntry(
         return (
             <div
                 mix={css({
-                    gridArea: "switch",
                     display: "flex",
                     flexWrap: "wrap",
                     alignItems: "center",
                     gap: t.spacing(3),
-                    maxWidth: t.size.prose,
-                    margin: [0, 0, t.spacing(6)],
                 })}
             >
                 <span

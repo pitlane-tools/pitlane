@@ -64,15 +64,19 @@ export function Shell(handle: Handle<ShellProps>) {
                             mix={css({
                                 gridArea: "actions",
                                 display: "flex",
-                                justifyContent: "flex-end",
-                                marginBottom: t.spacing(4),
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: t.spacing(3),
+                                marginBottom: t.spacing(6),
                             })}
                         >
-                            <MarkdownActions url={page.url} />
+                            {page.buildMode && variants ? (
+                                <BuildModeSwitch current={page.buildMode} variants={variants} />
+                            ) : null}
+                            <div mix={css({ marginInlineStart: "auto" })}>
+                                <MarkdownActions url={page.url} />
+                            </div>
                         </div>
-                        {page.buildMode && variants ? (
-                            <BuildModeSwitch current={page.buildMode} variants={variants} />
-                        ) : null}
                         <Article page={page}>{children}</Article>
                     </div>
                 </main>
@@ -176,13 +180,13 @@ let main = tva({
 let pageGrid: ThemedCSSProps = {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr)",
-    gridTemplateAreas: '"actions" "switch" "body"',
+    gridTemplateAreas: '"actions" "body"',
     columnGap: t.spacing(10),
     maxWidth: t.size.content,
     [outlineColumn]: {
         gridTemplateColumns: `minmax(0, 1fr) ${t.size.toc}`,
-        gridTemplateAreas: '"actions outline" "switch outline" "body outline"',
-        gridTemplateRows: "auto auto 1fr",
+        gridTemplateAreas: '"actions outline" "body outline"',
+        gridTemplateRows: "auto 1fr",
     },
 };
 
