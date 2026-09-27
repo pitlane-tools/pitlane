@@ -108,6 +108,75 @@ describe("headings", () => {
         expect(html).toContain('id="install-the-package"');
     });
 
+    it("reads the visible text of inline HTML, not its tags", async () => {
+        let { data, html } = await markdownToHtml("## <span>Visible</span> text\n", plugins());
+
+        expect(headingsOf(data)).toEqual([
+            { depth: 2, slug: "visible-text", text: "Visible text" },
+        ]);
+        expect(html).toContain('id="visible-text"');
+    });
+
+    it("leaves image alt text out, keeping the spaces around the image", async () => {
+        // GitHub and Astro both slug the text left once the image is gone and
+        // trim nothing, so a heading ending in an image slugs with a trailing
+        // hyphen there too.
+        let { data } = await markdownToHtml(
+            "## [A](url) ![Cat photo](cat.png)\n\n## Built with ![Acme][logo] tools\n\n[logo]: acme.png\n",
+            plugins(),
+        );
+
+        expect(headingsOf(data)).toEqual([
+            { depth: 2, slug: "a-", text: "A " },
+            { depth: 2, slug: "built-with--tools", text: "Built with  tools" },
+        ]);
+    });
+
+    it("reads a string-literal expression as the text it renders", async () => {
+        let { data } = await mdxToJs(
+            '## Hello {"world"}\n\n## The {"{"} character\n\n## {\'single\'} and {`template`}\n',
+            plugins(),
+        );
+
+        expect(headingsOf(data)).toEqual([
+            { depth: 2, slug: "hello-world", text: "Hello world" },
+            { depth: 2, slug: "the--character", text: "The { character" },
+            { depth: 2, slug: "single-and-template", text: "single and template" },
+        ]);
+    });
+
+    it("decodes the escapes of a string-literal expression as JavaScript does", async () => {
+        let { data } = await mdxToJs(
+            String.raw`## {"it\"s"} {'it\'s'} {"caf\u00e9 \u{1F600} \x41\tB\0"} {"\q"}` + "\n",
+            plugins(),
+        );
+
+        expect(headingsOf(data).map(heading => heading.text)).toEqual([
+            "it\"s it's café \u{1F600} A\tB\0 q",
+        ]);
+    });
+
+    it("leaves out an expression whose value is not a lone string literal", async () => {
+        let { data } = await mdxToJs(
+            '## Sum {1 + 1}\n\n## Name {name}\n\n## Joined {"a" + "b"}\n\n## Template {`${name}`}\n\n## Invalid {"\\8"}\n',
+            plugins(),
+        );
+
+        expect(headingsOf(data).map(heading => heading.text)).toEqual([
+            "Sum ",
+            "Name ",
+            "Joined ",
+            "Template ",
+            "Invalid ",
+        ]);
+    });
+
+    it("reads expressions and text inside JSX elements and emphasis", async () => {
+        let { data } = await mdxToJs("## <Badge>new {\"in\"}</Badge> *v{'2'}*\n", plugins());
+
+        expect(headingsOf(data)).toEqual([{ depth: 2, slug: "new-in-v2", text: "new in v2" }]);
+    });
+
     it("exports the heading list from a compiled MDX module", async () => {
         let { code } = await mdxToJs("# Title\n\n## Section\n", {
             ...plugins(),

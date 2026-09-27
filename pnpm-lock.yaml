@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  vite@8.1.5: 4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4
+
 importers:
 
   .:
@@ -247,7 +250,7 @@ importers:
     dependencies:
       '@hiogawa/vite-plugin-fullstack':
         specifier: ^0.0.11
-        version: 0.0.11(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.0.11(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       '@pitlane/content':
         specifier: workspace:*
         version: link:../../packages/content
@@ -266,13 +269,13 @@ importers:
         version: 0.10.5
       vite:
         specifier: ^8.1.5
-        version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-satteri:
         specifier: ^0.3.5
-        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   demos/theme:
     dependencies:
@@ -313,7 +316,7 @@ importers:
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: ^1.31.0
-        version: 1.47.0(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)
+        version: 1.47.0(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)
       '@fontsource-variable/instrument-sans':
         specifier: ^5.3.0
         version: 5.3.0
@@ -346,13 +349,13 @@ importers:
         version: 3.0.2
       vite:
         specifier: ^8.1.5
-        version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-satteri:
         specifier: ^0.3.5
-        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   packages/content:
     dependencies:
@@ -377,13 +380,13 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.1.5
-        version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plugin-satteri:
         specifier: ^0.3.5
-        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.3.5(satteri@0.10.5)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   packages/crawler:
     devDependencies:
@@ -398,7 +401,7 @@ importers:
         version: 7.0.2
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   packages/create-pitlane: {}
 
@@ -418,13 +421,13 @@ importers:
         version: 7.0.2
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   packages/dev:
     dependencies:
       '@hiogawa/vite-plugin-fullstack':
         specifier: 0.0.11
-        version: 0.0.11(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.0.11(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       '@pitlane/crawler':
         specifier: workspace:^
         version: link:../crawler
@@ -437,7 +440,7 @@ importers:
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: ^1.31.0
-        version: 1.47.0(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)
+        version: 1.47.0(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)
       '@types/node':
         specifier: ^25.5.0
         version: 25.9.5
@@ -452,10 +455,10 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.1.5
-        version: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+        version: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
       wrangler:
         specifier: ^4.114.0
         version: 4.114.0
@@ -491,7 +494,7 @@ importers:
         version: 7.0.2
       vite-plus:
         specifier: ^0.2.6
-        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+        version: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
 packages:
 
@@ -5829,12 +5832,12 @@ snapshots:
     optionalDependencies:
       workerd: 1.20260722.1
 
-  '@cloudflare/vite-plugin@1.47.0(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)':
+  '@cloudflare/vite-plugin@1.47.0(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(wrangler@4.114.0)':
     dependencies:
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260722.1)
       miniflare: 4.20260722.0
       unenv: 2.0.0-rc.24
-      vite: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+      vite: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       workerd: 1.20260722.1
       wrangler: 4.114.0
       ws: 8.21.0
@@ -6136,13 +6139,13 @@ snapshots:
       strip-literal: 3.1.0
       vite: '@voidzero-dev/vite-plus-core@0.1.19(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
 
-  '@hiogawa/vite-plugin-fullstack@0.0.11(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))':
+  '@hiogawa/vite-plugin-fullstack@0.0.11(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
       srvx: 0.9.8
       strip-literal: 3.1.0
-      vite: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+      vite: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
 
   '@huggingface/jinja@0.5.9':
     optional: true
@@ -7962,11 +7965,11 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser-preview@4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)':
+  '@vitest/browser-preview@4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/browser': 4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)
+      '@vitest/browser': 4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)
       vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@4.1.10)(vite@8.1.4(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
     transitivePeerDependencies:
       - bufferutil
@@ -7991,10 +7994,10 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)':
+  '@vitest/browser@4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)':
     dependencies:
       '@blazediff/core': 1.9.1
-      '@vitest/mocker': 4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       '@vitest/utils': 4.1.10
       magic-string: 0.30.21
       pngjs: 7.0.0
@@ -8025,13 +8028,13 @@ snapshots:
     optionalDependencies:
       vite: 8.1.4(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
 
-  '@vitest/mocker@4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))':
+  '@vitest/mocker@4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@vitest/spy': 4.1.10
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+      vite: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
 
   '@vitest/pretty-format@4.1.10':
     dependencies:
@@ -9727,7 +9730,7 @@ snapshots:
       '@oxfmt/binding-win32-x64-msvc': 0.60.0
       vite-plus: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.4(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
-  oxfmt@0.60.0(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)):
+  oxfmt@0.60.0(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)):
     dependencies:
       tinypool: 2.1.0
     optionalDependencies:
@@ -9750,7 +9753,7 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.60.0
       '@oxfmt/binding-win32-ia32-msvc': 0.60.0
       '@oxfmt/binding-win32-x64-msvc': 0.60.0
-      vite-plus: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+      vite-plus: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   oxlint-tsgolint@7.0.2001:
     optionalDependencies:
@@ -9785,7 +9788,7 @@ snapshots:
       oxlint-tsgolint: 7.0.2001
       vite-plus: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.4(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
-  oxlint@1.75.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)):
+  oxlint@1.75.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.75.0
       '@oxlint/binding-android-arm64': 1.75.0
@@ -9807,7 +9810,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.75.0
       '@oxlint/binding-win32-x64-msvc': 1.75.0
       oxlint-tsgolint: 7.0.2001
-      vite-plus: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+      vite-plus: 0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
   p-limit@3.1.0:
     dependencies:
@@ -10523,11 +10526,11 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plugin-satteri@0.3.5(satteri@0.10.5)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
+  vite-plugin-satteri@0.3.5(satteri@0.10.5)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       satteri: 0.10.5
       smol-toml: 1.8.0
-      vite: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+      vite: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       yaml: 2.9.0
 
   vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.4(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0):
@@ -10588,24 +10591,24 @@ snapshots:
       - vite
       - yaml
 
-  vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0):
+  vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0):
     dependencies:
       '@oxc-project/types': 0.141.0
       '@oxlint/plugins': 1.73.0
-      '@vitest/browser': 4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)
-      '@vitest/browser-preview': 4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)
+      '@vitest/browser': 4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)
+      '@vitest/browser-preview': 4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/expect': 4.1.10
-      '@vitest/mocker': 4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.10
       '@vitest/runner': 4.1.10
       '@vitest/snapshot': 4.1.10
       '@vitest/spy': 4.1.10
       '@vitest/utils': 4.1.10
       '@voidzero-dev/vite-plus-core': 0.2.6(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0)
-      oxfmt: 0.60.0(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0))
-      oxlint: 1.75.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0))
+      oxfmt: 0.60.0(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0))
+      oxlint: 1.75.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.2.6(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0))
       oxlint-tsgolint: 7.0.2001
-      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@4.1.10)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
     optionalDependencies:
       '@voidzero-dev/vite-plus-darwin-arm64': 0.2.6
       '@voidzero-dev/vite-plus-darwin-x64': 0.2.6
@@ -10660,7 +10663,7 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.9.0
 
-  vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0):
+  vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.5
@@ -10703,10 +10706,10 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
+  vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/browser-preview@4.1.10)(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.10
-      '@vitest/mocker': 4.1.10(vite@8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.10(vite@8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.10
       '@vitest/runner': 4.1.10
       '@vitest/snapshot': 4.1.10
@@ -10723,7 +10726,7 @@ snapshots:
       tinyexec: 1.2.4
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.0
-      vite: 8.1.5(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
+      vite: 8.1.5(patch_hash=4cf519756274ca90747877d65f45b0699147c55984cd429ef2957b4f31e261d4)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.1

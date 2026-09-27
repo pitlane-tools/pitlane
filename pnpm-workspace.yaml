@@ -21,3 +21,6 @@ allowBuilds:
     sharp: false
 
 minimumReleaseAge: 0
+
+patchedDependencies:
+    vite@8.1.5: patches/vite@8.1.5.patch

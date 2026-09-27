@@ -108,7 +108,7 @@ export function csv(options: { file: string; idColumn?: string }): ContentLoader
 }
 ```
 
-`watchedPaths` is what a development host watches to notice a change. Report the files or directories your loader read. Omit it and the collection is simply not watched. A loader with no local files has nothing to report, which is why it is optional.
+`watchedPaths` is what a development host watches to notice a change. Report the files or directories your loader read. Omit it and the collection is simply not watched. A loader with no local files has nothing to report, so it is optional.
 
 Pass a schema that describes the columns, and every row is validated:
 
@@ -424,13 +424,13 @@ A loader is a package that exports a factory. Keep `@pitlane/content` a **peer**
 
 Nothing in this package needs to be imported at runtime to write a loader. `ContentLoader` and `LiveLoader` are types, which means a published loader can have no runtime dependency on `@pitlane/content` at all.
 
-[Astro's loader ecosystem](https://github.com/ascorbic/astro-loaders) is worth reading for prior art on what makes a good one: a narrow option object, sensible ids derived from the source, errors that name the source, and a schema the consumer can extend rather than one you impose.
+[Astro's loader ecosystem](https://github.com/ascorbic/astro-loaders) is worth reading for prior art on what makes a good one, such as a narrow option object, sensible ids derived from the source, errors that name the source, and a schema the consumer can extend rather than one you impose.
 
 ## Limitations
 
 - **`contentLayer()` only prebuilds a `ContentLoader`.** A `LiveLoader` is never inlined, so a collection using one still needs its source reachable from wherever the app is deployed, Workers included.
 - **A `ContentLoader` runs during the build**, in Node, so it cannot use anything that only exists at request time. Reading a secret from `process.env` inside the loader breaks on a host without one. Take it as an option instead.
-- **`watchedPaths` reports paths, and how they are used differs by host.** `contentLayer()` watches the directories it reports. A host with no bundler watches the files its entries came from, so a loader that reports only directories is still watched correctly there, but a file created after the load is not seen until a restart. See [Content (no build)](/guides/content-no-build#reloading-a-content-file-while-the-app-runs).
+- **`watchedPaths` reports paths, and how they are used differs by host.** `contentLayer()` watches the directories it reports. A host with no bundler watches the files its entries came from, so a loader that reports only directories is still watched correctly there, but a file created after the load is not seen until a restart. See [Content (no build)](/guides/content-no-build#hot-reloading-for-your-content).
 - **A `ContentLoader`'s result is memoized for the life of the process.** There is no TTL and no revalidation. A source that updates while the server runs wants a `LiveLoader`.
 - **A `LiveLoader` re-validates on every read.** That is deliberate, and it means a schema that is expensive to run is a cost you pay per request.
 - **Rendering a Markdown body still needs a renderer.** `satteri` has to be installed wherever the rendering happens, which for a `LiveLoader` is the running server even in a bundled application, because `contentLayer()` never prebuilds one. A `.mdx` body also needs `new Function`, so Workers requires prebuilding and a `LiveLoader` cannot serve `.mdx` there at all.

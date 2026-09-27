@@ -5,7 +5,7 @@ description: "How remix({ server: false }) sets up a client-rendered Remix 3 app
 
 # Single-page apps
 
-Some Remix 3 apps have no server. The router runs in the browser, the build is a folder of static files, and the host is a CDN. `remix({ server: false })` is the switch for those apps.
+Some Remix 3 apps have no server. The router runs in the browser. The build is a folder of static files, and the host is a CDN. `remix({ server: false })` is the switch for those apps.
 
 ```ts
 // vite.config.ts
@@ -37,7 +37,7 @@ Every `server*` option goes with it: `serverEntry`, `serverEnvironments`, and `s
 
 ## Why use the plugin at all
 
-Vite already serves `index.html` in dev and builds it into a static site. The plugin's remaining job is [component hot module replacement](/guides/hmr#component-hmr). Without HMR, editing a component reloads the page and every piece of live state goes with it: a half-typed form, an open menu, a scroll position. With it, the component swaps in place and that state survives.
+Vite already serves `index.html` in dev and builds it into a static site. The plugin's remaining job is [component hot module replacement](/guides/hmr#component-hmr). Without HMR, editing a component reloads the page and every piece of live state goes with it (a half-typed form, an open menu, a scroll position). With it, the component swaps in place and that state survives.
 
 Both authoring styles hot-swap. The plugin rewrites an arrow-form component export to a function expression with a name before instrumenting it:
 
@@ -63,7 +63,7 @@ export function Counter(handle: Handle) {
 }
 ```
 
-Editing the returned markup swaps it in and the count keeps counting. Editing the setup scope above the `return` remounts the component, which is the same rule as everywhere else; see [state survives a render edit](/guides/hmr#state-survives-a-render-edit-and-resets-on-a-setup-edit).
+Editing the returned markup swaps it in and the count keeps counting. Editing the setup scope above the `return` remounts the component, which is the same rule as everywhere else. See [state survives a render edit](/guides/hmr#state-survives-a-render-edit-and-resets-on-a-setup-edit).
 
 Because server-data revalidation has no server to revalidate against, `<HMR />` from `pitlane:dev` resolves to the inert component here: it renders nothing and carries no client code, so an app that renders it unconditionally costs nothing.
 
@@ -234,7 +234,7 @@ export function Shell() {
 }
 ```
 
-`clientAssets.entry` is the URL of `app/entry.browser.tsx`: the dev URL during `vite dev`, the hashed chunk after a build. That one import is the whole reason the shell does not need to know its own build output. The [Vite plugin guide](/guides/vite-plugin#the-asset-runtime) covers the protocol, including `css` and `mergeAssets` for apps with stylesheets.
+`clientAssets.entry` is the URL of `app/entry.browser.tsx`: the dev URL during `vite dev` and the hashed chunk after a build. That one import is the whole reason the shell does not need to know its own build output. The [Vite plugin guide](/guides/vite-plugin#the-asset-runtime) covers the protocol, including `css` and `mergeAssets` for apps with stylesheets.
 
 ### The server
 
@@ -264,11 +264,11 @@ router.map(routes.post, () => shell());
 export default router;
 ```
 
-`renderToString` renders the element tree and stops there. It emits no DOCTYPE, which is what `createHtmlResponse` is for; a shell without one puts the browser in quirks mode.
+`renderToString` renders the element tree and stops there. It emits no DOCTYPE, which is what `createHtmlResponse` is for. A shell without one puts the browser in quirks mode.
 
 ### The browser
 
-This is what `clientAssets.entry` pulls in, and it is the same code SPA mode runs. Either shape from [Rendering](#rendering) works. A `createRoot` tree:
+This is what `clientAssets.entry` pulls in, and it is the same code SPA mode runs. Either shape from [Rendering](#rendering) works here. A `createRoot` tree:
 
 ```tsx
 // app/entry.browser.tsx
@@ -305,6 +305,6 @@ let app = run(router);
 await app.ready();
 ```
 
-Two routers, and they are not the same one. The browser router owns what the user sees. The server router owns the shell and the data those views fetch. They meet at the URL, so the server maps every navigable route to the shell: a deep link or a refresh has to arrive at HTML that boots the client router, which then resolves the path.
+Two routers, and they are not the same one. The browser router owns what the user sees. The server router owns the shell and the data those views fetch. Both meet at the URL, so the server maps every navigable route to the shell. A deep link or a refresh has to arrive at HTML that boots the client router, which then resolves the path.
 
 The shell's `<div id="app" />` is there for the `createRoot` shape. Under `remix/spa`, `run()` renders into the top frame and replaces the body the server sent, so the container goes unread and an empty `<body>` works just as well.

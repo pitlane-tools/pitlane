@@ -1,6 +1,6 @@
 {
     "js/ts.preferences.importModuleSpecifierEnding": "js",
-    "typescript.tsdk": ".mdx/node_modules/typescript/lib",
+    "typescript.tsdk": "packages/mdx-checker/node_modules/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
 
     "oxc.enable.oxlint": true,

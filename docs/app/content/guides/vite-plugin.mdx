@@ -73,7 +73,7 @@ export default defineConfig({
 });
 ```
 
-The three-file core collapses to one. There is no `app/entry.server.tsx`, no server environment, and no `dist/ssr`; `index.html` is the entry, and `vite build` emits a static site beside it. Every other option on this page goes unread, and the rest of this guide covers machinery a client-only app never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
+The three-file core collapses to one. `index.html` is the entry, and `vite build` emits a static site beside it. `app/entry.server.tsx`, the server environment, and `dist/ssr` are all gone. Every other option on this page goes unread, and the rest of this guide covers machinery a client-only app never reaches. [Single-page apps](/guides/spa) is the guide for that mode.
 
 The switch removes the server, not the server rendering. An app that wants a browser-rendered UI in front of routes that still run per request keeps the default mode: see [client rendering with a server](/guides/spa#client-rendering-with-a-server).
 

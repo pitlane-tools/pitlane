@@ -101,28 +101,38 @@ const ANNOUNCEMENTS: Record<CopyState, string> = {
  * Copies the page's Markdown. The text is fetched on the click and handed to
  * the clipboard as a promise, which keeps the click's user activation in
  * browsers that would refuse a write made after the fetch.
+ *
+ * A soft navigation keeps this instance and swaps its `source`, so feedback
+ * remembers which document it describes and shows only beside that one. A new
+ * copy cancels one still in flight, so an older document's text cannot land
+ * on the clipboard, or in the feedback, after the newer copy.
  */
 export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source: string }>) => {
-    let state: CopyState = "idle";
+    let feedback: { state: CopyState; source: string } | undefined;
     let reset = 0;
+    let pending: AbortController | undefined;
 
     handle.queueTask(() =>
         handle.signal.addEventListener("abort", () => window.clearTimeout(reset)),
     );
 
-    function settle(next: CopyState) {
-        state = next;
+    function settle(state: CopyState, source: string) {
+        feedback = { state, source };
         window.clearTimeout(reset);
         reset = window.setTimeout(() => {
-            state = "idle";
+            feedback = undefined;
             void handle.update();
         }, CONFIRMATION_MS);
         void handle.update();
     }
 
     async function copy() {
-        let text = fetch(handle.props.source).then(response => {
-            if (!response.ok) throw new Error(`${handle.props.source} answered ${response.status}`);
+        pending?.abort();
+        let current = new AbortController();
+        pending = current;
+        let source = handle.props.source;
+        let text = fetch(source, { signal: current.signal }).then(response => {
+            if (!response.ok) throw new Error(`${source} answered ${response.status}`);
             return response.text();
         });
         try {
@@ -132,32 +142,36 @@ export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source:
                 let blob = text.then(value => new Blob([value], { type: "text/plain" }));
                 await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
             }
-            settle("copied");
+            if (!current.signal.aborted) settle("copied", source);
         } catch (error) {
+            if (current.signal.aborted) return;
             console.error(error);
-            settle("failed");
+            settle("failed", source);
         }
     }
 
-    return () => (
-        <>
-            <button
-                data-state={state === "idle" ? undefined : state}
-                mix={[css({ ...segment, [noScript]: { display: "none" } }), on("click", copy)]}
-                type="button"
-            >
-                {state === "copied" ? (
-                    <CheckIcon />
-                ) : state === "failed" ? (
-                    <CloseIcon />
-                ) : (
-                    <CopyIcon />
-                )}
-                Copy Markdown
-            </button>
-            <span mix={css(visuallyHidden)} role="status">
-                {ANNOUNCEMENTS[state]}
-            </span>
-        </>
-    );
+    return () => {
+        let state = feedback?.source === handle.props.source ? feedback.state : "idle";
+        return (
+            <>
+                <button
+                    data-state={state === "idle" ? undefined : state}
+                    mix={[css({ ...segment, [noScript]: { display: "none" } }), on("click", copy)]}
+                    type="button"
+                >
+                    {state === "copied" ? (
+                        <CheckIcon />
+                    ) : state === "failed" ? (
+                        <CloseIcon />
+                    ) : (
+                        <CopyIcon />
+                    )}
+                    Copy Markdown
+                </button>
+                <span mix={css(visuallyHidden)} role="status">
+                    {ANNOUNCEMENTS[state]}
+                </span>
+            </>
+        );
+    };
 });

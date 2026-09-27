@@ -58,9 +58,99 @@ function uniqueSlug(text: string, taken: Map<string, number>): string {
 }
 
 /**
+ * The mdast nodes a heading can hold, as far as reading their text needs:
+ * leaves carry `value` and containers `children`.
+ */
+interface InlineNode {
+    type: string;
+    value?: string;
+    children?: InlineNode[];
+}
+
+/**
+ * The text a heading shows on the page, which is what GitHub and Astro slug.
+ * Sätteri's `textContent` differs in three places: it keeps raw HTML tags as
+ * text, includes image alt text, and reads every MDX expression as nothing.
+ * Its options drop the first two, but an expression only carries its source,
+ * so the walk is done here.
+ *
+ * Raw HTML nodes hold only the tags; the text between them is already its own
+ * sibling node, so dropping `html` leaves the visible words. Images render no
+ * text.
+ */
+function visibleText(node: InlineNode): string {
+    switch (node.type) {
+        case "html":
+        case "image":
+        case "imageReference":
+            return "";
+        case "mdxTextExpression":
+            return stringLiteralValue(node.value ?? "") ?? "";
+    }
+    if (node.children) return node.children.map(visibleText).join("");
+    return node.value ?? "";
+}
+
+/** A lone JavaScript string or template literal, surrounded by nothing but whitespace. */
+const STRING_LITERAL =
+    /^\s*(?:"((?:[^"\\\n\r]|\\[^])*)"|'((?:[^'\\\n\r]|\\[^])*)'|`((?:[^`\\$]|\\[^]|\$(?!\{))*)`)\s*$/;
+
+/**
+ * One escape sequence: a code point in either `\u` form, a `\x` byte, `\0` not
+ * followed by a digit, a line continuation, or any other escaped character.
+ */
+const ESCAPE =
+    /\\(?:u\{([\da-fA-F]+)\}|u([\da-fA-F]{4})|x([\da-fA-F]{2})|(0)(?!\d)|(\r\n|[\n\r\u2028\u2029])|([^]))/g;
+
+const SINGLE_CHARACTER_ESCAPES: Record<string, string> = {
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    v: "\v",
+};
+
+/**
+ * The value of an MDX expression whose source is a lone string literal, such
+ * as `{"{"}`, the usual way to write a brace in MDX text. `undefined` for any
+ * other expression, whose value is only known once the module runs.
+ *
+ * Escapes decode as in a module, which is strict code: a legacy octal escape
+ * such as `\1`, a `\8`, or a malformed `\x` or `\u` makes the literal invalid.
+ */
+function stringLiteralValue(source: string): string | undefined {
+    let match = STRING_LITERAL.exec(source);
+    if (!match) return undefined;
+    let [, double, single, template] = match;
+    // A template's raw line breaks read as `\n` whichever way they were saved.
+    let body = double ?? single ?? template!.replace(/\r\n?/g, "\n");
+
+    let valid = true;
+    let value = body.replace(ESCAPE, (_, braced, unit, byte, nul, lineBreak, other: string) => {
+        if (braced !== undefined) {
+            let codePoint = Number.parseInt(braced, 16);
+            if (codePoint <= 0x10ffff) return String.fromCodePoint(codePoint);
+        } else if (unit !== undefined || byte !== undefined) {
+            return String.fromCharCode(Number.parseInt(unit ?? byte, 16));
+        } else if (nul !== undefined) {
+            return "\0";
+        } else if (lineBreak !== undefined) {
+            return "";
+        } else if (!/[ux\d]/.test(other)) {
+            return SINGLE_CHARACTER_ESCAPES[other] ?? other;
+        }
+        valid = false;
+        return "";
+    });
+    return valid ? value : undefined;
+}
+
+/**
  * Collects every heading of a document as `{ depth, slug, text }`, publishes the
  * list as `data.headings`, and gives each heading an `id` matching its slug so an
- * anchor link lands on it. On MDX the list is also appended to the tree as
+ * anchor link lands on it. A heading's text is the text it shows on the page,
+ * as `visibleText` reads it. On MDX the list is also appended to the tree as
  * `export const headings`, so the compiled module carries its own table of
  * contents.
  *
@@ -85,7 +175,7 @@ export function headings(): MdastPluginEntry {
         let definition: MdastPluginDefinition = {
             name: "pitlane-headings",
             heading(node, context) {
-                let text = context.textContent(node);
+                let text = visibleText(node);
                 let slug = uniqueSlug(text, taken);
                 collected.push({ depth: node.depth, slug, text });
                 context.setProperty(node, "data", { hProperties: { id: slug } });

@@ -91,7 +91,7 @@ wrangler d1 migrations apply DB --remote   # production
 
 Wrangler records what it has applied in a `d1_migrations` table, so re-running is a no-op and `--remote` picks up only what production has not seen.
 
-Two details worth knowing about the generated directory. Files are written verbatim, so a semicolon inside a trigger body or a string literal survives. Splitting the SQL into statements is Wrangler's job, not the generator's. And the directory is a pure function of the source: a generated `.sql` file whose migration you deleted is removed on the next run, while anything that is not a generated file, such as a `README.md`, is left alone.
+Two details worth knowing about the generated directory. Files are written verbatim, so a semicolon inside a trigger body or a string literal survives. Splitting the SQL into statements is Wrangler's job, not the generator's. And the directory is a pure function of the source. A generated `.sql` file whose migration you deleted is removed on the next run, while anything that is not a generated file, such as a `README.md`, is left alone.
 
 `generateD1Migrations` reads the filesystem, so it is build tooling and imports from a separate entry point. It never enters your Worker bundle.
 
@@ -159,7 +159,7 @@ let db = createD1Database(env.DB, {
 });
 ```
 
-In this mode, `transaction()` will run the callback and each statement commits on its own. The `unsafe` in the name means one specific thing: **a failure part-way through leaves the earlier writes in place**, because there is nothing to roll back.
+In this mode, `transaction()` will run the callback and each statement commits on its own. The `unsafe` in the name means one specific thing. **A failure part-way through leaves the earlier writes in place**, because there is nothing to roll back.
 
 ```ts
 await db.transaction(async tx => {
