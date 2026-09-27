@@ -103,11 +103,14 @@ const ANNOUNCEMENTS: Record<CopyState, string> = {
  * browsers that would refuse a write made after the fetch.
  *
  * A soft navigation keeps this instance and swaps its `source`, so feedback
- * remembers which document it describes and shows only beside that one.
+ * remembers which document it describes and shows only beside that one. A new
+ * copy cancels one still in flight, so an older document's text cannot land
+ * on the clipboard, or in the feedback, after the newer copy.
  */
 export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source: string }>) => {
     let feedback: { state: CopyState; source: string } | undefined;
     let reset = 0;
+    let pending: AbortController | undefined;
 
     handle.queueTask(() =>
         handle.signal.addEventListener("abort", () => window.clearTimeout(reset)),
@@ -124,8 +127,11 @@ export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source:
     }
 
     async function copy() {
+        pending?.abort();
+        let current = new AbortController();
+        pending = current;
         let source = handle.props.source;
-        let text = fetch(source).then(response => {
+        let text = fetch(source, { signal: current.signal }).then(response => {
             if (!response.ok) throw new Error(`${source} answered ${response.status}`);
             return response.text();
         });
@@ -136,8 +142,9 @@ export let CopyMarkdown = clientEntry(import.meta.url, (handle: Handle<{ source:
                 let blob = text.then(value => new Blob([value], { type: "text/plain" }));
                 await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
             }
-            settle("copied", source);
+            if (!current.signal.aborted) settle("copied", source);
         } catch (error) {
+            if (current.signal.aborted) return;
             console.error(error);
             settle("failed", source);
         }
