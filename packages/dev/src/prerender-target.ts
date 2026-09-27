@@ -1,6 +1,7 @@
 import type { RouteMap } from "remix/routes";
 import type { ResolvedConfig } from "vite";
 
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as url from "node:url";
@@ -75,10 +76,12 @@ export function serverEntryPath(ssrConfig: ResolvedConfig): string {
  * Imports the built server entry, or reports that this process cannot.
  *
  * Dynamic by necessity: the specifier is a runtime-computed path into the
- * app's own build output. The bundle's modification time rides along in the
- * URL, because Node's module registry is keyed on the specifier — without it a
- * second build in the same process (a watch rebuild, or one test after
- * another) would prerender through the first build's handler.
+ * app's own build output. Every import carries a fresh id in the URL, because
+ * module registries are keyed on the specifier — without it a second build in
+ * the same process (a watch rebuild, or one test after another) would
+ * prerender through the first build's handler. The bundle's modification time
+ * cannot stand in: two builds a moment apart can share one, and Vite's module
+ * runner strips a `t=` query as its own HMR timestamp.
  */
 async function importServerEntry(ssrConfig: ResolvedConfig): Promise<ServerEntry | undefined> {
     let entryPath = serverEntryPath(ssrConfig);
@@ -92,7 +95,7 @@ async function importServerEntry(ssrConfig: ResolvedConfig): Promise<ServerEntry
 
     try {
         let specifier = url.pathToFileURL(entryPath);
-        specifier.searchParams.set("t", String(stats.mtimeMs));
+        specifier.searchParams.set("build", randomUUID());
         return (await import(/* @vite-ignore */ specifier.href)) as ServerEntry;
     } catch {
         // A bundle for another runtime. Rendering it is the preview server's

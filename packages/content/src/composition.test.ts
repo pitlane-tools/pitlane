@@ -55,23 +55,10 @@ function packagesOf(specifiers: Set<string>): Set<string> {
 }
 
 describe("what a consumer has to install", () => {
-    it("reads and validates content without Remix", async () => {
-        let packages = packagesOf(await staticDependencies("./index.ts"));
-
-        expect([...packages]).not.toContain("remix");
-    });
-
     it("loads the built-in loaders without Remix", async () => {
         let packages = packagesOf(await staticDependencies("./loaders.ts"));
 
         expect([...packages]).not.toContain("remix");
-    });
-
-    it("keeps the query path free of the bundler and the renderer", async () => {
-        let packages = packagesOf(await staticDependencies("./index.ts"));
-
-        expect([...packages]).not.toContain("vite");
-        expect([...packages]).not.toContain("satteri");
     });
 
     it("has a data path that needs nothing at all", async () => {

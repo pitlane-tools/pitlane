@@ -6,7 +6,7 @@ import { isAbsolute, join, relative } from "node:path";
 // Runs Vale after every successful edit/write that touches a prose file and
 // appends the findings to the tool result, so the agent sees prose feedback
 // in-context immediately. Keep the directory list in sync with .vale.ini.
-const PROSE_DIRS = ["docs/package/", "docs/guides/"];
+const PROSE_DIRS = ["docs/app/content/api/", "docs/app/content/guides/"];
 
 export default function (pi: HookAPI): void {
     pi.on("tool_result", async (event, ctx) => {
@@ -15,7 +15,7 @@ export default function (pi: HookAPI): void {
 
         let prose = collectPaths(event.input, ctx.cwd).filter(path => {
             let rel = relative(ctx.cwd, path).replaceAll("\\", "/");
-            return rel.endsWith(".md") && PROSE_DIRS.some(dir => rel.startsWith(dir));
+            return /\.mdx?$/.test(rel) && PROSE_DIRS.some(dir => rel.startsWith(dir));
         });
         prose = prose.filter(path => existsSync(path));
         if (prose.length === 0) return;
@@ -24,9 +24,14 @@ export default function (pi: HookAPI): void {
         // invoke with repo-relative paths from the repo root.
         let files = prose.map(path => relative(ctx.cwd, path).replaceAll("\\", "/"));
 
+        // Vale is a workspace devDependency, which is not on PATH unless the
+        // session was started through the package manager.
+        let vale = join(ctx.cwd, "node_modules", ".bin", "vale");
+        if (!existsSync(vale)) return;
+
         let report: string;
         try {
-            let result = (await pi.exec("vale", ["--output=line", ...files], {
+            let result = (await pi.exec(vale, ["--output=line", ...files], {
                 cwd: ctx.cwd,
             })) as { stdout?: string; stderr?: string; code?: number; exitCode?: number };
             let output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
@@ -36,7 +41,7 @@ export default function (pi: HookAPI): void {
                     ? `no prose findings in ${files.join(", ")}`
                     : output;
         } catch {
-            // Vale is not installed; the manual fallback in AGENTS.md applies.
+            // Vale could not run; the manual fallback in AGENTS.md applies.
             return;
         }
 

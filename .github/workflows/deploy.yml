@@ -17,21 +17,25 @@ jobs:
             - name: 📥 Checkout code
               uses: actions/checkout@v4
 
-            # Repo-level tasks (`docs:api`, `docs:build`) and the Node/pnpm
-            # versions all come from mise.toml, so CI runs the same task
-            # definitions as a developer's checkout.
+            # Repo-level tasks (`docs:api`, `docs:build`) come from the root
+            # vite.config.ts, and the Node and pnpm versions from .node-version
+            # and `packageManager`, so CI runs the same task definitions as a
+            # developer's checkout.
             - name: 🧰 Setup toolchain
-              uses: jdx/mise-action@v4
+              uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
 
             - name: 📦 Install dependencies
-              run: pnpm install --frozen-lockfile
+              run: vp install --frozen-lockfile
 
-            - name: 🚀 Build docs (VitePress)
-              run: mise run docs:build
+            - name: Build and verify documentation
+              run: vp run docs:test
 
             - name: ☁️ Deploy Worker
               # Worker name and custom domain are pinned in wrangler.jsonc so a
               # repository rename can never redirect deploys to a new worker.
-              run: pnpm exec wrangler deploy --config wrangler.jsonc
+              run: vp exec wrangler deploy --config wrangler.jsonc
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

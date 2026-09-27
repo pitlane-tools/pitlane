@@ -14,17 +14,17 @@
  */
 
 declare module "*?assets" {
-    const assets: import("@pitlane/dev/runtime").ImportedAssets;
+    let assets: import("@pitlane/dev/runtime").ImportedAssets;
     export default assets;
 }
 
 declare module "*?assets=client" {
-    const assets: import("@pitlane/dev/runtime").ImportedAssets;
+    let assets: import("@pitlane/dev/runtime").ImportedAssets;
     export default assets;
 }
 
 declare module "*?assets=ssr" {
-    const assets: import("@pitlane/dev/runtime").ImportedAssets;
+    let assets: import("@pitlane/dev/runtime").ImportedAssets;
     export default assets;
 }
 

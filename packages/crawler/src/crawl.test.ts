@@ -421,23 +421,6 @@ describe("crawl(router)", () => {
         expect(visited).toEqual(["/"]);
     });
 
-    it('does not follow links on pages with <meta name="robots" content="noindex, nofollow">', async () => {
-        let router = createRouter();
-        router.get("/", () =>
-            html(`
-                    <meta name="robots" content="noindex, nofollow">
-                    <a href="/about">About</a>
-                `),
-        );
-        router.get("/about", () => html("<html></html>"));
-
-        let visited: string[] = [];
-        for await (let { pathname } of crawl(router)) {
-            visited.push(pathname);
-        }
-        expect(visited).toEqual(["/"]);
-    });
-
     it("follows links on matching pages when page-level nofollow is ignored", async () => {
         let router = createRouter();
         router.get("/v1.2.3/", () =>

@@ -1,6 +1,6 @@
 import type { HookAPI } from "@oh-my-pi/pi-coding-agent/extensibility/hooks";
 
-// AGENTS.md opens with `mise run status`, because a session that does not know
+// AGENTS.md opens with `vp run status`, because a session that does not know
 // which phase the work is in guesses. A rule the agent has to remember is the
 // weakest kind of rule, so this runs the command once per process and injects
 // the answer before the first turn.
@@ -13,19 +13,19 @@ export default function (pi: HookAPI): void {
 
         let report: string;
         try {
-            let result = (await pi.exec("mise", ["run", "status"], {
+            let result = (await pi.exec("vp", ["run", "status"], {
                 cwd: ctx.cwd,
                 // The task shells out to git and gh, so a wedged network call
                 // would otherwise hold up the first turn indefinitely.
                 timeout: 15_000,
             })) as { stdout?: string; stderr?: string; code?: number };
-            // Mise echoes `[status] $ node tools/status.mjs` on stderr; the
-            // report itself is on stdout, so stderr is only worth reading when
-            // the task produced nothing.
-            report = (result.stdout?.trim() || result.stderr?.trim()) ?? "";
+            // Vite+ opens stdout with its `$ node tools/status.ts` command echo,
+            // which is not part of the report.
+            let stdout = result.stdout?.replace(/^\$ .*\n/, "").trim();
+            report = (stdout || result.stderr?.trim()) ?? "";
             if (result.code) report = `exited ${result.code}\n${report}`;
         } catch {
-            // Mise is missing or the task timed out; AGENTS.md still names it.
+            // Vite+ is missing or the task timed out; AGENTS.md still names it.
             return;
         }
         if (report.length === 0) return;
@@ -33,7 +33,7 @@ export default function (pi: HookAPI): void {
         return {
             message: {
                 customType: "process-status",
-                content: `[mise run status]\n${report}`,
+                content: `[vp run status]\n${report}`,
                 display: true,
                 attribution: "agent",
             },

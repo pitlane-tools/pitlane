@@ -19,7 +19,7 @@ All eight, every time. A release that stops after the tag is a release that left
 
 - [ ] `VISION.md` describes the world this PR creates, and the update is **on the branch** so the merge carries it
 - [ ] The PR is landed, and the intent behind the work is retrievable from `main` without the branch
-- [ ] The human asked for this release, and the plan `mise run changeset:status` printed — dependent bumps included — was reviewed with them before any version changed
+- [ ] The human asked for this release, and the plan `vp run changeset:status` printed — dependent bumps included — was reviewed with them before any version changed
 - [ ] The tag is pushed and the GitHub release is published — one release per tag, dependency first
 - [ ] `npm view` shows the version, checked rather than assumed
 - [ ] Every dependent PR installs the published range, with no preview URL, tarball path, or override anywhere in its tree
@@ -55,7 +55,7 @@ Keep capability and API descriptions on the feature branch, marking unreleased w
 | "The line already says shipped" | Issue #10 was three packages missing from a document that already said "shipped" about others. |
 | "I'll sweep the docs after the release" | That is the sequence that produced #10. `f3c8ffb` is the cleanup nobody had scheduled. |
 | "The PR author would have handled it" | Sometimes they did, on the branch. Where the commits are missing, you write them. |
-| "It's unpublished, and gitignored docs regenerate" | `docs/package/` regenerates. `VISION.md` is hand-written and tracked at the repo root. |
+| "It's unpublished, and gitignored docs regenerate" | `docs/app/content/api/` regenerates. `VISION.md` is hand-written and tracked at the repo root. |
 
 ## 2. Land the PR so the intent outlives the branch
 
@@ -89,7 +89,7 @@ Kept as the design record … Where it and the package disagree, the package is 
 Pending notes under `.changeset/` describe work for a future release. Prepare versions only on human request. First inspect the plan:
 
 ```sh
-mise run changeset:status
+vp run changeset:status
 ```
 
 Review all pending notes and the complete status plan with the human, including computed dependent bumps. Changesets can bump dependents when a new dependency version falls outside their current range. The version task consumes all pending notes, so agree the full scope before running it.
@@ -97,7 +97,7 @@ Review all pending notes and the complete status plan with the human, including 
 One thing preparation will not repair: a hand-written `## Unreleased` section someone left in a `CHANGELOG.md`. `changeset version` does not consume that section, so it survives into the published changelog. Migrate it into a note first, then prepare.
 
 ```sh
-mise run changeset:version   # rewrites the manifests, writes the changelog sections, consumes the notes, refreshes the lockfile
+vp run changeset:version   # rewrites the manifests, writes the changelog sections, consumes the notes, refreshes the lockfile
 ```
 
 The task neither commits, tags, nor publishes. Commit its generated changelogs, consumed notes, manifests, and lockfile together under `release:`, then land the preparation on `main` under [`.agents/rules/commit-discipline.md`](../../rules/commit-discipline.md). Do not use `changeset publish` or `changeset git-tag`; the existing GitHub Release publisher remains in place.
@@ -187,17 +187,17 @@ git branch -a --list '*<branch>*'               # expect nothing, in both clones
 The same release makes other files wrong. Check them, fix what this release broke, and **report rather than bundle** anything that was already stale:
 
 - `README.md` — the shipped-package list and its badges
-- `docs/guides/` — a guide showing the old API (and `vale docs/guides/<page>.md` after any edit)
+- `docs/app/content/guides/` — a guide showing the old API (and `vale docs/app/content/guides/<page>.md` after any edit)
 - Tracking issues — `gh issue close <N>` when this release is what closed it, and open one for a gap you found and are not fixing here
 - Dependents you did not touch — a Deno template pinned to `^0.4.0` while the package is at `0.5.1` is a real finding, and a separate PR
-- Packages in this repo that depend on the one you released. `mise run changeset:version` already bumped a workspace dependent whose `workspace:` range demanded it, so that companion bump was in the plan you reviewed. What it cannot decide is a dependent that is **already published** against a range this version leaves behind: `npm view @pitlane/dev dependencies` reports what the published dependent pins, `@pitlane/dev@0.5.1` pins `@pitlane/crawler: ^0.1.0`, and a `0.2.0` does not satisfy that range. Until the dependent publishes too, the release reaches nobody through it. Decide whether it needs a release of its own, and say so either way.
+- Packages in this repo that depend on the one you released. `vp run changeset:version` already bumped a workspace dependent whose `workspace:` range demanded it, so that companion bump was in the plan you reviewed. What it cannot decide is a dependent that is **already published** against a range this version leaves behind: `npm view @pitlane/dev dependencies` reports what the published dependent pins, `@pitlane/dev@0.5.1` pins `@pitlane/crawler: ^0.1.0`, and a `0.2.0` does not satisfy that range. Until the dependent publishes too, the release reaches nobody through it. Decide whether it needs a release of its own, and say so either way.
 
 ## Common mistakes
 
 | Mistake | Do instead |
 | --- | --- |
 | Hand-editing a `version` field or a `CHANGELOG.md` section on a feature PR | Write a changeset note; preparation generates both |
-| Running `mise run changeset:version` because notes have piled up | Preparation is on request; review `changeset:status` with the human first |
+| Running `vp run changeset:version` because notes have piled up | Preparation is on request; review `changeset:status` with the human first |
 | `changeset publish` or `changeset git-tag` | Neither runs here; the existing GitHub Release workflow publishes |
 | Preparing a version over a hand-written `## Unreleased` section | Migrate it into a note first; `changeset version` leaves it in place |
 | Merging before VISION is updated | The update rides on the branch; the merge carries it |
@@ -214,7 +214,7 @@ The same release makes other files wrong. Check them, fix what this release brok
 
 ## Red flags — stop
 
-- About to run `mise run changeset:version` when nobody asked for a release
+- About to run `vp run changeset:version` when nobody asked for a release
 - About to cut a tag for a version prepared from a plan the human never saw
 - About to merge a change to a package's behavior with nothing in `.changeset/` describing it
 - About to run `gh pr merge` without having opened `VISION.md`

@@ -13,7 +13,7 @@ From `packages/dev`:
 vp run harness
 ```
 
-That boots the dev server on <http://127.0.0.1:7411> through the same `node tests/e2e/harness/dev-server.mjs` entry the tests use (a plain Vite `createServer`, so there is a single Vite identity — running the `vite` CLI directly can pick up a second copy and trip the fullstack dev-server assertion).
+That boots the dev server on <http://127.0.0.1:7411> through the same `node tests/e2e/harness/dev-server.ts` entry the tests use (a plain Vite `createServer`, so there is a single Vite identity — running the `vite` CLI directly can pick up a second copy and trip the fullstack dev-server assertion).
 
 Open the URL, then edit files under `app/` and watch the page:
 

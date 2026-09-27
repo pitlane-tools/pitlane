@@ -26,19 +26,19 @@ Skipping a step is lying.
 | --- | --- | --- |
 | A package's tests pass | `vp test` from inside `packages/<name>`, 0 failures, this turn | "Last run was clean"; another package's suite |
 | A package builds | `vp run build` from inside `packages/<name>`, exit 0, this turn | `vp test` passing, or `tsc` passing |
-| The repo gates pass | `mise run check` exit 0, this turn | One of its steps run alone |
-| The record is valid | `mise run validate` exit 0, this turn | Frontmatter that reads correctly |
-| The record tooling works | `mise run tools:test` exit 0, this turn | `mise run validate` passing on today's record |
-| Published prose is clean | `vale docs/guides/<page>.md`, or `mise run docs:prose`, no findings | The hook's report from before your last edit |
+| The repo gates pass | `vp run check` exit 0, this turn | One of its steps run alone |
+| The record is valid | `vp run validate` exit 0, this turn | Frontmatter that reads correctly |
+| The record tooling works | `vp run tools:test` exit 0, this turn | `vp run validate` passing on today's record |
+| Published prose is clean | `vp exec vale docs/app/content/guides/<page>.md`, or `vp run docs:prose`, no findings | The hook's report from before your last edit |
 | Bug fixed | The failing reproduction now passes | Code changed, "I think it's fixed" |
 | Regression test works | The full red-green proof below | The test passing once against the fix |
 | Subagent finished | `git status` and `git diff` show the changes | The subagent's own success report |
 | The preview works | Install the pkg.pr.new build, or open the Workers preview URL, then exercise the changed behavior | `pkg-preview.yml` or `preview.yml` going green |
 | A package is installable | `npm install @pitlane/<name>@<version>` in an empty directory | `npm view` naming the version |
-| Proposal implemented | `mise run check` exit 0, plus the package's `vp test` and `vp run build` | The code looking right |
+| Proposal implemented | `vp run check` exit 0, plus the package's `vp test` and `vp run build` | The code looking right |
 | All behavior implemented | The phase 3 behavior inventory, every row ticked or resolved | Tests passing |
 
-`mise run check` runs `docs:build`, `validate`, and `tools:test`, then `oxfmt --check`, `oxlint`, and `tsc`; `mise run fmt` and `mise run lint` rewrite files instead of reporting on them, so neither proves a gate. And a version is not installable the moment `publish.yml` goes green: the packument `npm view` reads catches up about a minute after the publish, its tarball two to six minutes later, so an install in an empty directory is the only check that fails where a consumer would — see `AGENTS.md`, "A green job is not yet an installable package".
+`vp run check` runs `docs:build`, `validate`, and `tools:test`, then `vp check` and `tsc`; `vp fmt` and `vp lint --fix` rewrite files instead of reporting on them, so neither proves a gate. And a version is not installable the moment `publish.yml` goes green: the packument `npm view` reads catches up about a minute after the publish, its tarball two to six minutes later, so an install in an empty directory is the only check that fails where a consumer would — see `AGENTS.md`, "A green job is not yet an installable package".
 
 The red-green proof for a regression test:
 

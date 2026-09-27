@@ -47,7 +47,7 @@ scope=${subject%%:*}
 
 is_builtin_scope() {
     case "$1" in
-        proposal|policy|decision|guides|docs|tools|ci|agents|skills|rules|templates|hooks|mise|readme|vision|treewide)
+        proposal|policy|decision|guides|docs|tools|ci|agents|skills|rules|templates|hooks|readme|vision|treewide)
             return 0
             ;;
     esac

@@ -59,7 +59,7 @@ The validator enforces the pairing. A correction that does not change meaning ma
 
 ## 3. Update the vision
 
-Reread `VISION.md` at the repository root. Update it when the accepted change alters the project's capabilities, MVP, or direction. Bump `updated` to the current date — `mise run validate` requires `title` and an `updated` of the form `YYYY-MM-DD`.
+Reread `VISION.md` at the repository root. Update it when the accepted change alters the project's capabilities, MVP, or direction. Bump `updated` to the current date — `vp run validate` requires `title` and an `updated` of the form `YYYY-MM-DD`.
 
 A release is the event that makes the vision wrong, and never in only one place. `.agents/skills/releasing-pitlane-packages/SKILL.md` § “1. Bring VISION onto this PR — before the merge” tabulates every location a publish makes stale, plus the package-specifier rule and the rationalizations for skipping the check. Work through that table rather than the one place you remember. The edit belongs on the branch, before the merge, so the merge carries it — which is why this step precedes the next one.
 
@@ -75,9 +75,9 @@ The human sets `accepted` when they accept the work. Set `implemented` only afte
 
 ## 5. Release — only when the human asks
 
-Merging does not begin a release, and pending changesets do not accumulate into one. What the merge must carry is the capture: a changeset note under `.changeset/` for every package whose consumers see a difference, naming those packages and the semver level, written with `mise run changeset` and committed under the scope of the work it describes. Nothing on the branch edits a `version` field or writes a `CHANGELOG.md` section — preparation generates both, later, and only on request.
+Merging does not begin a release, and pending changesets do not accumulate into one. What the merge must carry is the capture: a changeset note under `.changeset/` for every package whose consumers see a difference, naming those packages and the semver level, written with `vp run changeset` and committed under the scope of the work it describes. Nothing on the branch edits a `version` field or writes a `CHANGELOG.md` section — preparation generates both, later, and only on request.
 
-When the human does ask, `.agents/skills/releasing-pitlane-packages/SKILL.md` is the ordered procedure: review the `mise run changeset:status` plan with them, dependent bumps included, then prepare the version, tag it, and cut the release. Follow it rather than reconstructing it. A release is a Git tag plus a published GitHub release on `main`. That release event is the only trigger of `.github/workflows/publish.yml`, so nothing else ships a version — never a branch tag, never `changeset publish`, never `npm publish` for a package that already exists. A package the starter templates depend on also needs `.agents/skills/adopting-packages-into-templates/SKILL.md`: the package publishes first, then the templates branch merges. A package's **first** publish cannot go through the workflow at all and is performed by hand, exactly once, from a laptop.
+When the human does ask, `.agents/skills/releasing-pitlane-packages/SKILL.md` is the ordered procedure: review the `vp run changeset:status` plan with them, dependent bumps included, then prepare the version, tag it, and cut the release. Follow it rather than reconstructing it. A release is a Git tag plus a published GitHub release on `main`. That release event is the only trigger of `.github/workflows/publish.yml`, so nothing else ships a version — never a branch tag, never `changeset publish`, never `npm publish` for a package that already exists. A package the starter templates depend on also needs `.agents/skills/adopting-packages-into-templates/SKILL.md`: the package publishes first, then the templates branch merges. A package's **first** publish cannot go through the workflow at all and is performed by hand, exactly once, from a laptop.
 
 **Never publish without explicit human confirmation.** Approval to merge is not approval to release, and a request to prepare a version is not approval to publish it.
 

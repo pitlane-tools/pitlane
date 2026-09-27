@@ -54,7 +54,6 @@ The code an agent writes in this repo should feel like code a careful human wrot
 
 - Keep prose unwrapped: one source line per paragraph, with soft wrapping in the editor or viewer.
 - Use the project's Oxfmt formatter. The Markdown configuration sets `proseWrap` to `never`; preserve structural line breaks and format code blocks according to their language.
-- Separate VitePress `:::` container delimiters from their contents with blank lines so Oxfmt preserves their structure.
 
 ## When the rules conflict
 

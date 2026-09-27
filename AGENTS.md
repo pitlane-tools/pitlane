@@ -12,12 +12,12 @@ You do not move from a request straight to a solution, or from a solution straig
 ## Start here, every session
 
 ```sh
-mise run status
+vp run status
 ```
 
 It reads the branch, the pull request, and the active proposal's status, then prints which phase the work is in and what happens next. Run it before asking where things stand, and again whenever you are unsure.
 
-Nobody is expected to remember a command, a skill name, or an argument. "Keep going", "start a feature for X", or a plain description of a problem is a complete instruction — orient yourself from `mise run status` and proceed. None of those phrases authorizes a proposal, a proposal-only branch, or a draft pull request.
+Nobody is expected to remember a command, a skill name, or an argument. "Keep going", "start a feature for X", or a plain description of a problem is a complete instruction — orient yourself from `vp run status` and proceed. None of those phrases authorizes a proposal, a proposal-only branch, or a draft pull request.
 
 ## Reasoning order
 
@@ -47,14 +47,14 @@ A plausible implementation plan is not evidence that the problem is understood.
 | **Policies** | `policies/` | Rules future work must keep enforcing. |
 | **Decisions** | `decisions/` | Architectural choices, with the context that produced them. |
 | **Proposals** | `proposals/` | The specification for one change. Preserved as history after it ships. |
-| **Guides** | `docs/guides/` | Published prose explaining how a feature behaves and how it is used. |
+| **Guides** | `docs/app/content/guides/` | Published prose explaining how a feature behaves and how it is used. |
 | **Previews** | CI | The cheapest real artifact through which a human can exercise the change. |
 | **Tests** | `packages/<name>/` | Executable specifications of the behavior a proposal describes. |
 | **Code** | `packages/<name>/` | The implementation. |
 
-Records are numbered `<NNNN>-<slug>.md` and carry `id`, `status`, and `title` frontmatter. `.agents/templates/` holds the canonical shape of each, and `mise run validate` enforces it.
+Records are numbered `<NNNN>-<slug>.md` and carry `id`, `status`, and `title` frontmatter. `.agents/templates/` holds the canonical shape of each, and `vp run validate` enforces it.
 
-Guides are the deliberate exception. They are published VitePress pages, they keep VitePress's `title` and `description` frontmatter, and the validator never reads them — a second record-shaped contract on the same pages would buy a reverse pointer the proposal already carries in prose. They are still a process artifact: written from the proposal, before the code.
+Guides are the deliberate exception. They are published Markdown or MDX pages with `title` and `description` frontmatter, and the record validator never reads them — a second record-shaped contract on the same pages would buy a reverse pointer the proposal already carries in prose. They are still a process artifact: written from the proposal, before the code.
 
 The record itself is not published. `docs/` is what [pitlane.tools](https://pitlane.tools) builds, and `VISION.md`, `proposals/`, `policies/`, and `decisions/` all sit outside it.
 
@@ -130,8 +130,8 @@ Skills: `.agents/skills/writing-a-proposal/`, plus `.agents/skills/grounding-a-p
 Strictly ordered, and it ends with review. Each artifact is an independent representation of the same intent; writing them out of order lets the code decide what "correct" means. A bounded slice you hand off goes to the `implementer` agent, with the brief described under Agent roles.
 
 1. **Tests first.** Failing tests for the behavior the proposal's Detailed design specifies. `vp test` from inside `packages/<name>`.
-2. **Guides next.** Written from the proposal, not from the code, into `docs/guides/`. Then compare them against the tests and confirm they describe the same behavior.
-3. **Code last.** Implement against proposal, tests, and guides until `mise run check` and the package's own `vp test` and `vp run build` pass.
+2. **Guides next.** Written from the proposal, not from the code, into `docs/app/content/guides/`. Then compare them against the tests and confirm they describe the same behavior.
+3. **Code last.** Implement against proposal, tests, and guides until `vp run check` and the package's own `vp test` and `vp run build` pass.
 
 **Which of these a change needs is a judgement.** The order is not — when you write two of them, write them in this order. A change with no user-visible surface needs no guide, and inventing one produces documentation nobody reads. A change with nothing meaningfully testable needs no test, though say so out loud rather than skipping quietly: "hard to test" and "not worth testing" are different claims and only one of them is a reason.
 
@@ -220,14 +220,15 @@ Search open and closed issues before filing. Write the issue so a reader who was
 ## Quality gates
 
 ```sh
-mise run check       # docs:build, validate, tools:test, then oxfmt --check, oxlint, tsc
-mise run fmt         # format
-mise run validate    # the record: frontmatter, ids, cross-references
-mise run tools:test  # the record tooling's own tests
-mise run docs:prose  # Vale over the published prose
+vp run check        # docs:build, validate, tools:test, then vp check and tsc
+vp fmt              # format
+vp lint --fix       # apply lint fixes
+vp run validate     # the record: frontmatter, ids, cross-references
+vp run tools:test   # the record tooling's own tests
+vp run docs:prose   # Vale over the published prose
 ```
 
-From inside `packages/<name>`: `vp test`, `vp run build`. `mise tasks` lists everything available.
+From inside `packages/<name>`: `vp test`, `vp run build`. `vp run` with no task name lists everything available.
 
 ## Also binding
 
@@ -248,7 +249,9 @@ From inside `packages/<name>`: `vp test`, `vp run build`. `mise tasks` lists eve
 
 ## Tasks
 
-Repo-level tasks live in `mise.toml` and run through Mise: `mise run status`, `mise run validate`, `mise run tools:test`, `mise run docs:dev`, `mise run docs:build`, `mise run fmt`, `mise run check`. Per-package tasks live in each package's `vite.config.ts` and run through Vite+: `vp test`, `vp run build` from inside `packages/<name>`. CI follows the same split — the docs, record, and leak workflows use Mise, the package workflows use Vite+.
+Formatting, linting, and every repo-level task are declared in the root `vite.config.ts` — the `fmt`, `lint`, and `run.tasks` blocks — and run through [Vite+](https://viteplus.dev): `vp fmt`, `vp lint`, `vp check`, and `vp run status`, `vp run validate`, `vp run tools:test`, `vp run docs:dev`, `vp run docs:build`, `vp run check`. There is no second formatter or linter config; packages inherit the root blocks. Per-package tasks live in each package's `vite.config.ts`: `vp test`, `vp run build` from inside `packages/<name>`. Vite+ tasks are cached by the files they read, and `vp run --no-cache <task>` forces a rerun.
+
+The toolchain is declared in the repository: Node in `.node-version`, pnpm in the root `package.json`'s `packageManager`, and Oh My Pi and Vale as root devDependencies. With Vite+ installed globally, `vp install` selects Node and pnpm from those and installs everything else; the root `postinstall` script then refreshes the vendored Remix agent skills outside CI. CI uses the same declarations through `voidzero-dev/setup-vp`.
 
 ## Releases
 
@@ -261,14 +264,14 @@ Feature and fix PRs capture consumer-visible package changes in `.changeset/*.md
 From the repository root:
 
 ```sh
-mise run changeset          # add a pending note
-mise run changeset:status   # inspect pending packages and bump levels
+vp run changeset          # add a pending note
+vp run changeset:status   # inspect pending packages and bump levels
 ```
 
 Prepare versions only when the human requests it. Review the complete plan with them, including computed dependent bumps, before running:
 
 ```sh
-mise run changeset:version
+vp run changeset:version
 ```
 
 This consumes all pending notes, updates package versions and changelogs, and refreshes the pnpm lockfile. It neither commits, tags, nor publishes. Versions remain independent; private workspaces are excluded. Existing changelog history is retained. Land the preparation under the normal commit and review rules, then obtain explicit authorization to publish through the existing GitHub Release workflow. There is no automatically maintained release PR.
@@ -341,27 +344,27 @@ Releasing a package that the [templates](https://github.com/pitlane-tools/templa
 
 ## Package reference docs are generated
 
-Every page under `docs/package/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`dev.json`, `theme.json`, `crawler.json`, `data-table-d1.json`), each extending `base.json`, which registers the local theme and router in `plugin.mjs`. `mise run docs:api` runs them all.
+Every page under `docs/app/content/api/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`dev.json`, `theme.json`, `crawler.json`, `data-table-d1.json`), each extending `base.json`, which registers the local theme and router in `plugin.mjs`. `vp run docs:api` runs them all.
 
-Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/package/<name>`. Adding a documented package means adding a config there plus a line in the `docs:api` task.
+Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/app/content/api/<name>`. Adding a documented package means adding a config there plus a command in the `docs:api` task in the root `vite.config.ts`.
 
 `.typedoc/` is also a workspace package, and that is deliberate. TypeDoc is built on the TypeScript JS compiler API, which TypeScript 7 does not ship — 7 is a Go binary, and TypeDoc's peer range stops at 6.0.x. Its `package.json` therefore holds `typescript` as an alias for `@typescript/typescript6`, while the repo root and every package are on real `typescript@7`. `docs:api` runs from `.typedoc/` so TypeDoc picks up its own copy. Do not move TypeDoc back to the root: that is what made `typescript` mean 6 repo-wide, which in turn forced `@typescript/native-preview` on the `vp pack` declaration build.
 
-Never edit a file under `docs/package/`; the next build overwrites it. Change the TSDoc comment in `packages/<name>/src/` instead. Narrative documentation belongs in `docs/guides/`.
+Never edit a file under `docs/app/content/api/`; the next build overwrites it. Change the TSDoc comment in `packages/<name>/src/` instead. Narrative documentation belongs in `docs/app/content/guides/`.
 
 ## Docs prose linting
 
 Hand-written user-facing docs are linted with [Vale](https://vale.sh) using the [vale-ai-tells](https://github.com/tbhb/vale-ai-tells) style package. Configuration lives in `.vale.ini`; synced styles land in the gitignored `.vale/` directory.
 
-The oh-my-pi hook at `.omp/hooks/vale-prose.ts` automates this: after every successful `edit`/`write` touching those directories, it appends Vale's findings to the tool result, so the agent sees prose feedback immediately. The hook loads at session start and no-ops when `vale` is missing.
+The oh-my-pi hook at `.omp/hooks/vale-prose.ts` automates this: after every successful `edit`/`write` touching those directories, it appends Vale's findings to the tool result, so the agent sees prose feedback immediately. The hook loads at session start and no-ops until `vp install` has put Vale in `node_modules/.bin`.
 
-**When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/guides/`, and fix the findings before committing:**
+**When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/app/content/guides/`, and fix the findings before committing:**
 
 ```sh
-vale docs/guides/styling.md   # one page
-mise run docs:prose           # sync styles + lint all user-facing docs
+vp exec vale docs/app/content/guides/styling.md   # one page
+vp run docs:prose                                 # sync styles + lint all user-facing docs
 ```
 
-If `vale` is not installed: `mise install`, or `brew install vale` followed by `vale sync` at the repo root.
+If `vale` is not installed, run `vp install` at the repo root; `vp run docs:prose` syncs the styles.
 
 Internal documents (`docs/internal/`, `docs/superpowers/`) are exempt, and so is the record: `VISION.md`, `proposals/`, `policies/`, and `decisions/` are not published, so Vale never sees them.

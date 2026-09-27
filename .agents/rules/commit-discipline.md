@@ -33,8 +33,8 @@ The allowed scopes are:
 | Scope | Use for |
 | --- | --- |
 | `proposal` · `policy` · `decision` | The corresponding record type |
-| `guides` · `docs` | Pages under `docs/guides/`, and the published site |
-| `tools` · `ci` · `mise` | The record tooling, workflows, and Mise task definitions |
+| `guides` · `docs` | Pages under `docs/app/content/guides/`, and the published site |
+| `tools` · `ci` | The record tooling and workflows |
 | `agents` · `skills` · `rules` · `templates` · `hooks` | Agent process infrastructure |
 | `readme` · `vision` | Project overview and direction |
 | `treewide` | A genuinely repository-wide change with no narrower home |
@@ -59,9 +59,9 @@ Mechanical merge, revert, fixup, and squash commits are exempt. The `commit-msg`
 
 A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` and `.agents/skills/releasing-pitlane-packages/SKILL.md` own the mechanics; three of their rules are commit-message rules and belong here:
 
-- A commit that implements a feature or a fix never carries a version bump. Work that changes what a package's consumers see adds a changeset note under `.changeset/` — write it with `mise run changeset` — and commits it alongside the work, under the scope of that work. The note names the packages and the semver intent; nothing hand-edits a `version` field or writes a numbered `## x.y.z` section into a `CHANGELOG.md`.
+- A commit that implements a feature or a fix never carries a version bump. Work that changes what a package's consumers see adds a changeset note under `.changeset/` — write it with `vp run changeset` — and commits it alongside the work, under the scope of that work. The note names the packages and the semver intent; nothing hand-edits a `version` field or writes a numbered `## x.y.z` section into a `CHANGELOG.md`.
 
-- `release:` is reserved for version-only commits, which are prepared only when the human asks for one. Such a commit holds exactly what `mise run changeset:version` produced — the generated changelog sections, the changeset notes it consumed, the rewritten package manifests, and the refreshed lockfile — and nothing else. A commit that also changes code or prose takes the scope of what it changes. Both such commits so far bumped several packages at once:
+- `release:` is reserved for version-only commits, which are prepared only when the human asks for one. Such a commit holds exactly what `vp run changeset:version` produced — the generated changelog sections, the changeset notes it consumed, the rewritten package manifests, and the refreshed lockfile — and nothing else. A commit that also changes code or prose takes the scope of what it changes. Both such commits so far bumped several packages at once:
 
     ```text
     release: @pitlane/dev@0.2.0 and @pitlane/theme@0.2.0
@@ -113,7 +113,7 @@ All three must hold:
 
 - **No decision.** Intent already exists — a proposal promised the behavior, or the correct outcome was never in question. A change to how a package behaves fails this by definition, whatever its size.
 - **Nothing to review.** The change is mechanical or factual, not a judgement someone could reasonably have made differently.
-- **Verified by the gate.** `mise run check`, or the narrower task covering the change, passes — and passing is the whole proof, with no judgement left over.
+- **Verified by the gate.** `vp run check`, or the narrower task covering the change, passes — and passing is the whole proof, with no judgement left over.
 
 Anything failing one of the three goes through a pull request. When it is genuinely unclear, open one: an unnecessary pull request costs seconds, and a skipped one costs a merged decision nobody saw. A human asking for a pull request is always right and never has to justify it.
 

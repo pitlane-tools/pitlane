@@ -2,25 +2,22 @@
     "name": "pitlane",
     "private": true,
     "type": "module",
+    "scripts": {
+        "postinstall": "[ -n \"$CI\" ] || vp run update-remix-skills"
+    },
     "devDependencies": {
         "@changesets/cli": "^3.0.3",
         "@oh-my-pi/pi-coding-agent": "latest",
-        "@voidzero-dev/vitepress-theme": "^5.0.2",
+        "@types/node": "^25.5.0",
+        "@vvago/vale": "^3.23.0",
         "eslint-plugin-perfectionist": "^5.10.0",
         "eslint-plugin-prefer-let": "^4.2.2",
         "oxc-parser": "^0.140.0",
-        "oxfmt": "^0.59.0",
-        "oxlint": "^1.74.0",
-        "oxlint-tsgolint": "^7.0.2001",
-        "shiki": "^4.0.2",
+        "remix": "3.0.0-rc.2",
         "typescript": "^7.0.2",
         "vite": "^8.1.4",
         "vite-plus": "^0.2.6",
-        "vitepress": "^2.0.0-alpha.18",
-        "vitepress-plugin-group-icons": "^1.7.5",
-        "vitepress-plugin-llms": "^1.13.3",
         "vitest": "^4.1.10",
-        "vue": "^3.5.39",
         "wrangler": "^4.111.0"
     },
     "packageManager": "pnpm@12.6.0"
