@@ -25,6 +25,8 @@ mise run check
 
 Documentation pages place the Vite/No Build switch and Markdown actions in one vertically centered toolbar, with setup choices on the left and Markdown actions on the right. The toolbar wraps on narrow screens.
 
+Package exploration links keep their labels and arrows in one inline text flow so their underlines remain continuous.
+
 The homepage is the Remix route `/`, rendered from `docs/app/home/page.tsx` into `index.html` by the same build as the documentation. Its palette, logos, and code examples follow the system light/dark preference without JavaScript. The package inspector uses native radio controls, so examples remain selectable without JavaScript. The circuit animation and lap-clock sequence are illustrative; they do not report package performance. They run automatically while visible, stop when reduced motion is enabled, and have no playback controls. The active command shows the running cumulative timestamp, which freezes when that command completes while the next row continues timing. At completion, the clock holds the result with the total row in red before restarting. The visual reference is the [engineers’ pit-wall monitors](https://f1ingenerale.com/english-post/f1-exclusive-what-engineers-see-on-pit-wall-monitors-strategy-ferrari-red-bull-data-computer/), interpreted through real package examples and deployment links.
 
 The circuit drawing adapts [Mosport-CTMP.svg](https://upload.wikimedia.org/wikipedia/commons/5/51/Mosport-CTMP.svg), a CC0 diagram by Will Pittenger, for Canadian Tire Motorsport Park's Grand Prix layout. The circuit and pit lane use the same uniform scale. Actual turn labels replace invented timing-sector boundaries; the car positions and 16-second lap remain a demonstration, not race data.

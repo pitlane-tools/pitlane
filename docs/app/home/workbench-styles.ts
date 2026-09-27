@@ -108,8 +108,7 @@ export let workbench = css<HTMLDivElement>({
     "& h3": { fontSize: "1.375rem", margin: 0, fontWeight: 500 },
     "& section > p": { fontSize: "0.9375rem", color: t.color.secondary, margin: "0.5rem 0 1.5rem" },
     "& section > a": {
-        display: "inline-flex",
-        gap: "0.75rem",
+        display: "inline-block",
         marginTop: "1.5rem",
         fontSize: "0.875rem",
         color: t.color.link,
