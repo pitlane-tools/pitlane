@@ -87,3 +87,51 @@ test("proposal.0004: authored examples expose library copy payloads matching dis
         assert.ok(payloads.includes(displayed), `Missing copy payload for ${displayed}`);
     }
 });
+
+/** The published pages: the home page, and every document the build recorded. */
+let pageUrls = [
+    "/",
+    ...(
+        JSON.parse(
+            await readFile(new URL("../.generated/documents.json", import.meta.url), "utf8"),
+        ) as { url: string }[]
+    ).map(page => page.url),
+];
+
+test("every page's response links its Markdown as an alternate", async () => {
+    for (let url of pageUrls) {
+        let response = await request(url, { method: "HEAD" });
+        assert.equal(response.status, 200, url);
+        let markdown = `https://pitlane.tools${url.endsWith("/") ? `${url}index.md` : `${url}.md`}`;
+        assert.equal(
+            response.headers.get("link"),
+            `<${markdown}>; rel="alternate"; type="text/markdown"`,
+            url,
+        );
+    }
+});
+
+test("Markdown and the LLM indexes are served as UTF-8 text, and Markdown names no alternate", async () => {
+    for (let [path, type] of [
+        ["/index.md", "text/markdown; charset=utf-8"],
+        ["/guides/vite-plugin.md", "text/markdown; charset=utf-8"],
+        ["/package/dev/index.md", "text/markdown; charset=utf-8"],
+        ["/package/content/loaders/function/glob.md", "text/markdown; charset=utf-8"],
+        ["/llms.txt", "text/plain; charset=utf-8"],
+        ["/llms-full.txt", "text/plain; charset=utf-8"],
+    ] as const) {
+        let response = await request(path, { method: "HEAD" });
+        assert.equal(response.status, 200, path);
+        assert.equal(response.headers.get("content-type"), type, path);
+        assert.equal(response.headers.get("link"), null, path);
+    }
+});
+
+test("robots.txt allows every crawler and names the sitemap", async () => {
+    let response = await request("/robots.txt");
+    assert.equal(response.status, 200);
+    let lines = (await response.text()).split("\n");
+    for (let line of ["User-agent: *", "Allow: /", "Sitemap: https://pitlane.tools/sitemap.xml"]) {
+        assert.ok(lines.includes(line), line);
+    }
+});

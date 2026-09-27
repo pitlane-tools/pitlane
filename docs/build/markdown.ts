@@ -2,8 +2,17 @@ import type { HastNode } from "satteri";
 
 import { htmlToHast } from "satteri";
 
+import { DEFAULT_PREFERENCES, type PackageManager } from "../app/document.ts";
+import { packageSpecifier } from "../app/install.ts";
+
 type Element = Extract<HastNode, { type: "element" }>;
 type Content = Element["children"][number];
+type Parent = { children: Content[] };
+
+export interface MarkdownOptions {
+    /** Where a link leads in the Markdown, given the `href` the HTML names. */
+    link?(href: string): string;
+}
 
 const ALERTS: Record<string, string> = {
     tip: "TIP",
@@ -20,10 +29,52 @@ const ESCAPED = /[\\`*_[\]<]/g;
  * structure, with each documentation component written out the way a Markdown
  * reader would, rather than the MDX that produced it.
  */
-export function htmlToMarkdown(html: string): string {
+export function htmlToMarkdown(html: string, options: MarkdownOptions = {}): string {
+    return `${blocks(parse(html, options).children)}\n`;
+}
+
+/**
+ * An article's Markdown without its level-one heading, which a page's export
+ * writes from the page's own title instead. An article at `where` with no such
+ * heading, or more than one, fails.
+ */
+export function articleToMarkdown(
+    html: string,
+    where: string,
+    options: MarkdownOptions = {},
+): string {
+    let root = parse(html, options);
+    let headings = descendants(root, element => element.tagName === "h1");
+    if (headings.length !== 1) {
+        throw new Error(
+            `${where} must have exactly one level-one heading in its article, not ${headings.length}.`,
+        );
+    }
+    return `${blocks(without(root, headings[0]!).children)}\n`;
+}
+
+function parse(html: string, { link }: MarkdownOptions): Parent {
     let root = htmlToHast(html, { fragment: true });
     if (root.type !== "root") throw new Error("A fragment parse produced no root.");
-    return `${blocks(root.children as Content[])}\n`;
+    let tree = root as Parent;
+    if (link) {
+        // A link cannot hold another, so the outermost links are all of them.
+        for (let anchor of descendants(tree, element => element.tagName === "a")) {
+            let href = anchor.properties?.href;
+            if (typeof href === "string") anchor.properties.href = link(href);
+        }
+    }
+    return tree;
+}
+
+/** `node` with `removed` taken out from wherever it sits below it. */
+function without<Node extends Parent>(node: Node, removed: Element): Node {
+    return {
+        ...node,
+        children: node.children
+            .filter(child => child !== removed)
+            .map(child => (child.type === "element" ? without(child, removed) : child)),
+    };
 }
 
 function blocks(nodes: Content[]): string {
@@ -37,6 +88,7 @@ function block(node: Content): string {
     if (hasProperty(node, "dataPagefindIgnore")) return "";
 
     if (hasProperty(node, "dataCallout")) return callout(node);
+    if (isInstallGroup(node)) return installGroup(node);
 
     switch (node.tagName) {
         case "h1":
@@ -127,10 +179,7 @@ function fence(node: Element): string {
     return `${ticks}${info}\n${code}\n${ticks}`;
 }
 
-/**
- * A disclosure, open or not, as its summary in bold and then everything it
- * reveals; an install group is one per package manager, each under its name.
- */
+/** A disclosure, open or not, as its summary in bold and then everything it reveals. */
 function details(node: Element): string {
     let summary = node.children.find(
         (child): child is Element => child.type === "element" && child.tagName === "summary",
@@ -138,6 +187,61 @@ function details(node: Element): string {
     let heading = summary ? `**${inline(summary.children)}**` : "";
     let body = blocks(node.children.filter(child => child !== summary));
     return [heading, body].filter(Boolean).join("\n\n");
+}
+
+/** An install group's row of alternatives: one disclosure per package manager, and nothing else. */
+function isInstallGroup(node: Element): boolean {
+    let alternatives = node.children.filter(child => child.type === "element");
+    return (
+        alternatives.length > 0 &&
+        alternatives.every(
+            child => child.tagName === "details" && hasProperty(child, "dataManager"),
+        )
+    );
+}
+
+/**
+ * An install group as a reader with no tabs needs it: the default manager's
+ * command, then how every other manager's command differs from it.
+ */
+function installGroup(node: Element): string {
+    let alternatives = new Map(
+        node.children.flatMap(child =>
+            child.type === "element"
+                ? [[String(child.properties?.dataManager) as PackageManager, child] as const]
+                : [],
+        ),
+    );
+    let shown = alternatives.has(DEFAULT_PREFERENCES.packageManager)
+        ? DEFAULT_PREFERENCES.packageManager
+        : [...alternatives.keys()][0]!;
+    let [example] = descendants(alternatives.get(shown)!, element => element.tagName === "pre");
+    let others = [...alternatives.keys()].filter(manager => manager !== shown);
+    return [fence(example!), otherManagers(shown, others)].filter(Boolean).join("\n\n");
+}
+
+/**
+ * The other managers' commands, said in terms of the one shown: each runs it
+ * under its own name, and one that spells packages differently, as Deno spells
+ * `npm:<package>`, says so.
+ */
+function otherManagers(shown: PackageManager, others: PackageManager[]): string {
+    let spelled = (manager: PackageManager) => packageSpecifier(manager, "<package>");
+    let alike = others.filter(manager => spelled(manager) === spelled(shown));
+    let sentences = others
+        .filter(manager => !alike.includes(manager))
+        .map(
+            manager =>
+                `With ${manager}, put its name in place of \`${shown}\` and write each package as \`${spelled(manager)}\`.`,
+        );
+    if (alike.length) {
+        let names =
+            alike.length === 1 ? alike[0] : `${alike.slice(0, -1).join(", ")}, or ${alike.at(-1)}`;
+        sentences.unshift(
+            `With ${names}, run the same command with the manager's name in place of \`${shown}\`.`,
+        );
+    }
+    return sentences.join(" ");
 }
 
 /** A callout as a GitHub alert: its kind, its title in bold, then its body. */
@@ -213,7 +317,7 @@ function table(node: Element): string {
 }
 
 /** The outermost elements below `node` that `match` accepts. */
-function descendants(node: Element, match: (element: Element) => boolean): Element[] {
+function descendants(node: Parent, match: (element: Element) => boolean): Element[] {
     let found: Element[] = [];
     for (let child of node.children) {
         if (child.type !== "element") continue;

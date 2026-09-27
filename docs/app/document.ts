@@ -42,6 +42,12 @@ export type BuildMode = Preferences["buildMode"];
 
 export type PackageManager = Preferences["packageManager"];
 
+/** How the site names each build mode, in the order its switch offers them. */
+export const BUILD_MODE_LABELS: Record<BuildMode, string> = {
+    vite: "Vite",
+    "no-build": "No Build",
+};
+
 /** What a page shows before, or without, a remembered choice. */
 export const DEFAULT_PREFERENCES: Preferences = {
     packageManager: "npm",

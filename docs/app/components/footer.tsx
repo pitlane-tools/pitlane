@@ -67,6 +67,7 @@ export function SiteFooter(handle: Handle<{ docs?: boolean }>) {
                     >
                         MIT License
                     </a>
+                    <a href="/llms.txt">llms.txt</a>
                 </div>
             </div>
         </footer>

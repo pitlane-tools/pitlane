@@ -1,5 +1,5 @@
 import { ExpressiveCode, loadShikiTheme } from "expressive-code";
-import { h, selectAll, toHtml } from "expressive-code/hast";
+import { type ElementContent, h, selectAll, toHtml } from "expressive-code/hast";
 import { bundledLanguages } from "shiki/langs";
 
 import { t } from "../app/theme.ts";
@@ -34,6 +34,10 @@ let engine = new ExpressiveCode({
  * unknown languages fail with source context. A file-name comment opening the code becomes the
  * frame's title, as Expressive Code extracts it.
  * `meta` takes Expressive Code's per-block options, such as `frame="none"`.
+ *
+ * The `<code>` element reads as the code to anything that only has the HTML: it carries a
+ * `language-*` class, and a newline ends every line but the last. Each line is a grid, which
+ * renders no whitespace-only text of its own, so the newline changes nothing on screen.
  */
 export async function renderCode(
     code: string,
@@ -55,6 +59,13 @@ export async function renderCode(
         pre.properties.dataLanguage = language ?? "";
         if (props.title) pre.properties.dataTitle = props.title;
     }
+    for (let code of selectAll("pre > code", renderedGroupAst)) {
+        if (language) code.properties.className = [`language-${language}`];
+        let lines = selectAll(".ec-line", code);
+        for (let line of lines.slice(0, -1)) {
+            if (!rawText(line).endsWith("\n")) line.children.push({ type: "text", value: "\n" });
+        }
+    }
     for (let button of selectAll("button[data-code]", renderedGroupAst)) {
         button.properties.dataCode = displayed.replace(/\n/g, "\u007f");
     }
@@ -68,6 +79,12 @@ export async function renderCode(
             prefix + code.replaceAll("<", "&lt;").replaceAll(">", "&gt;"),
     );
     return [...styles].map(style => toHtml(h("style", style))).join("") + html;
+}
+
+/** A node's text as `textContent` reads it, whitespace and all. */
+function rawText(node: ElementContent): string {
+    if (node.type === "text") return node.value;
+    return node.type === "element" ? node.children.map(rawText).join("") : "";
 }
 
 /** The stylesheet every rendered example shares. */

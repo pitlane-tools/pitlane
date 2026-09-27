@@ -97,6 +97,24 @@ test("proposal.0004: for any example, copying it yields its displayed code", asy
     );
 });
 
+test("an example's code element reads as its displayed code, one line per line, naming its language", async () => {
+    await fc.assert(
+        fc.asyncProperty(example, fc.constantFrom(...LANGUAGES), async (code, language) => {
+            let html = await renderCode(code, language, WHERE);
+            let codes = elements(htmlToHast(html, { fragment: true }), "code");
+            assert.equal(codes.length, 1);
+            // What an HTML-to-text or HTML-to-Markdown converter reads: the text and the class.
+            assert.equal(text(codes[0]!), displayed(code));
+            let classes = [codes[0]!.properties?.className ?? []].flat().map(String);
+            assert.deepEqual(
+                classes.filter(name => name.startsWith("language-")),
+                language ? [`language-${language}`] : [],
+            );
+        }),
+        { seed: 4006 },
+    );
+});
+
 test("proposal.0004: shell examples copy their comments and blank lines too", async () => {
     let code = "# Install the runtime\nnpm install remix\n\n# Then start it\nnpx remix dev";
     let html = await renderCode(code, "sh", WHERE);

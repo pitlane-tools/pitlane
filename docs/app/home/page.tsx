@@ -7,6 +7,7 @@ import { Document } from "../components/shell.tsx";
 import { routes } from "../routes.ts";
 import { t } from "../theme.ts";
 import { LapClock } from "./lap-clock.tsx";
+import { description, platforms } from "./overview.ts";
 import { home, action, sectionHeading } from "./page-styles.ts";
 import { TrackMonitor } from "./track.tsx";
 import { Workbench } from "./workbench.tsx";
@@ -15,11 +16,7 @@ import { Workbench } from "./workbench.tsx";
 // the race is explicitly illustrative, never performance evidence.
 export function Home() {
     return () => (
-        <Document
-            description="Pitlane gives you composable packages to help you put your Remix app on the grid."
-            title="Pitlane | Your Remix Pit Crew"
-            url="/"
-        >
+        <Document description={description} title="Pitlane | Your Remix Pit Crew" url="/">
             <SiteHeader home search="header" />
             <div data-home mix={home}>
                 <main id="main-content" tabindex={-1}>
@@ -81,15 +78,6 @@ export function Home() {
         </Document>
     );
 }
-
-let platforms = [
-    { name: "Cloudflare", slug: "cloudflare", detail: "workerd" },
-    { name: "Netlify", slug: "netlify", detail: "Node.js" },
-    { name: "Vercel", slug: "vercel", detail: "Node.js" },
-    { name: "Railway", slug: "railway", detail: "Node.js, Bun, or Deno" },
-    { name: "Deno Deploy", slug: "deno-deploy", detail: "Deno" },
-    { name: "GitHub Pages", slug: "github-pages", detail: "Browser" },
-];
 
 function Deployment() {
     return () => (
