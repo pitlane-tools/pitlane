@@ -1,4 +1,4 @@
-import { css } from "@pitlane/theme";
+import { css, scale } from "@pitlane/theme";
 import { clientEntry, type Handle, on, ref } from "remix/ui";
 
 import {
@@ -16,6 +16,8 @@ export type InstallAlternative = {
     manager: PackageManager;
     /** The command as complete Expressive Code markup, prepared by the build. */
     html: string;
+    /** How many lines the command runs to, which sizes the panel under the tabs. */
+    lines: number;
 };
 
 export type InstallGroupProps = {
@@ -36,7 +38,7 @@ function restorePreferenceScript(alternatives: readonly InstallAlternative[]): s
 
 const RESTORE_DISCLOSURE =
     `{let d=document.currentScript.parentElement;` +
-    `d.open=d.dataset.manager===d.parentElement.dataset.restored}`;
+    `d.open=d.dataset.manager===d.closest("[data-restored]").dataset.restored}`;
 
 // The group draws the frame, so each command drops Expressive Code's own and
 // shares the tabs' background. Its unlayered stylesheet outranks component
@@ -46,8 +48,11 @@ const FRAMELESS_CODE = "--ec-brdWd:0px;--ec-brdRad:0px;--ec-codeBg:var(--ec-frm-
 
 // Each disclosure's summary becomes a tab and its content the panel beneath
 // them, which needs `::details-content`. A browser without it stacks the
-// disclosures instead. The row scrolls sideways when the tabs outgrow the
-// column, while the open panel stays pinned at the column's width.
+// disclosures instead. Only the row of tabs scrolls sideways, and bounces at
+// its ends; the open panel is positioned against the group, outside that
+// scroller, so it never moves with it. Out of the flow, the panel cannot size
+// the group, so the row reserves the code block's padding under the tabs and
+// the group reserves its lines.
 let groupStyle = css<HTMLDivElement>({
     margin: [0, 0, t.spacing(4)],
     border: `${t.size.codeBorder} solid ${t.color.code.border}`,
@@ -55,26 +60,49 @@ let groupStyle = css<HTMLDivElement>({
     backgroundColor: t.color.code.frame,
     overflow: "hidden",
     "@supports selector(::details-content)": {
-        containerType: "inline-size",
-        display: "grid",
-        gridTemplateColumns: "repeat(var(--tabs), max-content) 1fr",
-        overflowX: "auto",
-        scrollbarWidth: "none",
-        // The rule continues past the last tab.
-        "&::after": { content: '""', gridRow: 1, gridColumn: -2, boxShadow: t.shadow.tabRule },
+        position: "relative",
+        // A scrollbar under a long command would outgrow the reserved height.
+        "& pre": { scrollbarWidth: "none" },
+        // The rule under the tabs belongs to the group, so it stays put while
+        // the row scrolls; the tabs, positioned later, paint the open bar over it.
+        "&::before": {
+            content: '""',
+            position: "absolute",
+            insetBlockStart: 0,
+            insetInline: 0,
+            height: t.size.tab,
+            boxShadow: t.shadow.tabRule,
+            pointerEvents: "none",
+        },
     },
     "& .expressive-code": { margin: 0 },
+});
+
+let codeLines = scale(t.size.codeLine);
+
+function reservedLines(lines: number) {
+    return css<HTMLDivElement>({
+        "@supports selector(::details-content)": { paddingBottom: codeLines(lines) },
+    });
+}
+
+let tabsStyle = css<HTMLDivElement>({
+    "@supports selector(::details-content)": {
+        display: "grid",
+        gridTemplateColumns: "repeat(var(--tabs), max-content)",
+        paddingBottom: t.size.codePaddingBlock,
+        overflowX: "auto",
+        scrollbarWidth: "none",
+    },
 });
 
 let alternativeStyle = css<HTMLDetailsElement>({
     "@supports selector(::details-content)": {
         display: "contents",
         "&::details-content": {
-            gridRow: 2,
-            gridColumn: "1 / -1",
-            position: "sticky",
-            left: 0,
-            width: t.size.container,
+            position: "absolute",
+            insetBlockStart: t.size.tab,
+            insetInline: 0,
         },
     },
 });
@@ -93,7 +121,7 @@ let tabStyle = css<HTMLElement>({
     whiteSpace: "nowrap",
     listStyle: "none",
     cursor: "pointer",
-    boxShadow: t.shadow.tabRule,
+    "@supports not selector(::details-content)": { boxShadow: t.shadow.tabRule },
     transition: `color ${t.duration.fast} ${t.ease.standard}`,
     "&::-webkit-details-marker": { display: "none" },
     "&:hover": { color: t.color.text },
@@ -162,9 +190,8 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
             .map(({ manager }) => manager)
             .filter(
                 manager =>
-                    root.querySelector<HTMLDetailsElement>(
-                        `:scope > details[data-manager="${manager}"]`,
-                    )?.open,
+                    root.querySelector<HTMLDetailsElement>(`details[data-manager="${manager}"]`)
+                        ?.open,
             );
         opened = new Set(native);
         // Compare with restoration, not a preference another group may have
@@ -181,6 +208,7 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
             <div
                 mix={[
                     groupStyle,
+                    reservedLines(Math.max(...alternatives.map(({ lines }) => lines))),
                     ref(node => {
                         group = node;
                     }),
@@ -188,46 +216,56 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
                 style={{ "--tabs": String(alternatives.length) }}
             >
                 <script>{restorePreferenceScript(alternatives)}</script>
-                {alternatives.map(({ manager, html }) => (
-                    <details
-                        data-manager={manager}
-                        key={manager}
-                        mix={[
-                            alternativeStyle,
-                            on("toggle", event => {
-                                if (!opened) return;
-                                let opening = event.newState === "open";
-                                if (opening && manager !== shown) {
-                                    rememberPreference("packageManager", manager);
-                                    return;
-                                }
-                                if (opening) opened.add(manager);
-                                else opened.delete(manager);
-                                void handle.update();
-                            }),
-                        ]}
-                        name={handle.id}
-                        open={opened ? opened.has(manager) : server ? manager === shown : undefined}
-                    >
-                        <summary
+                <div mix={tabsStyle}>
+                    {alternatives.map(({ manager, html }) => (
+                        <details
+                            data-manager={manager}
+                            key={manager}
                             mix={[
-                                tabStyle,
-                                // The open tab ignores the pointer, but a key
-                                // press activates it with a click.
-                                on("click", event => {
-                                    if (event.currentTarget.parentElement?.hasAttribute("open")) {
-                                        event.preventDefault();
+                                alternativeStyle,
+                                on("toggle", event => {
+                                    if (!opened) return;
+                                    let opening = event.newState === "open";
+                                    if (opening && manager !== shown) {
+                                        rememberPreference("packageManager", manager);
+                                        return;
                                     }
+                                    if (opening) opened.add(manager);
+                                    else opened.delete(manager);
+                                    void handle.update();
                                 }),
                             ]}
+                            name={handle.id}
+                            open={
+                                opened
+                                    ? opened.has(manager)
+                                    : server
+                                      ? manager === shown
+                                      : undefined
+                            }
                         >
-                            <BrandIcon name={manager} />
-                            {manager}
-                        </summary>
-                        <script>{RESTORE_DISCLOSURE}</script>
-                        <div innerHTML={html} style={FRAMELESS_CODE} />
-                    </details>
-                ))}
+                            <summary
+                                mix={[
+                                    tabStyle,
+                                    // The open tab ignores the pointer, but a key
+                                    // press activates it with a click.
+                                    on("click", event => {
+                                        if (
+                                            event.currentTarget.parentElement?.hasAttribute("open")
+                                        ) {
+                                            event.preventDefault();
+                                        }
+                                    }),
+                                ]}
+                            >
+                                <BrandIcon name={manager} />
+                                {manager}
+                            </summary>
+                            <script>{RESTORE_DISCLOSURE}</script>
+                            <div innerHTML={html} style={FRAMELESS_CODE} />
+                        </details>
+                    ))}
+                </div>
             </div>
         );
     };

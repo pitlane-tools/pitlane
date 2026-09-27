@@ -129,12 +129,16 @@ export let workbench = css<HTMLDivElement>({
             overflowX: "auto",
         },
         "& [data-package-legend]": { display: "none" },
+        // The bar above already draws the rule; stacked choices divide each other.
         "& [data-package-choice]": {
             padding: "0.75rem 1rem",
             flex: "0 0 auto",
             width: "auto",
             minHeight: "3.5rem",
+            borderTop: 0,
         },
+        "& [data-package-options]:not([data-enhanced='true']) [data-package-choice] + [data-package-choice]":
+            { borderTop: `1px solid ${t.color.border}` },
         "& strong": { fontSize: "0.75rem" },
         "& small": { display: "none" },
         "& [data-code-package]": { padding: "1.25rem 1rem" },

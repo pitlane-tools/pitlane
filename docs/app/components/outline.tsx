@@ -96,6 +96,8 @@ export let Outline = clientEntry(import.meta.url, (handle: Handle<OutlineProps>)
                             maxHeight: t.size.disclosureHeight,
                             padding: [t.spacing(2), t.spacing(4), t.spacing(4)],
                             borderRadius: [0, 0, t.radius.lg, t.radius.lg],
+                            // The section bar's rule is the panel's top edge.
+                            borderTop: 0,
                             overflowY: "auto",
                         },
                     },

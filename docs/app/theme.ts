@@ -268,8 +268,14 @@ export let { token: t, Theme } = primitives.extend(base => ({
             tab: "3rem",
             /** An outline drawn inside its element, clear of a clipping ancestor. */
             focusInset: `calc(-1 * ${base.size.focus})`,
+            /** How far a control-height button's hit area reaches to a full touch target. */
+            touchOverhang: `calc((${base.size.control} - ${base.size.touch}) / 2)`,
             codeBorder: "var(--ec-brdWd)",
             codeRadius: "calc(var(--ec-brdRad) + var(--ec-brdWd))",
+            /** One line of an Expressive Code block. */
+            codeLine: "calc(var(--ec-codeLineHt) * var(--ec-codeFontSize))",
+            /** An Expressive Code block's padding above and below its lines. */
+            codePaddingBlock: "calc(2 * var(--ec-codePadBlk))",
         },
         shadow: {
             /** The rule under a row of tabs, which the open tab's bar covers. */
