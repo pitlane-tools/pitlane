@@ -182,6 +182,30 @@ test("exports link to the Markdown of every published page they name", async () 
     }
 });
 
+test("every Markdown link on the site reaches a published page and heading", async () => {
+    let files = await exportedFiles();
+    let bodies = await Promise.all([
+        ...files.map(file => readFile(file, "utf8")),
+        published("/llms.txt"),
+        published("/llms-full.txt"),
+    ]);
+    let html = new Map<string, Promise<string>>();
+    for (let href of new Set(bodies.flatMap(links))) {
+        let target = href.match(/^https:\/\/pitlane\.tools(\/[^#?]*\.md)(?:#(.*))?$/);
+        if (!target) continue;
+        let [, path, fragment] = target;
+        let page = path.replace(/\.md$/, ".html");
+        if (!html.has(page)) html.set(page, published(page));
+        let document = await html.get(page)!.catch(() => assert.fail(`${href} has no page`));
+        if (fragment) {
+            assert.ok(
+                document.includes(`id="${decodeURIComponent(fragment)}"`),
+                `${href} names a heading its page does not have`,
+            );
+        }
+    }
+});
+
 test("the home page's Markdown says what each package does, where it deploys, and how to start", async () => {
     let home = await published("/index.md");
     assert.match(

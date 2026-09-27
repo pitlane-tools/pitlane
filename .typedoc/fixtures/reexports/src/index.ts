@@ -39,3 +39,9 @@ interface Mapped {
 
 /** A style object: mapped properties plus every pass-through one. */
 export interface Styles extends Passthrough, Mapped {}
+
+/** Styles for print, a level below {@link Styles}. */
+export interface PrintStyles extends Styles {
+    /** Whether the element breaks the page before it. */
+    breakBefore?: boolean;
+}

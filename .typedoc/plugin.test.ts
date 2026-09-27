@@ -74,6 +74,7 @@ test("proposal.0004: every top-level export gets one page at <module>/<kind>/<na
         "hot/interface/Reference.md",
         "index.md",
         "interface/ContentBuilder.md",
+        "interface/PrintStyles.md",
         "interface/Reference.md",
         "interface/Styles.md",
         "loaders.md",
@@ -329,12 +330,21 @@ test("without the option, inherited members are listed", async t => {
     assert.doesNotMatch(page, /not listed individually/);
 });
 
-test("an interface extending several bases lists each base on its own line", async t => {
+test("a hierarchy lists each base and each derived interface on its own line", async t => {
     let root = temporaryRoot(t);
     await generate(root, "pkg");
-    let page = read(root, "interface/Styles.md");
-    let extended = page.match(/^## Extends\n\n((?:- .*\n?)+)/m)?.[1];
-    assert.deepEqual(extended?.trimEnd().split("\n"), ["- `Passthrough`", "- `Mapped`"]);
+    let list = (page: string, heading: string) =>
+        page
+            .match(new RegExp(`^## ${heading}\\n\\n((?:- .*\\n?)+)`, "m"))?.[1]
+            .trimEnd()
+            .split("\n");
+    let styles = read(root, "interface/Styles.md");
+    assert.deepEqual(list(styles, "Extends"), ["- `Passthrough`", "- `Mapped`"]);
+    assert.deepEqual(list(styles, "Extended by"), [
+        "- [`PrintStyles`](/package/pkg/interface/PrintStyles)",
+    ]);
+    let print = read(root, "interface/PrintStyles.md");
+    assert.deepEqual(list(print, "Extends"), ["- [`Styles`](/package/pkg/interface/Styles)"]);
 });
 
 test("a module overview's own headings are not repeated as compatibility anchors", async t => {
