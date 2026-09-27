@@ -358,7 +358,7 @@ Hand-written user-facing docs are linted with [Vale](https://vale.sh) using the 
 
 The oh-my-pi hook at `.omp/hooks/vale-prose.ts` automates this: after every successful `edit`/`write` touching those directories, it appends Vale's findings to the tool result, so the agent sees prose feedback immediately. The hook loads at session start and no-ops until `vp install` has put Vale in `node_modules/.bin`.
 
-**When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/app/content/guides/`, and fix the findings before committing:**
+**When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/app/content/guides/`, `docs/app/content/deployment/`, or `docs/app/content/_partials/`, and fix the findings before committing:**
 
 ```sh
 vp exec vale docs/app/content/guides/styling.md   # one page

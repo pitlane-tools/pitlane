@@ -188,7 +188,10 @@ export default defineConfig({
                 cache: false,
             },
             "docs:prose": {
-                command: ["vale sync", "vale docs/app/content/api docs/app/content/guides"],
+                command: [
+                    "vale sync",
+                    "vale docs/app/content/_partials docs/app/content/deployment docs/app/content/guides",
+                ],
                 cache: false,
             },
 
