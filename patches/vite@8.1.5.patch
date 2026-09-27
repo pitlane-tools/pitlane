@@ -1,0 +1,37 @@
+diff --git a/dist/node/module-runner.js b/dist/node/module-runner.js
+index 8a8db6ce5e7e0d68607f15bcc1fef391934ae44f..e352124d9b6a42309f804ce57d9d17d6181ff6f8 100644
+--- a/dist/node/module-runner.js
++++ b/dist/node/module-runner.js
+@@ -448,6 +448,12 @@ var HMRContext = class {
+ 	customListenersMap = /* @__PURE__ */ new Map();
+ 	ctxToListenersMap = /* @__PURE__ */ new Map();
+ 	currentFirstInvalidatedBy;
++	// pitlane patch (pitlane-tools/pitlane#38), tracked in
++	// docs/internal/upstream/vite-module-runner-hmr-after-close.md.
++	closed = !1;
++	close() {
++		this.closed = !0;
++	}
+ 	constructor(logger, transport, importUpdatedModule) {
+ 		this.logger = logger, this.transport = transport, this.importUpdatedModule = importUpdatedModule;
+ 	}
+@@ -503,6 +509,10 @@ var HMRContext = class {
+ 			}
+ 		}
+ 		return () => {
++			// pitlane patch (pitlane-tools/pitlane#38): the runner closed mid-update, so
++			// `fetchedModule` is undefined and the accept callback's `import.meta.hot`
++			// would throw out of an unawaited promise and kill the process.
++			if (this.closed) return;
+ 			try {
+ 				this.currentFirstInvalidatedBy = firstInvalidatedBy;
+ 				for (let { deps, fn } of qualifiedCallbacks) fn(deps.map((dep) => dep === acceptedPath ? fetchedModule : void 0));
+@@ -1129,7 +1139,7 @@ var ModuleRunner = class {
+ 	* This method doesn't stop the HMR connection.
+ 	*/
+ 	async close() {
+-		this.resetSourceMapSupport?.(), this.clearCache(), this.hmrClient = void 0, this.closed = !0, await this.transport.disconnect?.();
++		this.resetSourceMapSupport?.(), this.clearCache(), this.hmrClient?.close(), this.hmrClient = void 0, this.closed = !0, await this.transport.disconnect?.();
+ 	}
+ 	/**
+ 	* Returns `true` if the runtime has been closed by calling `close()` method.
