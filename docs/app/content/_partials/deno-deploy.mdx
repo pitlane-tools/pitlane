@@ -103,7 +103,7 @@ export const assets = createAssetServer({
 
 Every asset URL then carries a content hash, `/assets/app/actions/public/entry.@xnRkP3.ts`, and is served with `Cache-Control: public, max-age=31536000, immutable`. Fingerprinting and file watching cannot be combined, so both follow the same flag.
 
-An unset `NODE_ENV` counts as development, and Deploy does not set it. Add `NODE_ENV` with the value `production` to both the **Production** and **Development** contexts, so preview URLs run the same way production does.
+An unset `NODE_ENV` counts as development, and Deploy does not set it. Add `NODE_ENV` with the value `production` to both the **Production** and **Development** contexts, so preview URLs run the same way production does. From the CLI, `deno deploy env add NODE_ENV production --app my-remix-app` adds it to every context at once.
 
 The app's build configuration (dashboard **Edit build config**, or CLI flags):
 
@@ -206,6 +206,13 @@ deno deploy create \
 ```
 
 Without `--do-not-use-detected-build-config`, a build configuration Deploy detects in the directory takes precedence over the flags. `--region` also takes `us` or `eu`.
+
+`create` publishes a first revision straight away, before the app has any environment variables, so that revision runs in development mode. Add `NODE_ENV` and deploy again:
+
+```sh
+deno deploy env add NODE_ENV production --app my-remix-app
+deno deploy --app my-remix-app --prod
+```
 
 </NoBuild>
 
