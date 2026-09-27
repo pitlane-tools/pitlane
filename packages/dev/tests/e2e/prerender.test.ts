@@ -1,6 +1,6 @@
-import type { InlineConfig } from "vite";
+import type { InlineConfig, Plugin } from "vite";
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, utimesSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createBuilder } from "vite";
@@ -32,6 +32,20 @@ async function buildFixture(
 
 function read(relative: string): string {
     return readFileSync(join(OUT, relative), "utf8");
+}
+
+// A filesystem with coarse timestamps gives two builds a moment apart the same
+// modification time; pinning it makes that happen on every machine.
+const PINNED_TIME = new Date("2026-01-01T00:00:00Z");
+
+function pinServerBundleTime(): Plugin {
+    return {
+        name: "test:pin-server-bundle-time",
+        writeBundle(options) {
+            if (this.environment.name !== "ssr" || !options.dir) return;
+            utimesSync(join(options.dir, "index.js"), PINNED_TIME, PINNED_TIME);
+        },
+    };
 }
 
 let previousCwd = process.cwd();
@@ -148,6 +162,23 @@ describe("prerender", () => {
             plugins: [remix({ serverEntry: "app/entry.no-routes.tsx", prerender: true })],
         });
 
+        await expect(builder.buildApp()).rejects.toThrow(/export its route map/);
+    });
+
+    it("prerenders each build through its own server bundle", async () => {
+        let builderFor = (serverEntry: string) =>
+            createBuilder({
+                root: FIXTURE,
+                configFile: false,
+                logLevel: "error",
+                plugins: [remix({ serverEntry, prerender: true }), pinServerBundleTime()],
+            });
+
+        await (await builderFor("app/entry.server.tsx")).buildApp();
+
+        // This bundle has no route map. Prerendering through the previous
+        // bundle's handler would find one there and build without complaint.
+        let builder = await builderFor("app/entry.no-routes.tsx");
         await expect(builder.buildApp()).rejects.toThrow(/export its route map/);
     });
 
