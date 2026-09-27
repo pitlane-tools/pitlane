@@ -574,6 +574,8 @@ Nothing parses Markdown until you call `render()`, so listing a collection's tit
 
 Slugs are the ones GitHub gives the same headings: lowercased, with every character outside letters, marks, digits, and connector punctuation removed, spaces turned into hyphens, and nothing collapsed or trimmed. `## Databases & Data Loading` becomes `databases--data-loading`. Anchors you wrote against a GitHub render, or against Astro, which slugs the same way, keep landing. A heading left with no slug at all, such as `## 🎉`, becomes `heading` instead of an empty `id`, and a repeated slug takes a `-1`, `-2`, … suffix within its document.
 
+A heading's `text`, and the slug made from it, come from what the heading shows on the page. Inline HTML contributes the words inside its tags and never the tags themselves, so `## <span>Visible</span> text` reads `Visible text`. An image contributes nothing, not even its alt text, which is also how GitHub and Astro treat it. The spaces around an image stay, so `## [Docs](/docs) ![Logo](logo.png)` reads `Docs ` and slugs to `docs-`. In MDX, an expression that is a single string literal contributes its value, so `## Hello {"world"}` reads `Hello world` and `## The {"{"} key` reads `The { key`. Any other expression, such as `{name}` or `{1 + 1}`, contributes nothing, because its value is not known until the page renders.
+
 Props on `<Content />` reach an MDX document, which is how you replace the elements it renders with components of your own:
 
 ```tsx
