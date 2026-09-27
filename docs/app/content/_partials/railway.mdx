@@ -62,7 +62,7 @@ export const assets = createAssetServer({
 
 Every asset URL then carries a content hash, `/assets/app/actions/public/entry.@xnRkP3.ts`, and is served with `Cache-Control: public, max-age=31536000, immutable`. Fingerprinting and file watching cannot be combined, so both follow the same flag.
 
-An unset `NODE_ENV` counts as development, so each Dockerfile below sets it to `production`. Check that mode locally before building an image:
+An unset `NODE_ENV` counts as development, so each Dockerfile below sets it to `production`. The starter's `start` script runs that mode locally, under Node, before you build an image:
 
 ```sh
 npm start
@@ -125,6 +125,8 @@ ENV NODE_ENV=production
 CMD ["node", "--import", "remix/node-tsx", "server.ts"]
 ```
 
+The starter has no lockfile. Run `npm install` once to create the `package-lock.json` this Dockerfile installs from.
+
 </NoBuild>
 
 ## Bun
@@ -179,6 +181,8 @@ ENV NODE_ENV=production
 CMD ["bun", "server.ts"]
 ```
 
+Run `bun install` once to create the `bun.lock` this Dockerfile installs from.
+
 Bun does not resolve [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) that start with `#/`. The starter uses relative imports and is unaffected. If your app maps `"#/*"` in `package.json`, give the pattern a name, such as `"#app/*"`.
 
 </NoBuild>
@@ -223,6 +227,8 @@ COPY . .
 ENV NODE_ENV=production
 CMD ["deno", "run", "-A", "server.ts"]
 ```
+
+Run `deno install` once to create the `deno.lock` this Dockerfile installs from.
 
 Use the Debian image. On `denoland/deno:alpine` the install picks the musl build of the asset server's native addons, and Deno cannot load that build there, so the server exits before it starts listening.
 

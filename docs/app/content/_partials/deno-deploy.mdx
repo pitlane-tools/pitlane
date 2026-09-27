@@ -197,9 +197,15 @@ deno deploy create \
 deno deploy create \
     --org my-org \
     --app my-remix-app \
+    --source local \
+    --do-not-use-detected-build-config \
     --install-command "deno install" \
-    --entrypoint main.ts
+    --runtime-mode dynamic \
+    --entrypoint main.ts \
+    --region global
 ```
+
+Without `--do-not-use-detected-build-config`, a build configuration Deploy detects in the directory takes precedence over the flags. `--region` also takes `us` or `eu`.
 
 </NoBuild>
 
