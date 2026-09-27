@@ -16,8 +16,8 @@ import { Workbench } from "./workbench.tsx";
 export function Home() {
     return () => (
         <Document
-            description="Build, style, and ship your Remix app. Independent packages, explicit configuration, your choice of platform."
-            title="Your Remix app. Race ready."
+            description="Pitlane gives you composable packages to help you put your Remix app on the grid."
+            title="Pitlane | Your Remix Pit Crew"
             url="/"
         >
             <SiteHeader home search="header" />
