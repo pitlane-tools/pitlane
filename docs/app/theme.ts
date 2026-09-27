@@ -272,6 +272,10 @@ export let { token: t, Theme } = primitives.extend(base => ({
             touchOverhang: `calc((${base.size.control} - ${base.size.touch}) / 2)`,
             codeBorder: "var(--ec-brdWd)",
             codeRadius: "calc(var(--ec-brdRad) + var(--ec-brdWd))",
+            /** One line of an Expressive Code block. */
+            codeLine: "calc(var(--ec-codeLineHt) * var(--ec-codeFontSize))",
+            /** An Expressive Code block's padding above and below its lines. */
+            codePaddingBlock: "calc(2 * var(--ec-codePadBlk))",
         },
         shadow: {
             /** The rule under a row of tabs, which the open tab's bar covers. */

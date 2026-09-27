@@ -30,7 +30,7 @@ export async function installAlternatives({
                 .join("\n");
             // The install group's tabs head the command in place of a terminal frame.
             let html = await renderCode(command, "sh", "An install group", 'frame="none"');
-            return { manager, html };
+            return { manager, html, lines: command.split("\n").length };
         }),
     );
 }
