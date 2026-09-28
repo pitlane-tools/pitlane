@@ -181,13 +181,21 @@ Create the app non-interactively (flags switch the wizard off):
 
 <Vite>
 
+Run it after `vp build`: `--source local` uploads this directory and publishes a first revision straight away.
+
 ```sh
 deno deploy create \
     --org my-org \
     --app my-remix-app \
+    --source local \
+    --do-not-use-detected-build-config \
     --install-command "deno install --allow-scripts" \
-    --entrypoint main.ts
+    --runtime-mode dynamic \
+    --entrypoint main.ts \
+    --region global
 ```
+
+Without `--do-not-use-detected-build-config`, a build configuration Deploy detects in the directory takes precedence over the flags. `--region` also takes `us` or `eu`.
 
 </Vite>
 
@@ -368,9 +376,12 @@ Configure the app as **Static** with directory `dist` and Single Page App mode o
 deno deploy create \
     --org my-org \
     --app my-remix-spa \
+    --source local \
+    --do-not-use-detected-build-config \
     --runtime-mode static \
     --static-dir dist \
-    --single-page-app
+    --single-page-app \
+    --region global
 ```
 
 Deploys are unchanged: `deno deploy --prod` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.

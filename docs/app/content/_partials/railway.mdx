@@ -23,6 +23,7 @@ Add a `.dockerignore` so builds stay small and reproducible:
 node_modules
 dist
 .git
+.env*
 ```
 
 </Vite>
@@ -44,6 +45,7 @@ Add a `.dockerignore`. Leaving out `node_modules` matters more than usual here. 
 ```
 node_modules
 .git
+.env*
 ```
 
 ## Production assets
@@ -238,7 +240,9 @@ The exec-form `CMD` is fine here because `server.ts` reads `process.env.PORT` it
 
 ## Deploy with the CLI
 
-One-time setup: create an empty project at [railway.com/new](https://railway.com/new). Add a service with **Docker Image** as the source (e.g. `ghcr.io/<user>/my-remix-app:latest`). [Private images](https://docs.railway.com/builds/private-registries) need registry credentials. Generate a domain under **Settings → Networking**, because services are private by default.
+One-time setup: create an empty project at [railway.com/new](https://railway.com/new). Add a service with **Docker Image** as the source (e.g. `ghcr.io/<user>/my-remix-app:latest`). Generate a domain under **Settings → Networking**, because services are private by default.
+
+A new GHCR package is [private by default](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry), and Railway pulls a private image only with [registry credentials](https://docs.railway.com/builds/private-registries), which require the Pro plan. On any other plan, make the package public after the first push, from **Package settings → Change visibility** on the package's GitHub page. The change is permanent. A public image exposes every file `COPY . .` put in it, so the `.dockerignore` above leaves out `.env*`.
 
 Install the [Railway CLI](https://docs.railway.com/cli) as a dev dependency:
 
