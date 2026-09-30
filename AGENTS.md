@@ -105,6 +105,8 @@ If the human declines a proposal, proceed from the agreed request and pull-reque
 
 Create a branch, push it to `origin`, and open a **draft** pull request before writing anything. The pull request is the durable workspace: proposal, implementation, review discussion, and status reports accumulate in one reviewable place. When the branch and pull request would exist only to hold a proposal, open them after the human has said yes to that proposal, not before.
 
+Title it with the package it serves, not with `proposal:` — a proposal for a package that does not exist yet still takes that package's name as its scope. The rule is in [`.agents/rules/commit-discipline.md`](.agents/rules/commit-discipline.md#pull-request-titles).
+
 Pushing the branch is also what starts the previews — `preview.yml` and `pkg-preview.yml` both fire on a push to any branch other than `main`, so the artifacts phase 3 needs exist from the first push onward.
 
 ### 2. Grounding and proposal

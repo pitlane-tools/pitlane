@@ -55,6 +55,17 @@ Examples:
 
 Mechanical merge, revert, fixup, and squash commits are exempt. The `commit-msg` hook enforces ordinary subjects and scopes.
 
+## Pull request titles
+
+A pull request title uses the same `<scope>: <description>` shape, but its scope names what the pull request is _about_, not the kind of file it happens to contain. That is usually the package the work serves:
+
+- A proposal pull request is scoped to the package it proposes to change or create, even when that package does not exist yet: `theme: build theme bundler optimization through Airfoil`, `routing: file system routing and virtual file routes`. Never title a pull request `proposal:` — every proposal pull request would share that scope, which says nothing. `proposal:` stays correct for the individual _commits_ that edit the record.
+- One scope per title, never a comma-separated list: the package the work is mainly about. A package and its adapters take the parent's name — `image: image infrastructure packages` covers `@pitlane/image-cloudflare` too. Use `treewide` only for a genuine repository-wide sweep. Two unrelated changes that seem to need two scopes belong in two pull requests.
+- Work with no package, such as repository tooling, uses the scope of that area from the tables above: `tooling: adopt Changesets with on-request releases`.
+- Never leave a title unscoped, and never use a bare `Fix …` subject.
+
+The title is not checked by the `commit-msg` hook, so a speculative package name there is fine; commits still use scopes the hook accepts until the package is added to `.agents/commit-scopes`.
+
 ## Release commits
 
 A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` and `.agents/skills/releasing-pitlane-packages/SKILL.md` own the mechanics; three of their rules are commit-message rules and belong here:
