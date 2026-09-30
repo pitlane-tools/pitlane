@@ -198,6 +198,25 @@ interface DocumentProps {
 }
 
 /**
+ * Safari ignores `prefers-color-scheme` inside an SVG favicon and backs the
+ * light-mode icon with a white plate in dark mode, but it does follow a
+ * changed `href`, so the link is pointed at the dark variant from script.
+ * Navigation re-renders the head and resets the link, so every head change
+ * re-applies it.
+ */
+const SWAP_FAVICON = `(() => {
+    let dark = matchMedia("(prefers-color-scheme: dark)");
+    let apply = () => {
+        let icon = document.head.querySelector('link[rel="icon"]');
+        let href = dark.matches ? "/favicon-dark.svg" : "/favicon.svg";
+        if (icon && icon.getAttribute("href") !== href) icon.setAttribute("href", href);
+    };
+    apply();
+    dark.addEventListener("change", apply);
+    new MutationObserver(apply).observe(document.head, { subtree: true, childList: true, attributes: true, attributeFilter: ["href"] });
+})();`;
+
+/**
  * The `<html>` every page shares. Every theme color is a `light-dark()` pair
  * and `<Theme />` sets `color-scheme: light dark` on `:root`, so the operating
  * system's color scheme decides the appearance, from the first paint and as
@@ -237,6 +256,7 @@ export function Document(handle: Handle<DocumentProps>) {
                     <meta content={description} name="twitter:description" />
                     <meta content={OG_IMAGE} name="twitter:image" />
                     <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
+                    <script>{SWAP_FAVICON}</script>
                     <Theme />
                     {clientAssets.css.map(attrs => (
                         <link key={attrs.href} {...attrs} rel="stylesheet" />
