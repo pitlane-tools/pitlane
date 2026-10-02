@@ -5,7 +5,7 @@ import type { ExecutorOptions } from "@oh-my-pi/pi-coding-agent/task/executor";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import type { OmpWorkflowAgentDependencies } from "./agent.js";
 import type { WorkflowSnapshot } from "./display.js";

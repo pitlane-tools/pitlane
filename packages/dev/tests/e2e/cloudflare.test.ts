@@ -4,7 +4,7 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { createBuilder, preview } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { remix } from "../../src/index.ts";
 import { serveFixture } from "./harness.ts";

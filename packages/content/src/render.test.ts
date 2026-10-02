@@ -3,7 +3,7 @@ import * as jsxRuntime from "remix/component/jsx-runtime";
 import { renderToString } from "remix/component/server";
 import * as s from "remix/data-schema";
 import { evaluate, type EvaluateOptions } from "satteri";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import type { ContentLoader, LoadedEntry, PrebuiltCollections } from "./types.ts";
 

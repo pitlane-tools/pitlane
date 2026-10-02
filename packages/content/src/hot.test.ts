@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as s from "remix/data-schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import type { BrowserHmrChannel, FileEvent } from "./hot.ts";
 import type { ContentLoader, LoadedEntry } from "./types.ts";

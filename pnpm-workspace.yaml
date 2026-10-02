@@ -23,4 +23,12 @@ allowBuilds:
 minimumReleaseAge: 0
 
 patchedDependencies:
-    vite@8.1.5: patches/vite@8.1.5.patch
+    "@voidzero-dev/vite-plus-core@1.0.0": patches/@voidzero-dev__vite-plus-core@1.0.0.patch
+
+# Every `vite` here is Vite+ core (`vp pack` requires it), which reports its own
+# 1.x version. Plugins declare peer ranges against upstream Vite 8, so accept
+# any version for that one peer. CI also runs the dev and content suites
+# against upstream Vite 8.
+peerDependencyRules:
+    allowAny:
+        - vite

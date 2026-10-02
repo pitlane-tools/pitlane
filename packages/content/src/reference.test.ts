@@ -1,5 +1,5 @@
 import * as s from "remix/data-schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import type { Reference } from "./types.ts";
 

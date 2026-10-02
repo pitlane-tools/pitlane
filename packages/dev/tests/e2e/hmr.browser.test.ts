@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { startDevServer, type DevServer } from "./harness.ts";
 

@@ -143,8 +143,10 @@ export default defineConfig({
                 dependsOn: ["docs:packages"],
                 cwd: TYPEDOC,
                 command: "node build.ts",
-                // Each run rewrites the pages and index the previous run wrote.
-                input: [{ auto: true }, "!docs/app/content/api/**", "!docs/.generated/**"],
+                cache: {
+                    // Each run rewrites the pages and index the previous run wrote.
+                    input: [{ auto: true }, "!docs/app/content/api/**", "!docs/.generated/**"],
+                },
             },
             "docs:api:test": { cwd: TYPEDOC, command: "node --test plugin.test.ts" },
             // Typechecks authored MDX with its pinned language server.
@@ -155,26 +157,28 @@ export default defineConfig({
                     "node packages/mdx-checker/check.ts",
                 ],
             },
-            // The reader runs its own Vite. Plugins that check a dev environment
-            // against their own Vite's classes reject a server created by
-            // another copy, such as the one Vite+ bundles for `vp dev`.
+            // `vp` runs the docs' own `vite`, which is Vite+ core, so plugins that
+            // check a dev environment against their own Vite's classes see one
+            // copy. Vite+ core ships no `vite` binary to call directly.
             "docs:build": {
                 dependsOn: ["docs:api", "docs:mdx"],
                 cwd: "docs",
-                command: "./node_modules/.bin/vite build",
+                command: "vp build",
             },
             "docs:dev": {
                 dependsOn: ["docs:build"],
                 cwd: "docs",
-                command: "./node_modules/.bin/vite --port 1337",
+                command: "vp dev --port 1337",
                 cache: false,
             },
             "docs:test": {
                 dependsOn: ["docs:build"],
                 command: "node docs/test.ts",
-                // Wrangler's scratch state, which every run rewrites.
-                input: [{ auto: true }, "!.wrangler/**"],
-                output: [],
+                cache: {
+                    // Wrangler's scratch state, which every run rewrites.
+                    input: [{ auto: true }, "!.wrangler/**"],
+                    output: [],
+                },
             },
             // The last build's published files under Cloudflare's local runtime, as they deploy.
             "docs:serve": {

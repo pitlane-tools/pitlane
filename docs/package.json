@@ -19,8 +19,8 @@
         "satteri": "^0.10.5",
         "shiki": "^4.0.2",
         "sirv": "^3.0.2",
-        "vite": "^8.1.5",
+        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
         "vite-plugin-satteri": "^0.3.5",
-        "vite-plus": "^0.2.6"
+        "vite-plus": "^1.0.0"
     }
 }

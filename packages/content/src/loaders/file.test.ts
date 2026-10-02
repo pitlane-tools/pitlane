@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { ContentLoader, LoadedEntry } from "../types.ts";
 

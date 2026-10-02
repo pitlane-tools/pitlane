@@ -1,5 +1,5 @@
 import { column as c, table } from "remix/data-table";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import type { D1StatementReport } from "./observer.ts";
 

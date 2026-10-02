@@ -15,9 +15,8 @@
         "oxc-parser": "^0.140.0",
         "remix": "3.0.0",
         "typescript": "^7.0.2",
-        "vite": "^8.1.4",
-        "vite-plus": "^0.2.6",
-        "vitest": "^4.1.10",
+        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
+        "vite-plus": "^1.0.0",
         "wrangler": "^4.111.0"
     },
     "packageManager": "pnpm@12.6.0"

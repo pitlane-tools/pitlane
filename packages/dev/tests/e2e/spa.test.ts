@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { build, preview } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 const FIXTURE = join(import.meta.dirname, "../fixtures/spa-app");
 const PREVIEW_PORT = 7321;

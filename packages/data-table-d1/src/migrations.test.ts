@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { generateD1Migrations } from "./migrations.ts";
 

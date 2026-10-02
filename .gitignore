@@ -10,3 +10,4 @@ dist
 docs/app/content/api
 docs/.generated
 docs/.index
+.vitest/

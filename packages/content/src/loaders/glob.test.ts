@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { ContentLoader, LoadedEntry, StandardSchemaV1 } from "../types.ts";
 

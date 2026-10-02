@@ -201,8 +201,8 @@ Alternatives, if the flag is unwelcome:
 
 ## Our workaround
 
-`patches/vite@8.1.5.patch` (pnpm `patchedDependencies` in `pnpm-workspace.yaml`) applies the closed-flag fix to the built `dist/node/module-runner.js` that ships in the package. It is the same three edits shown above, written against the bundled output.
+`patches/@voidzero-dev__vite-plus-core@1.0.0.patch` (pnpm `patchedDependencies` in `pnpm-workspace.yaml`) applies the closed-flag fix to the built `dist/vite/node/module-runner.js` that ships in Vite+ core. It is the same three edits shown above, written against the bundled output. Vite+ core 1.0.0 bundles Vite 8.3.1, so it carries the same bug.
 
-The patch is keyed to `vite@8.1.5` exactly, which is what every workspace holding a `vite` dependency that serves a dev server resolves — `docs`, `demos/content-vite`, `packages/content`, and `packages/dev`. Two resolutions sit outside it: the root workspace still resolves `vite@8.1.4`, used by Vitest, which never runs the restart path; and `demos/theme` aliases `vite` to `@voidzero-dev/vite-plus-core`, a different package a `vite` patch cannot reach. pnpm fails the install if the patch stops matching a resolved version, so a version bump surfaces this file rather than silently dropping the fix.
+Every workspace's `vite` is aliased to `@voidzero-dev/vite-plus-core`, because `vp pack` refuses any other `vite`, so the one patch reaches every dev server in the repo. pnpm fails the install if the patch stops matching the resolved version, so a Vite+ bump surfaces this file rather than silently dropping the fix. The CI jobs that run the `@pitlane/dev` and `@pitlane/content` suites against upstream Vite 8 install it unpatched; those suites never exercise the restart path.
 
-Delete `patches/vite@8.1.5.patch`, drop the `patchedDependencies` entry from `pnpm-workspace.yaml`, and run `pnpm install` once the fix lands upstream.
+Delete the patch, drop the `patchedDependencies` entry from `pnpm-workspace.yaml`, and run `pnpm install` once the fix lands upstream and in a Vite+ release.
