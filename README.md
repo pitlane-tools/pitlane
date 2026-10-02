@@ -46,15 +46,13 @@ Two options change the shape of the build: [`prerender`](https://pitlane.tools/g
 
 ## Templates
 
-The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo ships the same Remix 3 guest book wired for eight deploy targets — Cloudflare (D1), Netlify (Netlify Database), Vercel (Neon Postgres), Railway on Node, Bun, or Deno, Deno Deploy (managed Postgres), and GitHub Pages (Service Worker + IndexedDB). Scaffold one with [giget](https://github.com/unjs/giget):
+The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo ships the same Remix 3 guest book wired for eight deploy targets — Cloudflare (D1), Netlify (Netlify Database), Vercel (Neon Postgres), Railway on Node, Bun, or Deno, Deno Deploy (managed Postgres), and GitHub Pages (in-browser with IndexedDB). Scaffold one with [giget](https://github.com/unjs/giget):
 
 ```sh
 npx giget github:pitlane-tools/templates/<template> my-app
 ```
 
 Because every template is the same app, diffing any two shows exactly what a platform swap touches — usually the database middleware, the deploy config, and nothing else.
-
-The starters still target Remix rc.1 and earlier Pitlane releases. For stable Remix 3, follow the [migration notes](https://pitlane.tools/guides/vite-plugin#upgrading-from-a-remix-prerelease), including replacement of the removed styled UI helpers.
 
 ## Documentation
 

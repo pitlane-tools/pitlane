@@ -31,15 +31,13 @@ See the [Remix 3.0.0 release notes](https://github.com/remix-run/remix/releases/
 
 ## Templates
 
-Prefer starting from a working app? The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo has the same Remix 3 guest book wired for eight deploy targets. Cloudflare uses D1. Netlify uses Netlify DB, while Vercel pairs Nitro with Postgres. Railway runs on Node, Bun, or Deno. The remaining templates cover Deno Deploy and GitHub Pages (Service Worker + IndexedDB). Scaffold one with [giget](https://github.com/unjs/giget):
+Prefer starting from a working app? The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo has the same Remix 3 guest book wired for eight deploy targets. Cloudflare uses D1. Netlify uses Netlify DB, while Vercel pairs Nitro with Postgres. Railway runs on Node, Bun, or Deno. The remaining templates cover Deno Deploy and GitHub Pages, which runs in the browser with IndexedDB. Scaffold one with [giget](https://github.com/unjs/giget):
 
 ```sh
 npx giget github:pitlane-tools/templates/<template> my-app
 ```
 
 Because every template is the same app, diffing any two shows exactly what a platform swap touches, usually only the database middleware and deploy config.
-
-The starters currently target Remix rc.1 and earlier Pitlane releases. Apply the migration above before using them with stable Remix 3, including replacing their removed styled UI helpers.
 
 ## The three-file core
 
