@@ -18,9 +18,14 @@ function compile(source: string) {
     });
 }
 
-/** Renders a compiled document the way a page does, resolving its imports from the docs package. */
+let renders = 0;
+
+/**
+ * Renders a compiled document the way a page does, resolving its imports from the docs package.
+ * Each render gets its own file, because the module cache would hand a reused URL its first document.
+ */
 async function render(code: string): Promise<string> {
-    let module = new URL(`./.rendered-${process.pid}.mjs`, import.meta.url);
+    let module = new URL(`./.rendered-${process.pid}-${renders++}.mjs`, import.meta.url);
     await writeFile(module, code);
     try {
         let { default: Content } = await import(module.href);
@@ -99,5 +104,17 @@ let answer = 42;
 `);
     let html = await render(code);
     assert.match(html, /authored/);
+    assert.match(html, /<div class="expressive-code">/);
+});
+
+test("a code block renders in a document that spells an escape outside the Unicode range", async () => {
+    let { code } = await compile(`\`\\u{110000}\`
+
+\`\`\`ts
+let answer = 42;
+\`\`\`
+`);
+    let html = await render(code);
+    assert.match(html, /\\u\{110000\}/);
     assert.match(html, /<div class="expressive-code">/);
 });

@@ -24,7 +24,7 @@ Upgrade Remix and the Pitlane packages together. The stable-compatible releases 
 
 - Replace `remix/ui` imports with `remix/component`, including `/server`, `/jsx-runtime`, and `/jsx-dev-runtime` subpaths. Set TypeScript's `jsxImportSource` and Satteri's `mdx.jsxImportSource` to `remix/component`.
 - Replace `remix/ui-hmr` with `remix/component-hmr`. For no-build apps, rename the asset loader from `uiHmr()` to `componentHmr()` and the Node hook to `remix/component-hmr/node`. The Vite plugin supplies its own HMR integration.
-- Raw HTML props such as `innerHTML` now require `unsafeHTML()` from `remix/component`. It marks trusted or already-sanitized content. It does not sanitize strings. Pitlane's content renderer and theme component handle their own insertion boundaries.
+- Raw HTML props such as `innerHTML` now require `unsafeHTML()` from `remix/component`. It marks trusted or already-sanitized content. It does not sanitize strings. Pitlane's content renderer and `<Theme />` wrap their own markup this way, and neither sanitizes it.
 - Animation utilities and headless primitives are separate `@remix-run/ui` imports. The old styled components and style mixins, including `button()` and `inputStyle`, were removed. Replacing those requires an application change.
 
 See the [Remix 3.0.0 release notes](https://github.com/remix-run/remix/releases/tag/remix%403.0.0) for the upstream entrypoint changes.

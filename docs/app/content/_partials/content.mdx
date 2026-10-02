@@ -590,6 +590,8 @@ Calling `render()` on an entry with no body, such as one from a `.json` file, is
 Entry "authors/ada" has no renderable content.
 ```
 
+`render()` does not sanitize a body. A Markdown body's HTML reaches the page as written, and an MDX body runs as code. Render only content you trust, which includes the bodies a `LiveLoader` returns at request time.
+
 <Vite>
 
 A `.md` or `.mdx` body is compiled during the build by the `satteri()` plugin [configured above](#configuring-vite), and `render()` hands back the compiled result.
