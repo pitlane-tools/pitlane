@@ -29,6 +29,15 @@ jobs:
                       directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
+                    # The workspace's `vite` is Vite+ core, which `vp pack`
+                    # requires. These two packages run Vite as a peer, so their
+                    # suites also run against upstream Vite 8.
+                    - package: "@pitlane/content (Vite 8)"
+                      directory: packages/content
+                      vite: upstream
+                    - package: "@pitlane/dev (Vite 8)"
+                      directory: packages/dev
+                      vite: upstream
         defaults:
             run:
                 working-directory: ${{ matrix.directory }}
@@ -62,10 +71,19 @@ jobs:
               if: matrix.directory == 'packages/content'
               run: vp run build
 
+            # Sibling builds above ran on Vite+ core; only the suite under test
+            # swaps to upstream Vite.
+            - name: Use upstream Vite 8
+              if: matrix.vite == 'upstream'
+              run: vp add -D vite@^8
+
             - name: Run tests
               run: vp test
 
+            # `vp pack` refuses any `vite` but Vite+ core, so the upstream
+            # variants test without building.
             - name: Build package
+              if: matrix.vite != 'upstream'
               run: vp run build
 
     leaks:
