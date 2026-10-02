@@ -27,4 +27,4 @@ vp run build   # production build
 vp run preview # serve the production build
 ```
 
-These scripts run the demo's own Vite rather than the copy `vp dev` bundles. `@hiogawa/vite-plugin-fullstack` checks the dev environment against its own Vite's classes, so a server created by a second copy fails its `isRunnableDevEnvironment` assertion.
+These scripts run `vp`, which uses the demo's own `vite`. Like every `vite` in this workspace, that is Vite+ core, so the dev server and `@pitlane/dev` share one copy of Vite.
