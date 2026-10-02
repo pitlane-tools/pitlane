@@ -1197,6 +1197,7 @@ Resource, secret, migration, log, and deploy commands remain target-specific and
 A target template is a complete, ordinary Remix project rather than the output of a hidden platform model. Its base contains:
 
 - `@pitlane/dev` for server-rendered targets that use `clientEntry()`
+- `@pitlane/theme`, with the app's design tokens in `app/theme.ts` and its shared control styles built from them
 - the provider's Vite plugin when one exists, or a small runtime launcher when it does not
 - `app/entry.server.tsx` with the router and target handler export
 - checked-in native provider configuration
