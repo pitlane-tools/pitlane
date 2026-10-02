@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { renderToString } from "remix/component/server";
 import { markdownToHtml, mdxToJs } from "satteri";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import type { Heading } from "./types.ts";
 

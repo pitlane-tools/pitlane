@@ -391,26 +391,30 @@ dist/
 
 ## Compatibility
 
-| Dependency  | Tested against |
-| ----------- | -------------- |
-| `vite`      | 8.1.5          |
-| `vite-plus` | 0.2.6          |
-| `remix`     | 3.0.0          |
-| Node        | 24 (CI)        |
+| Dependency  | Tested against            |
+| ----------- | ------------------------- |
+| `vite`      | 8 (the latest 8.x, in CI) |
+| `vite-plus` | 1.0                       |
+| `remix`     | 3.0.0                     |
+| Node        | 26 (CI)                   |
 
 Each `@pitlane/dev` release records the exact Remix version it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. Rolldown is not required: the transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 
-**`AssertionError: isRunnableDevEnvironment(environment)` on `vite dev`** — your project resolves two different `vite` packages (typically Vite+ running the server while a plain `vite` install satisfies peer ranges). Give the project a single vite identity by aliasing, e.g. with pnpm:
+**`vp` stops with `Expected @voidzero-dev/vite-plus-core@…, but found vite@…`** — Vite+ 1.0 requires the `vite` your project declares to be Vite+ core at the same version as `vite-plus`. Alias it to the core. `vp migrate` sets up the same alias, pinned to the exact version:
 
 ```jsonc
 // package.json
 {
-    "devDependencies": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" },
-    "pnpm": { "overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@latest" } },
+    "devDependencies": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
+        "vite-plus": "^1.0.0",
+    },
 }
 ```
+
+**`AssertionError: isRunnableDevEnvironment(environment)` on dev** — your project resolves two different `vite` packages, typically because a dependency installs a plain `vite` beside the alias. Override `vite` with the same alias in your package manager's configuration, such as `overrides` in `pnpm-workspace.yaml`, so the whole project resolves one copy.
 
 Generic-Vite projects have one vite by construction and are unaffected.
 

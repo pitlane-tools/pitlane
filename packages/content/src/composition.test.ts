@@ -1,7 +1,7 @@
 import { init, parse } from "es-module-lexer";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { missingRenderer } from "./parse.ts";
 

@@ -1,6 +1,6 @@
 import { Miniflare } from "miniflare";
 import { column as c, sql, table } from "remix/data-table";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import type { D1Binding } from "./d1.ts";
 import type { D1StatementReport } from "./observer.ts";

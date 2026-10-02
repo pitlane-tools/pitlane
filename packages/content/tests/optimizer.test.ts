@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import satteri from "vite-plugin-satteri";
-import { expect, it } from "vitest";
+import { expect, it } from "vite-plus/test";
 
 import { headings } from "../src/satteri.ts";
 import { contentLayer } from "../src/vite.ts";

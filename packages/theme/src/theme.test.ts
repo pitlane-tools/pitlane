@@ -1,7 +1,7 @@
 import { createElement } from "remix/component";
 import { renderToString } from "remix/component/server";
 import { ValidationError } from "remix/data-schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { lightDark, scale } from "./scale.ts";
 import * as s from "./schema.ts";

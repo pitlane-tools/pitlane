@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, createLogger, type Logger, type Plugin, resolveConfig } from "vite";
 import satteri from "vite-plugin-satteri";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { headings } from "../src/satteri.ts";
 import { contentLayer } from "../src/vite.ts";

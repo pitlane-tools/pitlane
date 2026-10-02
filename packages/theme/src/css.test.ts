@@ -1,6 +1,6 @@
 import { createElement } from "remix/component";
 import { renderToString } from "remix/component/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { css } from "./css.ts";
 import * as s from "./schema.ts";

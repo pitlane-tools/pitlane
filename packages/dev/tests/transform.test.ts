@@ -1,6 +1,6 @@
 import type { Plugin } from "vite";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { clientEntryTransform } from "../src/transform.ts";
 

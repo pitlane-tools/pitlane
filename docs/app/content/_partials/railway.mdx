@@ -305,7 +305,7 @@ jobs:
                   push: true
                   tags: ghcr.io/${{ github.repository }}:latest
 
-            - uses: voidzero-dev/setup-vp@v1
+            - uses: voidzero-dev/setup-vp@v1.21.1
 
             - run: vp install --frozen-lockfile
 

@@ -1,5 +1,5 @@
 import { createRouter } from "remix/router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { crawl } from "./crawl.ts";
 

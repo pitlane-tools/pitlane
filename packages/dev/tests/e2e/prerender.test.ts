@@ -4,7 +4,7 @@ import { existsSync, readFileSync, utimesSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createBuilder } from "vite";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vite-plus/test";
 
 import type { PrerenderOption } from "../../src/prerender.ts";
 

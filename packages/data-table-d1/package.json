@@ -47,7 +47,7 @@
         "miniflare": "^4.20260710.0",
         "remix": "3.0.0",
         "typescript": "^7.0.2",
-        "vite-plus": "^0.2.6"
+        "vite-plus": "^1.0.0"
     },
     "peerDependencies": {
         "remix": "^3.0.0"

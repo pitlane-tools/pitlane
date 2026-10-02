@@ -1,6 +1,6 @@
 import type { MixInput } from "remix/component";
 
-import { describe, it } from "vitest";
+import { describe, it } from "vite-plus/test";
 
 import { css } from "./css.ts";
 import { combine, tva } from "./tva.ts";

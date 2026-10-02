@@ -29,6 +29,15 @@ jobs:
                       directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
+                    # The workspace's `vite` is Vite+ core, which `vp pack`
+                    # requires. These two packages run Vite as a peer, so their
+                    # suites also run against upstream Vite 8.
+                    - package: "@pitlane/content (Vite 8)"
+                      directory: packages/content
+                      vite: upstream
+                    - package: "@pitlane/dev (Vite 8)"
+                      directory: packages/dev
+                      vite: upstream
         defaults:
             run:
                 working-directory: ${{ matrix.directory }}
@@ -36,11 +45,14 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            # The upstream variants' `vp add` re-resolves the workspace's
+            # `latest` specifiers, so they neither restore nor save the shared
+            # cache, keeping its contents matched to the lockfile.
             - name: Setup Vite+
               uses: voidzero-dev/setup-vp@v1.21.1
               with:
                   node-version-file: .node-version
-                  cache: true
+                  cache: ${{ matrix.vite != 'upstream' }}
 
             - name: Install
               run: vp install --frozen-lockfile
@@ -62,10 +74,33 @@ jobs:
               if: matrix.directory == 'packages/content'
               run: vp run build
 
+            # Sibling builds above ran on Vite+ core; only the suite under test
+            # swaps to upstream Vite.
+            - name: Use upstream Vite 8
+              if: matrix.vite == 'upstream'
+              run: vp add -D vite@^8
+
+            # A green upstream run proves nothing unless the suite really
+            # resolved upstream Vite rather than Vite+ core.
+            - name: Confirm upstream Vite
+              if: matrix.vite == 'upstream'
+              run: |
+                  node -e '
+                  const vite = require("vite/package.json");
+                  if (vite.name !== "vite" || !vite.version.startsWith("8.")) {
+                      console.error(`Expected upstream Vite 8, found ${vite.name}@${vite.version}`);
+                      process.exit(1);
+                  }
+                  console.log(`Testing against vite@${vite.version}`);
+                  '
+
             - name: Run tests
               run: vp test
 
+            # `vp pack` refuses any `vite` but Vite+ core, so the upstream
+            # variants test without building.
             - name: Build package
+              if: matrix.vite != 'upstream'
               run: vp run build
 
     leaks:

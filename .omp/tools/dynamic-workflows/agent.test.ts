@@ -12,7 +12,7 @@ import {
     type AgentProgress,
     type SingleResult,
 } from "@oh-my-pi/pi-coding-agent/task";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { OmpWorkflowAgent, type OmpWorkflowAgentDependencies } from "./agent.js";
 import { WorkflowAgentFailure, type WorkflowAgentRequest } from "./workflow.js";
