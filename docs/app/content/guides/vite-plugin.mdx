@@ -16,7 +16,18 @@ This guide covers living with [`remix()`](/package/dev/function/remix) from `@pi
 
 <InstallGroup alternatives={installation} />
 
-`@pitlane/dev` declares `remix@^3.0.0-rc.1` and `vite@>=7` as peer dependencies. The tested matrix is **Vite 8.1** (Rolldown) and **Vite+ 0.2** (`vp`) with `remix@3.0.0-rc.2`. The [templates](https://github.com/pitlane-tools/templates) exercise that matrix continuously in CI.
+`@pitlane/dev` declares `remix@^3.0.0` and `vite@>=7` as peer dependencies. The tested matrix is **Vite 8.1** (Rolldown) and **Vite+ 0.2** (`vp`) with `remix@3.0.0`.
+
+### Upgrading from a Remix prerelease
+
+Upgrade Remix and the Pitlane packages together. The stable-compatible releases require `remix@^3.0.0`. Their previous prerelease-compatible versions remain available for apps that have not migrated.
+
+- Replace `remix/ui` imports with `remix/component`, including `/server`, `/jsx-runtime`, and `/jsx-dev-runtime` subpaths. Set TypeScript's `jsxImportSource` and Satteri's `mdx.jsxImportSource` to `remix/component`.
+- Replace `remix/ui-hmr` with `remix/component-hmr`. For no-build apps, rename the asset loader from `uiHmr()` to `componentHmr()` and the Node hook to `remix/component-hmr/node`. The Vite plugin supplies its own HMR integration.
+- Raw HTML props such as `innerHTML` now require `unsafeHTML()` from `remix/component`. It marks trusted or already-sanitized content. It does not sanitize strings. Pitlane's content renderer and theme component handle their own insertion boundaries.
+- Animation utilities and headless primitives are separate `@remix-run/ui` imports. The old styled components and style mixins, including `button()` and `inputStyle`, were removed. Replacing those requires an application change.
+
+See the [Remix 3.0.0 release notes](https://github.com/remix-run/remix/releases/tag/remix%403.0.0) for the upstream entrypoint changes.
 
 ## Templates
 
@@ -28,13 +39,15 @@ npx giget github:pitlane-tools/templates/<template> my-app
 
 Because every template is the same app, diffing any two shows exactly what a platform swap touches, usually only the database middleware and deploy config.
 
+The starters currently target Remix rc.1 and earlier Pitlane releases. Apply the migration above before using them with stable Remix 3, including replacing their removed styled UI helpers.
+
 ## The three-file core
 
 Everything the plugin does orbits three files you own:
 
 - **`vite.config.ts`** needs only `plugins: [remix()]`, and the defaults cover the rest.
 - **`app/entry.server.tsx`** builds a router and **default-exports it**. The default export's `.fetch(Request)` is the contract every consumer reads: the dev server, `vite preview`, and whatever runs in production.
-- **`app/entry.browser.ts`** calls `run()` from `remix/ui` to hydrate `clientEntry()` components against server HTML.
+- **`app/entry.browser.ts`** calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML.
 
 `vite dev`, `vite build`, `vite preview`: the standard lifecycle, nothing bespoke.
 
@@ -136,7 +149,7 @@ Write the `Document` once against the full shape and both modes come out right: 
 `clientEntry(import.meta.url, …)` marks a component for hydration. At build time the plugin rewrites the first argument into the module's asset URL plus an `#ExportName` fragment. At runtime the server writes that URL into hydration markers, and the browser's `run()` imports the chunk and hydrates in place.
 
 ```tsx
-import { clientEntry, on } from "remix/ui";
+import { clientEntry, on } from "remix/component";
 
 export let Counter = clientEntry(import.meta.url, handle => {
     let count = 0;
@@ -176,7 +189,7 @@ export default clientEntry(import.meta.url, handle => {
 });
 
 // ✗ aliased callee — the transform matches the literal name `clientEntry`
-import { clientEntry as ce } from "remix/ui";
+import { clientEntry as ce } from "remix/component";
 
 export let Counter = ce(import.meta.url, handle => {
     /* … */
@@ -264,10 +277,10 @@ dist/
 | ----------- | -------------- |
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
-| `remix`     | 3.0.0-rc.2     |
+| `remix`     | 3.0.0          |
 | Node        | 24 LTS, 26     |
 
-Remix 3 is in prerelease, and each `@pitlane/dev` release records the exact prerelease it was verified against. Rolldown is optional. The transform runs identically on generic Vite and Vite+.
+Each `@pitlane/dev` release records the exact Remix version it was verified against. Rolldown is optional. The transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 

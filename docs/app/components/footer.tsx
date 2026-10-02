@@ -1,4 +1,4 @@
-import { css, type Handle } from "remix/ui";
+import { css, type Handle } from "remix/component";
 
 import { narrow } from "../styles/media.ts";
 import { t } from "../theme.ts";

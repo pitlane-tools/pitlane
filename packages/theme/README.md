@@ -1,6 +1,6 @@
 # @pitlane/theme
 
-Type-safe styling with design tokens for [Remix](https://remix.run). `createTheme` compiles a schema tree and a tree of CSS values into a typed token accessor plus a `<Theme />` component that installs CSS custom properties. The `css`, `tva`, `combine`, and `cx` helpers wrap `remix/ui`'s `css()` mixin and enforce the theme palette at the type level.
+Type-safe styling with design tokens for [Remix](https://remix.run). `createTheme` compiles a schema tree and a tree of CSS values into a typed token accessor plus a `<Theme />` component that installs CSS custom properties. The `css`, `tva`, `combine`, and `cx` helpers wrap `remix/component`'s `css()` mixin and enforce the theme palette at the type level.
 
 ## Install
 
@@ -10,7 +10,7 @@ npm install @pitlane/theme
 vp add @pitlane/theme
 ```
 
-Requires `remix@^3.0.0-rc.1` as a peer.
+Requires `remix@^3.0.0` as a peer.
 
 ## Quick start
 
@@ -115,7 +115,7 @@ A layer's declarations follow the ones they reference, which moves them later in
 
 - `createTheme({ schema, tokens, modes? })` compiles a theme and returns `{ token, raw, Theme, extend, select }`. `token`, conventionally `t`, mirrors the tree with branded `var()` strings. `raw(ref)` resolves a base value. `<Theme />` installs the custom properties.
 - `createTheme(DefaultTheme)` accepts a published theme component and returns a derivable theme. `@pitlane/theme/default` exports `DefaultTheme`, Tailwind v4 primitives without a semantic layer.
-- `css(props)` is `remix/ui`'s `css()` with token-brand enforcement. Call it inline at each `mix` callsite.
+- `css(props)` is `remix/component`'s `css()` with token-brand enforcement. Call it inline at each `mix` callsite.
 - `tva(config)` creates a cva-style variant resolver. `combine(...fns)` composes tva components. `cx(...)` joins clsx-compatible class values.
 - `lightDark(light, dark)` returns CSS `light-dark()` text. `scale(token)` returns a multiplier for an ordinary dimension, duration, or number token.
 - `ThemeError` reports structural failures: a reference whose type does not match its position, a reference to an untyped token, a variable collision, an undeclared token, a mode overriding an unknown token, and a `"{a.b.c}"` string left over from the pre-0.3.0 format. Invalid values raise `ValidationError` from `remix/data-schema`, whose `issues` array contains the detail.

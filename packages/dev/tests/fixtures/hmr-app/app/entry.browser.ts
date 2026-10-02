@@ -1,4 +1,4 @@
-import { run } from "remix/ui";
+import { run } from "remix/component";
 
 // Recorded so the browser suite can assert which revalidation mechanism ran: a
 // navigation fallback shows up here, a direct frame reload does not.

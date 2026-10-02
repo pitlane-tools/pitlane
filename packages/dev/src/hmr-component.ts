@@ -63,7 +63,7 @@ const INERT_SOURCE = `export const HMR = () => () => null;\n`;
  * Renders nothing: it contributes markup only as the hydration marker Remix
  * emits around it, which is what gives it a handle in the browser.
  */
-const ISLAND_SOURCE = `import { clientEntry } from "remix/ui";
+const ISLAND_SOURCE = `import { clientEntry } from "remix/component";
 
 export const HMR = clientEntry(import.meta.url, function HMR(handle) {
     if (import.meta.hot) {

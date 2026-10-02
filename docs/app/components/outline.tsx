@@ -1,5 +1,5 @@
 import { css } from "@pitlane/theme";
-import { clientEntry, type Handle } from "remix/ui";
+import { clientEntry, type Handle } from "remix/component";
 
 import { eyebrow, floatingPanel, inPlacePopover, navLink } from "../styles/controls.ts";
 import { belowOutlineColumn, narrow, outlineColumn } from "../styles/media.ts";

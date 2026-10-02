@@ -1,4 +1,4 @@
-import { createRoot } from "remix/ui";
+import { createRoot } from "remix/component";
 
 import { App } from "./app.tsx";
 

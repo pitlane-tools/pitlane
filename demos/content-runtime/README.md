@@ -11,7 +11,7 @@ No build step, no `contentLayer()`, no `vite-plugin-satteri`, no Vite. The serve
 
 `start` is that server and nothing else: the asset server minifies and fingerprints, and no watcher, channel, or instrumentation is constructed.
 
-`dev` puts `hmr.ts` in front of it. That process supervises the server, applies an accepted module change in place, restarts it when a change is not accepted, and holds requests until the new generation answers. `remix/ui-hmr/node` and the `uiHmr()` asset loader are what let a component update on both sides without losing its state — edit `app/ui/public/counter.tsx` while the counter reads `clicked 3 times` and it still reads 3 afterwards. Editing a content file is the exception: nothing imports it, so it takes a restart.
+`dev` puts `hmr.ts` in front of it. That process supervises the server, applies an accepted module change in place, restarts it when a change is not accepted, and holds requests until the new generation answers. `remix/component-hmr/node` and the `componentHmr()` asset loader are what let a component update on both sides without losing its state — edit `app/ui/public/counter.tsx` while the counter reads `clicked 3 times` and it still reads 3 afterwards. Editing a content file is the exception: nothing imports it, so it takes a restart.
 
 Pair it with [`../content-vite`](../content-vite), which serves the same collections out of a bundle:
 

@@ -12,7 +12,7 @@ npm install --save-dev @pitlane/dev
 vp add -D @pitlane/dev
 ```
 
-Requires `remix@^3.0.0-rc.1` and `vite@>=7` as peers, on Node `^20.19.0 || >=22.12.0`. [Compatibility](#compatibility) lists the versions this release was tested against, and the [starter templates](https://github.com/pitlane-tools/templates) are complete example projects.
+Requires `remix@^3.0.0` and `vite@>=7` as peers, on Node `^20.19.0 || >=22.12.0`. [Compatibility](#compatibility) lists the versions this release was tested against, and the [starter templates](https://github.com/pitlane-tools/templates) are complete example projects.
 
 ## Quick start
 
@@ -58,7 +58,7 @@ if (import.meta.hot) {
 
 ```ts
 // app/entry.browser.ts
-import { run } from "remix/ui";
+import { run } from "remix/component";
 
 run({
     async loadModule(moduleUrl, exportName) {
@@ -74,7 +74,7 @@ run({
 
 `vite dev` hot-updates both halves of a Remix app in place, keeping live client state. Full details, including which edits preserve state and which remount, are in the [HMR guide](https://pitlane.tools/guides/hmr).
 
-**Components.** Editing a component swaps its new code in without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms during dev. Both authoring styles hot-swap, because `@pitlane/dev` normalizes arrow-form component and `clientEntry()` exports to named functions before instrumenting them:
+**Components.** Editing a component swaps its new code in without remounting, so hydrated `clientEntry()` islands keep their state (open menus, form input, counters). This runs the [`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) transforms during dev. Both authoring styles hot-swap, because `@pitlane/dev` normalizes arrow-form component and `clientEntry()` exports to named functions before instrumenting them:
 
 ```tsx
 // All of these hot-swap in place, preserving live state:
@@ -193,7 +193,7 @@ Every `server*` option goes with it, and `clientEntry` too — the browser entry
 
 Deploying means pointing every unknown URL at `index.html` so the client router can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`, on Netlify a `/* /index.html 200` redirect.
 
-The option removes the server, not the server rendering, which is what React Router's `ssr: false` does too. For a browser-rendered UI in front of routes that still run per request, stay in the default mode and let the server entry answer JSON on its data routes and one `remix/ui` shell on its document routes: nothing here asks it to render app UI. [Client rendering with a server](https://pitlane.tools/guides/spa#client-rendering-with-a-server) shows the shape.
+The option removes the server, not the server rendering, which is what React Router's `ssr: false` does too. For a browser-rendered UI in front of routes that still run per request, stay in the default mode and let the server entry answer JSON on its data routes and one `remix/component` shell on its document routes: nothing here asks it to render app UI. [Client rendering with a server](https://pitlane.tools/guides/spa#client-rendering-with-a-server) shows the shape.
 
 SPA mode also works under Vite's experimental bundled dev mode (`experimental.bundledDev`, or `vite dev --experimentalBundle`), component hot-swap included. Server-rendered apps do not yet: bundled dev serves only bundle entrypoints, so the client module URLs an SSR render writes into its HTML resolve to nothing. That is upstream's [Phase 4](https://github.com/vitejs/vite/discussions/22746) — server environments — still a prototype.
 
@@ -266,7 +266,7 @@ Type the query imports by adding the ambient declarations to your tsconfig:
 The transform rewrites `clientEntry(import.meta.url, …)` so the first argument becomes the module's asset URL plus an `#ExportName` fragment — on the server via the `?assets=client` manifest, on the client via `import.meta.url` itself.
 
 ```tsx
-import { clientEntry, on } from "remix/ui";
+import { clientEntry, on } from "remix/component";
 
 export const Counter = clientEntry(import.meta.url, handle => {
     let count = 0;
@@ -395,7 +395,7 @@ dist/
 | ----------- | -------------- |
 | `vite`      | 8.1.5          |
 | `vite-plus` | 0.2.6          |
-| `remix`     | 3.0.0-rc.2     |
+| `remix`     | 3.0.0          |
 | Node        | 24 (CI)        |
 
 Each `@pitlane/dev` release records the exact Remix version it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. Rolldown is not required: the transform runs identically on generic Vite and Vite+.

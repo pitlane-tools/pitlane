@@ -41,7 +41,7 @@ describe("SPA build", () => {
 
         expect(scripts.length).toBeGreaterThan(0);
         for (let script of scripts) {
-            expect(script).not.toContain("ui-hmr");
+            expect(script).not.toContain("component-hmr");
             expect(script).not.toContain("registerComponentForHmr");
         }
     });

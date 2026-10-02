@@ -1,4 +1,4 @@
-import { clientEntry, on } from "remix/ui";
+import { clientEntry, on } from "remix/component";
 
 // Arrow form: normalized to a named function expression before instrumentation,
 // so an edit hot-swaps in place and keeps this counter's state.

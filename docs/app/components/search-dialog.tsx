@@ -1,5 +1,5 @@
 import { combine, css, type ThemedCSSProps, tva } from "@pitlane/theme";
-import { clientEntry, type Handle, on, ref } from "remix/ui";
+import { clientEntry, type Handle, on, ref, unsafeHTML } from "remix/component";
 
 import { loadSearchEngine, type SearchHit, searchDocumentation } from "../browser/pagefind.ts";
 import { control, visuallyHidden } from "../styles/controls.ts";
@@ -462,7 +462,7 @@ function Result(handle: Handle<{ hit: SearchHit }>) {
                 <span mix={excerptStyle}>
                     {hit.heading ? <strong>{hit.heading} — </strong> : null}
                     {/* Pagefind escapes the page text before adding its own <mark> elements. */}
-                    <span innerHTML={hit.excerpt} />
+                    <span innerHTML={unsafeHTML(hit.excerpt)} />
                 </span>
             </a>
         );

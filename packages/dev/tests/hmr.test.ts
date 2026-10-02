@@ -48,13 +48,13 @@ function codeOf(result: TransformResult): string {
     return result.code;
 }
 
-const FUNCTION_ENTRY = `import { clientEntry } from "remix/ui";
+const FUNCTION_ENTRY = `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, function Counter(handle) {
     return () => null;
 });
 `;
 
-const ARROW_ENTRY = `import { clientEntry } from "remix/ui";
+const ARROW_ENTRY = `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, handle => {
     return () => null;
 });
@@ -65,7 +65,7 @@ const FUNCTION_COMPONENT = `export function Card(handle) {
 }
 `;
 
-const ARROW_EXPR_ENTRY = `import { clientEntry } from "remix/ui";
+const ARROW_EXPR_ENTRY = `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, (handle) => () => null);
 `;
 
@@ -78,7 +78,7 @@ const NON_COMPONENT_ARROW = `export const NotAComponent = () => 42;
 export const helper = (handle) => () => null;
 `;
 
-// Every shape `remix/ui-hmr` matches on "PascalCase export that returns
+// Every shape `remix/component-hmr` matches on "PascalCase export that returns
 // something" and then miscompiles. Instrumenting any of them breaks the
 // module, so the plugin has to leave the whole file alone.
 const UNSUPPORTED_EXPORTS: Record<string, string> = {
@@ -100,13 +100,13 @@ const UNSUPPORTED_EXPORTS: Record<string, string> = {
     return <div>{props.children}</div>;
 };
 `,
-    "async clientEntry setup": `import { clientEntry } from "remix/ui";
+    "async clientEntry setup": `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, async function Counter(handle) {
     let start = await handle.props.start;
     return () => <b>{start}</b>;
 });
 `,
-    "clientEntry setup returning no render function": `import { clientEntry } from "remix/ui";
+    "clientEntry setup returning no render function": `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, function Counter(handle) {
     handle.ready = true;
 });
@@ -144,7 +144,7 @@ describe("componentHmr", () => {
             await runTransform(plugin, "client", FUNCTION_ENTRY, "/project/app/counter.tsx"),
         );
 
-        expect(code).toContain("remix/ui-hmr/runtime/browser");
+        expect(code).toContain("remix/component-hmr/runtime/browser");
         expect(code).toContain("import.meta.hot.accept");
         expect(code).toContain("updateComponentModuleForHmr");
     });
@@ -155,9 +155,9 @@ describe("componentHmr", () => {
             await runTransform(plugin, "ssr", FUNCTION_COMPONENT, "/project/app/card.tsx"),
         );
 
-        expect(code).toContain("remix/ui-hmr/runtime/server");
+        expect(code).toContain("remix/component-hmr/runtime/server");
         // The browser-only refresh runtime never leaks into the server output.
-        expect(code).not.toContain("remix/ui-hmr/runtime/browser");
+        expect(code).not.toContain("remix/component-hmr/runtime/browser");
     });
 
     it("hot-swaps arrow-form clientEntry islands by normalizing them to functions", async () => {
@@ -168,7 +168,7 @@ describe("componentHmr", () => {
         );
 
         for (let code of [block, expr]) {
-            expect(code).toContain("remix/ui-hmr/runtime/browser");
+            expect(code).toContain("remix/component-hmr/runtime/browser");
             expect(code).toContain("import.meta.hot.accept");
             // The arrow was normalized to a named function before instrumentation.
             expect(code).toContain("function Counter");
@@ -255,9 +255,9 @@ describe("componentHmr", () => {
         expect(warnings).toEqual([]);
     });
 
-    it("instruments a component beside an aliased export ui-hmr never matches", async () => {
+    it("instruments a component beside an aliased export component-hmr never matches", async () => {
         // `export { LoaderImpl as Loader }` is not a component export to
-        // `ui-hmr`, so nothing about the async function behind it is at risk
+        // `component-hmr`, so nothing about the async function behind it is at risk
         // and Counter has to keep hot-swapping. Guards against over-skipping.
         let plugin = componentHmr(new Set(["ssr"]));
         let code = codeOf(
@@ -562,21 +562,21 @@ describe("componentHmr composes with clientEntryTransform", () => {
         );
     }
 
-    it("keeps the clientEntry URL rewrite after the ui-hmr transform (client)", async () => {
+    it("keeps the clientEntry URL rewrite after the component-hmr transform (client)", async () => {
         let id = "/project/app/counter.tsx";
         let instrumented = codeOf(
             await runTransform(componentHmr(new Set(["ssr"])), "client", FUNCTION_ENTRY, id),
         );
         let final = codeOf(await runClientEntry("client", instrumented, id));
 
-        // The ui-hmr accept boundary survives the second transform...
+        // The component-hmr accept boundary survives the second transform...
         expect(final).toContain("import.meta.hot.accept");
         expect(final).toContain("getCurrentComponentForHmr");
         // ...and the clientEntry URL fragment rewrite is applied on top of it.
         expect(final).toContain('import.meta.url + "#Counter"');
     });
 
-    it("resolves the client asset URL on the server after the ui-hmr transform", async () => {
+    it("resolves the client asset URL on the server after the component-hmr transform", async () => {
         let id = "/project/app/counter.tsx";
         let instrumented = codeOf(
             await runTransform(componentHmr(new Set(["ssr"])), "ssr", FUNCTION_ENTRY, id),

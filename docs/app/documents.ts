@@ -1,6 +1,6 @@
 import type { CollectionEntry } from "@pitlane/content";
 
-import { createElement, type RemixNode } from "remix/ui";
+import { createElement, type RemixNode } from "remix/component";
 
 import type { BuildMode, CompiledHeading, DocumentPage } from "./document.ts";
 

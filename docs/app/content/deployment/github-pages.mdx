@@ -37,7 +37,7 @@ A client-only app runs [`remix()`](/package/dev/function/remix) in [SPA mode](/g
 
 ```tsx
 // app/main.tsx
-import { createRoot, on, type Handle } from "remix/ui";
+import { createRoot, on, type Handle } from "remix/component";
 
 function App(handle: Handle) {
     let count = 0;
@@ -61,7 +61,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```jsonc
 // tsconfig.json
-{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/ui" } }
+{ "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "remix/component" } }
 ```
 
 ```ts

@@ -1,6 +1,6 @@
 ---
 title: Theme
-description: Style Remix apps with remix/ui css mixins and @pitlane/theme design tokens.
+description: Style Remix apps with remix/component css mixins and @pitlane/theme design tokens.
 ---
 
 import { InstallGroup } from "../../components/documentation.tsx";
@@ -13,7 +13,7 @@ export const installation = await installAlternatives({ packages: ["@pitlane/the
 Remix UI styles elements with the `css()` mixin through the `mix` prop. You manage no class names. Styles stream with server rendering, and structurally equal style objects share one generated class:
 
 ```tsx
-import { css } from "remix/ui";
+import { css } from "remix/component";
 
 function Card() {
     return () => <article mix={css({ padding: "16px", color: "#111" })}>…</article>;
@@ -22,7 +22,7 @@ function Card() {
 
 That works, but every value is a loose string. Nothing stops `#111` here and `#121212` two files over. `@pitlane/theme` layers design tokens and type safety on top. The [demo app](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) contains an application-level example.
 
-First, install the package. `remix` 3.0.0-rc.1 or later is a peer dependency:
+First, install the package. `remix` 3.0.0 or later is a peer dependency:
 
 <InstallGroup alternatives={installation} />
 
@@ -217,7 +217,7 @@ function App() {
 
 ## Use tokens in styles
 
-[`css`](/package/theme/function/css) from `@pitlane/theme` is remix/ui's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:
+[`css`](/package/theme/function/css) from `@pitlane/theme` is remix/component's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:
 
 ```tsx
 import { css } from "@pitlane/theme";
@@ -397,7 +397,7 @@ export type ButtonProps = TVAProps<typeof button>;
 Wire it into a component's own props to pass variants through:
 
 ```tsx
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
 function SaveButton(handle: Handle<{ intent?: ButtonProps["intent"] }>) {
     return () => (
@@ -478,7 +478,7 @@ export type ButtonProps = TVAProps<typeof button>;
 
 ```tsx
 // app/app.tsx
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
 import { button } from "./components/button.ts";
 import type { ButtonProps } from "./components/button.ts";

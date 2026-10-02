@@ -1,5 +1,5 @@
 import type { Heading, RenderedEntry } from "@pitlane/content";
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
 import type { AuthorEntry, PostEntry } from "#/types.ts";
 

@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { startDevServer, type DevServer } from "./harness.ts";
 
@@ -44,20 +44,22 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             baselines.set(file, await readFile(join(APP, file), "utf8"));
         }
 
+        browser = await chromium.launch({ headless: true });
+    }, 90_000);
+
+    beforeEach(async () => {
         server = await startDevServer(FIXTURE);
         baseUrl = server.url;
-
-        browser = await chromium.launch({ headless: true });
     }, 90_000);
 
     afterEach(async () => {
         await page?.close();
+        server?.close();
         await restoreFixture();
     });
 
     afterAll(async () => {
         await browser?.close();
-        server?.close();
         await restoreFixture();
     });
 

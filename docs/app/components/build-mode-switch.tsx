@@ -1,5 +1,5 @@
 import { css } from "@pitlane/theme";
-import { clientEntry, type Handle, on } from "remix/ui";
+import { clientEntry, type Handle, on } from "remix/component";
 
 import { rememberPreference } from "../browser/preferences.ts";
 import { BUILD_MODE_LABELS, type BuildMode } from "../document.ts";

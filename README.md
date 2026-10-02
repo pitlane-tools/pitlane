@@ -38,7 +38,7 @@ Everything the plugin does orbits three files you own:
 
 - **`vite.config.ts`** — `plugins: [remix()]`. Defaults cover the rest.
 - **`app/entry.server.tsx`** — builds a router and default-exports it. The default export's `.fetch(Request)` is the contract every consumer reads: dev, preview, and whatever runs in production.
-- **`app/entry.browser.ts`** — calls `run()` from `remix/ui` to hydrate `clientEntry()` components against server HTML.
+- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML.
 
 `vite dev` serves the app through your router, `vite build` produces `dist/ssr` and `dist/client`, and `vite preview` serves the production build through the same fetch handler production runs. Component and server-data [HMR](https://pitlane.tools/guides/hmr) are on in dev.
 
@@ -53,6 +53,8 @@ npx giget github:pitlane-tools/templates/<template> my-app
 ```
 
 Because every template is the same app, diffing any two shows exactly what a platform swap touches — usually the database middleware, the deploy config, and nothing else.
+
+The starters still target Remix rc.1 and earlier Pitlane releases. For stable Remix 3, follow the [migration notes](https://pitlane.tools/guides/vite-plugin#upgrading-from-a-remix-prerelease), including replacement of the removed styled UI helpers.
 
 ## Documentation
 

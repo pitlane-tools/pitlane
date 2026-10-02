@@ -1,5 +1,5 @@
-import { createElement } from "remix/ui";
-import { renderToString } from "remix/ui/server";
+import { createElement } from "remix/component";
+import { renderToString } from "remix/component/server";
 import { describe, expect, it } from "vitest";
 
 import { css } from "./css.ts";
@@ -12,7 +12,7 @@ let { token: t } = createTheme({
 });
 
 describe("css", () => {
-    it("renders token refs, tuple joins, and nesting through remix/ui css()", async () => {
+    it("renders token refs, tuple joins, and nesting through remix/component css()", async () => {
         let html = await renderToString(
             createElement("div", {
                 mix: css({

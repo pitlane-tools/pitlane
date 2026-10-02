@@ -1,4 +1,4 @@
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
 /** A default export, so a document can `import Heading from "./heading.tsx"`. */
 export default function Heading(handle: Handle<{ label: string; level?: 2 | 3 }>) {

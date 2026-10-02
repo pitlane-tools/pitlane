@@ -1,5 +1,5 @@
-import * as jsxRuntime from "remix/ui/jsx-runtime";
-import { renderToString } from "remix/ui/server";
+import * as jsxRuntime from "remix/component/jsx-runtime";
+import { renderToString } from "remix/component/server";
 
 import { content } from "./content-passthrough.ts";
 

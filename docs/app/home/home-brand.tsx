@@ -1,4 +1,4 @@
-import { clientEntry, css, type Handle, ref } from "remix/ui";
+import { clientEntry, css, type Handle, ref } from "remix/component";
 
 import { Wordmark } from "../components/logo.tsx";
 import { t } from "../theme.ts";

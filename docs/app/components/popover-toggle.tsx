@@ -1,5 +1,5 @@
 import { combine, tva } from "@pitlane/theme";
-import { clientEntry, type Handle } from "remix/ui";
+import { clientEntry, type Handle } from "remix/component";
 
 import { control, joinedSegment } from "../styles/controls.ts";
 import { compact } from "../styles/media.ts";

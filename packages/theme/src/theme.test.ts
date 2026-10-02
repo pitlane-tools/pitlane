@@ -1,6 +1,6 @@
+import { createElement } from "remix/component";
+import { renderToString } from "remix/component/server";
 import { ValidationError } from "remix/data-schema";
-import { createElement } from "remix/ui";
-import { renderToString } from "remix/ui/server";
 import { describe, expect, it } from "vitest";
 
 import { lightDark, scale } from "./scale.ts";

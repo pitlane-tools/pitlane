@@ -1,6 +1,6 @@
-import type { Handle, RemixNode } from "remix/ui";
+import type { Handle, RemixNode } from "remix/component";
 
-import { ImportMap } from "remix/ui/server";
+import { ImportMap } from "remix/component/server";
 
 import { getAssetEntry } from "#/middleware/asset-entry.ts";
 
@@ -12,7 +12,7 @@ export interface DocumentProps {
 /**
  * No bundler runs here, so the browser assets come from `remix/assets`.
  *
- * The import map is what lets a served module keep its bare `remix/ui`
+ * The import map is what lets a served module keep its bare `remix/component`
  * specifier: the asset server compiles TypeScript and JSX but does not rewrite
  * package imports. This one covers the hydration runtime. Each `clientEntry`
  * component the page renders contributes its own, which the renderer emits as

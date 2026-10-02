@@ -115,7 +115,7 @@ export interface RemixPluginOptions {
  * the app's fetch handler, and a preview server for the production build.
  *
  * During `vite dev` it also installs hot module replacement: component edits
- * swap in place through the `remix/ui-hmr` transforms, and edits to modules the
+ * swap in place through the `remix/component-hmr` transforms, and edits to modules the
  * browser never loads refetch the current page through the app's fetch handler,
  * keeping hydrated island state. Both are dev-only. The second half needs the
  * app to render `<HMR />` from the `pitlane:dev` module, which resolves to an

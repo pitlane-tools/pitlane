@@ -1,4 +1,4 @@
-import type { ResolveFrameOptions } from "remix/ui";
+import type { ResolveFrameOptions } from "remix/component";
 
 /** Native navigation replaces stale content when a soft navigation cannot load its new URL. */
 export async function resolveDocument(

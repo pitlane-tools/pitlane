@@ -1,4 +1,4 @@
-import type { Handle, RemixNode } from "remix/ui";
+import type { Handle, RemixNode } from "remix/component";
 
 /**
  * Standard Schema v1, declared here rather than depended on.

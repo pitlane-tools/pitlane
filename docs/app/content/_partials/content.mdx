@@ -61,7 +61,7 @@ import satteri from "vite-plugin-satteri";
 export default defineConfig({
     plugins: [
         satteri({
-            mdx: { jsxImportSource: "remix/ui" },
+            mdx: { jsxImportSource: "remix/component" },
             mdastPlugins: [headings()],
             hastPlugins: [rawStyles()],
         }),
@@ -71,7 +71,9 @@ export default defineConfig({
 });
 ```
 
-`satteri()` compiles Markdown and MDX bodies during the build. `jsxImportSource: "remix/ui"` is required. It is what makes a compiled MDX file a Remix component rather than a React one. [`headings()`](/package/content/satteri/function/headings) collects the heading list that `render()` returns, and [`rawStyles()`](/package/content/satteri/function/rawStyles) keeps the CSS inside a `<style>` element intact, which any content with a highlighted code block produces.
+`satteri()` compiles Markdown and MDX bodies during the build. `jsxImportSource: "remix/component"` is required. It is what makes a compiled MDX file a Remix component rather than a React one. [`headings()`](/package/content/satteri/function/headings) collects the heading list that `render()` returns, and [`rawStyles()`](/package/content/satteri/function/rawStyles) keeps the CSS inside a `<style>` element intact, which any content with a highlighted code block produces.
+
+`rawStyles()` uses `unsafeHTML()` from `remix/component` for a compiled MDX stylesheet. Only use it with trusted content. Its CSS is neither sanitized nor escaped: a literal `</style>` closes the element early. Markdown bodies and `<script>` elements are unchanged.
 
 `contentLayer()` executes `app/content.ts` in Node during the build and inlines every collection's entries into the bundle. Entry data becomes plain values, and Markdown bodies become modules the bundler compiles, so a deployed application never reads the filesystem. That is what lets the same collections run on Cloudflare Workers. Keep that module to collection declarations, with no `cloudflare:workers` imports and nothing that needs a live server. A module at another path is named with `entry`:
 
@@ -625,7 +627,7 @@ Use the [`CollectionEntry`](/package/content/type/CollectionEntry) type to corre
 ```tsx
 // app/ui/blog-card.tsx
 import type { CollectionEntry } from "@pitlane/content";
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
 import type { content } from "../content.ts";
 

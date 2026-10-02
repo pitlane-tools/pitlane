@@ -54,7 +54,7 @@ Add the types to your tsconfig if you have not already, which covers `pitlane:de
 
 ## Component HMR
 
-Component edits run through the [`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) transforms. The browser transform runs in the client environment and the server transform in your server environments, and both emit the standard `import.meta.hot.accept()` protocol that Vite's own HMR runtime drives. `@pitlane/dev` supplies the wiring and one transform of its own, described below.
+Component edits run through the [`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) transforms. The browser transform runs in the client environment and the server transform in your server environments, and both emit the standard `import.meta.hot.accept()` protocol that Vite's own HMR runtime drives. `@pitlane/dev` supplies the wiring and one transform of its own, described below.
 
 ### Which exports are boundaries
 
@@ -80,11 +80,11 @@ export function Panel(handle) {
 }
 ```
 
-`remix/ui-hmr` only recognizes a setup function that carries a name. To allow you to define your components using arrow functions, `@pitlane/dev` rewrites qualifying arrow exports before `remix/ui-hmr` sees them. `export const Counter = clientEntry(url, handle => …)` becomes `export const Counter = clientEntry(url, function Counter(handle) { … })` in the dev transform only. Setup functions never rely on a lexical `this` or `arguments`, so the rewrite is behavior-identical. If `remix/ui-hmr` declines to inject the component with the HMR runtime, the rewrite is discarded, which leaves non-component arrow functions untouched.
+`remix/component-hmr` only recognizes a setup function that carries a name. To allow you to define your components using arrow functions, `@pitlane/dev` rewrites qualifying arrow exports before `remix/component-hmr` sees them. `export const Counter = clientEntry(url, handle => …)` becomes `export const Counter = clientEntry(url, function Counter(handle) { … })` in the dev transform only. Setup functions never rely on a lexical `this` or `arguments`, so the rewrite is behavior-identical. If `remix/component-hmr` declines to inject the component with the HMR runtime, the rewrite is discarded, which leaves non-component arrow functions untouched.
 
 ### State survives a render edit and resets on a setup edit
 
-This is the line that decides whether your counter keeps counting. `remix/ui-hmr` hashes the setup scope, meaning the source from the start of the setup body up to its `return`. While that hash stays the same, the new render function replaces the old one and the live component keeps its state. Change it and the component is marked stale, then remounts.
+This is the line that decides whether your counter keeps counting. `remix/component-hmr` hashes the setup scope, meaning the source from the start of the setup body up to its `return`. While that hash stays the same, the new render function replaces the old one and the live component keeps its state. Change it and the component is marked stale, then remounts.
 
 ```tsx
 export const Counter = clientEntry(import.meta.url, handle => {
@@ -181,6 +181,6 @@ This is also the only mode that currently works under Vite's experimental bundle
 
 ## How this maps to Remix's HMR packages
 
-[`remix/ui-hmr`](https://github.com/remix-run/remix/tree/main/packages/ui-hmr) provides the component transforms plus the browser and server runtimes. `@pitlane/dev` runs those transforms and owns the server-data half. The arrow normalization is its own addition, so that arrow exports qualify for instrumentation.
+[`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) provides the component transforms plus the browser and server runtimes. `@pitlane/dev` runs those transforms and owns the server-data half. The arrow normalization is its own addition, so that arrow exports qualify for instrumentation.
 
 [`remix/node-hmr`](https://github.com/remix-run/remix/tree/main/packages/node-hmr) is deliberately not used. It supervises a child Node process and provides `import.meta.hot` through Node's module customization hooks, which is the job Vite's module runner already does here. Its fetch-proxy and restart behavior would duplicate the dev server rather than add to it.

@@ -1,9 +1,9 @@
 // Server routes without server rendering. The router answers data routes with
-// JSON and every document route with the same shell, built out of `remix/ui`
+// JSON and every document route with the same shell, built out of `remix/component`
 // markup rather than a template literal, and the browser renders the app.
+import { renderToString } from "remix/component/server";
 import { createHtmlResponse } from "remix/response/html";
 import { createRouter } from "remix/router";
-import { renderToString } from "remix/ui/server";
 
 import { posts } from "./posts.ts";
 import { routes } from "./routes.ts";

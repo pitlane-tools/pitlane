@@ -75,7 +75,7 @@
     },
     "devDependencies": {
         "@types/node": "^25.5.0",
-        "remix": "3.0.0-rc.2",
+        "remix": "3.0.0",
         "satteri": "^0.10.5",
         "typescript": "^7.0.2",
         "vite": "^8.1.5",
@@ -83,7 +83,7 @@
         "vite-plus": "^0.2.6"
     },
     "peerDependencies": {
-        "remix": "^3.0.0-rc.1",
+        "remix": "^3.0.0",
         "satteri": "^0.10.5",
         "vite": ">=8.0.0"
     },

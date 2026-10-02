@@ -1,4 +1,4 @@
-import { clientEntry, on } from "remix/ui";
+import { clientEntry, on } from "remix/component";
 
 export const Counter = clientEntry(import.meta.url, function Counter(handle) {
     let count = 0;

@@ -21,9 +21,9 @@ let appPort = process.env.APP_PORT ? Number.parseInt(process.env.APP_PORT, 10) :
 
 let runner = run("server.ts", {
     env: { ...process.env, PORT: String(appPort), HMR_PROXY_PORT: String(proxyPort) },
-    // `remix/ui-hmr/node` is what teaches the server half of a component to
+    // `remix/component-hmr/node` is what teaches the server half of a component to
     // accept a hot update instead of restarting the process.
-    nodeArgs: ["--import", "remix/node-tsx", "--import", "remix/ui-hmr/node"],
+    nodeArgs: ["--import", "remix/node-tsx", "--import", "remix/component-hmr/node"],
     browserHmrChannel: { port: hmrEventPort },
 });
 

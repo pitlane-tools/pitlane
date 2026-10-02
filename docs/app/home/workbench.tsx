@@ -1,6 +1,11 @@
+import { unsafeHTML } from "remix/component";
+
 import { examples } from "./examples.ts";
 import { PackageTabs } from "./package-tabs.tsx";
 import { workbench } from "./workbench-styles.ts";
+
+// The build's own Expressive Code output, so trusted; wrapped once, not per render.
+let panels = examples.map(example => ({ ...example, html: unsafeHTML(example.html) }));
 
 export function Workbench() {
     return () => (
@@ -13,7 +18,7 @@ export function Workbench() {
                 options={examples.map(({ id, name, purpose }) => ({ id, name, purpose }))}
             />
             <div data-package-panels>
-                {examples.map(example => (
+                {panels.map(example => (
                     <section
                         aria-labelledby={`package-tab-${example.id}`}
                         data-code-package={example.id}

@@ -1,9 +1,9 @@
+import { run } from "remix/component";
 import {
     detectMultipleImportMapSupport,
     importModule,
     preloadShim,
 } from "remix/multiple-import-maps-polyfill";
-import { run } from "remix/ui";
 
 /**
  * Hydrates the `clientEntry` components on the page.

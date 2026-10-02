@@ -315,12 +315,12 @@ In the home document, use the frame URL as `<Frame src>` and put both destinatio
 </>
 ```
 
-Import `Frame` from `remix/ui`. The platform document uses `src="/_frames/main/platform/"` for its initial frame. Keep the existing client entry, assets, and `run({ loadModule })` setup.
+Import `Frame` from `remix/component`. The platform document uses `src="/_frames/main/platform/"` for its initial frame. Keep the existing client entry, assets, and `run({ loadModule })` setup.
 
 `href` is the document URL for the address bar, reloads, and navigation without JavaScript. `data-rmx-src` is the URL Remix fetches into the frame selected by `data-rmx-target`. The default frame resolver works here. No frame headers or custom `resolveFrame` are required. Programmatic navigation uses the same distinction:
 
 ```ts
-import { navigate } from "remix/ui";
+import { navigate } from "remix/component";
 
 navigate("/platform/", {
     target: "main",

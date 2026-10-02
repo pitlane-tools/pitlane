@@ -1,4 +1,4 @@
-import type { Handle, RemixNode } from "remix/ui";
+import type { Handle, RemixNode } from "remix/component";
 
 import { css, type ThemedCSSProps } from "@pitlane/theme";
 

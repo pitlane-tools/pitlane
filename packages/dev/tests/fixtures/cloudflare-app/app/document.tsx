@@ -1,6 +1,6 @@
-import type { Handle } from "remix/ui";
+import type { Handle } from "remix/component";
 
-import { Frame } from "remix/ui";
+import { Frame } from "remix/component";
 
 import "./styles.css";
 import { mergeAssets } from "../../../../src/runtime.ts";

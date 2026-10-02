@@ -7,7 +7,7 @@
  * CSS they become; the schema, built from `@pitlane/theme/schema`,
  * names each token's type. The `css`, `tva`, `combine`, and `cx`
  * helpers enforce the token palette at the type level on top of
- * `remix/ui`'s `css()` mixin.
+ * `remix/component`'s `css()` mixin.
  *
  * @see {@link https://pitlane.tools/guides/theme | Theme guide}
  *

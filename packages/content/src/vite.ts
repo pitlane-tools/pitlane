@@ -208,7 +208,7 @@ export function contentLayer(options?: { entry?: string }): Plugin {
             throw new Error(
                 `Nothing compiled the Markdown in "${id.slice(BODY_PREFIX.length)}". ` +
                     "Add vite-plugin-satteri to your Vite config, before remix():\n" +
-                    '  satteri({ mdx: { jsxImportSource: "remix/ui" }, ' +
+                    '  satteri({ mdx: { jsxImportSource: "remix/component" }, ' +
                     "mdastPlugins: [headings()] })",
             );
         },

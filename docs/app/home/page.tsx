@@ -1,4 +1,4 @@
-import { css } from "remix/ui";
+import { css } from "remix/component";
 
 import { SiteFooter } from "../components/footer.tsx";
 import { SiteHeader } from "../components/header.tsx";

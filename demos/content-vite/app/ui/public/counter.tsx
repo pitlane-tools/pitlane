@@ -1,4 +1,4 @@
-import { clientEntry, on, type Handle } from "remix/ui";
+import { clientEntry, on, type Handle } from "remix/component";
 
 /**
  * A browser component: it hydrates and keeps its own state across clicks.

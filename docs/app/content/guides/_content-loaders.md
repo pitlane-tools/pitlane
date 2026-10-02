@@ -382,7 +382,7 @@ Two parts of the package do want Remix, and both say so when reached:
 - **`render()`** resolves to a Remix component, so it loads `remix` when you call it. Without it you get `Rendering "blog/hello" needs the peer dependency "remix"`. Entry data is unaffected: a collection of `.json` files never calls it.
 - **`c.reference()`** produces a schema in the shape `remix/data-schema`'s combinators require, so it nests inside `s.object` and `s.array`. Zod only nests Zod schemas and rejects it. Validate the id as a string instead and do the lookup yourself, which is what a reference does anyway.
 
-The published types have a rough edge. `remix/ui` is still named by an `import type` for the component `render()` returns. So is `satteri`, by the one describing a loader option. Every TypeScript starter enables `skipLibCheck` and most projects keep it, which hides both. Turn it off and you get two `TS2307`s for packages you chose not to install.
+The published types have a rough edge. `remix/component` is still named by an `import type` for the component `render()` returns. So is `satteri`, by the one describing a loader option. Every TypeScript starter enables `skipLibCheck` and most projects keep it, which hides both. Turn it off and you get two `TS2307`s for packages you chose not to install.
 
 ## Building a plugin for another bundler
 

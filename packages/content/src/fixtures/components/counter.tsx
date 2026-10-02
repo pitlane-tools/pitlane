@@ -1,5 +1,5 @@
-import { clientEntry, type Handle } from "remix/ui";
-import * as jsxRuntime from "remix/ui/jsx-runtime";
+import { clientEntry, type Handle } from "remix/component";
+import * as jsxRuntime from "remix/component/jsx-runtime";
 
 /** A browser component: the entry id is the URL its asset server serves. */
 export const Counter = clientEntry(
