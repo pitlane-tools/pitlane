@@ -282,7 +282,7 @@ Each `@pitlane/dev` release records the exact Remix version it was verified agai
 
 ### Troubleshooting
 
-**`vp` stops with `Expected @voidzero-dev/vite-plus-core@…, but found vite@…`**. Vite+ 1.0 runs your project's own `vite`, and requires it to be Vite+ core at the same version as `vite-plus`. Alias it, which is what `vp migrate` writes:
+**`vp` stops with `Expected @voidzero-dev/vite-plus-core@…, but found vite@…`**. Vite+ 1.0 requires the `vite` your project declares to be Vite+ core at the same version as `vite-plus`. Alias it to the core. `vp migrate` sets up the same alias, pinned to the exact version:
 
 ```jsonc
 // package.json

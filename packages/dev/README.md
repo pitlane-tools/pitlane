@@ -396,13 +396,13 @@ dist/
 | `vite`      | 8 (the latest 8.x, in CI) |
 | `vite-plus` | 1.0                       |
 | `remix`     | 3.0.0                     |
-| Node        | 24 (CI)                   |
+| Node        | 26 (CI)                   |
 
 Each `@pitlane/dev` release records the exact Remix version it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. Rolldown is not required: the transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 
-**`vp` stops with `Expected @voidzero-dev/vite-plus-core@…, but found vite@…`** — Vite+ 1.0 runs your project's own `vite`, and requires it to be Vite+ core at the same version as `vite-plus`. Alias it, which is what `vp migrate` writes:
+**`vp` stops with `Expected @voidzero-dev/vite-plus-core@…, but found vite@…`** — Vite+ 1.0 requires the `vite` your project declares to be Vite+ core at the same version as `vite-plus`. Alias it to the core. `vp migrate` sets up the same alias, pinned to the exact version:
 
 ```jsonc
 // package.json

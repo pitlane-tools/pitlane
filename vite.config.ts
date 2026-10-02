@@ -157,9 +157,9 @@ export default defineConfig({
                     "node packages/mdx-checker/check.ts",
                 ],
             },
-            // `vp` runs the docs' own `vite`, which is Vite+ core, so plugins that
-            // check a dev environment against their own Vite's classes see one
-            // copy. Vite+ core ships no `vite` binary to call directly.
+            // `vp` loads Vite+ core, the same copy as the docs' own `vite`, so plugins
+            // that check a dev environment against their own Vite's classes see
+            // one copy. Vite+ core ships no `vite` binary to call directly.
             "docs:build": {
                 dependsOn: ["docs:api", "docs:mdx"],
                 cwd: "docs",

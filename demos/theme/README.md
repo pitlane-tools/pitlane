@@ -27,4 +27,4 @@ vp run build   # production build
 vp run preview # serve the production build
 ```
 
-These scripts run `vp`, which uses the demo's own `vite`. Like every `vite` in this workspace, that is Vite+ core, so the dev server and `@pitlane/dev` share one copy of Vite.
+These scripts run `vp`, which loads Vite+ core. Every `vite` in this workspace is aliased to that same core, so the dev server and `@pitlane/dev` share one copy of Vite.
