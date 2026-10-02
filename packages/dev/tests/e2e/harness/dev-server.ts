@@ -13,7 +13,9 @@
 // mode), which serves the app as a rolldown bundle instead of unbundled ESM.
 //
 // Usage: node dev-server.ts <root> [port] [--bundled]
-import { resolve } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { createServer } from "vite";
 
 let args = process.argv.slice(2);
@@ -28,8 +30,11 @@ let port = Number(portArg ?? 0);
 
 process.chdir(root);
 
+let cacheDir = await mkdtemp(join(tmpdir(), "pitlane-hmr-"));
+
 let server = await createServer({
     root,
+    cacheDir,
     logLevel: "warn",
     experimental: { bundledDev: bundled },
     server: { host: "127.0.0.1", port, strictPort: port !== 0 },
@@ -42,6 +47,7 @@ console.log(`pitlane-hmr-harness ready ${url}`);
 
 async function shutdown() {
     await server.close().catch(() => {});
+    await rm(cacheDir, { recursive: true, force: true });
     process.exit(0);
 }
 

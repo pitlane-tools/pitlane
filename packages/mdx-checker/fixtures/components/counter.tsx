@@ -1,4 +1,4 @@
-import { clientEntry, on, type Handle } from "remix/ui";
+import { clientEntry, on, type Handle } from "remix/component";
 
 /** A browser component: the prop contract is the same as for a server one. */
 export const Counter = clientEntry(

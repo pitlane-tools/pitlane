@@ -22,7 +22,7 @@ npm install @pitlane/data-table-d1
 vp add @pitlane/data-table-d1
 ```
 
-Requires `remix@^3.0.0-rc.1` as a peer. The D1 binding is typed structurally, so `@cloudflare/workers-types` is optional.
+Requires `remix@^3.0.0` as a peer. The D1 binding is typed structurally, so `@cloudflare/workers-types` is optional.
 
 ## Why this package exists
 

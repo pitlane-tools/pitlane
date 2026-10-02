@@ -8,7 +8,7 @@ const DEV_PORT = 7331;
 
 // `server: false` removes the server. An app that only wants its UI off the
 // server keeps the default mode instead: `remix()` never requires the server
-// entry to render app UI, so a router that answers JSON and one `remix/ui`
+// entry to render app UI, so a router that answers JSON and one `remix/component`
 // shell is a client-rendered app with live server routes. This is the shape
 // the SPA guide documents as the alternative to SPA mode.
 describe("client rendering with a server", () => {

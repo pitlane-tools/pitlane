@@ -1,6 +1,9 @@
 import { headings } from "@pitlane/content/satteri";
 import assert from "node:assert/strict";
+import { rm, writeFile } from "node:fs/promises";
 import test from "node:test";
+import { createElement } from "remix/component";
+import { renderToString } from "remix/component/server";
 import { mdxToJs } from "satteri";
 
 import { bindings } from "../build/bindings.ts";
@@ -9,10 +12,27 @@ import { codeBlocks, outline } from "../build/satteri.ts";
 function compile(source: string) {
     return mdxToJs(source, {
         fileURL: new URL("authoring.mdx", import.meta.url),
-        jsxImportSource: "remix/ui",
+        jsxImportSource: "remix/component",
         mdastPlugins: [headings()],
         hastPlugins: [bindings(), outline(), codeBlocks()],
     });
+}
+
+let renders = 0;
+
+/**
+ * Renders a compiled document the way a page does, resolving its imports from the docs package.
+ * Each render gets its own file, because the module cache would hand a reused URL its first document.
+ */
+async function render(code: string): Promise<string> {
+    let module = new URL(`./.rendered-${process.pid}-${renders++}.mjs`, import.meta.url);
+    await writeFile(module, code);
+    try {
+        let { default: Content } = await import(module.href);
+        return await renderToString(createElement(() => () => Content({})));
+    } finally {
+        await rm(module);
+    }
 }
 
 test("variant and partial outlines follow imported component identities, including aliases", async () => {
@@ -71,4 +91,30 @@ test("mutually exclusive variant scopes never advertise an unreachable heading",
 </Docs.Vite>
 `);
     assert.deepEqual(data.outline, []);
+});
+
+test("a code block renders beside a document binding that shares its generated name", async () => {
+    let { code } = await compile(`export const _codeBlockHTML = "authored";
+
+{_codeBlockHTML}
+
+\`\`\`ts
+let answer = 42;
+\`\`\`
+`);
+    let html = await render(code);
+    assert.match(html, /authored/);
+    assert.match(html, /<div class="expressive-code">/);
+});
+
+test("a code block renders in a document that spells an escape outside the Unicode range", async () => {
+    let { code } = await compile(`\`\\u{110000}\`
+
+\`\`\`ts
+let answer = 42;
+\`\`\`
+`);
+    let html = await render(code);
+    assert.match(html, /\\u\{110000\}/);
+    assert.match(html, /<div class="expressive-code">/);
 });

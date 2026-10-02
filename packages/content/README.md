@@ -68,7 +68,7 @@ import satteri from "vite-plugin-satteri";
 export default defineConfig({
     plugins: [
         satteri({
-            mdx: { jsxImportSource: "remix/ui" },
+            mdx: { jsxImportSource: "remix/component" },
             mdastPlugins: [headings()],
             hastPlugins: [rawStyles()],
         }),
@@ -78,7 +78,9 @@ export default defineConfig({
 });
 ```
 
-`satteri()` compiles Markdown and MDX bodies during the build. `jsxImportSource: "remix/ui"` is required, because it is what makes a compiled MDX file a Remix component rather than a React one. `headings()` collects the heading list that `render()` returns, and `rawStyles()` keeps the CSS inside a `<style>` element intact, which any content with a highlighted code block produces.
+`satteri()` compiles Markdown and MDX bodies during the build. `jsxImportSource: "remix/component"` is required, because it is what makes a compiled MDX file a Remix component rather than a React one. `headings()` collects the heading list that `render()` returns, and `rawStyles()` keeps the CSS inside a `<style>` element intact, which any content with a highlighted code block produces.
+
+`rawStyles()` passes that CSS to Remix through `unsafeHTML()`, so a compiled MDX file that has a `<style>` element imports `unsafeHTML` from `remix/component`. The CSS is neither sanitized nor escaped, and a `</style>` inside it ends the element early, so register the plugin only for content you would already publish as written.
 
 `contentLayer()` executes `app/content.ts` in Node during the build and inlines every collection's entries into the bundle, so a deployed application never reads the filesystem. Name a module at another path with `contentLayer({ entry: "app/collections.ts" })`. A collection of only JSON or YAML files needs `contentLayer()` alone, with none of the Sätteri setup.
 

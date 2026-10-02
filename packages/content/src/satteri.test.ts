@@ -1,5 +1,9 @@
 import type { HastPluginEntry } from "satteri";
 
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { renderToString } from "remix/component/server";
 import { markdownToHtml, mdxToJs } from "satteri";
 import { describe, expect, it } from "vitest";
 
@@ -180,7 +184,7 @@ describe("headings", () => {
     it("exports the heading list from a compiled MDX module", async () => {
         let { code } = await mdxToJs("# Title\n\n## Section\n", {
             ...plugins(),
-            jsxImportSource: "remix/ui",
+            jsxImportSource: "remix/component",
         });
 
         expect(code).toContain("export const headings");
@@ -196,44 +200,58 @@ let css = ".expressive-code pre > code{color:red}";
  * MDX source because `{` opens an expression in JSX, so a stylesheet cannot
  * be authored as a text child in the first place.
  */
-let injectStyle: HastPluginEntry = {
-    name: "test-inject-style",
-    element: {
-        filter: ["h1"],
-        visit: () => ({
-            type: "element",
-            tagName: "style",
-            properties: {},
-            children: [{ type: "text", value: css }],
-        }),
-    },
-};
+function styleWith(properties: Record<string, unknown>): HastPluginEntry {
+    return {
+        name: "test-inject-style",
+        element: {
+            filter: ["h1"],
+            visit: () => ({
+                type: "element",
+                tagName: "style",
+                properties: properties as never,
+                children: [{ type: "text", value: css }],
+            }),
+        },
+    };
+}
+
+let injectStyle = styleWith({ media: "screen", dataTheme: "dark" });
+
+/**
+ * Renders an MDX document the way a prebuilt one is: compiled to a real ES
+ * module, imported from disk so its own imports resolve, then rendered.
+ */
+async function renderCompiled(source: string, hastPlugins: HastPluginEntry[]) {
+    let { code } = await mdxToJs(source, { hastPlugins, jsxImportSource: "remix/component" });
+    let dir = await mkdtemp(fileURLToPath(new URL("../tests/.tmp-raw-styles-", import.meta.url)));
+    try {
+        let file = join(dir, "document.mjs");
+        await writeFile(file, code);
+        // The module is written at run time, so its path cannot be imported statically.
+        let module = await import(pathToFileURL(file).href);
+        // Compiled MDX is a plain function of props, not a Remix component.
+        return await renderToString(module.default({}));
+    } finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+}
 
 describe("rawStyles", () => {
-    it("hands a compiled style element its CSS as innerHTML, not as a text child", async () => {
-        // @remix-run/ui escapes `>` in the text children of every element but
+    it("renders a compiled style element's CSS byte for byte, keeping its attributes", async () => {
+        // remix/component escapes `>` in the text children of every element but
         // <script>, and <style> is a raw-text element, so a browser never
-        // decodes what it receives and the rule is dead. Only an innerHTML
-        // prop reaches the page verbatim.
-        let { code } = await mdxToJs("# Title\n", {
-            hastPlugins: [injectStyle, rawStyles()],
-            jsxImportSource: "remix/ui",
-        });
+        // decodes what it receives and the rule is dead.
+        let html = await renderCompiled("# Title\n", [injectStyle, rawStyles()]);
 
-        expect(code).toContain("innerHTML");
-        expect(code).toContain("pre > code");
+        expect(html).toBe(`<style media="screen" data-theme="dark">${css}</style>`);
     });
 
-    it("leaves the CSS as a text child when the plugin is absent", async () => {
-        // The escaping this works around is Remix's, not Sätteri's, so the
-        // defect is invisible in the compiler's own output. This is what makes
-        // the assertion above a measurement rather than a tautology.
-        let { code } = await mdxToJs("# Title\n", {
-            hastPlugins: [injectStyle],
-            jsxImportSource: "remix/ui",
-        });
+    it("leaves the CSS escaped when the plugin is absent", async () => {
+        // The escaping this works around is Remix's, not Sätteri's. This is
+        // what makes the assertion above a measurement rather than a tautology.
+        let html = await renderCompiled("# Title\n", [injectStyle]);
 
-        expect(code).not.toContain("innerHTML");
+        expect(html).toContain("pre &gt; code");
     });
 
     it("leaves a Markdown document alone, where a style element is already raw text", async () => {
@@ -241,7 +259,56 @@ describe("rawStyles", () => {
             hastPlugins: [rawStyles()],
         });
 
-        expect(html).toContain(css);
-        expect(html).not.toContain("innerhtml");
+        expect(html).toBe(`<style>${css}</style>\n`);
+    });
+
+    it("renders every attribute exactly as Sätteri does without the plugin", async () => {
+        let properties = {
+            nonce: "n",
+            media: "screen",
+            blocking: "render",
+            title: "",
+            className: ["a", "b"],
+            dataFooBar: "1",
+            data123: "2",
+            ariaLabel: "x",
+            ariaDescribedBy: ["c", "d"],
+            hidden: true,
+            disabled: false,
+            tabIndex: 2,
+        };
+
+        let plain = await renderCompiled("# Title\n", [styleWith(properties)]);
+        let raw = await renderCompiled("# Title\n", [styleWith(properties), rawStyles()]);
+
+        expect(raw.slice(0, raw.indexOf(">"))).toBe(plain.slice(0, plain.indexOf(">")));
+        expect(raw).toContain(css);
+    });
+
+    it("keeps clear of a binding the document already declares", async () => {
+        // `\u0048` is `H`: an escaped identifier names the same binding.
+        let html = await renderCompiled(
+            'export const _rawStyle\\u0048TML = "mine"\n\n# Title\n\n## {_rawStyleHTML}\n',
+            [injectStyle, rawStyles()],
+        );
+
+        expect(html).toBe(`<style media="screen" data-theme="dark">${css}</style>\n<h2>mine</h2>`);
+    });
+
+    it("renders code examples containing escapes outside the Unicode range", async () => {
+        let html = await renderCompiled("# Title\n\n`\\u{110000}`\n", [injectStyle, rawStyles()]);
+
+        expect(html).toBe(
+            `<style media="screen" data-theme="dark">${css}</style>\n<p><code>\\u{110000}</code></p>`,
+        );
+    });
+
+    it("keeps clear of a binding only an unreferenced import declares", async () => {
+        let html = await renderCompiled(
+            'import { css as _rawStyleHTML } from "remix/component";\n\n# Title\n',
+            [injectStyle, rawStyles()],
+        );
+
+        expect(html).toBe(`<style media="screen" data-theme="dark">${css}</style>`);
     });
 });

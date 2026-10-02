@@ -1,4 +1,4 @@
-import type { Handle, RemixNode } from "remix/ui";
+import type { Handle, RemixNode } from "remix/component";
 
 /** What an `.mdx` module's default export is: a props function, not a Remix component. */
 export type MdxDocument = (props: Record<string, never>) => RemixNode;

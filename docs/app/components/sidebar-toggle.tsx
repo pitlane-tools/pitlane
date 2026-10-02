@@ -1,5 +1,5 @@
 import { combine, tva } from "@pitlane/theme";
-import { clientEntry, type Handle, on } from "remix/ui";
+import { clientEntry, type Handle, on } from "remix/component";
 
 import { control } from "../styles/controls.ts";
 import { narrow, navCollapsed, noScript } from "../styles/media.ts";

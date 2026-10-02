@@ -132,16 +132,16 @@ Choose the Worker-first recipe below only when frame content must render at requ
 
 With `run_worker_first: true`, every request invokes the Worker, including requests that return static HTML or assets. Those static responses do not require SSR, but they still incur Worker invocations.
 
-This recipe assumes your browser's `run({ resolveFrame })` sends `x-remix-frame` or `x-remix-target` and your controller recognizes those headers. Remix rc.2's default frame resolver sends only `Accept: text/html`, so check your app's resolver rather than assuming those headers are present.
+This recipe tells frame requests apart by their `x-remix-frame` and `x-remix-target` headers, and assumes your controller recognizes them too. Remix's default frame resolver sends `x-remix-frame: true` on every frame request, plus `x-remix-target` when the frame is named, so an app that calls `run()` without a `resolveFrame` needs no change.
 
-In an existing `resolveFrame(src, options)`, build the request headers like this and pass them to its `fetch` call:
+A custom `resolveFrame(src, options)` builds its own request instead. Build its headers like this and pass them to its `fetch` call:
 
 ```ts
 let headers = new Headers({ accept: "text/html", "x-remix-frame": "true" });
 if (options?.target) headers.set("x-remix-target", options.target);
 ```
 
-Set `x-remix-frame` even when no target is named. Keep the resolver's method, form-body encoding, abort signal, and response handling unchanged. This fragment only changes its headers. If you use the default resolver and do not want a custom frame transport, omit frame-resolved paths from prerendering instead.
+Set `x-remix-frame` even when no target is named. Keep the resolver's method, form-body encoding, abort signal, and response handling unchanged. This fragment only changes its headers.
 
 Run the Worker first and give it an asset binding:
 
@@ -277,7 +277,7 @@ A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `@
 
 ```tsx
 // app/main.tsx
-import { createRoot, on, type Handle } from "remix/ui";
+import { createRoot, on, type Handle } from "remix/component";
 
 function App(handle: Handle) {
     let count = 0;
@@ -304,7 +304,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 {
     "compilerOptions": {
         "jsx": "react-jsx",
-        "jsxImportSource": "remix/ui",
+        "jsxImportSource": "remix/component",
     },
 }
 ```

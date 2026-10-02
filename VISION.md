@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-09-27
+updated: 2026-10-01
 ---
 
 # Pitlane Vision
@@ -575,7 +575,7 @@ Rebuilding [pitlane.tools](https://pitlane.tools) on Remix and Pitlane (proposal
 
 **Prerender is a primitive, not a pipeline.** `remix({ prerender })` renders routes and writes HTML, then stops. A static site also needs a `404.html` served with a real 404 status, a `_redirects` file for alternate spellings and moved pages, `sitemap.xml`, and a hook to derive other artifacts from each rendered page: Markdown twins, `llms.txt`, a search index. The docs site reimplemented route enumeration and the render loop in a 185-line Vite plugin to add those. `@pitlane/dev` should own them: a not-found route rendered to `404.html`, declared redirects written in the host's format, a sitemap from the crawled paths, and a per-document hook run after each render. A content site should be able to reach fully static output from the option alone, the way an Astro site does from its default output mode.
 
-**Expressive Code has no packaged integration.** Astro adds it in one command. Here a site must construct the engine, expose its stylesheet and script as virtual modules, run its hast plugin inside `satteri()`, escape `<` and `>` in its quoted attributes because Remix scans raw HTML for closing tags, and carry `rawStyles()` so its `<style>` survives `@remix-run/ui`'s escaping. About a hundred lines that every site would rewrite. This belongs in a package, most likely a subpath of `@pitlane/content` beside `satteri`, exporting the hast plugin and the Vite plugin together.
+**Expressive Code has no packaged integration.** Astro adds it in one command. Here a site must construct the engine, expose its stylesheet and script as virtual modules, run its hast plugin inside `satteri()`, escape `<` and `>` in its quoted attributes because Remix scans raw HTML for closing tags, and carry `rawStyles()` so its `<style>` survives `remix/component`'s escaping. About a hundred lines that every site would rewrite. This belongs in a package, most likely a subpath of `@pitlane/content` beside `satteri`, exporting the hast plugin and the Vite plugin together.
 
 **Search has no package.** Starlight ships Pagefind indexing and a search dialog with no configuration. The docs site indexes its prerendered articles by hand, loads the engine lazily, reshapes hits, and renders a 450-line dialog. Indexing is a prerender post-render concern, which is the hook above; the dialog is a Remix component any content site needs. Both should ship, probably as `@pitlane/search` over Pagefind, with the dialog styled by `@pitlane/theme`.
 
@@ -818,7 +818,7 @@ The service-worker runtime may install a local auth scheme that projects the las
 
 `createTheme({ schema, tokens, modes })` returns `{ token, raw, Theme }` plus the `extend` and `select` derivations. Token values are the CSS they become: a leaf is a string, a number, or an array, and a plain object is a group. The schema tree, built from the `s.*` factories in `@pitlane/theme/schema`, names each token's type. `token` is a typed mirror of the token tree whose leaves are CSS `var()` references; `raw(ref)` resolves a token's base value; and `<Theme />` renders the compiled variables in a `<style data-pitlane-theme>` element. The module separately exports `css`, `tva`, `combine`, `cx`, `scale`, and `lightDark`.
 
-Each token reference carries its type as a compile-time brand, read from the schema. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/ui`'s unthemed `css()` remains the explicit escape hatch.
+Each token reference carries its type as a compile-time brand, read from the schema. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/component`'s unthemed `css()` remains the explicit escape hatch.
 
 The schema factories are `remix/data-schema` schemas carrying a type tag, so the token tree composes into one `object()` and a single `parse` reports every invalid value with its own path. `s.group(self, children)` types a node and lets its children override it. `s.scale()` declares a base whose accessor leaf multiplies, which is how `t.spacing(4)` works. `s.any()` covers CSS values with no token type. `extend` deep-merges a patch; `select` replaces a theme with a projection of it, which may also reshape and rename. `<Theme />` carries the init it was compiled from as `$theme`, so `createTheme(SomeTheme)` re-derives a published theme.
 

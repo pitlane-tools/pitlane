@@ -1,5 +1,5 @@
 import { css, type ThemedCSSProps } from "@pitlane/theme";
-import { clientEntry, type Handle } from "remix/ui";
+import { clientEntry, type Handle } from "remix/component";
 
 import type { ApiModule, GuideGroup, Navigation, NavigationLink } from "./navigation.ts";
 

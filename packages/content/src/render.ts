@@ -1,4 +1,5 @@
-import * as jsxRuntime from "remix/ui/jsx-runtime";
+import { unsafeHTML } from "remix/component";
+import * as jsxRuntime from "remix/component/jsx-runtime";
 
 import type { StoredEntry } from "./store.ts";
 import type { Heading, RenderedEntry } from "./types.ts";
@@ -62,7 +63,7 @@ async function fromSource(
     // supplied by local name, which is unique by construction.
     let compiled = await satteri.mdxToJs(imported.body, {
         ...options,
-        jsxImportSource: "remix/ui",
+        jsxImportSource: "remix/component",
         outputFormat: "function-body",
     });
     // Both mechanisms, because which one Sätteri emits depends on the document:
@@ -71,7 +72,8 @@ async function fromSource(
     // variable. One alone silently fails on half the documents.
     let names = [...imported.bindings.keys()];
     // The leading parameter is what Sätteri's own destructuring reads as
-    // `arguments[0]`, so the JSX runtime still arrives the way it expects.
+    // `arguments[0]`, so the JSX runtime still arrives the way it expects. It
+    // reads `unsafeHTML` off the same object for the import `rawStyles` adds.
     //
     // `new Function` is what makes runtime `.mdx` Node, Bun, and Deno only, and
     // it is unavoidable on this path: a compiled MDX body is a function body by
@@ -79,7 +81,7 @@ async function fromSource(
     // oxlint-disable-next-line typescript/no-implied-eval
     let evaluate = compile(names, compiled.code, entry.filePath ?? entry.id);
     let module = evaluate(
-        { ...jsxRuntime },
+        { ...jsxRuntime, unsafeHTML },
         ...names.map(name => imported.bindings.get(name)),
     ) as Record<string, unknown>;
     return {
@@ -99,8 +101,13 @@ async function fromSource(
  */
 function compile(names: readonly string[], code: string, where: string) {
     try {
+        // The body runs in an arrow nested inside the function, which shares
+        // its `arguments` but scopes the body's own declarations apart from the
+        // import parameters. `rawStyles` picks a binding that is absent from the
+        // compiled source, and an import that source never mentions would
+        // otherwise make declaring it a `SyntaxError`.
         // oxlint-disable-next-line typescript/no-implied-eval
-        return new Function("__mdxRuntime", ...names, code);
+        return new Function("__mdxRuntime", ...names, `return (() => {\n${code}\n})();`);
     } catch (error) {
         let cause = error instanceof Error ? error.message : String(error);
         throw new Error(
@@ -140,7 +147,7 @@ function mdxComponent(
  * the markup needs an element to land on. The wrapper is unavoidable.
  */
 function htmlComponent(html: string): RenderedEntry["Content"] {
-    return () => () => jsxRuntime.jsx("div", { innerHTML: html });
+    return () => () => jsxRuntime.jsx("div", { innerHTML: unsafeHTML(html) });
 }
 
 function headingList(value: unknown): Heading[] {

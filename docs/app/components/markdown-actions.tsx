@@ -1,5 +1,5 @@
 import { css, type ThemedCSSProps } from "@pitlane/theme";
-import { clientEntry, type Handle, on } from "remix/ui";
+import { clientEntry, type Handle, on } from "remix/component";
 
 import { markdownPath } from "../document.ts";
 import { control, floatingPanel, joinedSegment, visuallyHidden } from "../styles/controls.ts";

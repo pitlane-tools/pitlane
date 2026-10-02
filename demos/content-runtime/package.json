@@ -12,7 +12,7 @@
     },
     "dependencies": {
         "@pitlane/content": "workspace:*",
-        "remix": "3.0.0-rc.2",
+        "remix": "3.0.0",
         "satteri": "^0.10.5"
     },
     "devDependencies": {

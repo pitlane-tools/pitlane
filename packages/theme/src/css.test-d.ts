@@ -1,4 +1,4 @@
-import type { MixInput } from "remix/ui";
+import type { MixInput } from "remix/component";
 
 import { describe, it } from "vitest";
 

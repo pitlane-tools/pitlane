@@ -14,6 +14,7 @@ import type {
     HastPluginEntry,
     MdastPluginDefinition,
     MdastPluginEntry,
+    MdxJsxAttributeNode,
 } from "satteri";
 
 import type { Heading } from "./types.ts";
@@ -204,17 +205,42 @@ export function headings(): MdastPluginEntry {
 }
 
 /**
+ * `base`, or `base` with the first numeric suffix from 2 that `source` does
+ * not already spell as an identifier. Sätteri prints `\u0048`-style escapes
+ * in identifiers as the characters they stand for, so they are decoded
+ * first: `_rawStyle\u0048TML` in the source is `_rawStyleHTML` in the output.
+ */
+function unusedName(source: string, base: string): string {
+    let decoded = source.replace(
+        /\\u\{([\da-fA-F]+)\}|\\u([\da-fA-F]{4})/g,
+        (escape, braced, short) => {
+            let point = Number.parseInt(braced ?? short, 16);
+            return point <= 0x10ffff ? String.fromCodePoint(point) : escape;
+        },
+    );
+    let taken = new Set(decoded.match(/[$\p{ID_Continue}\u200c\u200d]+/gu));
+    let name = base;
+    for (let suffix = 2; taken.has(name); suffix++) name = `${base}${suffix}`;
+    return name;
+}
+
+/**
  * Hands a `<style>` element's CSS to Remix as markup rather than as text, so
  * the stylesheet survives being rendered.
  *
- * `@remix-run/ui` escapes `&`, `<`, and `>` in the text children of every
+ * `remix/component` escapes `&`, `<`, and `>` in the text children of every
  * element except `<script>`, and emits an `innerHTML` prop verbatim. `<style>`
  * is a raw-text element, which is exactly the case where a browser does not
  * undo that escaping: a rule written `pre > code` reaches the page as
  * `pre &gt; code`, matches nothing, and says nothing. Expressive Code is how
  * most applications meet this, because it ships its theme as one such element.
  *
- * A workaround, not a design. The fix belongs in `@remix-run/ui`, which
+ * `innerHTML` only accepts a value made by `unsafeHTML()`, so the element
+ * becomes JSX whose prop calls it, and the document gains the import that
+ * provides it. The CSS was already in the compiled document, so this trusts
+ * nothing the document did not already ship.
+ *
+ * A workaround, not a design. The fix belongs in `remix/component`, which
  * already special-cases `<script>` and should treat `<style>` the same way.
  * `<script>` is deliberately not touched here: routing it through `innerHTML`
  * would skip `escapeScriptTextContent`, which keeps a `</script>` inside a
@@ -227,6 +253,9 @@ export function rawStyles(): HastPluginEntry {
         // `innerHTML` property on the string path would leak as an attribute.
         if (factoryContext.sourceFormat !== "mdx") return false;
 
+        // The local name the added import binds `unsafeHTML` to, chosen on
+        // first use so it meets no identifier the document already spells.
+        let alias: string | undefined;
         let definition: HastPluginDefinition = {
             name: "pitlane-raw-styles",
             element: {
@@ -241,15 +270,54 @@ export function rawStyles(): HastPluginEntry {
                     }
                     if (!css) return;
 
-                    return {
-                        type: "element",
-                        tagName: "style",
-                        properties: { ...node.properties, innerHTML: css },
-                        children: [],
-                    };
+                    alias ??= unusedName(factoryContext.source, "_rawStyleHTML");
+                    let attributes: MdxJsxAttributeNode[] = [];
+                    for (let [name, value] of Object.entries(node.properties ?? {})) {
+                        let attribute = jsxAttribute(name, value);
+                        if (attribute) attributes.push(attribute);
+                    }
+                    attributes.push({
+                        type: "mdxJsxAttribute",
+                        name: "innerHTML",
+                        value: {
+                            type: "mdxJsxAttributeValueExpression",
+                            value: `${alias}(${JSON.stringify(css)})`,
+                        },
+                    });
+                    return { type: "mdxJsxFlowElement", name: "style", attributes, children: [] };
                 },
+            },
+            after(root, context) {
+                if (!alias) return;
+                context.prependChild(root, {
+                    type: "mdxjsEsm",
+                    value: `import { unsafeHTML as ${alias} } from "remix/component";`,
+                });
             },
         };
         return definition;
     };
+}
+
+/**
+ * One HAST property as the JSX attribute Sätteri emits for it on an element:
+ * `aria*` names lowercased after `aria-`, `data*` names in kebab case, lists
+ * joined with spaces, `true` as a bare attribute, and `false` or nothing left
+ * out. A `style` string stays a string, which Sätteri would turn into an object.
+ */
+function jsxAttribute(
+    name: string,
+    value: string | number | boolean | null | undefined | (string | number)[],
+): MdxJsxAttributeNode | undefined {
+    if (value === false || value === null || value === undefined) return;
+    let attribute = name;
+    if (/^aria[A-Z]/.test(name)) attribute = `aria-${name.slice(4).toLowerCase()}`;
+    else if (/^data[^a-z]/.test(name)) {
+        // `dataFooBar` is `data-foo-bar` and `data123` is `data-123`.
+        let rest = name.slice(4).replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+        attribute = `data${rest.startsWith("-") ? "" : "-"}${rest}`;
+    }
+    if (value === true) return { type: "mdxJsxAttribute", name: attribute, value: null };
+    let text = Array.isArray(value) ? value.join(" ") : String(value);
+    return { type: "mdxJsxAttribute", name: attribute, value: text };
 }

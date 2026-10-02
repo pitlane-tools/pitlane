@@ -5,7 +5,7 @@ A minimal client-rendered Remix 3 app wired through the local `remix()` plugin i
 - **Automated** — `tests/e2e/spa.browser.test.ts` boots this app against both dev pipelines (unbundled and bundled) and edits the files below to assert component HMR; `tests/e2e/spa.test.ts` covers the static build and preview.
 - **Manual** — a harness you can poke by hand.
 
-There is no server entry, no `dist/ssr`, and no hydration: `index.html` loads `app/entry.browser.tsx`, which renders `<App />` into `#app` with `createRoot` from `remix/ui`.
+There is no server entry, no `dist/ssr`, and no hydration: `index.html` loads `app/entry.browser.tsx`, which renders `<App />` into `#app` with `createRoot` from `remix/component`.
 
 ## Run it manually
 

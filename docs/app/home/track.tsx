@@ -1,5 +1,5 @@
 import { css } from "@pitlane/theme";
-import { clientEntry, type Handle, ref } from "remix/ui";
+import { clientEntry, type Handle, ref } from "remix/component";
 
 import { t } from "../theme.ts";
 import { TURNS } from "./mosport.ts";

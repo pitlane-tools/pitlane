@@ -1,4 +1,4 @@
-import { run } from "remix/ui";
+import { run } from "remix/component";
 import "virtual:expressive-code.css";
 import "virtual:expressive-code.js";
 

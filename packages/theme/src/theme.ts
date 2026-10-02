@@ -1,7 +1,7 @@
-import type { Handle, RemixElement } from "remix/ui";
+import type { Handle, RemixElement } from "remix/component";
 
+import { createElement, unsafeHTML } from "remix/component";
 import { parse } from "remix/data-schema";
-import { createElement } from "remix/ui";
 
 import type { AnyToken, TokenType, UntypedToken } from "./brands.ts";
 import type { SchemaNode } from "./schema.ts";
@@ -465,13 +465,14 @@ function buildCssText(
 }
 
 function createThemeComponent<T>(cssText: string, init: T): ThemeComponent<T> {
-    // Escape once at build time, not per render.
-    let escaped = cssText.replaceAll("</style", "<\\/style");
+    // Escape once at build time, not per render. `innerHTML` only accepts a
+    // value made by `unsafeHTML()`; the CSS is the theme's own.
+    let markup = unsafeHTML(cssText.replaceAll("</style", "<\\/style"));
     let component = (handle: Handle<ThemeProps>) => () =>
         createElement("style", {
             nonce: handle.props.nonce,
             "data-pitlane-theme": "",
-            innerHTML: escaped,
+            innerHTML: markup,
         });
     return Object.assign(component, { $theme: init }) as ThemeComponent<T>;
 }

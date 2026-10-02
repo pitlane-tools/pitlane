@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
+import * as jsxRuntime from "remix/component/jsx-runtime";
+import { renderToString } from "remix/component/server";
 import * as s from "remix/data-schema";
-import * as jsxRuntime from "remix/ui/jsx-runtime";
-import { renderToString } from "remix/ui/server";
 import { evaluate, type EvaluateOptions } from "satteri";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -59,7 +59,7 @@ async function compiledMdx(source: string) {
     let runtime = jsxRuntime as unknown as EvaluateOptions;
     let module = await evaluate(source, {
         ...runtime,
-        jsxImportSource: "remix/ui",
+        jsxImportSource: "remix/component",
         mdastPlugins: [headings()],
     });
     return { format: "mdx", module } as const;
@@ -237,6 +237,45 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         expect(html).toContain("count 1");
     });
 
+    it("renders styles when an unreferenced import is named like the binding rawStyles adds", async () => {
+        // The runtime path compiles the document with its imports taken out,
+        // so rawStyles cannot see a name that only the import declared.
+        let css = ".expressive-code pre > code{color:red}";
+        let content = blogFrom([
+            {
+                id: "hello",
+                data: { title: "Hello" },
+                filePath: `${components}/post.mdx`,
+                body: {
+                    format: "mdx",
+                    source: 'import { css as _rawStyleHTML } from "remix/component";\n\n# Title\n',
+                },
+                satteri: {
+                    hastPlugins: [
+                        {
+                            name: "test-inject-style",
+                            element: {
+                                filter: ["h1"],
+                                visit: () => ({
+                                    type: "element",
+                                    tagName: "style",
+                                    properties: {},
+                                    children: [{ type: "text", value: css }],
+                                }),
+                            },
+                        },
+                    ],
+                },
+            } as LoadedEntry,
+        ]);
+        let entry = await content.blog.getEntry("hello");
+        let { Content } = await entry!.render();
+
+        let html = await renderToString(jsxRuntime.jsx(Content, {}));
+
+        expect(html).toBe(`<style>${css}</style>`);
+    });
+
     it("renders a default import", async () => {
         let { Content } = await post(
             'import Heading from "./heading.tsx";\n\n<Heading label="titled" />\n',
@@ -349,7 +388,7 @@ describe("render, on a runtime-resolved MDX entry that imports components", () =
         // request for a default export named `type`, and the render fails on a
         // line the author wrote correctly.
         let { Content } = await post(
-            'import type { Handle } from "remix/ui";\n' +
+            'import type { Handle } from "remix/component";\n' +
                 'import { Badge } from "./badge.tsx";\n\n<Badge label="typed" />\n',
         );
 

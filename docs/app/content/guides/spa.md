@@ -43,7 +43,7 @@ Both authoring styles hot-swap. The plugin rewrites an arrow-form component expo
 
 ```tsx
 // app/counter.tsx
-import { on, type Handle } from "remix/ui";
+import { on, type Handle } from "remix/component";
 
 export function Counter(handle: Handle) {
     let count = 0;
@@ -91,7 +91,7 @@ Because server-data revalidation has no server to revalidate against, `<HMR />` 
 {
     "compilerOptions": {
         "jsx": "react-jsx",
-        "jsxImportSource": "remix/ui",
+        "jsxImportSource": "remix/component",
     },
 }
 ```
@@ -102,11 +102,11 @@ Two shapes work, depending on whether the app needs routing.
 
 ### A root component
 
-`createRoot` from `remix/ui` renders a component tree into an element. There is no routing, and the URL never changes:
+`createRoot` from `remix/component` renders a component tree into an element. There is no routing, and the URL never changes:
 
 ```tsx
 // app/entry.browser.tsx
-import { createRoot } from "remix/ui";
+import { createRoot } from "remix/component";
 
 import { App } from "./app.tsx";
 
@@ -118,7 +118,7 @@ createRoot(container).render(<App />);
 
 ### A router
 
-`remix/spa` connects an ordinary Remix fetch router to the document. `remix@3.0.0-rc.1` is the first release that includes it. The `render()` middleware gives every handler a `context.render()` that answers with a UI node, and `run()` dispatches the current URL plus every same-origin navigation and form submission through that router:
+`remix/spa` connects an ordinary Remix fetch router to the document. The `render()` middleware gives every handler a `context.render()` that answers with a UI node, and `run()` dispatches the current URL plus every same-origin navigation and form submission through that router:
 
 ```tsx
 // app/router.tsx
@@ -238,13 +238,13 @@ export function Shell() {
 
 ### The server
 
-`renderToString` from `remix/ui/server` turns the shell into HTML, and `createHtmlResponse` puts the DOCTYPE and the content type on it. Data routes answer next to it, in the same router:
+`renderToString` from `remix/component/server` turns the shell into HTML, and `createHtmlResponse` puts the DOCTYPE and the content type on it. Data routes answer next to it, in the same router:
 
 ```tsx
 // app/entry.server.tsx
 import { createHtmlResponse as html } from "remix/response/html";
 import { createRouter } from "remix/router";
-import { renderToString } from "remix/ui/server";
+import { renderToString } from "remix/component/server";
 
 import { getPosts } from "./posts.ts";
 import { routes } from "./routes.ts";
@@ -272,7 +272,7 @@ This is what `clientAssets.entry` pulls in, and it is the same code SPA mode run
 
 ```tsx
 // app/entry.browser.tsx
-import { createRoot } from "remix/ui";
+import { createRoot } from "remix/component";
 
 import { App } from "./app.tsx";
 

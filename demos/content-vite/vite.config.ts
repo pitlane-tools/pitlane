@@ -10,7 +10,7 @@ export default defineConfig({
         // so it has to run before remix(). Both plugins are the ones the runtime
         // path loads too, which is what makes the two agree.
         satteri({
-            mdx: { jsxImportSource: "remix/ui" },
+            mdx: { jsxImportSource: "remix/component" },
             mdastPlugins: [headings()],
             hastPlugins: [rawStyles()],
         }),

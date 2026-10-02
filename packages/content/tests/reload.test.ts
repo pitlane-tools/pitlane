@@ -45,7 +45,7 @@ async function devServer(options?: { entry?: string; files?: Record<string, stri
             },
         },
         plugins: [
-            satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] }),
+            satteri({ mdx: { jsxImportSource: "remix/component" }, mdastPlugins: [headings()] }),
             contentLayer({ entry: options?.entry }),
         ],
     });

@@ -1,4 +1,4 @@
-import { clientEntry, type Handle, on } from "remix/ui";
+import { clientEntry, type Handle, on } from "remix/component";
 
 type PackageOption = { id: string; name: string; purpose: string };
 

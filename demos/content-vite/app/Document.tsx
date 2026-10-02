@@ -1,5 +1,5 @@
 import { mergeAssets } from "@hiogawa/vite-plugin-fullstack/runtime";
-import { type Handle, type RemixNode } from "remix/ui";
+import { type Handle, type RemixNode } from "remix/component";
 
 import clientAssets from "./entry.browser.ts?assets=client";
 import serverAssets from "./entry.server.tsx?assets=ssr";

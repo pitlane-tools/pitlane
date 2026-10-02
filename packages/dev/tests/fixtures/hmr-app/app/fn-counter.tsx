@@ -1,4 +1,4 @@
-import { clientEntry, on } from "remix/ui";
+import { clientEntry, on } from "remix/component";
 
 // Named function form: an HMR boundary. Editing this component hot-swaps in
 // place while preserving the live count.

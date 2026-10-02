@@ -191,7 +191,7 @@ A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: fa
 
 ```tsx
 // app/main.tsx
-import { createRoot, on, type Handle } from "remix/ui";
+import { createRoot, on, type Handle } from "remix/component";
 
 function App(handle: Handle) {
     let count = 0;
@@ -218,7 +218,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 {
     "compilerOptions": {
         "jsx": "react-jsx",
-        "jsxImportSource": "remix/ui",
+        "jsxImportSource": "remix/component",
     },
 }
 ```

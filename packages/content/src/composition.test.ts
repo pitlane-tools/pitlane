@@ -44,7 +44,7 @@ async function staticDependencies(entry: string): Promise<Set<string>> {
     return bare;
 }
 
-/** `remix/ui` and `remix/data-schema` both count; `remixed-colors` would not. */
+/** `remix/component` and `remix/data-schema` both count; `remixed-colors` would not. */
 function packagesOf(specifiers: Set<string>): Set<string> {
     return new Set(
         [...specifiers].map(specifier => {

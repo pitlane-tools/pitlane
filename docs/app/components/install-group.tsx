@@ -1,5 +1,5 @@
 import { css, scale } from "@pitlane/theme";
-import { clientEntry, type Handle, on, ref } from "remix/ui";
+import { clientEntry, type Handle, on, ref, type UnsafeHTML, unsafeHTML } from "remix/component";
 
 import {
     onPreferenceChange,
@@ -173,6 +173,15 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
     // state. Until then the client renders no `open`, so hydration leaves the
     // restored state, and anything the reader opened meanwhile, in place.
     let opened: Set<PackageManager> | undefined;
+    // Hydrated props carry each command as a string, prepared by the build and
+    // so trusted. Each is wrapped once, not again on every toggle.
+    let commands = new Map<string, UnsafeHTML>();
+
+    function command(html: string): UnsafeHTML {
+        let wrapped = commands.get(html);
+        if (!wrapped) commands.set(html, (wrapped = unsafeHTML(html)));
+        return wrapped;
+    }
 
     function follow() {
         let manager = preferred(handle.props.alternatives);
@@ -262,7 +271,7 @@ export let InstallGroup = clientEntry(import.meta.url, (handle: Handle<InstallGr
                                 {manager}
                             </summary>
                             <script>{RESTORE_DISCLOSURE}</script>
-                            <div innerHTML={html} style={FRAMELESS_CODE} />
+                            <div innerHTML={command(html)} style={FRAMELESS_CODE} />
                         </details>
                     ))}
                 </div>

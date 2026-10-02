@@ -26,13 +26,13 @@ async function runTransform(environmentName: string, code: string): Promise<Tran
     return await handler.call({ environment: { name: environmentName } }, code, "/app/widgets.tsx");
 }
 
-const SINGLE = `import { clientEntry } from "remix/ui";
+const SINGLE = `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, handle => {
     return () => null;
 });
 `;
 
-const DOUBLE = `import { clientEntry } from "remix/ui";
+const DOUBLE = `import { clientEntry } from "remix/component";
 export const Counter = clientEntry(import.meta.url, handle => () => null);
 export const Toggle = clientEntry(import.meta.url, handle => () => null);
 `;
@@ -115,7 +115,7 @@ describe("pattern strictness", () => {
     it("ignores aliased callees", async () => {
         let result = await runTransform(
             "ssr",
-            `import { clientEntry as ce } from "remix/ui";
+            `import { clientEntry as ce } from "remix/component";
 export const Counter = ce(import.meta.url, () => {});
 // mention clientEntry so the filter would admit this file
 `,

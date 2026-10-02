@@ -3,8 +3,8 @@ import type { HastNode } from "satteri";
 import fc from "fast-check";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { clientEntry, createElement } from "remix/ui";
-import { renderToString } from "remix/ui/server";
+import { clientEntry, createElement, unsafeHTML } from "remix/component";
+import { renderToString } from "remix/component/server";
 import { htmlToHast, markdownToHtml } from "satteri";
 
 import { installAlternatives } from "../app/install.ts";
@@ -150,7 +150,7 @@ test("proposal.0004: HTML examples cannot swallow the document's hydration data"
             createElement(
                 "body",
                 undefined,
-                createElement("div", { innerHTML: html }),
+                createElement("div", { innerHTML: unsafeHTML(html) }),
                 createElement(Control),
             ),
         ),

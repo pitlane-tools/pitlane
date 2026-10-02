@@ -1,8 +1,8 @@
 /// <reference lib="dom" preserve="true" />
 
-import type { ElementProps, MixinDescriptor } from "remix/ui";
+import type { ElementProps, MixinDescriptor } from "remix/component";
 
-import { css as remixCss } from "remix/ui";
+import { css as remixCss } from "remix/component";
 
 import type { ThemedCSSProps } from "./props.ts";
 
@@ -10,7 +10,7 @@ type RemixCSSProps = Parameters<typeof remixCss>[0];
 
 /**
  * The descriptor {@link css} produces. `MixinDescriptor` is invariant
- * in its node type, so — exactly like `remix/ui`'s own `css` factory —
+ * in its node type, so — exactly like `remix/component`'s own `css` factory —
  * the node binds per callsite through the generic parameter.
  *
  * @see {@link css}
@@ -22,7 +22,7 @@ export type ThemedCSSMixin<node extends Element = Element> = MixinDescriptor<
 >;
 
 /**
- * Brand-enforced wrapper over `remix/ui`'s `css()` mixin. Token-mapped
+ * Brand-enforced wrapper over `remix/component`'s `css()` mixin. Token-mapped
  * longhands accept the matching token brand, CSS-wide keywords,
  * property keywords, and `0`; anything else — including a raw
  * `color: "#ff0000"` — is a type error. Every other CSS property

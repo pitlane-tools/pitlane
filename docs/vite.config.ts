@@ -27,7 +27,7 @@ export default defineConfig({
         // imports, goes through the same pipeline: ids from the content
         // layer's slugger, then the documentation outline and Expressive Code.
         satteri({
-            mdx: { jsxImportSource: "remix/ui" },
+            mdx: { jsxImportSource: "remix/component" },
             mdastPlugins: [headings()],
             hastPlugins: [bindings(), outline(), codeBlocks()],
         }),

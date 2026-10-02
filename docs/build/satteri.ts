@@ -21,6 +21,9 @@ const VARIANTS: Record<string, BuildMode> = { Vite: "vite", NoBuild: "no-build" 
 /** The export `headings()` from `@pitlane/content/satteri` appends to an MDX document. */
 const HEADINGS_EXPORT = /^export const headings = /;
 
+/** What a compiled MDX document's code blocks import `unsafeHTML` as, unless the document spells it. */
+const UNSAFE_HTML = "_codeBlockHTML";
+
 /**
  * One step of a document's outline, in document order: a heading of its own,
  * or every heading of a document it includes.
@@ -151,30 +154,76 @@ function outlineModule(items: OutlineItem[]): string {
  * so rendering a document highlights nothing. In MDX the block becomes an
  * element carrying the HTML; in Markdown, which compiles to HTML, it is
  * spliced in as it is.
+ *
+ * Remix inserts `innerHTML` only from an `unsafeHTML()` value. The markup is
+ * this build's own Expressive Code output, so it is trusted. MDX allows only
+ * imports and exports at module scope, so the value is created where the
+ * element renders.
  */
 export function codeBlocks(): HastPluginEntry {
-    let definition: HastPluginDefinition = {
-        name: "docs-code-blocks",
-        options: { position: true },
-        element: {
-            filter: ["pre"],
-            async visit(node, context) {
-                let fenced = example(node, context);
-                if (!fenced) return;
+    return () => {
+        let unsafeHTML: string | undefined;
 
-                let { text, language } = fenced;
-                let html = await renderCode(text, language, where(context, node));
-                if (context.sourceFormat !== "mdx") return { type: "raw", value: html };
-                return {
-                    type: "mdxJsxFlowElement",
-                    name: "div",
-                    attributes: [{ type: "mdxJsxAttribute", name: "innerHTML", value: html }],
-                    children: [],
-                };
+        let definition: HastPluginDefinition = {
+            name: "docs-code-blocks",
+            options: { position: true },
+            element: {
+                filter: ["pre"],
+                async visit(node, context) {
+                    let fenced = example(node, context);
+                    if (!fenced) return;
+
+                    let { text, language } = fenced;
+                    let html = await renderCode(text, language, where(context, node));
+                    if (context.sourceFormat !== "mdx") return { type: "raw", value: html };
+                    unsafeHTML ??= unusedName(context.source, UNSAFE_HTML);
+                    return {
+                        type: "mdxJsxFlowElement",
+                        name: "div",
+                        attributes: [
+                            {
+                                type: "mdxJsxAttribute",
+                                name: "innerHTML",
+                                value: {
+                                    type: "mdxJsxAttributeValueExpression",
+                                    value: `${unsafeHTML}(${JSON.stringify(html)})`,
+                                },
+                            },
+                        ],
+                        children: [],
+                    };
+                },
             },
-        },
+            after(root, context) {
+                if (!unsafeHTML) return;
+                context.prependChild(root, {
+                    type: "mdxjsEsm",
+                    value: `import { unsafeHTML as ${unsafeHTML} } from "remix/component";`,
+                });
+            },
+        };
+        return definition;
     };
-    return definition;
+}
+
+/**
+ * `base`, numbered if need be, so that no identifier in `source` spells it.
+ * Every run of identifier characters counts, a binding or not, so the name
+ * can neither redeclare a document's own binding nor shadow one an
+ * expression reads. Unicode escapes are decoded first: `\u0041` spells `A`.
+ */
+function unusedName(source: string, base: string): string {
+    let decoded = source.replace(
+        /\\u(?:\{([\da-f]+)\}|([\da-f]{4}))/gi,
+        (escape, braced, plain) => {
+            let point = Number.parseInt(braced ?? plain, 16);
+            return point <= 0x10ffff ? String.fromCodePoint(point) : escape;
+        },
+    );
+    let taken = new Set(decoded.match(/[$\p{ID_Continue}\u200c\u200d]+/gu));
+    let name = base;
+    for (let suffix = 2; taken.has(name); suffix++) name = `${base}${suffix}`;
+    return name;
 }
 
 /**

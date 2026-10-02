@@ -1,5 +1,5 @@
-import * as jsxRuntime from "remix/ui/jsx-runtime";
-import type { Handle } from "remix/ui";
+import * as jsxRuntime from "remix/component/jsx-runtime";
+import type { Handle } from "remix/component";
 
 /**
  * Exports the name `Badge` on purpose: two modules exporting one name is the

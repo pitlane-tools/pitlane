@@ -3,12 +3,12 @@ import type { Plugin } from "vite";
 
 import MagicString from "magic-string";
 import { parseSync } from "oxc-parser";
-import { transformComponentsForBrowser, transformComponentsForServer } from "remix/ui-hmr";
+import { transformComponentsForBrowser, transformComponentsForServer } from "remix/component-hmr";
 
 import { SERVER_UPDATE_EVENT } from "./hmr-protocol.ts";
 
 /**
- * Component modules Remix authors as `.tsx`/`.jsx`. The `remix/ui-hmr` transform
+ * Component modules Remix authors as `.tsx`/`.jsx`. The `remix/component-hmr` transform
  * self-guards (it returns the source unchanged when a module holds no
  * `function`-form component or `clientEntry`), so this filter only trims the
  * common non-candidates — non-JSX source, query variants like `?assets=`, and
@@ -26,18 +26,18 @@ const COMPONENT_ID_FILTER = /\.[jt]sx$/;
 const SERVER_UPDATE_SETTLE_MS = 50;
 
 /**
- * Instruments Remix UI components and `clientEntry()` exports with the
- * `remix/ui-hmr` transforms so component edits hot-swap in place while
+ * Instruments Remix components and `clientEntry()` exports with the
+ * `remix/component-hmr` transforms so component edits hot-swap in place while
  * preserving live component state.
  *
- * `ui-hmr` only recognizes named-function component forms, so arrow-form
+ * `component-hmr` only recognizes named-function component forms, so arrow-form
  * exports (`export let Name = clientEntry(url, (handle) => …)` and
  * `export let Name = (handle) => …`) are first normalized to named function
  * expressions — the idiomatic Remix authoring style then hot-swaps without any
- * source changes. The normalization is discarded when `ui-hmr` does not
+ * source changes. The normalization is discarded when `component-hmr` does not
  * instrument the module, so non-component arrows are never rewritten.
  *
- * `ui-hmr` instruments any exported PascalCase function whose body returns
+ * `component-hmr` instruments any exported PascalCase function whose body returns
  * something, which is a wider net than a Remix component: an `async` function,
  * a generator, or a plain JSX helper all match, and all three are miscompiled
  * by it. Modules holding one are left alone entirely. See
@@ -54,6 +54,21 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
     return {
         name: "pitlane-remix-component-hmr",
         apply: "serve",
+        config() {
+            // Transform-injected imports must share the initial optimizer generation
+            // with the component runtime, or the first hot update uses a second registry.
+            return {
+                optimizeDeps: {
+                    include: [
+                        "remix/component",
+                        "remix/component/jsx-runtime",
+                        "remix/component/jsx-dev-runtime",
+                        "remix/component/dev/refresh",
+                        "remix/component-hmr/runtime/browser",
+                    ],
+                },
+            };
+        },
         transform: {
             filter: {
                 id: {
@@ -147,7 +162,7 @@ export function serverDataHmr(serverEnvironments: Set<string>): Plugin {
 
 /**
  * Rewrites arrow-form component and `clientEntry()` exports to named function
- * expressions so `remix/ui-hmr` can instrument them. Returns the rewritten
+ * expressions so `remix/component-hmr` can instrument them. Returns the rewritten
  * source, or `undefined` when nothing qualified.
  *
  * Handles the two idiomatic Remix arrow forms:
@@ -227,7 +242,7 @@ function returnsRenderFunction(arrow: ArrowNode): boolean {
 }
 
 /**
- * The expression `ui-hmr` hoists out of a setup body and re-registers on every
+ * The expression `component-hmr` hoists out of a setup body and re-registers on every
  * update: the argument of the first top-level `return`. Mirrors its own
  * `getRenderArgument`, so this module agrees with it about what it will match.
  */
@@ -241,17 +256,17 @@ function isRenderFunction(node: Expression | undefined): boolean {
 }
 
 interface ComponentExports {
-    /** Exports `ui-hmr` instruments correctly. */
+    /** Exports `component-hmr` instruments correctly. */
     supported: string[];
-    /** Exports `ui-hmr` would instrument and break. */
+    /** Exports `component-hmr` would instrument and break. */
     unsupported: string[];
 }
 
 /**
- * Splits a module's PascalCase exports into the ones `remix/ui-hmr` can
+ * Splits a module's PascalCase exports into the ones `remix/component-hmr` can
  * instrument and the ones it would instrument but miscompile.
  *
- * All `ui-hmr` asks is whether an exported PascalCase function returns
+ * All `component-hmr` asks is whether an exported PascalCase function returns
  * something, which catches three shapes it cannot handle. An `async` setup or
  * a generator has its body moved into a plain arrow, so the `await` or `yield`
  * stops parsing and the module — along with everything importing it — fails to
@@ -299,7 +314,7 @@ function findComponentExports(code: string, id: string): ComponentExports {
 
             // A `clientEntry()` setup is a candidate on sight; a bare function
             // expression only once it returns something, which is the whole of
-            // what `ui-hmr` looks for.
+            // what `component-hmr` looks for.
             let setup = getClientEntrySetup(init);
             if (!setup) {
                 if (init.type !== "FunctionExpression") continue;
@@ -323,7 +338,7 @@ function isComponentSetup(setup: FunctionNode): boolean {
 
 /**
  * The setup inside `clientEntry(url, setup)`, including the
- * `clientEntry(url, wrap(setup))` form `ui-hmr` also unwraps.
+ * `clientEntry(url, wrap(setup))` form `component-hmr` also unwraps.
  */
 function getClientEntrySetup(init: Expression): FunctionNode | undefined {
     if (init.type !== "CallExpression") return undefined;
@@ -339,7 +354,7 @@ function getClientEntrySetup(init: Expression): FunctionNode | undefined {
 
 /**
  * PascalCase names re-exported under their own name (`export { Card }`), which
- * `ui-hmr` instruments alongside `export function`. An alias
+ * `component-hmr` instruments alongside `export function`. An alias
  * (`export { CardImpl as Card }`) is not one of them.
  */
 function getExportedNames(program: Program): Set<string> {

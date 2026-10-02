@@ -58,7 +58,12 @@ async function buildFixture(
         plugins: [
             ...(output?.satteri === false
                 ? []
-                : [satteri({ mdx: { jsxImportSource: "remix/ui" }, mdastPlugins: [headings()] })]),
+                : [
+                      satteri({
+                          mdx: { jsxImportSource: "remix/component" },
+                          mdastPlugins: [headings()],
+                      }),
+                  ]),
             contentLayer(options),
             ...(bundling?.plugins ?? []),
         ],
