@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-09-27
+updated: 2026-10-01
 ---
 
 # Pitlane Vision
@@ -818,7 +818,7 @@ The service-worker runtime may install a local auth scheme that projects the las
 
 `createTheme({ schema, tokens, modes })` returns `{ token, raw, Theme }` plus the `extend` and `select` derivations. Token values are the CSS they become: a leaf is a string, a number, or an array, and a plain object is a group. The schema tree, built from the `s.*` factories in `@pitlane/theme/schema`, names each token's type. `token` is a typed mirror of the token tree whose leaves are CSS `var()` references; `raw(ref)` resolves a token's base value; and `<Theme />` renders the compiled variables in a `<style data-pitlane-theme>` element. The module separately exports `css`, `tva`, `combine`, `cx`, `scale`, and `lightDark`.
 
-Each token reference carries its type as a compile-time brand, read from the schema. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/ui`'s unthemed `css()` remains the explicit escape hatch.
+Each token reference carries its type as a compile-time brand, read from the schema. The themed `css()` wrapper maps CSS longhands to the brands they accept, so `color` rejects a dimension token and palette-controlled properties reject arbitrary literals. Brands erase to strings at runtime. Unmapped CSS properties remain loosely typed, and `remix/component`'s unthemed `css()` remains the explicit escape hatch.
 
 The schema factories are `remix/data-schema` schemas carrying a type tag, so the token tree composes into one `object()` and a single `parse` reports every invalid value with its own path. `s.group(self, children)` types a node and lets its children override it. `s.scale()` declares a base whose accessor leaf multiplies, which is how `t.spacing(4)` works. `s.any()` covers CSS values with no token type. `extend` deep-merges a patch; `select` replaces a theme with a projection of it, which may also reshape and rename. `<Theme />` carries the init it was compiled from as `$theme`, so `createTheme(SomeTheme)` re-derives a published theme.
 
