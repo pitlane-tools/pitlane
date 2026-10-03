@@ -76,6 +76,8 @@ The app's build configuration (dashboard **Edit build config**, or CLI flags):
 
 The Vite build runs **before** `deno deploy`, and the `deploy.exclude` entry above un-excludes the gitignored `dist/` from the upload, so the tarball already contains the fingerprinted assets the running app serves. The install command only restores `node_modules` for the runtime. Leave the build command empty so Deploy doesn't build a second time.
 
+The handler needs that `node_modules` because it imports packages from it at run time. A build that [bundles its dependencies](/guides/vite-plugin#bundling-dependencies-into-the-server-build) imports only the runtime's own modules, so the install leaves nothing for it to read. That guide section covers what each choice costs.
+
 </Vite>
 
 <NoBuild>
