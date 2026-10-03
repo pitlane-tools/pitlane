@@ -28,7 +28,7 @@ Two packages also look past their own name. `contentLayer()` keeps `@pitlane/con
 
 Subpaths take the unscoped package name and the package's own subpath: `@pitlane/theme/schema` is `pitlane/theme/schema`, and `@pitlane/data-table-d1` is `pitlane/data-table-d1`. When Pitlane owns a base package and ships an adapter for it, the adapter nests under the base, as `remix/data-table/sqlite` nests under `remix/data-table`. An adapter for a base Pitlane does not own keeps its own name, which is why the D1 driver for Remix's data-table is not `pitlane/data-table/d1`.
 
-`vp run generate` in `packages/pitlane` writes one module per entry under `src/` and the package's `exports`, `dependencies`, `peerDependencies`, and `peerDependenciesMeta`. A module export is re-exported binding for binding, default included; an ambient declaration file such as `@pitlane/dev/assets` is re-exported by reference. Peers are lifted at the narrowest range any package asks for, and are optional when any package lets them be. A test fails when the committed output differs from what the generator produces. There is no bare `pitlane` import.
+`vp run generate` in `packages/pitlane` writes one module per entry under `src/` and the package's `exports`, `dependencies`, `peerDependencies`, and `peerDependenciesMeta`. A module export is re-exported binding for binding, default included; an ambient declaration file such as `@pitlane/dev/assets` is re-exported by reference. Installing the umbrella installs every package, so each peer is lifted at the narrowest range any package asks for, and is optional only when every package that names it lets it be. This departs from Remix, which marks a peer optional when any package does. A test fails when the committed output differs from what the generator produces. There is no bare `pitlane` import.
 
 The umbrella depends on every package at `workspace:*`, so each release pins exact versions and any package release makes Changesets release the umbrella too. `.changeset/prerelease.json` keeps the umbrella on a prerelease channel through `tools/version.ts`. The umbrella is tagged after the packages it pins, and its publish job waits until each pinned version installs.
 
@@ -62,6 +62,7 @@ Exact pins are what make an umbrella release mean something. With caret ranges a
 
 - Every package release is followed by an umbrella release, so releases come in pairs at least.
 - An app that installs both `pitlane` and a direct `@pitlane/*` package at another version gets two copies of that package.
+- An app that imports a runtime subpath needs `pitlane` in `dependencies`, which installs `@pitlane/dev` and Vite in production too. An app that wants a lean production install has to use the scoped packages.
 - Bundling behavior that keys on a package name has to know about the umbrella: `@pitlane/content` now bundles all of `pitlane` in a server build, because Vite decides externalization per package rather than per subpath.
 - The prerelease channel is Pitlane's own script around Changesets, and it refuses a package anything in the workspace depends on.
 
