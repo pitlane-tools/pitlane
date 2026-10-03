@@ -6,6 +6,9 @@ importers:
   .:
     configDependencies: {}
     packageManagerDependencies:
+      '@pnpm/exe':
+        specifier: 12.6.0
+        version: 12.6.0
       pnpm:
         specifier: 12.6.0
         version: 12.6.0
@@ -89,6 +92,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@pnpm/exe@12.6.0':
+    resolution: {integrity: sha512-CkNetlJZugjKp9vPvWqCm5ahORU6FfO46BlOqqSCKLJ+W6QcRgM0qmmPTvlgrXVvkAiH+9hE+mMp/wSaqcU5Aw==}
+    engines: {node: '>=18.*'}
+    hasBin: true
+
   pnpm@12.6.0:
     resolution: {integrity: sha512-PvaPlRyxEawgS0paFvCy3fDaVqluBBPoHYVdnwtV75JnFHCQKOHNAMQFwsX7e56OxNxGd3yAXQNzwvL/AP0g7A==}
     engines: {node: '>=18.*'}
@@ -137,6 +145,23 @@ snapshots:
 
   '@pnpm/exe.win32-x64@12.6.0':
     optional: true
+
+  '@pnpm/exe@12.6.0':
+    optionalDependencies:
+      '@pnpm/exe.android-arm64': 12.6.0
+      '@pnpm/exe.android-x64': 12.6.0
+      '@pnpm/exe.darwin-arm64': 12.6.0
+      '@pnpm/exe.darwin-x64': 12.6.0
+      '@pnpm/exe.freebsd-x64': 12.6.0
+      '@pnpm/exe.linux-arm64': 12.6.0
+      '@pnpm/exe.linux-arm64-musl': 12.6.0
+      '@pnpm/exe.linux-ppc64': 12.6.0
+      '@pnpm/exe.linux-riscv64': 12.6.0
+      '@pnpm/exe.linux-s390x': 12.6.0
+      '@pnpm/exe.linux-x64': 12.6.0
+      '@pnpm/exe.linux-x64-musl': 12.6.0
+      '@pnpm/exe.win32-arm64': 12.6.0
+      '@pnpm/exe.win32-x64': 12.6.0
 
   pnpm@12.6.0:
     optionalDependencies:
@@ -478,7 +503,51 @@ importers:
         specifier: 3.17.5
         version: 3.17.5
 
-  packages/pitlane: {}
+  packages/pitlane:
+    dependencies:
+      '@pitlane/content':
+        specifier: workspace:*
+        version: link:../content
+      '@pitlane/crawler':
+        specifier: workspace:*
+        version: link:../crawler
+      '@pitlane/data-table-d1':
+        specifier: workspace:*
+        version: link:../data-table-d1
+      '@pitlane/dev':
+        specifier: workspace:*
+        version: link:../dev
+      '@pitlane/theme':
+        specifier: workspace:*
+        version: link:../theme
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.5
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.8.0
+      oxc-parser:
+        specifier: ^0.140.0
+        version: 0.140.0
+      remix:
+        specifier: 3.0.0
+        version: 3.0.0(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(playwright@1.62.1)
+      satteri:
+        specifier: ^0.10.5
+        version: 0.10.5
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@^1.0.0
+        version: '@voidzero-dev/vite-plus-core@1.0.0(patch_hash=70632be65996dbc8b12f3d306c9625aea654bff8411c4fafa0e002162c5149d1)(@types/node@25.9.5)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0)'
+      vite-plus:
+        specifier: ^1.0.0
+        version: 1.0.0(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/ui@5.0.1)(esbuild@0.28.1)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0)
 
   packages/theme:
     dependencies:
@@ -3115,6 +3184,9 @@ packages:
 
   '@types/node@25.9.5':
     resolution: {integrity: sha512-OScDchr2fwuUmWdf4kZ9h7PcJiYDVInhJizG/biAq3cAvqwYktuy/TYGGdZNMtNTFUP7rnb0NU4TUdm82kt4Rg==}
+
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
 
   '@types/unist@2.0.11':
     resolution: {integrity: sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==}
@@ -7534,6 +7606,8 @@ snapshots:
   '@types/node@25.9.5':
     dependencies:
       undici-types: 7.24.6
+
+  '@types/semver@7.8.0': {}
 
   '@types/unist@2.0.11': {}
 
