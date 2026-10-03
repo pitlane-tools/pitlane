@@ -5,6 +5,7 @@ import type { StoredEntry } from "./store.ts";
 import type { Heading, RenderedEntry } from "./types.ts";
 
 import { readEsm } from "./mdx.ts";
+import { contentSpecifier } from "./specifier.ts";
 
 let rendered = new WeakMap<StoredEntry, Promise<RenderedEntry>>();
 
@@ -113,7 +114,7 @@ function compile(names: readonly string[], code: string, where: string) {
         throw new Error(
             `"${where}" has a body that cannot be compiled outside a bundler: ${cause}. The ` +
                 `document becomes a function body here rather than a module. Add contentLayer() from ` +
-                `@pitlane/content/vite so the build compiles this collection.`,
+                `${contentSpecifier("vite")} so the build compiles this collection.`,
             { cause: error },
         );
     }
@@ -367,7 +368,7 @@ async function loadSatteri(where: string): Promise<Satteri> {
     } catch {
         throw new Error(
             `Rendering "${where}" needs the optional peer dependency "satteri"; install it, ` +
-                "or add contentLayer() from @pitlane/content/vite so the build compiles this collection.",
+                `or add contentLayer() from ${contentSpecifier("vite")} so the build compiles this collection.`,
         );
     }
 }

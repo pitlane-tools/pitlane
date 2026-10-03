@@ -29,6 +29,8 @@ jobs:
                       directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
+                    - package: "pitlane"
+                      directory: packages/pitlane
                     # The workspace's `vite` is Vite+ core, which `vp pack`
                     # requires. These two packages run Vite as a peer, so their
                     # suites also run against upstream Vite 8.

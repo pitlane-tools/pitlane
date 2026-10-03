@@ -25,6 +25,12 @@ import { closePrebuild, openPrebuild } from "./prebuild.ts";
 const MANIFEST_OWNER = "@pitlane/content";
 const MANIFEST_SPECIFIER = `${MANIFEST_OWNER}/internal/manifest`;
 const VIRTUAL_MANIFEST = "\0pitlane-content/manifest";
+/**
+ * The packages an app reaches the manifest through: this one, and the
+ * `pitlane` umbrella, which re-exports it as `pitlane/content`. Vite decides
+ * externalization and optimization per package, so the umbrella goes whole.
+ */
+const MANIFEST_IMPORTERS = [MANIFEST_OWNER, "pitlane"];
 
 /** The slice of resolution the prebuild server inherits. */
 type Resolution = NonNullable<UserConfig["resolve"]>;
@@ -104,18 +110,19 @@ export function contentLayer(options?: { entry?: string }): Plugin {
          * nothing is bundled, but the dependency optimizer pre-bundles an
          * installed dependency before any plugin runs, inlining the shipped
          * manifest where `load` can no longer replace it. Excluding the
-         * package is what keeps the two paths agreeing.
+         * package, and the umbrella that re-exports it, is what keeps the two
+         * paths agreeing.
          */
         config() {
             return {
                 environments: {
                     ssr: {
-                        optimizeDeps: { exclude: [MANIFEST_OWNER] },
-                        resolve: { noExternal: [MANIFEST_OWNER] },
+                        optimizeDeps: { exclude: MANIFEST_IMPORTERS },
+                        resolve: { noExternal: MANIFEST_IMPORTERS },
                     },
                 },
-                optimizeDeps: { exclude: [MANIFEST_OWNER] },
-                ssr: { noExternal: [MANIFEST_OWNER] },
+                optimizeDeps: { exclude: MANIFEST_IMPORTERS },
+                ssr: { noExternal: MANIFEST_IMPORTERS },
             };
         },
 

@@ -290,6 +290,16 @@ npm view @pitlane/dev versions     # what npm has
 git ls-remote --tags origin        # what has been tagged
 ```
 
+### The umbrella releases by hand
+
+`pitlane` releases only when a pending note names it: `vp run changeset` and pick `pitlane`, or write `"pitlane": minor` into a note. Write one when enough package changes have accumulated to be worth an umbrella upgrade, not after every package release. Its body is the umbrella's changelog entry, so say what the release rolls up.
+
+The umbrella pins every `@pitlane/*` package at `workspace:*`, which `pnpm pack` turns into exact versions, so a release ships whatever versions are current when it is prepared. That also puts it out of range after every package release, and Changesets bumps it each time. `tools/version.ts`, which `changeset:version` runs, undoes that bump unless a note names `pitlane`, and lists the pinned versions in the section of a release that was asked for. `changeset:status` does not know this and lists `pitlane` whenever a package changes.
+
+Both rules live in `.changeset/release.json`. `manual` names the packages that release only on a note. `prerelease` keeps a package on a channel: `{ "pitlane": "alpha" }` turns whatever Changesets computed into the next `alpha.N` and retitles the changelog section to match, so `changeset:status` prints `1.0.0` where preparation writes `1.0.0-alpha.2`. Deleting the entry ends the prerelease at the version Changesets computes.
+
+Tag and release `pitlane@<version>` like any package, **after** the packages it pins. The `publish-pitlane` job waits up to twenty minutes for each pinned version's tarball to answer, so cutting every release in one sitting is safe. It publishes a prerelease to `latest` until a stable `1.0.0` or later exists, and to `next` from then on.
+
 ### A green job is not yet an installable package
 
 `publish.yml` finishing green means npm accepted the publish. It does not mean anyone can install the version yet, and the two halves of the registry catch up in the order that looks most like failure:
@@ -340,7 +350,7 @@ A first publish is the slow case: `npm view` itself 404s for several minutes, be
 
 ### Preview builds are not releases
 
-`pkg-preview.yml` publishes an installable build of `@pitlane/crawler`, `@pitlane/dev`, `@pitlane/theme`, and `@pitlane/data-table-d1` to [pkg.pr.new](https://pkg.pr.new) on every branch push and pull request. Its job is named `preview` so a green check on a PR cannot be mistaken for a publish; it was called `publish` once, and it was. The npm workflow has no `push` or `pull_request` trigger and cannot run on a PR at all.
+`pkg-preview.yml` publishes an installable build of `@pitlane/content`, `@pitlane/crawler`, `@pitlane/dev`, `@pitlane/theme`, `@pitlane/data-table-d1`, and `pitlane` to [pkg.pr.new](https://pkg.pr.new) on every branch push and pull request. Its job is named `preview` so a green check on a PR cannot be mistaken for a publish; it was called `publish` once, and it was. The npm workflow has no `push` or `pull_request` trigger and cannot run on a PR at all.
 
 Releasing a package that the [templates](https://github.com/pitlane-tools/templates) depend on has one more ordering rule: publish the package first, then merge the companion templates branch. See `.agents/skills/adopting-packages-into-templates/SKILL.md`.
 

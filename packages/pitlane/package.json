@@ -19,10 +19,103 @@
         "directory": "packages/pitlane"
     },
     "files": [
-        "index.js"
+        "dist",
+        "CHANGELOG.md"
     ],
     "type": "module",
     "exports": {
-        ".": "./index.js"
+        "./content": {
+            "types": "./dist/content.d.mts",
+            "import": "./dist/content.mjs"
+        },
+        "./content/hot": {
+            "types": "./dist/content/hot.d.mts",
+            "import": "./dist/content/hot.mjs"
+        },
+        "./content/loaders": {
+            "types": "./dist/content/loaders.d.mts",
+            "import": "./dist/content/loaders.mjs"
+        },
+        "./content/satteri": {
+            "types": "./dist/content/satteri.d.mts",
+            "import": "./dist/content/satteri.mjs"
+        },
+        "./content/vite": {
+            "types": "./dist/content/vite.d.mts",
+            "import": "./dist/content/vite.mjs"
+        },
+        "./crawler": {
+            "types": "./dist/crawler.d.mts",
+            "import": "./dist/crawler.mjs"
+        },
+        "./data-table-d1": {
+            "types": "./dist/data-table-d1.d.mts",
+            "import": "./dist/data-table-d1.mjs"
+        },
+        "./data-table-d1/migrations": {
+            "types": "./dist/data-table-d1/migrations.d.mts",
+            "import": "./dist/data-table-d1/migrations.mjs"
+        },
+        "./dev": {
+            "types": "./dist/dev.d.mts",
+            "import": "./dist/dev.mjs"
+        },
+        "./dev/assets": {
+            "types": "./dist/dev/assets.d.ts"
+        },
+        "./dev/runtime": {
+            "types": "./dist/dev/runtime.d.mts",
+            "import": "./dist/dev/runtime.mjs"
+        },
+        "./theme": {
+            "types": "./dist/theme.d.mts",
+            "import": "./dist/theme.mjs"
+        },
+        "./theme/default": {
+            "types": "./dist/theme/default.d.mts",
+            "import": "./dist/theme/default.mjs"
+        },
+        "./theme/dtcg": {
+            "types": "./dist/theme/dtcg.d.mts",
+            "import": "./dist/theme/dtcg.mjs"
+        },
+        "./theme/schema": {
+            "types": "./dist/theme/schema.d.mts",
+            "import": "./dist/theme/schema.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "dependencies": {
+        "@pitlane/content": "workspace:*",
+        "@pitlane/crawler": "workspace:*",
+        "@pitlane/data-table-d1": "workspace:*",
+        "@pitlane/dev": "workspace:*",
+        "@pitlane/theme": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "@types/semver": "^7.7.1",
+        "oxc-parser": "^0.140.0",
+        "remix": "3.0.0",
+        "satteri": "^0.10.5",
+        "semver": "^7.8.5",
+        "typescript": "^7.0.2",
+        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
+        "vite-plus": "^1.0.0"
+    },
+    "peerDependencies": {
+        "remix": "^3.0.0",
+        "satteri": "^0.10.5",
+        "vite": ">=8.0.0"
+    },
+    "peerDependenciesMeta": {
+        "satteri": {
+            "optional": true
+        }
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
     }
 }

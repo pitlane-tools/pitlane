@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { createContent } from "../content.ts";
 import { file } from "./file.ts";
@@ -42,5 +42,43 @@ describe("a filesystem loader with no filesystem", () => {
         }));
 
         await expect(content.blog.getCollection()).rejects.toThrow(expected);
+    });
+
+    describe("in an app that imports content through the pitlane umbrella", () => {
+        // What each `pitlane/*` module of the umbrella does when it loads.
+        let reached = Symbol.for("pitlane.umbrella.packages");
+        afterEach(() => {
+            delete (globalThis as Record<symbol, unknown>)[reached];
+        });
+
+        it("names the umbrella's subpath, which is the one the app can import", async () => {
+            (globalThis as Record<symbol, unknown>)[reached] = new Set(["@pitlane/content"]);
+            let content = createContent(c => ({
+                blog: c.collection({
+                    loader: glob({ pattern: "**/*.md", base: "app/content/blog" }),
+                    schema: {
+                        "~standard": { version: 1, vendor: "test", validate: value => ({ value }) },
+                    },
+                }),
+            }));
+
+            await expect(content.blog.getCollection()).rejects.toThrow(
+                'Add contentLayer() from "pitlane/content/vite" to your Vite config.',
+            );
+        });
+
+        it("keeps the scoped name when the umbrella reached only other packages", async () => {
+            (globalThis as Record<symbol, unknown>)[reached] = new Set(["@pitlane/theme"]);
+            let content = createContent(c => ({
+                blog: c.collection({
+                    loader: file("app/content/authors.json"),
+                    schema: {
+                        "~standard": { version: 1, vendor: "test", validate: value => ({ value }) },
+                    },
+                }),
+            }));
+
+            await expect(content.blog.getCollection()).rejects.toThrow(expected);
+        });
     });
 });

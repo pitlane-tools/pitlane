@@ -1,0 +1,6 @@
+{
+    "manual": ["pitlane"],
+    "prerelease": {
+        "pitlane": "alpha"
+    }
+}

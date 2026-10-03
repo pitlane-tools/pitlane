@@ -348,13 +348,15 @@ export function build({ clientEntry, serverEntry, prerender: paths }: BuildPlugi
 
 const RUNTIME_MODULE_ID = "\0pitlane:runtime";
 const RUNTIME_MODULE_FILTER = new RegExp(`^${RUNTIME_MODULE_ID}$`);
+const RUNTIME_SPECIFIER = /^@?pitlane\/dev\/runtime$/;
 
 /**
- * Resolves `@pitlane/dev/runtime` imports to an inlined copy of the
- * implementation. The package is a dev dependency: built output must never
- * import it at runtime (pruned containers, Deno import maps, serverless
- * bundles), and dependency-externalization behavior varies across cores and
- * orchestrators — inlining by construction removes the variable.
+ * Resolves `@pitlane/dev/runtime` imports, and the `pitlane/dev/runtime` the
+ * umbrella re-exports it as, to an inlined copy of the implementation. The
+ * package is a dev dependency: built output must never import it at runtime
+ * (pruned containers, Deno import maps, serverless bundles), and
+ * dependency-externalization behavior varies across cores and orchestrators —
+ * inlining by construction removes the variable.
  *
  * The virtual module re-exports this package's own runtime file by absolute
  * path, so the bundler inlines it and every export stays in one place. Emitting
@@ -366,9 +368,9 @@ export function runtimeInline(): Plugin {
         name: "pitlane-runtime-inline",
         enforce: "pre",
         resolveId: {
-            filter: { id: /^@pitlane\/dev\/runtime$/ },
+            filter: { id: RUNTIME_SPECIFIER },
             handler(source) {
-                if (source === "@pitlane/dev/runtime") return RUNTIME_MODULE_ID;
+                if (RUNTIME_SPECIFIER.test(source)) return RUNTIME_MODULE_ID;
             },
         },
         load: {
