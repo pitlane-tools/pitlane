@@ -128,9 +128,11 @@ export default defineConfig({
             // files they write with the `fmt` block above.
             changeset: { command: ["changeset add", "vp fmt .changeset"], cache: false },
             "changeset:status": { command: "changeset status", cache: false },
+            // Wraps `changeset version` to keep packages listed in
+            // .changeset/prerelease.json on their prerelease channel.
             "changeset:version": {
                 command: [
-                    "changeset version",
+                    "node tools/version.ts",
                     "vp fmt",
                     "vp install --lockfile-only --ignore-scripts --no-frozen-lockfile",
                 ],
