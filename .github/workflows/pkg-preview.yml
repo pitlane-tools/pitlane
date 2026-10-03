@@ -77,7 +77,6 @@ jobs:
               working-directory: packages/data-table-d1
               run: vp run build
 
-            # Last: the umbrella's declarations re-export the builds above.
             - name: Build pitlane
               working-directory: packages/pitlane
               run: vp run build

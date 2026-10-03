@@ -76,14 +76,6 @@ jobs:
               if: matrix.directory == 'packages/content'
               run: vp run build
 
-            # The umbrella's build re-exports every package's built declarations.
-            - name: Build the packages pitlane re-exports
-              if: matrix.directory == 'packages/pitlane'
-              run: |
-                  for package in crawler theme content data-table-d1 dev; do
-                      (cd "../$package" && vp run build)
-                  done
-
             # Sibling builds above ran on Vite+ core; only the suite under test
             # swaps to upstream Vite.
             - name: Use upstream Vite 8
