@@ -6,6 +6,7 @@ name: 📦 Publish package preview (pkg.pr.new)
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/dev@<commit>
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/theme@<commit>
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/data-table-d1@<commit>
+#     npm i https://pkg.pr.new/pitlane-tools/pitlane/pitlane@<commit>
 #
 # A package that ships only built output has to be built here first, or
 # pkg.pr.new packs an empty `dist`.
@@ -76,5 +77,10 @@ jobs:
               working-directory: packages/data-table-d1
               run: vp run build
 
+            # Last: the umbrella's declarations re-export the builds above.
+            - name: Build pitlane
+              working-directory: packages/pitlane
+              run: vp run build
+
             - name: Publish previews to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/content' './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1'
+              run: npx pkg-pr-new publish './packages/content' './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1' './packages/pitlane'
