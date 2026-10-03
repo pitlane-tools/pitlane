@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-10-01
+updated: 2026-10-03
 ---
 
 # Pitlane Vision
@@ -118,17 +118,23 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 
 Pitlane is a monorepo of small, single-purpose packages. Each scoped package can be installed directly without the `pitlane` umbrella and has standalone documentation. Packages may depend on an explicit Remix or Pitlane capability contract, and provider adapters may depend on their provider SDK; those relationships are part of their documented API.
 
-`pitlane` is the optional meta-package that will re-vend scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev`; the name is reserved and the package is empty today ([Reserved names](#reserved-names)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
+`pitlane` is the optional umbrella that re-exports the scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev` ([The umbrella package](#the-umbrella-package)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
 
 ### Packaging strategy
 
-Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the optional `pitlane` package may vendor implementations under matching subpaths. Installing scoped packages directly gives a project only the concerns it selects and is the primary form used by package documentation. Installing `pitlane` provides the cohesive `pitlane/<name>` namespace without changing runtime behavior or deployment ownership.
+Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the optional `pitlane` package re-exports them under matching subpaths. Installing scoped packages directly gives a project only the concerns it selects and is the primary form used by package documentation. Installing `pitlane` provides the cohesive `pitlane/<name>` namespace without changing runtime behavior or deployment ownership.
+
+### The umbrella package
+
+`pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package, and a release of any package is followed by a release of the umbrella. Its first release, `1.0.0-alpha.1`, is pending; until it publishes, npm's `pitlane` is still the `0.0.1` placeholder whose entry throws and points at `@pitlane/dev`.
+
+The umbrella is also where an app's agents find Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)).
+
+Code samples in this document import a package that exists as `@pitlane/<name>`, and keep `pitlane/<name>` for a planned one: the subpath it will have in the umbrella.
 
 ### Reserved names
 
-`pitlane` and `create-pitlane` remain placeholders. Neither implements the planned API: the umbrella's entry throws and points at `@pitlane/dev`, and `create-pitlane` prints the `giget` command and exits non-zero. Version `0.0.1` updates their npm metadata and READMEs without changing that behavior. The initial `0.0.0` versions were published by hand; subsequent releases use `publish.yml` with npm Trusted Publishing. These packages have no build or test suite.
-
-The umbrella vends no subpaths yet, `pitlane/theme` included. An umbrella over five packages is a second specifier for something a reader can already install; the namespace earns its place once the set is large enough to be worth learning as a whole. Code samples in this document follow the same line — a package that exists is imported as `@pitlane/<name>`, and a planned one keeps the `pitlane/<name>` specifier it will have once the umbrella ships.
+`create-pitlane` remains a placeholder. It does not implement the planned API: it prints the `giget` command and exits non-zero. Version `0.0.1` updated its npm metadata and README without changing that behavior. The initial `0.0.0` was published by hand; subsequent releases use `publish.yml` with npm Trusted Publishing. It has no build or test suite.
 
 ### Runtime and build-time packages
 
