@@ -339,14 +339,6 @@ jobs:
             - name: Install
               run: vp install --frozen-lockfile
 
-            # The umbrella's declarations re-export each package's built
-            # declarations, so every package it re-exports builds first.
-            - name: Build the re-exported packages
-              run: |
-                  for package in crawler theme content data-table-d1 dev; do
-                      (cd "../$package" && vp run build)
-                  done
-
             - name: Run tests
               run: vp test
 
