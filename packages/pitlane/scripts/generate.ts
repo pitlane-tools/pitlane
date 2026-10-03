@@ -75,7 +75,12 @@ function targetShape(owner: WorkspacePackage, target: string): ExportShape {
     if (!source?.startsWith("src/")) {
         throw new Error(`${target}: cannot find the source of ${String(built)}`);
     }
-    return exportShape(readFileSync(join(owner.directory, source), "utf8"), source);
+    let shape = exportShape(readFileSync(join(owner.directory, source), "utf8"), source);
+    // An `export * from` stub would claim a runtime module the target lacks.
+    if (shape.kind === "module" && !conditions.import) {
+        throw new Error(`${target} exports declarations only; the generator cannot re-export it.`);
+    }
+    return shape;
 }
 
 /** Replaces `src/` and the generated `package.json` fields with `umbrella`. */
