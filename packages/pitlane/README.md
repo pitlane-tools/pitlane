@@ -21,7 +21,9 @@ import { remix } from "pitlane/dev";
 import { createTheme } from "pitlane/theme";
 ```
 
-`pitlane` depends on every package it re-exports, and a new release of any of them is followed by a release of `pitlane`. Installing an individual `@pitlane/*` package still works, and is the smaller install when an app needs only one.
+`pitlane` depends on an exact version of every package it re-exports, and a new release of any of them is followed by a release of `pitlane`. Bare `pitlane` has no exports; import a subpath.
+
+List `pitlane` in `dependencies` when the app imports a runtime subpath such as `pitlane/theme` or `pitlane/content`. It installs every package, `@pitlane/dev` and its Vite peer included, so a production install that omits dev dependencies still installs the build toolchain. An app that needs a lean production install can depend on the individual `@pitlane/*` packages instead: `@pitlane/dev` as a dev dependency, the runtime packages as dependencies.
 
 Use the [starter templates](https://github.com/pitlane-tools/templates) to create a Remix application.
 
