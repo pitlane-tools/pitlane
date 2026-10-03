@@ -1,4 +1,5 @@
 import { ContentError } from "../parse.ts";
+import { contentSpecifier } from "../specifier.ts";
 
 /**
  * `node:fs/promises`, or a diagnostic for a host that has none.
@@ -22,7 +23,7 @@ export async function filesystem(collection: string) {
         throw new ContentError(
             collection,
             `Collection "${collection}" has no prebuilt content and no filesystem to read.\n` +
-                `Add contentLayer() from "@pitlane/content/vite" to your Vite config.`,
+                `Add contentLayer() from "${contentSpecifier("vite")}" to your Vite config.`,
             { cause: error },
         );
     }
