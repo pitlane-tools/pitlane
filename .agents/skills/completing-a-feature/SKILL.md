@@ -38,8 +38,8 @@ If it does not outlive this proposal, it belongs in the proposal and nowhere els
 Before recording either:
 
 1. Discuss it with the human. Neither is an agent-only conclusion.
-2. Confirm the originating proposal id.
-3. Use the canonical template. Both records carry `established-by: proposal.<NNNN>`.
+2. Confirm the originating proposal id, or the pull request number when the human declined a proposal.
+3. Use the canonical template. Both records carry `established-by: proposal.<NNNN>`, or `established-by: pull-request.<N>` for work without a proposal.
 
 ### Enforce policies first
 
