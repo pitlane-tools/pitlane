@@ -16,7 +16,9 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 
 Every push to a branch also builds installable package previews, for example: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/content@<sha>`.
 
-[`pitlane`](packages/pitlane) and [`create-pitlane`](packages/create-pitlane) are on npm, but their planned APIs are not implemented. The umbrella will vend the scoped packages as `pitlane/<name>` subpaths, and the CLI will replace the `giget` command below. Neither ships working code yet, and every package installs and is documented on its own without them.
+[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/dev` and `pitlane/theme/schema`, and is released after any of them is. Its first umbrella release, `1.0.0-alpha.1`, is pending; npm still serves the `0.0.1` placeholder. Every package also installs and is documented on its own.
+
+[`create-pitlane`](packages/create-pitlane) is on npm, but its planned API is not implemented. The CLI will replace the `giget` command below.
 
 ## Quick start
 
@@ -73,7 +75,7 @@ packages/
 ├── create-pitlane/   # create-pitlane — reserved name, the future scaffolder
 ├── data-table-d1/    # @pitlane/data-table-d1 — Cloudflare D1 driver
 ├── dev/              # @pitlane/dev — the remix() Vite plugin
-├── pitlane/          # pitlane — reserved name, the future umbrella
+├── pitlane/          # pitlane — the umbrella, generated from manifest.json
 └── theme/            # @pitlane/theme — type-safe styling
 docs/                 # pitlane.tools — Remix + TypeDoc, deployed to Cloudflare Workers
 demos/                # example apps run by hand: content-vite, content-runtime, theme, tui
