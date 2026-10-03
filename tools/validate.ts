@@ -103,14 +103,18 @@ function expectedId(file: string, type: RecordType): string | null {
     return match ? `${type}.${match[1]}` : null;
 }
 
+// A record the human declined a proposal for is established by its pull request instead.
+const PULL_REQUEST_ORIGIN = /^pull-request\.[1-9]\d*$/;
+
 function referencesFor(artifact: Artifact, type: ArtifactType): Reference[] {
     let { frontmatter } = artifact;
     let fields = type === "vision" ? [] : ["supersedes", "established-by"];
 
     return fields.flatMap(field => {
         if (field === "established-by") {
-            return typeof frontmatter[field] === "string"
-                ? [{ field, id: frontmatter[field] }]
+            let origin = frontmatter[field];
+            return typeof origin === "string" && !PULL_REQUEST_ORIGIN.test(origin)
+                ? [{ field, id: origin }]
                 : [];
         }
         return Array.isArray(frontmatter[field])

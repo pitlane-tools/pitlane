@@ -357,6 +357,28 @@ test("rule 3 accepts resolved cross-references", () => {
     );
 });
 
+test("rule 3 accepts a pull request as the origin of a record no proposal established", () => {
+    let records = validArtifacts();
+    records[3].frontmatter["established-by"] = "pull-request.55";
+
+    assert.deepEqual(validateArtifacts(records), []);
+});
+
+test("rule 3 rejects a pull request reference without a number", () => {
+    let records = validArtifacts();
+    records[3].frontmatter["established-by"] = "pull-request.next";
+
+    assert.deepEqual(
+        validateArtifacts(records).filter(({ message }) => message.includes("does not resolve")),
+        [
+            {
+                path: "decisions/0001-records.md",
+                message: 'reference "pull-request.next" in established-by does not resolve',
+            },
+        ],
+    );
+});
+
 function policySupersession(status: string) {
     return [
         artifact("proposals/0001-records.md", {
