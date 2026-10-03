@@ -111,13 +111,7 @@
         "vite": ">=8.0.0"
     },
     "peerDependenciesMeta": {
-        "remix": {
-            "optional": true
-        },
         "satteri": {
-            "optional": true
-        },
-        "vite": {
             "optional": true
         }
     },
