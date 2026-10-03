@@ -126,9 +126,11 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 ### The umbrella package
 
-`pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package, and a release of any package is followed by a release of the umbrella. Its first release, `1.0.0-alpha.1`, is pending; until it publishes, npm's `pitlane` is still the `0.0.1` placeholder whose entry throws and points at `@pitlane/dev`.
+`pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package. The umbrella is released by hand when enough package changes have accumulated, not after every package release. Its first release, `1.0.0-alpha.1`, is pending; until it publishes, npm's `pitlane` is still the `0.0.1` placeholder whose entry throws and points at `@pitlane/dev`.
 
 The umbrella is also where an app's agents will find Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)); the package does not ship that documentation yet.
+
+An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/dev` and its Vite peer reach production installs too. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/dev` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
 
 Code samples in this document import a package that exists as `@pitlane/<name>`, and keep `pitlane/<name>` for a planned one: the subpath it will have in the umbrella.
 
