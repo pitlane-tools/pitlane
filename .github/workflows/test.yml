@@ -29,6 +29,8 @@ jobs:
                       directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
+                    - package: "pitlane"
+                      directory: packages/pitlane
                     # The workspace's `vite` is Vite+ core, which `vp pack`
                     # requires. These two packages run Vite as a peer, so their
                     # suites also run against upstream Vite 8.
@@ -73,6 +75,14 @@ jobs:
             - name: Build content for runtime fixtures
               if: matrix.directory == 'packages/content'
               run: vp run build
+
+            # The umbrella's build re-exports every package's built declarations.
+            - name: Build the packages pitlane re-exports
+              if: matrix.directory == 'packages/pitlane'
+              run: |
+                  for package in crawler theme content data-table-d1 dev; do
+                      (cd "../$package" && vp run build)
+                  done
 
             # Sibling builds above ran on Vite+ core; only the suite under test
             # swaps to upstream Vite.
