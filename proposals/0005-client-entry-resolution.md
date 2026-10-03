@@ -3,7 +3,7 @@ id: proposal.0005
 title: Client Entry Resolution
 authors: [markmals]
 status: draft
-pull-request:
+pull-request: https://github.com/pitlane-tools/pitlane/pull/58
 issues: []
 supersedes: []
 ---
