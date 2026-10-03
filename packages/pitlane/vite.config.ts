@@ -17,7 +17,7 @@ export default defineConfig({
     ],
     run: {
         tasks: {
-            build: { command: "rm -rf dist && vp pack" },
+            build: { command: ["rm -rf dist && vp pack", "node scripts/check-dist.ts"] },
             generate: {
                 command: ["node scripts/generate.ts", "vp fmt package.json"],
                 cache: false,
