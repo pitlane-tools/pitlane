@@ -290,11 +290,13 @@ npm view @pitlane/dev versions     # what npm has
 git ls-remote --tags origin        # what has been tagged
 ```
 
-### The umbrella releases after every package
+### The umbrella releases by hand
 
-`pitlane` pins every `@pitlane/*` package at `workspace:*`, which `pnpm pack` turns into exact versions. Any package release therefore leaves the umbrella out of range, and `vp run changeset:version` gives it a release of its own, with an "Updated dependencies" changelog entry, without anyone writing a note for it. A note naming `pitlane` is only for a change to the umbrella itself.
+`pitlane` releases only when a pending note names it: `vp run changeset` and pick `pitlane`, or write `"pitlane": minor` into a note. Write one when enough package changes have accumulated to be worth an umbrella upgrade, not after every package release. Its body is the umbrella's changelog entry, so say what the release rolls up.
 
-`.changeset/prerelease.json` keeps a package on a prerelease channel: `{ "pitlane": "alpha" }` makes `tools/version.ts`, which `changeset:version` runs, turn whatever Changesets computed into the next `alpha.N` and retitle the changelog section to match. `changeset:status` still prints the version Changesets computed, such as `1.0.0` for `1.0.0-alpha.1`. Deleting the entry ends the prerelease at that computed version.
+The umbrella pins every `@pitlane/*` package at `workspace:*`, which `pnpm pack` turns into exact versions, so a release ships whatever versions are current when it is prepared. That also puts it out of range after every package release, and Changesets bumps it each time. `tools/version.ts`, which `changeset:version` runs, undoes that bump unless a note names `pitlane`, and lists the pinned versions in the section of a release that was asked for. `changeset:status` does not know this and lists `pitlane` whenever a package changes.
+
+Both rules live in `.changeset/release.json`. `manual` names the packages that release only on a note. `prerelease` keeps a package on a channel: `{ "pitlane": "alpha" }` turns whatever Changesets computed into the next `alpha.N` and retitles the changelog section to match, so `changeset:status` prints `1.0.0` where preparation writes `1.0.0-alpha.2`. Deleting the entry ends the prerelease at the version Changesets computes.
 
 Tag and release `pitlane@<version>` like any package, **after** the packages it pins. The `publish-pitlane` job waits up to twenty minutes for each pinned version's tarball to answer, so cutting every release in one sitting is safe. It publishes a prerelease to `latest` until a stable `1.0.0` or later exists, and to `next` from then on.
 
