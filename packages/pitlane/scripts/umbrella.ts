@@ -43,21 +43,21 @@ export function stubSource(target: string, shape: ExportShape): string {
 type PeerSource = Pick<WorkspacePackage, "name" | "peerDependencies" | "peerDependenciesMeta">;
 
 /**
- * The peer dependencies the umbrella declares for `packages`: each peer at the
- * narrowest range one of them asks for, since installing the umbrella
- * installs every package. A peer is optional when any package lets it be,
- * because an app uses only the subpaths it imports.
+ * The peer dependencies the umbrella declares for `packages`. Installing the
+ * umbrella installs every package, whichever subpaths an app imports, so each
+ * peer takes the narrowest range one of them asks for, and is optional only
+ * when every package that names it lets it be.
  */
 export function liftPeers(packages: PeerSource[]): {
     peerDependencies: Record<string, string>;
     peerDependenciesMeta: Record<string, { optional: true }>;
 } {
     let ranges = new Map<string, { range: string; from: string }>();
-    let optional = new Set<string>();
+    let required = new Set<string>();
 
     for (let { name, peerDependencies = {}, peerDependenciesMeta = {} } of packages) {
         for (let [peer, range] of Object.entries(peerDependencies)) {
-            if (peerDependenciesMeta[peer]?.optional) optional.add(peer);
+            if (!peerDependenciesMeta[peer]?.optional) required.add(peer);
 
             let current = ranges.get(peer);
             if (!current || (range !== current.range && subset(range, current.range))) {
@@ -75,7 +75,7 @@ export function liftPeers(packages: PeerSource[]): {
     return {
         peerDependencies: Object.fromEntries(peers.map(peer => [peer, ranges.get(peer)!.range])),
         peerDependenciesMeta: Object.fromEntries(
-            peers.filter(peer => optional.has(peer)).map(peer => [peer, { optional: true }]),
+            peers.filter(peer => !required.has(peer)).map(peer => [peer, { optional: true }]),
         ),
     };
 }

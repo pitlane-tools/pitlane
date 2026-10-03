@@ -56,7 +56,9 @@ describe("liftPeers", () => {
         ).toThrow(/vite.*@pitlane\/dev.*\^7\.0\.0.*@pitlane\/content.*\^8\.0\.0/);
     });
 
-    it("marks a peer optional when any package declares it optional", () => {
+    it("keeps a peer optional only when every package that names it lets it be", () => {
+        // Installing the umbrella installs every package, so a peer one of
+        // them requires is required, whichever subpaths an app imports.
         let lifted = liftPeers([
             { name: "@pitlane/dev", peerDependencies: { vite: ">=8.0.0" } },
             {
@@ -66,9 +68,6 @@ describe("liftPeers", () => {
             },
         ]);
         expect(lifted.peerDependencies).toEqual({ satteri: "^0.10.5", vite: ">=8.0.0" });
-        expect(lifted.peerDependenciesMeta).toEqual({
-            satteri: { optional: true },
-            vite: { optional: true },
-        });
+        expect(lifted.peerDependenciesMeta).toEqual({ satteri: { optional: true } });
     });
 });
