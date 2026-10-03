@@ -41,10 +41,10 @@ export function generateUmbrella(directory: string): Umbrella {
         let subpath = path.slice("pitlane/".length);
 
         if (shape.kind === "ambient") {
-            files.set(`src/${subpath}.d.ts`, stubSource(target, shape));
+            files.set(`src/${subpath}.d.ts`, stubSource(target, owner.name, shape));
             exports[`./${subpath}`] = { types: `./dist/${subpath}.d.ts` };
         } else {
-            files.set(`src/${subpath}.ts`, stubSource(target, shape));
+            files.set(`src/${subpath}.ts`, stubSource(target, owner.name, shape));
             exports[`./${subpath}`] = {
                 types: `./dist/${subpath}.d.mts`,
                 import: `./dist/${subpath}.mjs`,
