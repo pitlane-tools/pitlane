@@ -290,6 +290,14 @@ npm view @pitlane/dev versions     # what npm has
 git ls-remote --tags origin        # what has been tagged
 ```
 
+### The umbrella releases after every package
+
+`pitlane` pins every `@pitlane/*` package at `workspace:*`, which `pnpm pack` turns into exact versions. Any package release therefore leaves the umbrella out of range, and `vp run changeset:version` gives it a release of its own, with an "Updated dependencies" changelog entry, without anyone writing a note for it. A note naming `pitlane` is only for a change to the umbrella itself.
+
+`.changeset/prerelease.json` keeps a package on a prerelease channel: `{ "pitlane": "alpha" }` makes `tools/version.ts`, which `changeset:version` runs, turn whatever Changesets computed into the next `alpha.N` and retitle the changelog section to match. `changeset:status` still prints the version Changesets computed, such as `1.0.0` for `1.0.0-alpha.1`. Deleting the entry ends the prerelease at that computed version.
+
+Tag and release `pitlane@<version>` like any package, **after** the packages it pins. The `publish-pitlane` job waits up to twenty minutes for each pinned version's tarball to answer, so cutting every release in one sitting is safe. It publishes a prerelease to `latest` until a stable `1.0.0` or later exists, and to `next` from then on.
+
 ### A green job is not yet an installable package
 
 `publish.yml` finishing green means npm accepted the publish. It does not mean anyone can install the version yet, and the two halves of the registry catch up in the order that looks most like failure:
@@ -340,7 +348,7 @@ A first publish is the slow case: `npm view` itself 404s for several minutes, be
 
 ### Preview builds are not releases
 
-`pkg-preview.yml` publishes an installable build of `@pitlane/crawler`, `@pitlane/dev`, `@pitlane/theme`, and `@pitlane/data-table-d1` to [pkg.pr.new](https://pkg.pr.new) on every branch push and pull request. Its job is named `preview` so a green check on a PR cannot be mistaken for a publish; it was called `publish` once, and it was. The npm workflow has no `push` or `pull_request` trigger and cannot run on a PR at all.
+`pkg-preview.yml` publishes an installable build of `@pitlane/content`, `@pitlane/crawler`, `@pitlane/dev`, `@pitlane/theme`, `@pitlane/data-table-d1`, and `pitlane` to [pkg.pr.new](https://pkg.pr.new) on every branch push and pull request. Its job is named `preview` so a green check on a PR cannot be mistaken for a publish; it was called `publish` once, and it was. The npm workflow has no `push` or `pull_request` trigger and cannot run on a PR at all.
 
 Releasing a package that the [templates](https://github.com/pitlane-tools/templates) depend on has one more ordering rule: publish the package first, then merge the companion templates branch. See `.agents/skills/adopting-packages-into-templates/SKILL.md`.
 
