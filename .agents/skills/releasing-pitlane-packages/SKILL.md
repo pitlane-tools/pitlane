@@ -115,7 +115,7 @@ gh release create "@pitlane/<name>@<version>" --title "@pitlane/<name>@<version>
 
 **One release per tag.** A commit that bumps two packages gets two tags and two releases: `a4f462e` carries both `@pitlane/crawler@0.1.0` and `@pitlane/dev@0.5.0`. Release the dependency first — `pnpm pack` rewrites dev's `workspace:^` on crawler to the version the monorepo resolved, so dev's published manifest names a crawler version that has to exist on npm already or every install of dev fails.
 
-**The umbrella goes last.** Preparation gives `pitlane` a release whenever any package has one, pinned to those exact versions, so every preparation that versions a package also versions `pitlane`. Cut its tag after the packages it pins. `AGENTS.md` ("The umbrella releases after every package") has the prerelease channel and the dist-tag rule.
+**The umbrella releases only when asked.** `pitlane` versions only when a note names it, so a preparation that releases packages leaves it alone unless the human wants an umbrella release too; ask when the plan has none. When it releases, cut its tag after the packages it pins. `AGENTS.md` ("The umbrella releases by hand") has the note, the prerelease channel, and the dist-tag rule.
 
 **The release notes are written, not pasted.** Every release body in this repo is prose rewritten from the CHANGELOG for someone deciding whether to upgrade: what changed, a code sample of the new shape, what breaks, and links to the changelog and to the proposal that designed it. `@pitlane/crawler@0.1.0`'s CHANGELOG entry is five bullets; its release body is five paragraphs. A first publish also carries the `> [!NOTE]` explaining why that one version has no provenance attestation.
 

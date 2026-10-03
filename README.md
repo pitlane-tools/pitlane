@@ -16,7 +16,7 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 
 Every push to a branch also builds installable package previews, for example: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/content@<sha>`.
 
-[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/dev` and `pitlane/theme/schema`, and is released after any of them is. Its first umbrella release, `1.0.0-alpha.1`, is pending; npm still serves the `0.0.1` placeholder. Every package also installs and is documented on its own.
+[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/dev` and `pitlane/theme/schema`, released by hand when enough package changes have accumulated. Its first umbrella release, `1.0.0-alpha.1`, is pending; npm still serves the `0.0.1` placeholder. Every package also installs and is documented on its own.
 
 [`create-pitlane`](packages/create-pitlane) is on npm, but its planned API is not implemented. The CLI will replace the `giget` command below.
 

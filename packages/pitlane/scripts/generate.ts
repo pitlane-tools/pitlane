@@ -52,9 +52,9 @@ export function generateUmbrella(directory: string): Umbrella {
         }
     }
 
-    // Exact pins: each release of `pitlane` names one set of package versions,
-    // and any package release leaves the umbrella out of range, so Changesets
-    // releases it too.
+    // Exact pins: each release of `pitlane` names one set of package versions.
+    // They also put the umbrella out of range after every package release;
+    // tools/version.ts undoes that bump unless a note names `pitlane`.
     let dependencies = Object.fromEntries([...used].map(({ name }) => [name, "workspace:*"]));
     return { files, fields: { exports, dependencies, ...liftPeers([...used]) } };
 }
