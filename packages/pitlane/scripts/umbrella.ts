@@ -28,14 +28,24 @@ export function exportShape(source: string, filename: string): ExportShape {
     return { kind: "module", hasDefault };
 }
 
-/** The source of the umbrella module that re-exports `target`. */
-export function stubSource(target: string, shape: ExportShape): string {
+/**
+ * The source of the umbrella module that re-exports `target` from package
+ * `owner`. A module also adds `owner` to the global set that lets a package
+ * name itself the way the app imports it, as `@pitlane/content`'s errors do.
+ */
+export function stubSource(target: string, owner: string, shape: ExportShape): string {
     let lines = ["// Generated from manifest.json by `vp run generate`. Do not edit."];
     if (shape.kind === "ambient") {
         lines.push(`/// <reference types=${JSON.stringify(target)} />`);
     } else {
         lines.push(`export * from ${JSON.stringify(target)};`);
         if (shape.hasDefault) lines.push(`export { default } from ${JSON.stringify(target)};`);
+        lines.push(
+            "",
+            'let reached = Symbol.for("pitlane.umbrella.packages");',
+            "let globals = globalThis as Record<symbol, Set<string> | undefined>;",
+            `(globals[reached] ??= new Set()).add(${JSON.stringify(owner)});`,
+        );
     }
     return `${lines.join("\n")}\n`;
 }
