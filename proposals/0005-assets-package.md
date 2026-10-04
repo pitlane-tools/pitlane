@@ -12,7 +12,7 @@ supersedes: []
 
 ## Summary
 
-A new `@pitlane/assets` package: the Vite answer to `remix/assets`. Its `assets()` plugin keys every `clientEntry()` island with a bundler-stable `file:` identity and builds the manifest; `createAssetsClient(manifest)` returns an object with the `remix/assets` method surface, so a document and `render({ assets })` are written exactly as under No Build. `@pitlane/dev` composes it, drops `?assets=` and `pitlane:dev`, and no longer depends on `@hiogawa/vite-plugin-fullstack`.
+A new `@pitlane/assets` package: the Vite answer to `remix/assets`. Its `assets()` plugin keys every `clientEntry()` island with a bundler-stable `file:` identity and builds the manifest; `createAssetResolver(manifest)` returns an object with the `remix/assets` method surface, so a document and `render({ assets })` are written exactly as under No Build. `@pitlane/dev` composes it, drops `?assets=` and `pitlane:dev`, and no longer depends on `@hiogawa/vite-plugin-fullstack`.
 
 ## Motivation
 
@@ -89,10 +89,10 @@ Give Pitlane the asset server's method surface, backed by a Vite build instead o
 
 ```ts
 // app/assets.ts
-import { createAssetsClient } from "@pitlane/assets";
+import { createAssetResolver } from "@pitlane/assets";
 import manifest from "@pitlane/assets/manifest";
 
-export let assets = createAssetsClient(manifest);
+export let assets = createAssetResolver(manifest);
 export let scriptEntry = await assets.getScriptEntry("app/entry.browser.ts");
 ```
 
@@ -144,14 +144,14 @@ The build learns what the document names the way Vite learns what `new URL("./x"
 
 ### Packages
 
-- **`@pitlane/assets`** is a new workspace package, `packages/assets`, with three entry points. `@pitlane/assets` is the runtime: `createAssetsClient` and the types `AssetsClient`, `ScriptEntry`, and `AssetsManifest`. It imports nothing from Vite. `@pitlane/assets/manifest` is the module the plugin replaces: its default export is an `AssetsManifest`, and as published it declares that no manifest is available. `@pitlane/assets/vite` is the plugin: `assets(options?)`.
-- `vite` is an optional peer dependency, required only for `@pitlane/assets/vite`. `remix` is not a dependency; `AssetsClient` is structurally compatible with `Pick<AssetServer, "getScriptEntry" | "getHref" | "getPreloads" | "getImportMap">` from `remix/assets` without importing it.
+- **`@pitlane/assets`** is a new workspace package, `packages/assets`, with three entry points. `@pitlane/assets` is the runtime: `createAssetResolver` and the types `AssetResolver`, `ScriptEntry`, and `AssetsManifest`. It imports nothing from Vite. `@pitlane/assets/manifest` is the module the plugin replaces: its default export is an `AssetsManifest`, and as published it declares that no manifest is available. `@pitlane/assets/vite` is the plugin: `assets(options?)`.
+- `vite` is an optional peer dependency, required only for `@pitlane/assets/vite`. `remix` is not a dependency; `AssetResolver` is structurally compatible with `Pick<AssetServer, "getScriptEntry" | "getHref" | "getPreloads" | "getImportMap">` from `remix/assets` without importing it.
 - **`@pitlane/dev`** depends on `@pitlane/assets` and registers `assets()` inside `remix()`. `remix({ assets })` forwards that option object to the plugin. `@pitlane/dev/runtime` exports `HMR`. `@pitlane/dev/assets` is removed.
 - The umbrella re-vends `@pitlane/assets` as `pitlane/assets`, beside `pitlane/dev`.
 
-### The client
+### The resolver
 
-- `createAssetsClient(manifest)` returns an `AssetsClient` for an `AssetsManifest`. The app constructs it once in `app/assets.ts` from the manifest `@pitlane/assets/manifest` exports, exactly where a No Build app constructs its asset server, and passes it to `render({ assets })` and its document. The package exports no pre-made client.
+- `createAssetResolver(manifest)` returns an `AssetResolver` for an `AssetsManifest`. The app constructs it once in `app/assets.ts` from the manifest `@pitlane/assets/manifest` exports, exactly where a No Build app constructs its asset server, and passes it to `render({ assets })` and its document. The package exports no pre-made resolver.
 
 - Every method accepts a root-relative path, an absolute path, or a `file:` URL, with or without a `#fragment`, and normalizes it to the file's path relative to the Vite root in POSIX form — the key. `file:` is stripped before normalization, so the `render()` middleware's `file:<key>` ids and a document's `"app/entry.browser.ts"` reach the same lookup.
 - `getScriptEntry(path)` returns `{ href, preloads, importMap: { imports: {} } }`: in dev, `href` is the key's dev URL and `preloads` is `[]`; in build, `href` is the key's emitted chunk URL and `preloads` is that chunk followed by its transitive static imports, shallowest-first, matching `remix/assets`.
@@ -242,9 +242,9 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 
 ## Scope
 
-- `packages/assets`: `createAssetsClient`, the types, the manifest module, and the plugin with its transform, registry, build-ordering handler, manifest writer, SSR-asset copying, dev stylesheet collection, and the Vite client patches. README documenting use with and without `remix()`. TypeDoc config in `.typedoc/`, the package added to `pkg-preview.yml`, `.agents/commit-scopes`, and the umbrella's pins.
+- `packages/assets`: `createAssetResolver`, the types, the manifest module, and the plugin with its transform, registry, build-ordering handler, manifest writer, SSR-asset copying, dev stylesheet collection, and the Vite client patches. README documenting use with and without `remix()`. TypeDoc config in `.typedoc/`, the package added to `pkg-preview.yml`, `.agents/commit-scopes`, and the umbrella's pins.
 - `@pitlane/dev`: `remix()` composing `assets()` and forwarding `assets` and `serverEnvironments`; the dev server handler on `remix/node-fetch-server`; `HMR` on `@pitlane/dev/runtime` with the dev swap; removal of `?assets=`, `ImportedAssets`, `mergeAssets`, `@pitlane/dev/assets`, `pitlane:dev`, the fallback manifest synthesis, the fullstack builder shims, and the fullstack dependency.
-- Tests: transform unit tests for the literal key and for registration from literal arguments; unit tests for `createAssetsClient` with dev, build, and unavailable manifests, and for the manifest writer; a plain-Vite fixture exercising `assets()` without `remix()`; the node end-to-end fixture asserting the document's script and stylesheet hrefs, an island's hashed `moduleUrl`, and its `modulepreload` link; the dev, HMR, Cloudflare, prerender, and SPA suites migrated to the client and `@pitlane/dev/runtime` and green.
+- Tests: transform unit tests for the literal key and for registration from literal arguments; unit tests for `createAssetResolver` with dev, build, and unavailable manifests, and for the manifest writer; a plain-Vite fixture exercising `assets()` without `remix()`; the node end-to-end fixture asserting the document's script and stylesheet hrefs, an island's hashed `moduleUrl`, and its `modulepreload` link; the dev, HMR, Cloudflare, prerender, and SPA suites migrated to the resolver and `@pitlane/dev/runtime` and green.
 - Guides: a new guide for `@pitlane/assets`; the asset and client-entry sections of the vite-plugin guide rewritten to point at it; the HMR and SPA guides' `?assets=` and `pitlane:dev` references updated; both package READMEs; the docs app's own document migrated; changesets.
 - `VISION.md` updated in phase 5: the package list and sequence gain `@pitlane/assets`; the `@pitlane/dev` section stops saying it wraps fullstack and describes the transform's output through the new package.
 
@@ -264,12 +264,12 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 
 - `decision.0001` Static Documentation Delivery — the docs site is prerendered and served statically; this proposal changes how assets are named and islands resolved, which the docs build exercises through `remix({ prerender })`, and does not alter delivery. The docs app's own document migrates as part of scope.
 - `policies/` is empty.
-- `VISION.md` key principle, Remix idioms — honored by constructing the client in `app/assets.ts` from an explicit manifest rather than exporting a pre-made one. Principle 5, Demand Composition — honored by attempting the feature as a new package that is useful when installed directly, and by leaving concerns that change together inside `@pitlane/dev`. Principle 6, Distribute Cohesively — honored by the umbrella subpath `pitlane/assets`. Principle 3, Runtime When Possible — `createAssetsClient` is a runtime function of a manifest and works without a build; static analysis is the optimization that fills the manifest under a bundler. The planned sequence's "no separate `@pitlane/prerender` package" is respected. §`@pitlane/dev` says the plugin wraps fullstack and describes the transform's output; both sentences become false and are updated in phase 5.
+- `VISION.md` key principle, Remix idioms — honored by constructing the resolver in `app/assets.ts` from an explicit manifest rather than exporting a pre-made one. Principle 5, Demand Composition — honored by attempting the feature as a new package that is useful when installed directly, and by leaving concerns that change together inside `@pitlane/dev`. Principle 6, Distribute Cohesively — honored by the umbrella subpath `pitlane/assets`. Principle 3, Runtime When Possible — `createAssetResolver` is a runtime function of a manifest and works without a build; static analysis is the optimization that fills the manifest under a bundler. The planned sequence's "no separate `@pitlane/prerender` package" is respected. §`@pitlane/dev` says the plugin wraps fullstack and describes the transform's output; both sentences become false and are updated in phase 5.
 
 ## Future directions
 
 - `getHref` accepting a `transform` option once an image package defines what a transform is under Vite.
-- Other build plugins reusing the runtime: `createAssetsClient(manifest)` is the contract, and `@pitlane/assets/manifest` is the module to replace.
+- Other build plugins reusing the runtime: `createAssetResolver(manifest)` is the contract, and `@pitlane/assets/manifest` is the module to replace.
 
 ## Alternatives considered
 
@@ -280,7 +280,7 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 - **Keep `?assets=` and add `assets` beside it** — a softer upgrade. Rejected: two vocabularies for one question, both to document and test, and the second one would be the one Pitlane already knows is worse.
 - **Keep the transform writing final URLs and let apps add `resolveClientEntry` themselves** — the Kody pattern. Rejected: it solves the symptom in every app instead of the cause in the plugin.
 - **A pre-made `assets` export, with the manifest swapped behind it** — two earlier drafts. Rejected: it is the magic global the Remix-idioms principle names, it hides the one seam a non-Vite graph needs, and `import { assets }; export { assets }` in `app/assets.ts` is a stranger file than one that constructs what it exports. A manifest is a real argument, and the app importing it makes the swap visible.
-- **`createAssets` or `createAssetResolver` as the constructor's name** — `createAssetsClient` was chosen to sit beside `createAssetServer`: the server compiles and serves, the client reads what a build produced.
+- **`createAssets` or `createAssetsClient` as the constructor's name** — `createAssetResolver` says what the object does: it resolves paths to what a build produced, where `createAssetServer` compiles and serves. "Client" implied a server to talk to; there is none.
 - **Configuration-only registration** — `include` for every non-entry file. Rejected as the sole mechanism: every stylesheet is written twice, and a forgotten entry fails only in production. It stays as the mechanism for dynamic arguments.
 - **A virtual module such as `pitlane:assets`** — matches the old `pitlane:dev` convention. Rejected on Kody's evidence: every virtual id in application code is one more stub pair for graphs Vite does not build. `pitlane:dev` goes for the same reason.
 - **Absolute `file:///…` keys** — need no path computation in dev. Rejected: a build-machine path baked into `dist/ssr` makes builds non-reproducible across machines and says nothing the root-relative path does not.
