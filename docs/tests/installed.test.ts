@@ -136,6 +136,43 @@ test("rewriting a Markdown file's links changes their destinations and nothing e
     );
 });
 
+test("README link destinations use their parsed meaning, not their source spelling", () => {
+    let link = installedLinks(SITE, "dist/dev/README.md", urls);
+    for (let [source, expected] of [
+        ["[Guide](https://pitlane.tools/guides/h&#109;r)", "../../guides/hmr.md"],
+        [
+            '[Guide](https://pitlane.tools/guides/hmr?x=1&amp;y=2 "https://pitlane.tools/guides/hmr?x=1&y=2")',
+            "../../guides/hmr.md?x=1&y=2",
+        ],
+        [
+            "[Guide](https://pitlane.tools/guides/hmr#state\\(ready\\))",
+            "../../guides/hmr.md#state(ready)",
+        ],
+        [
+            "[Guide](<https://pitlane.tools/guides/hmr#state(ready)>)",
+            "../../guides/hmr.md#state(ready)",
+        ],
+        ["[](https://pitlane.tools/guides/h&#109;r)", "../../guides/hmr.md"],
+        [
+            '[Guide][ref]\n\n[ref]: <https://pitlane.tools/guides/h&#109;r> "Title"',
+            "../../guides/hmr.md",
+        ],
+        [
+            "[Guide][ref\\]:note]\n\n[ref\\]:note]: https://pitlane.tools/guides/h&#109;r",
+            "../../guides/hmr.md",
+        ],
+    ]) {
+        let rewritten = rewriteMarkdownLinks(source!, link);
+        assert.deepEqual(links(rewritten), [expected], source);
+        if (source!.includes('"')) {
+            assert.equal(
+                rewritten.slice(rewritten.indexOf('"')),
+                source!.slice(source!.indexOf('"')),
+            );
+        }
+    }
+});
+
 test("the index lists every guide under its group and every export beside its README", () => {
     let index = installedIndex(
         SITE,

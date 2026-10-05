@@ -33,6 +33,14 @@ export function htmlToMarkdown(html: string, options: MarkdownOptions = {}): str
     return `${blocks(parse(html, options).children)}\n`;
 }
 
+export function markdownDestination(href: string): string {
+    return href.replace(/[&\\()<>\s]/g, character => {
+        if (character === "&") return "&amp;";
+        if (/\s/.test(character)) return `&#${character.charCodeAt(0)};`;
+        return `\\${character}`;
+    });
+}
+
 /**
  * An article's Markdown without its level-one heading, which a page's export
  * writes from the page's own title instead. An article at `where` with no such
@@ -141,12 +149,14 @@ function phrase(node: Content): string {
         case "br":
             return "\n";
         case "img":
-            return `![${node.properties?.alt ?? ""}](${node.properties?.src ?? ""})`;
+            return `![${node.properties?.alt ?? ""}](${markdownDestination(String(node.properties?.src ?? ""))})`;
         case "a": {
             if (classList(node).includes("doc-heading__anchor")) return "";
             let text = inner();
             let href = node.properties?.href;
-            return text && typeof href === "string" ? `[${text}](${href})` : text;
+            return text && typeof href === "string"
+                ? `[${text}](${markdownDestination(href)})`
+                : text;
         }
         default:
             return inner();

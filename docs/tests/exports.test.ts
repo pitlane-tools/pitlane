@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { markdownToMdast } from "satteri";
 
 import type { DocumentPage } from "../app/document.ts";
 
@@ -70,6 +71,29 @@ test("an exported page's links and images follow the same rule", () => {
     assert.match(body, /\[HMR\]\(https:\/\/pitlane\.tools\/guides\/hmr\.md#state\)/);
     assert.match(body, /\[Remix\]\(https:\/\/remix\.run\)/);
     assert.match(body, /!\[Lockup\]\(\/media\/lockup\.png\)/);
+});
+
+test("exported link destinations preserve Markdown punctuation, whitespace, and literal entities", () => {
+    for (let [htmlHref, expected] of [
+        ["https://example.org/query?expr=one)two", "https://example.org/query?expr=one)two"],
+        ["https://example.org/path(one", "https://example.org/path(one"],
+        ["https://example.org/path with spaces", "https://example.org/path with spaces"],
+        [
+            "https://example.org/query?literal=&amp;copy;",
+            "https://example.org/query?literal=&copy;",
+        ],
+        ["https://example.org/query?slash=\\b", "https://example.org/query?slash=\\b"],
+        ["https://example.org/query?expr=&lt;item&gt;", "https://example.org/query?expr=<item>"],
+    ]) {
+        let { body } = exportDocument(hmr, article(`<p><a href="${htmlHref}">Read</a></p>`), link);
+        let root = markdownToMdast(body);
+        assert.ok("children" in root);
+        let paragraph = root.children[0]!;
+        assert.ok("children" in paragraph);
+        let anchor = paragraph.children[0]!;
+        assert.ok("url" in anchor);
+        assert.equal(anchor.url, expected);
+    }
 });
 
 test("a two-setup page names its build mode and links its counterpart's Markdown", () => {

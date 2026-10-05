@@ -13,6 +13,7 @@ import { guideGroups } from "../app/components/navigation.ts";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../app/components/site.ts";
 import { documentPlugins } from "./compile.ts";
 import { exportDocument, linkedDescription, markdownFile, type Site } from "./exports.ts";
+import { markdownDestination } from "./markdown.ts";
 
 export interface InstalledPackage {
     name: string;
@@ -77,29 +78,30 @@ export function rewriteMarkdownLinks(markdown: string, link: (href: string) => s
             let { start, end } = node.position;
             let source = markdown.slice(start.offset, end.offset);
             if (target !== href) {
-                if (source.startsWith("<") || source === href) {
+                if (node.type === "link" && !source.startsWith("[")) {
                     edits.push({
                         start: start.offset!,
                         end: end.offset!,
-                        text: `[${href}](${target})`,
+                        text: `[${href.replace(/[\\`*_[\]<&]/g, character => (character === "&" ? "&amp;" : `\\${character}`))}](${markdownDestination(target)})`,
                     });
                 } else {
-                    // The destination follows the link's text, or a definition's label.
+                    // AST URLs decode entities and escapes; delimiters locate the raw destination.
                     let after =
+                        node.type === "link"
+                            ? (node.children.at(-1)?.position?.end.offset ?? start.offset!) -
+                              start.offset!
+                            : 0;
+                    let at =
                         node.type === "definition"
-                            ? source.indexOf("]:")
-                            : (node.children.at(-1)?.position?.end.offset ?? start.offset!) -
-                              start.offset!;
-                    let at = source.indexOf(href, after);
-                    if (at === -1) {
-                        throw new Error(
-                            `Could not find the destination ${href} in ${JSON.stringify(source)}.`,
-                        );
-                    }
+                            ? source.match(/^\[(?:\\[\s\S]|[^\]\\])*\]:[ \t\r\n]*/)![0].length
+                            : source.indexOf("](", after) + 2;
+                    while (/[ \t\r\n]/.test(source[at] ?? "")) at++;
+                    let angled = source[at] === "<";
+                    let end = destinationEnd(source, at + Number(angled), angled) + Number(angled);
                     edits.push({
                         start: start.offset! + at,
-                        end: start.offset! + at + href.length,
-                        text: target,
+                        end: start.offset! + end,
+                        text: markdownDestination(target),
                     });
                 }
             }
@@ -113,6 +115,25 @@ export function rewriteMarkdownLinks(markdown: string, link: (href: string) => s
             (text, edit) => text.slice(0, edit.start) + edit.text + text.slice(edit.end),
             markdown,
         );
+}
+
+function destinationEnd(source: string, start: number, angled: boolean): number {
+    let depth = 0;
+    for (let at = start; at < source.length; at++) {
+        let character = source[at]!;
+        if (character === "\\") {
+            at++;
+            continue;
+        }
+        if (angled) {
+            if (character === ">") return at;
+            continue;
+        }
+        if (/[ \t\r\n]/.test(character) || (character === ")" && depth === 0)) return at;
+        if (character === "(") depth++;
+        if (character === ")") depth--;
+    }
+    return source.length;
 }
 
 /** Index guides in sidebar order and group public subpaths by their package README. */
