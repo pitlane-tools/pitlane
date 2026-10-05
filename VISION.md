@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-10-03
+updated: 2026-10-05
 ---
 
 # Pitlane Vision
@@ -122,11 +122,11 @@ Pitlane is a monorepo of small, single-purpose packages. Each scoped package can
 
 ### Packaging strategy
 
-Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the optional `pitlane` package re-exports them under matching subpaths. Installing scoped packages directly gives a project only the concerns it selects and is the primary form used by package documentation. Installing `pitlane` provides the cohesive `pitlane/<name>` namespace without changing runtime behavior or deployment ownership.
+Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships as an individual scoped package under the `@pitlane/*` namespace, and the optional `pitlane` package re-exports them under matching subpaths. App-facing guides use `pitlane/<name>` for one install and one namespace. Each scoped package's own documentation retains its direct imports so a project can install only the concerns it selects. Neither choice changes runtime behavior or deployment ownership.
 
 ### The umbrella package
 
-`pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package. The umbrella is released by hand when enough package changes have accumulated, not after every package release. Its first release, `1.0.0-alpha.1`, is pending; until it publishes, npm's `pitlane` is still the `0.0.1` placeholder whose entry throws and points at `@pitlane/dev`.
+`pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package. The umbrella is released by hand when enough package changes have accumulated, not after every package release. The `1.0.0-alpha.1` release replaces the `0.0.1` placeholder with 15 public subpaths. Bare `pitlane` has no entry point.
 
 The umbrella is also where an app's agents will find Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)); the package does not ship that documentation yet.
 
@@ -161,7 +161,7 @@ let db = createD1Database(env.DB);
 
 ### Released baseline
 
-Five packages are on npm: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/content`, schema-validated content collections; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. Every package below is independently sequenced work rather than part of a larger bundled release, and each ships on its own tag.
+Five scoped packages form the released baseline: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/content`, schema-validated content collections; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. The `pitlane` umbrella brings those five packages together under one namespace. Each scoped package below remains independently sequenced work and ships on its own tag; an umbrella release pins a selected set of those versions.
 
 ### Planned package sequence
 
@@ -1156,7 +1156,7 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 ## Release status
 
-`@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0; the rest ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
+`@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0. The `pitlane@1.0.0-alpha.1` umbrella combines the five scoped packages through matching subpaths; its changelog lists their exact pinned versions. The remaining packages ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
 
 ### Explicit non-goals
 
