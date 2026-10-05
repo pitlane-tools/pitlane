@@ -6,6 +6,8 @@ A meta-framework for [Remix](https://remix.run): every Pitlane package in one in
 npm install pitlane
 ```
 
+`remix@^3.0.0` and `vite@>=8` are peer dependencies. `satteri@^0.10.5` is an optional one, needed only for Markdown and MDX content.
+
 Each `@pitlane/*` package is available under a `pitlane/*` subpath, with the same exports:
 
 | Import | Re-exports |
@@ -21,7 +23,7 @@ import { remix } from "pitlane/dev";
 import { createTheme } from "pitlane/theme";
 ```
 
-`pitlane` depends on an exact version of every package it re-exports. It is released by hand when enough package changes have accumulated, so a package's newest release can be ahead of the version the umbrella pins. Bare `pitlane` has no exports; import a subpath.
+`pitlane` depends on an exact version of every package it re-exports. It is released by hand when enough package changes have accumulated, so a package's newest release can be ahead of the version the umbrella pins. Bare `pitlane` has no exports; import a subpath. To type `?assets=` imports, list `pitlane/dev/assets` in `tsconfig.json`'s `compilerOptions.types`.
 
 List `pitlane` in `dependencies` when the app imports a runtime subpath such as `pitlane/theme` or `pitlane/content`. It installs every package, `@pitlane/dev` and its Vite peer included, so a production install that omits dev dependencies still installs the build toolchain. An app that needs a lean production install can depend on the individual `@pitlane/*` packages instead: `@pitlane/dev` as a dev dependency, the runtime packages as dependencies.
 
@@ -29,6 +31,7 @@ Use the [starter templates](https://github.com/pitlane-tools/templates) to creat
 
 ## Documentation
 
+- [The `pitlane` package](https://pitlane.tools/guides/umbrella): subpaths, versions, and migrating from the `@pitlane/*` packages
 - [Pitlane documentation](https://pitlane.tools)
 
 ## License

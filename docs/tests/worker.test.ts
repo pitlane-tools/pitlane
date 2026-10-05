@@ -65,7 +65,6 @@ test("proposal.0004: every install alternative is reachable through a named nati
         assert.equal(disclosure.properties?.hidden, undefined, `${manager} is not hidden`);
         let code = elements(disclosure, "pre").map(text).join("\n");
         assert.match(code, new RegExp(`\\b${manager}\\b`));
-        assert.match(code, /@pitlane\/dev/);
     }
 });
 

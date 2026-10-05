@@ -33,7 +33,7 @@ export function Home() {
                                 <a href="https://remix.run">Remix</a> app on the grid.
                             </p>
                             <div data-hero-actions>
-                                <a href={routes.guide.href({ slug: "vite-plugin" })} mix={action}>
+                                <a href={routes.guide.href({ slug: "umbrella" })} mix={action}>
                                     Get started <span aria-hidden="true">↗</span>
                                 </a>
                                 <a data-secondary-action href="#packages">
@@ -48,6 +48,10 @@ export function Home() {
                             <h2 id="packages-title">
                                 Composable packages. <span>Built on Web APIs.</span>
                             </h2>
+                            <p>
+                                Install <code>pitlane</code> for every package under one namespace,
+                                or choose the individual <code>@pitlane/*</code> packages.
+                            </p>
                         </div>
                         <Workbench />
                     </section>
@@ -68,7 +72,7 @@ export function Home() {
                                 on the grid.
                             </h2>
                         </div>
-                        <a href={routes.guide.href({ slug: "vite-plugin" })} mix={action}>
+                        <a href={routes.guide.href({ slug: "umbrella" })} mix={action}>
                             Start building with Pitlane <span aria-hidden="true">↗</span>
                         </a>
                     </section>

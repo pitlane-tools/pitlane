@@ -1,0 +1,111 @@
+---
+title: The pitlane package
+description: "Install every Pitlane package with one dependency, import each through a pitlane/* subpath, and decide when the scoped @pitlane/* packages fit better."
+---
+
+import { Callout, InstallGroup } from "../../components/documentation.tsx";
+import { installAlternatives } from "../../install.ts";
+
+export const installation = await installAlternatives({ packages: ["pitlane"] });
+export const scopedInstallation = await installAlternatives({
+    packages: ["@pitlane/theme", "@pitlane/content"],
+    dev: ["@pitlane/dev"],
+});
+
+# The `pitlane` package
+
+`pitlane` is one install for all five Pitlane packages. Each package is published on its own under `@pitlane/*`, and `pitlane` re-exports every one of them through focused subpaths, the way `remix` re-exports the `@remix-run/*` packages:
+
+```ts
+import { remix } from "pitlane/dev";
+import { createTheme } from "pitlane/theme";
+import { createContent } from "pitlane/content";
+```
+
+A subpath has the same exports as the package it re-exports, so every API page under [`@pitlane/dev`](/package/dev/), [`@pitlane/theme`](/package/theme/), and the rest applies to the matching `pitlane/*` import unchanged. The scoped packages stay independently usable. An app that wants only one of them can install it alone.
+
+## Install
+
+<InstallGroup alternatives={installation} />
+
+`pitlane` declares three peer dependencies, lifted from the packages it installs:
+
+| Peer | Range | Required |
+| --- | --- | --- |
+| `remix` | `^3.0.0` | Yes |
+| `vite` | `>=8.0.0` | Yes |
+| `satteri` | `^0.10.5` | Only when a content collection holds `.md` or `.mdx` files |
+
+Install `pitlane` as a dependency, not a dev dependency, whenever the app imports a runtime subpath such as `pitlane/theme`, `pitlane/content`, or `pitlane/data-table-d1`. Those imports run in production, so a production install has to include the package that provides them.
+
+`pitlane` has no command-line interface. To start a new app, copy one of the [starter templates](https://github.com/pitlane-tools/templates).
+
+## Subpaths
+
+Bare `pitlane` has no exports, so `import … from "pitlane"` fails. Every import names a subpath, and each subpath mirrors a scoped package export:
+
+| Import | Re-exports | Use it for |
+| --- | --- | --- |
+| `pitlane/dev` | [`@pitlane/dev`](/package/dev/) | The `remix()` Vite plugin |
+| `pitlane/dev/runtime` | [`@pitlane/dev/runtime`](/package/dev/runtime) | Asset helpers such as `mergeAssets()` |
+| `pitlane/dev/assets` | [`@pitlane/dev/assets`](/package/dev/assets) | Types for `?assets=` imports, listed in `tsconfig.json` |
+| `pitlane/theme` | [`@pitlane/theme`](/package/theme/) | `createTheme()`, `css()`, and `tva()` |
+| `pitlane/theme/schema` | [`@pitlane/theme/schema`](/package/theme/schema) | Schema factories |
+| `pitlane/theme/default` | [`@pitlane/theme/default`](/package/theme/default) | Tailwind CSS v4's primitives as `DefaultTheme` |
+| `pitlane/theme/dtcg` | [`@pitlane/theme/dtcg`](/package/theme/dtcg) | Conversion to and from Design Tokens Community Group documents |
+| `pitlane/content` | [`@pitlane/content`](/package/content/) | `createContent()` and collections |
+| `pitlane/content/loaders` | [`@pitlane/content/loaders`](/package/content/loaders) | The `glob()` and `file()` loaders |
+| `pitlane/content/vite` | [`@pitlane/content/vite`](/package/content/vite) | The `contentLayer()` Vite plugin |
+| `pitlane/content/hot` | [`@pitlane/content/hot`](/package/content/hot) | Browser reloads for content without a build |
+| `pitlane/content/satteri` | [`@pitlane/content/satteri`](/package/content/satteri) | The `headings()` and `rawStyles()` Satteri plugins |
+| `pitlane/crawler` | [`@pitlane/crawler`](/package/crawler/) | `crawl()` and `staticPaths()` |
+| `pitlane/data-table-d1` | [`@pitlane/data-table-d1`](/package/data-table-d1/) | The Cloudflare D1 driver for `remix/data-table` |
+| `pitlane/data-table-d1/migrations` | [`@pitlane/data-table-d1/migrations`](/package/data-table-d1/migrations) | `generateD1Migrations()`, build tooling kept out of the Worker |
+
+A subpath is the scoped package name without its scope, followed by the package's own subpath: `@pitlane/theme/schema` becomes `pitlane/theme/schema`.
+
+## Versions
+
+Each `pitlane` release depends on an exact version of every scoped package, and its changelog lists those versions. Installing `pitlane@1.0.0-alpha.1` installs the package versions that release was built and documented against, never newer ones.
+
+The umbrella is released by hand when enough package changes have accumulated. A scoped package's newest release can be ahead of the version the current `pitlane` pins. Need a fix before the next umbrella release? Install that scoped package directly and use its `@pitlane/<name>` import. [Mixing the two](#mixing-the-two) explains how the installs coexist.
+
+`1.0.0-alpha.1` is the first umbrella release. It pins `@pitlane/dev@0.7.1`, `@pitlane/theme@0.5.0`, `@pitlane/content@0.3.1`, `@pitlane/crawler@0.3.0`, and `@pitlane/data-table-d1@0.3.0`. Releases before it, `0.0.x`, were a placeholder with no usable exports.
+
+Alpha releases are published to npm's `latest` tag until a stable `1.0.0` exists, so a plain install picks up the newest alpha. Pin an exact version, such as `pitlane@1.0.0-alpha.1`, to decide when the app moves to the next one.
+
+## Production installs
+
+`pitlane` installs every package, `@pitlane/dev` and its Vite peer included. Because an app with runtime imports lists it in `dependencies`, a production install that omits dev dependencies still installs the Vite plugin and Vite itself. `remix` makes the same trade for its CLI and test runner. The cost is install size and time on the production host.
+
+## Scoped packages
+
+The scoped packages are the lean alternative. Put `@pitlane/dev` in dev dependencies and only the runtime packages the app imports in dependencies. For an app that uses the theme and content collections:
+
+<InstallGroup alternatives={scopedInstallation} />
+
+Then import from the scoped names, such as `@pitlane/dev` and `@pitlane/theme/schema`. Choose this when production install size matters, when an app uses a single package, or when it needs a package release newer than the umbrella pins.
+
+## Migrate from scoped packages
+
+1. Install `pitlane` as shown in [Install](#install).
+2. Rewrite the public imports listed in [Subpaths](#subpaths) from `@pitlane/<name>` to `pitlane/<name>`, keeping the listed subpath: `@pitlane/content/vite` becomes `pitlane/content/vite`.
+3. Replace `@pitlane/dev/assets` with `pitlane/dev/assets` in `tsconfig.json`:
+
+    ```jsonc
+    { "compilerOptions": { "types": ["pitlane/dev/assets"] } }
+    ```
+
+4. Remove a scoped package from `package.json` only when nothing in the app or its tooling imports it directly.
+
+The umbrella excludes `@pitlane/content/internal/*`. Custom bundler integrations using those unstable APIs must keep their scoped imports and a direct `@pitlane/content` dependency. Keep that dependency at the umbrella's pinned content version when both are used, so the plugin and collections share the same content package.
+
+### Mixing the two
+
+An app can keep a direct `@pitlane/*` dependency next to `pitlane`. Different versions mean two copies of that package. The `pitlane/*` import reaches the pinned copy, while the `@pitlane/*` import reaches the direct dependency. Use one import path consistently for each package.
+
+<Callout kind="info" title="Installed agent documentation">
+
+`remix` includes guides in the installed package so coding agents can read documentation that matches the installed version. `pitlane` does not include those files yet. Read these guides and the [API reference](/package/dev/) on pitlane.tools, or as Markdown through [`llms.txt`](https://pitlane.tools/llms.txt).
+
+</Callout>

@@ -10,13 +10,15 @@ A page whose content does not change per request does not need a server on the c
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [remix({ prerender: ["/", "/blog", "/blog/hello-world"] })],
 });
 ```
+
+`pitlane/dev` comes from the `pitlane` package. The [Pitlane package guide](/guides/umbrella) covers installing it and the standalone `@pitlane/dev` alternative.
 
 </Vite>
 
@@ -38,7 +40,7 @@ for await (let { filepath, response } of crawl(router)) {
 }
 ```
 
-The [crawling guide](/guides/crawler#install) has the install command for your package manager.
+This page imports from `@pitlane/crawler`, the standalone package, because the `pitlane` package requires Vite as a peer dependency and this app has no bundler. The [crawling guide](/guides/crawler#install) has the install command for your package manager.
 
 </NoBuild>
 
@@ -177,7 +179,7 @@ Crawling stops where a crawler should stop: `rel="nofollow"` links, `<meta name=
 
 <Vite>
 
-That is [`@pitlane/crawler`](/package/crawler/) underneath, which is installable on its own for sitemaps, link checks, and render smoke tests the plugin does not cover. The [crawling guide](/guides/crawler) walks through those.
+That is [`@pitlane/crawler`](/package/crawler/) underneath. Import it as `pitlane/crawler` for jobs outside prerendering. The [crawling guide](/guides/crawler) covers sitemap generation and link checks.
 
 </Vite>
 
@@ -386,7 +388,7 @@ That is not a restriction on prerendering, only on how the request gets to the a
 ```ts
 // vite.config.ts
 import { cloudflare } from "@cloudflare/vite-plugin";
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({

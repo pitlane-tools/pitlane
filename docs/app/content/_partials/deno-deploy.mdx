@@ -124,7 +124,7 @@ The upload respects `.gitignore`, so `node_modules` stays behind and Deploy's in
 <Vite>
 
 ```sh
-vp dev      # dev server through @pitlane/dev
+vp dev      # dev server through Pitlane's Vite plugin
 vp build    # production build
 vp preview  # serve the production build
 ```
@@ -362,13 +362,15 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [remix({ server: false })],
 });
 ```
+
+`pitlane/dev` comes from the `pitlane` package. The deno-deploy template still maps the scoped packages in its `deno.jsonc` (`"@pitlane/dev": "npm:@pitlane/dev@^0.7.0"`), so add `pitlane` before switching the import. Run `deno add npm:pitlane`, which records a `"pitlane": "npm:pitlane@…"` entry in the same `imports` map. Deno resolves `pitlane/dev` and the other subpaths through that entry. The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires.
 
 Configure the app as **Static** with directory `dist` and Single Page App mode on, either in the dashboard or in one non-interactive command:
 

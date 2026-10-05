@@ -1,12 +1,13 @@
 ---
 title: Deploy to Cloudflare Workers
-description: "Run a Remix 3 app on Cloudflare Workers with @pitlane/dev and the Cloudflare Vite plugin, with workerd in dev, Miniflare preview, and wrangler deploy."
+description: "Run a Remix 3 app on Cloudflare Workers with pitlane/dev and the Cloudflare Vite plugin, with workerd in dev, Miniflare preview, and wrangler deploy."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ dev: ["@cloudflare/vite-plugin", "wrangler"] });
+export const pitlaneInstallation = await installAlternatives({ packages: ["pitlane"] });
 
 # Cloudflare Workers
 
@@ -20,7 +21,11 @@ Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/w
 
 ## Configuration
 
-Install the platform pieces:
+The examples import from `pitlane/*` paths, which come from the `pitlane` package. The cloudflare template still depends on the scoped `@pitlane/dev` and `@pitlane/theme` packages, so add `pitlane` before switching its imports. Put it in `dependencies`, because a Worker that reads D1 imports `pitlane/data-table-d1` at runtime:
+
+<InstallGroup alternatives={pitlaneInstallation} />
+
+The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires and the standalone scoped packages. Then install the platform pieces:
 
 <InstallGroup alternatives={installation} />
 
@@ -28,7 +33,7 @@ Point Cloudflare's plugin at the `ssr` environment and let it own dev-time reque
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { defineConfig } from "vite";
 
@@ -76,11 +81,11 @@ let value = await env.MY_KV.get("key");
 
 <Callout kind="tip" title="Tip">
 
-Importing `cloudflare:workers` makes the SSR bundle resolvable only inside workerd. That's expected. `@pitlane/dev`'s preview server detects it and steps aside so Cloudflare's Miniflare preview takes over.
+Importing `cloudflare:workers` makes the SSR bundle resolvable only inside workerd. That's expected. The `pitlane/dev` preview server detects it and steps aside so Cloudflare's Miniflare preview takes over.
 
 </Callout>
 
-A D1 binding gets you a `remix/data-table` database through [`createD1Database()`](/package/data-table-d1/function/createD1Database) from [`@pitlane/data-table-d1`](/guides/cloudflare-d1), which supplies the async driver D1 needs in place of the synchronous SQLite one.
+A D1 binding gets you a `remix/data-table` database through [`createD1Database()`](/package/data-table-d1/function/createD1Database) from [`pitlane/data-table-d1`](/guides/cloudflare-d1), which supplies the async driver D1 needs in place of the synchronous SQLite one.
 
 ## Prerendering and frame navigation
 
@@ -190,7 +195,7 @@ Keep `assets.not_found_handling` unset (its default is `"none"`). A `"single-pag
 
 Both changes are required. `run_worker_first` without the wrapper stops serving assets, and the wrapper without `run_worker_first` never sees a request that matches an asset. Cloudflare supports [selective Worker-first paths](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/#run-worker-first-for-selective-paths), but every frame-resolved prerendered path must be included, with and without its trailing slash. Excluding it restores the asset-first behavior that causes this bug.
 
-Keep the Vite plugins composed as above, with `prerender` added to `remix({ serverHandler: false, prerender: true })`. `@pitlane/dev` does not change your Wrangler routing settings.
+Keep the Vite plugins composed as above, with `prerender` added to `remix({ serverHandler: false, prerender: true })`. The `pitlane/dev` plugin does not change your Wrangler routing settings.
 
 Check the production build with `vp preview`. A request to a frame-resolved route carrying the frame headers must return frame content without an asset redirect or a document shell. The wrapper forwards the URL unchanged, so the controller must handle the trailing-slash forms used by your links and frame sources. Register both `/page` and `/page/` with the same action if both are reachable. An ordinary document request should still serve the prerendered HTML. Click between frame-targeted links and confirm that the page retains one header and footer.
 
@@ -311,7 +316,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({

@@ -8,7 +8,7 @@ description: "How to write a ContentLoader or a LiveLoader for @pitlane/content,
 The two built-in loaders read local files. Everything else is a loader you write, and the interface you satisfy is what tells `@pitlane/content` how to treat the collection.
 
 ```ts
-import type { ContentLoader, LiveLoader } from "@pitlane/content";
+import type { ContentLoader, LiveLoader } from "pitlane/content";
 ```
 
 There is no flag and no registration. An object with a `load` method is a `ContentLoader`. An object with `loadCollection` and `loadEntry` is a `LiveLoader`. The shape is the declaration.
@@ -75,7 +75,7 @@ The shortest useful loader, turning each row of one file into an entry:
 ```ts
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ContentLoader } from "@pitlane/content";
+import type { ContentLoader } from "pitlane/content";
 
 export function csv(options: { file: string; idColumn?: string }): ContentLoader {
     let watched: string[] = [];
@@ -124,7 +124,7 @@ products: c.collection({
 Fetching at load time is the same shape. Entries get a body, so each one renders:
 
 ```ts
-import type { ContentLoader } from "@pitlane/content";
+import type { ContentLoader } from "pitlane/content";
 
 export function feed(options: { url: string }): ContentLoader {
     return {
@@ -154,7 +154,7 @@ Throw when the source is unreachable. Under `contentLayer()` it fails the build,
 An API with its own pagination and its own field names, mapped into something a schema can describe:
 
 ```ts
-import type { ContentLoader } from "@pitlane/content";
+import type { ContentLoader } from "pitlane/content";
 
 export function releases(options: { repository: string; token?: string }): ContentLoader {
     return {
@@ -203,7 +203,7 @@ Two things worth copying. The loader takes its credentials as options rather tha
 Useful while the real source does not exist yet, and useful in tests:
 
 ```ts
-import type { ContentLoader, LoadedEntry } from "@pitlane/content";
+import type { ContentLoader, LoadedEntry } from "pitlane/content";
 
 export function mock(entries: Omit<LoadedEntry, "data"> & { data: unknown }[]): ContentLoader {
     return {
@@ -235,7 +235,7 @@ interface LiveLoader<Data = Record<string, unknown>> {
 There is no store and no `parseData`. Return entries and the collection validates them, on every read, because a live source can change its mind between one request and the next:
 
 ```ts
-import type { LiveLoader } from "@pitlane/content";
+import type { LiveLoader } from "pitlane/content";
 
 export function cms(options: { endpoint: string; token: string }): LiveLoader {
     async function query(path: string) {

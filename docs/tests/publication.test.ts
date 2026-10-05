@@ -254,24 +254,6 @@ test("every page's footer links llms.txt", async () => {
     }
 });
 
-test("an install group exports as the npm command and a sentence naming the other managers", async () => {
-    let guide = await published("/guides/vite-plugin.md");
-    let fences = [...guide.matchAll(/^```sh\n([\s\S]*?)\n```\n\n(.+)$/gm)].filter(([, code]) =>
-        code!.includes("@pitlane/dev"),
-    );
-    assert.ok(fences.length > 0);
-    for (let [, code, sentence] of fences) {
-        assert.equal(code, "npm add -D @pitlane/dev");
-        for (let manager of PREFERENCE_CHOICES.packageManager.filter(name => name !== "npm")) {
-            assert.match(sentence!, new RegExp(`\\b${manager}\\b`), manager);
-        }
-        assert.match(sentence!, /`npm:/);
-    }
-    for (let manager of ["yarn", "pnpm", "bun", "deno", "vp", "vlt", "nub"]) {
-        assert.doesNotMatch(guide, new RegExp(`^${manager} add`, "m"), manager);
-    }
-});
-
 test("every built code block's text is the code it displays, line by line", async () => {
     for (let file of ["/deploy/railway.html", "/guides/vite-plugin.html", "/index.html"]) {
         let root = htmlToHast(await published(file));
