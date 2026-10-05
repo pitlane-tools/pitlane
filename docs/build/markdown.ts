@@ -22,7 +22,7 @@ const ALERTS: Record<string, string> = {
 };
 const DROPPED = new Set(["button", "form", "nav", "script", "style", "template"]);
 const BLOCKS_IN_ITEMS = new Set(["p", "ul", "ol", "pre", "div", "blockquote", "aside", "table"]);
-const ESCAPED = /[\\`*_[\]<]/g;
+const ESCAPED = /[\\`*_[\]<&]/g;
 
 /**
  * The Markdown a rendered article means: the same text, links, examples, and
@@ -149,7 +149,7 @@ function phrase(node: Content): string {
         case "br":
             return "\n";
         case "img":
-            return `![${node.properties?.alt ?? ""}](${markdownDestination(String(node.properties?.src ?? ""))})`;
+            return `![${escape(String(node.properties?.alt ?? ""))}](${markdownDestination(String(node.properties?.src ?? ""))})`;
         case "a": {
             if (classList(node).includes("doc-heading__anchor")) return "";
             let text = inner();
