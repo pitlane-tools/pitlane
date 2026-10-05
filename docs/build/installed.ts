@@ -13,7 +13,7 @@ import { guideGroups } from "../app/components/navigation.ts";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../app/components/site.ts";
 import { documentPlugins } from "./compile.ts";
 import { exportDocument, linkedDescription, markdownFile, type Site } from "./exports.ts";
-import { markdownDestination } from "./markdown.ts";
+import { markdownDestination, markdownText } from "./markdown.ts";
 
 export interface InstalledPackage {
     name: string;
@@ -82,7 +82,7 @@ export function rewriteMarkdownLinks(markdown: string, link: (href: string) => s
                     edits.push({
                         start: start.offset!,
                         end: end.offset!,
-                        text: `[${href.replace(/[\\`*_[\]<&]/g, character => (character === "&" ? "&amp;" : `\\${character}`))}](${markdownDestination(target)})`,
+                        text: `[${markdownText(href)}](${markdownDestination(target)})`,
                     });
                 } else {
                     // AST URLs decode entities and escapes; delimiters locate the raw destination.

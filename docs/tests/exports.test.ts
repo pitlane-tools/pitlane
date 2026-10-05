@@ -111,6 +111,7 @@ test("exported images retain literal alt text and their destination", () => {
     for (let [htmlAlt, expected] of [
         ["Photo ] today", "Photo ] today"],
         ["*Important* _photo_", "*Important* _photo_"],
+        ["Photo ~~front~~ side", "Photo ~~front~~ side"],
         ["A literal &amp;copy; label", "A literal &copy; label"],
         ["Photo [front] \\ side", "Photo [front] \\ side"],
     ]) {

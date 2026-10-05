@@ -22,7 +22,7 @@ const ALERTS: Record<string, string> = {
 };
 const DROPPED = new Set(["button", "form", "nav", "script", "style", "template"]);
 const BLOCKS_IN_ITEMS = new Set(["p", "ul", "ol", "pre", "div", "blockquote", "aside", "table"]);
-const ESCAPED = /[\\`*_[\]<&]/g;
+const ESCAPED = /[\\`*_[\]<&~]/g;
 
 /**
  * The Markdown a rendered article means: the same text, links, examples, and
@@ -91,7 +91,8 @@ function blocks(nodes: Content[]): string {
 }
 
 function block(node: Content): string {
-    if (node.type === "text") return node.value.trim() === "" ? "" : escape(node.value.trim());
+    if (node.type === "text")
+        return node.value.trim() === "" ? "" : markdownText(node.value.trim());
     if (node.type !== "element" || DROPPED.has(node.tagName)) return "";
     if (hasProperty(node, "dataPagefindIgnore")) return "";
 
@@ -131,7 +132,7 @@ function inline(nodes: Content[]): string {
 }
 
 function phrase(node: Content): string {
-    if (node.type === "text") return escape(node.value);
+    if (node.type === "text") return markdownText(node.value);
     if (node.type !== "element") return "";
 
     let inner = () => node.children.map(phrase).join("");
@@ -149,7 +150,7 @@ function phrase(node: Content): string {
         case "br":
             return "\n";
         case "img":
-            return `![${escape(String(node.properties?.alt ?? ""))}](${markdownDestination(String(node.properties?.src ?? ""))})`;
+            return `![${markdownText(String(node.properties?.alt ?? ""))}](${markdownDestination(String(node.properties?.src ?? ""))})`;
         case "a": {
             if (classList(node).includes("doc-heading__anchor")) return "";
             let text = inner();
@@ -361,6 +362,6 @@ function indent(text: string, width: number): string {
         .join("\n");
 }
 
-function escape(text: string): string {
+export function markdownText(text: string): string {
     return text.replace(ESCAPED, "\\$&");
 }
