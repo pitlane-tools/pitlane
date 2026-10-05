@@ -12,6 +12,8 @@ import { get, route } from "remix/routes";
  */
 export let routes = route({
     home: get("/"),
+    /** The guides' landing page: what Pitlane adds to Remix, and where each guide leads. */
+    guides: get("/guides"),
     guide: get("/guides/:slug"),
     deploy: get("/deploy/:slug"),
     /** The generated reference: a module overview (`dev/`) or a symbol (`dev/function/remix`). */

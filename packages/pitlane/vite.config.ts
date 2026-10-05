@@ -17,7 +17,15 @@ export default defineConfig({
     ],
     run: {
         tasks: {
-            build: { command: ["rm -rf dist && vp pack", "node scripts/check-dist.ts"] },
+            // The documentation goes after the pack, which would empty dist/ under its READMEs.
+            build: {
+                dependsOn: ["@pitlane/content#build", "@pitlane/theme#build"],
+                command: [
+                    "rm -rf dist && vp pack",
+                    "node scripts/check-dist.ts",
+                    "node scripts/docs.ts",
+                ],
+            },
             generate: {
                 command: ["node scripts/generate.ts", "vp fmt package.json"],
                 cache: false,

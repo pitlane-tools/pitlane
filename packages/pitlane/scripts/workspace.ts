@@ -4,6 +4,7 @@ import { join } from "node:path";
 /** What the umbrella reads from a published `@pitlane/*` package's manifest. */
 export interface WorkspacePackage {
     name: string;
+    description: string;
     directory: string;
     exports: Record<string, Record<string, string>>;
     peerDependencies?: Record<string, string>;
@@ -23,6 +24,7 @@ export function readWorkspacePackages(packagesDirectory: string): WorkspacePacka
         .filter(({ manifest }) => manifest.name?.startsWith("@pitlane/") && !manifest.private)
         .map(({ directory, manifest }) => ({
             name: manifest.name,
+            description: manifest.description,
             directory,
             exports: manifest.exports ?? {},
             peerDependencies: manifest.peerDependencies,

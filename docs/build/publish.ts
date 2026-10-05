@@ -10,6 +10,7 @@ import type { SearchDocument } from "./pagefind.ts";
 
 import { type DocumentPage, markdownPath } from "../app/document.ts";
 import {
+    articleOf,
     type Exported,
     exportDocument,
     exportHome,
@@ -225,18 +226,6 @@ async function importServer(path: string): Promise<ServerEntry> {
             { cause: error },
         );
     }
-}
-
-/** A page's one `<article>`: the compiled body every export is derived from. */
-function articleOf(html: string, url: string): string {
-    let start = html.indexOf("<article");
-    let end = html.lastIndexOf("</article>");
-    if (start === -1 || end < start || html.indexOf("<article", start + 1) !== -1) {
-        throw new Error(
-            `[docs-publish] ${url} must render exactly one <article>, holding its body.`,
-        );
-    }
-    return html.slice(start, end + "</article>".length);
 }
 
 async function write(path: string, content: string): Promise<void> {

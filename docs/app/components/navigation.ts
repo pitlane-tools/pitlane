@@ -1,4 +1,9 @@
-import { type BuildMode, DEFAULT_PREFERENCES, type DocumentPage } from "../document.ts";
+import {
+    type BuildMode,
+    DEFAULT_PREFERENCES,
+    type DocumentPage,
+    PREFERENCE_CHOICES,
+} from "../document.ts";
 import { routes } from "../routes.ts";
 
 export interface NavigationLink {
@@ -40,7 +45,7 @@ export type Navigation =
  * without the list.
  */
 export const PRIMARY_LINKS = {
-    guides: routes.guide.href({ slug: "umbrella" }),
+    guides: routes.guides.href(),
     api: routes.api.href({ path: "dev/" }),
 } as const;
 
@@ -55,7 +60,13 @@ let deploy = (title: string, slug: string) => ({ title, url: routes.deploy.href(
  * page's own `counterpart` metadata, so the pairing has a single source.
  */
 const GUIDE_GROUPS: { title: string; links: { title: string; url: string }[] }[] = [
-    { title: "Getting Started", links: [guide("The pitlane Package", "umbrella")] },
+    {
+        title: "Getting Started",
+        links: [
+            { title: "Introduction", url: routes.guides.href() },
+            guide("Installation", "umbrella"),
+        ],
+    },
     {
         title: "Vite Plugin",
         links: [
@@ -158,6 +169,22 @@ function indexGuides(pages: DocumentPage[]): SiteIndex["guides"] {
         );
     }
     return guides;
+}
+
+/**
+ * The guides in the order the sidebar shows them, under its group titles,
+ * with both setups of a two-setup guide in the switch's order. Unlike the
+ * sidebar itself, it needs only the guides and deployment pages.
+ */
+export function guideGroups(pages: DocumentPage[]): { title: string; urls: string[] }[] {
+    return indexGuides(pages).map(group => ({
+        title: group.title,
+        urls: group.links.flatMap(({ pages }) =>
+            "url" in pages
+                ? [pages.url]
+                : PREFERENCE_CHOICES.buildMode.map(mode => pages[mode].url),
+        ),
+    }));
 }
 
 function indexModules(pages: DocumentPage[]): SiteIndex["modules"] {

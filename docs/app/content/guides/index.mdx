@@ -1,0 +1,90 @@
+---
+title: Pitlane guides
+description: "An introduction to Pitlane's build tooling and runtime packages for Remix 3 applications, with guides for each task."
+---
+
+import { InstallGroup } from "../../components/documentation.tsx";
+import { installAlternatives } from "../../install.ts";
+
+export const installation = await installAlternatives({ packages: ["pitlane"] });
+
+# Pitlane guides
+
+Pitlane provides build tooling and runtime packages for [Remix 3](https://remix.run). Its Vite plugin runs the dev server and builds the app for its host. Additional packages handle content and styling, with a Cloudflare D1 driver and an in-memory crawler available separately.
+
+Remix owns routing and UI. Pitlane's packages compose with its APIs: content collections validate with `remix/data-schema`, and the D1 driver plugs into `remix/data-table`.
+
+These guides explain how each piece behaves and when to reach for it. The [API reference](/package/dev/) documents every export separately.
+
+## Start a new app
+
+The [starter templates](https://github.com/pitlane-tools/templates) are one guest book app, wired once for each deploy target. Scaffold the Cloudflare one with [giget](https://github.com/unjs/giget):
+
+```sh
+npx giget github:pitlane-tools/templates/cloudflare my-app
+```
+
+The repository names the other targets, and the [deploy guides](#deploy) cover each one.
+
+## Add Pitlane to a Remix app
+
+Install the `pitlane` package. It needs `remix` 3 and `vite` 8 or later as peer dependencies.
+
+<InstallGroup alternatives={installation} />
+
+Then add the Vite plugin from `pitlane/dev` to `vite.config.ts`:
+
+```ts
+// vite.config.ts
+import { remix } from "pitlane/dev";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    plugins: [remix()],
+});
+```
+
+[Using the Vite plugin](/guides/vite-plugin#the-three-file-core) shows the server and browser entry files the plugin expects, and what changes between dev, preview, and the build.
+
+### Imports
+
+`pitlane` installs every Pitlane package and re-exports each one under a subpath named after it: `@pitlane/dev` becomes `pitlane/dev`, and `@pitlane/theme/schema` becomes `pitlane/theme/schema`. Bare `pitlane` has no exports, so every import names a subpath.
+
+Each package also installs on its own under its `@pitlane/*` name. That route suits an app that uses one package or needs a release newer than the one `pitlane` pins. [Installing Pitlane](/guides/umbrella) compares the installs and explains the version pins, with a full subpath reference.
+
+## Guides
+
+### Build and develop
+
+- [Using the Vite plugin](/guides/vite-plugin): what `remix()` does in dev, preview, and the build, including the asset runtime and the `clientEntry()` transform.
+- [Hot module replacement](/guides/hmr): component state across edits and server-data revalidation through the frame runtime.
+- [Single-page apps](/guides/spa): a client-rendered app with `remix({ server: false })`, and what the plugin still does without a server.
+- [Prerendering](/guides/prerendering): rendering paths to static HTML during `vite build`, and where those paths come from.
+
+### Deploy
+
+- [Cloudflare Workers](/deploy/cloudflare): local development with workerd and deployment through Wrangler.
+- [Netlify](/deploy/netlify): a one-file Netlify Function around the built fetch handler.
+- [Vercel](/deploy/vercel): deploying server functions through Nitro.
+- [Railway](/deploy/railway): container deployment with a choice of runtime.
+- [Deno Deploy](/deploy/deno-deploy): the fetch handler behind a short `Deno.serve` entrypoint.
+- [GitHub Pages](/deploy/github-pages): a single-page app or a fully prerendered site, with the base path a project site needs.
+
+### Content and styling
+
+- [Content](/guides/content): querying schema-validated collections of Markdown, MDX, JSON, or YAML.
+- [Theme](/guides/theme): typed design tokens for styling with `css()` mixins.
+
+### Crawling
+
+- [Crawler](/guides/crawler): walking the app's router in memory for sitemaps and link checks.
+
+### Data
+
+- [Cloudflare D1](/guides/cloudflare-d1): running `remix/data-table` on a D1 binding, and the D1 limits the driver cannot hide.
+
+Content, prerendering, and the Railway and Deno Deploy guides also cover apps that run straight from source with no build step. Their pages switch between the Vite and No Build versions.
+
+## For coding agents
+
+`pitlane` releases after `1.0.0-alpha.1` install these guides with the package, so an agent working in an app can read the version the app depends on. [Documentation for coding agents](/guides/umbrella#documentation-for-coding-agents) explains where the files are and how to point an agent at them.

@@ -31,7 +31,15 @@ Use the [starter templates](https://github.com/pitlane-tools/templates) to creat
 
 ## Documentation
 
-- [The `pitlane` package](https://pitlane.tools/guides/umbrella): subpaths, versions, and migrating from the `@pitlane/*` packages
+The package carries the documentation for the version it installs, in plain Markdown, so an editor or a coding agent can read it offline from `node_modules/pitlane`:
+
+- `INDEX.md` lists every guide with its description, and every `pitlane/*` subpath beside the README that documents it.
+- `guides/` holds every guide on [pitlane.tools](https://pitlane.tools), deployment guides under `guides/deploy/`.
+- `dist/<package>/README.md` is the README of each `@pitlane/*` package, beside that package's compiled subpaths: `dist/dev/README.md` documents `pitlane/dev` and its subpaths.
+
+Links between these files lead to the installed copies. Links to the generated API reference lead to pitlane.tools. For exact signatures and TSDoc, follow a subpath's type declarations to its installed `@pitlane/*` package.
+
+- [Installing Pitlane](https://pitlane.tools/guides/umbrella): subpaths, versions, and migrating from the `@pitlane/*` packages
 - [Pitlane documentation](https://pitlane.tools)
 
 ## License

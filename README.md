@@ -16,7 +16,7 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 
 Every push to a branch also builds installable package previews, for example: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/content@<sha>`.
 
-[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/dev` and `pitlane/theme/schema`. Each release pins exact package versions and is cut by hand when enough package changes have accumulated, so the newest `@pitlane/*` release can be ahead of it. The first umbrella release, `1.0.0-alpha.1`, pins `@pitlane/dev@0.7.1`, `@pitlane/theme@0.5.0`, `@pitlane/content@0.3.1`, `@pitlane/crawler@0.3.0`, and `@pitlane/data-table-d1@0.3.0`. Every package also installs and is documented on its own. [The `pitlane` package](https://pitlane.tools/guides/umbrella) guide covers subpaths, versions, and migration.
+[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/dev` and `pitlane/theme/schema`. Each release pins exact package versions and is cut by hand when enough package changes have accumulated, so the newest `@pitlane/*` release can be ahead of it. The first umbrella release, `1.0.0-alpha.1`, pins `@pitlane/dev@0.7.1`, `@pitlane/theme@0.5.0`, `@pitlane/content@0.3.1`, `@pitlane/crawler@0.3.0`, and `@pitlane/data-table-d1@0.3.0`. Every package also installs and is documented on its own. [Installing Pitlane](https://pitlane.tools/guides/umbrella) covers subpaths, versions, and migration.
 
 [`create-pitlane`](packages/create-pitlane) is on npm, but its planned API is not implemented. The CLI will replace the `giget` command below.
 
@@ -62,11 +62,13 @@ Because every template is the same app, diffing any two shows exactly what a pla
 
 [pitlane.tools](https://pitlane.tools) hosts everything:
 
-- Guides: [The `pitlane` package](https://pitlane.tools/guides/umbrella) · [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Theme](https://pitlane.tools/guides/theme) · [Single-page apps](https://pitlane.tools/guides/spa) · [Content](https://pitlane.tools/guides/content) · [Creating a content loader](https://pitlane.tools/guides/content#custom-loaders) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
+- Guides: [Introduction](https://pitlane.tools/guides) · [Installation](https://pitlane.tools/guides/umbrella) · [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Theme](https://pitlane.tools/guides/theme) · [Single-page apps](https://pitlane.tools/guides/spa) · [Content](https://pitlane.tools/guides/content) · [Creating a content loader](https://pitlane.tools/guides/content#custom-loaders) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
 - API reference, generated from source, covering the same APIs `pitlane/<name>` re-exports: [`@pitlane/dev`](https://pitlane.tools/package/dev/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/content`](https://pitlane.tools/package/content/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
 - Deploy guides: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare) · [Netlify](https://pitlane.tools/deploy/netlify) · [Vercel](https://pitlane.tools/deploy/vercel) · [Railway](https://pitlane.tools/deploy/railway) · [Deno Deploy](https://pitlane.tools/deploy/deno-deploy) · [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 
 For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).
+
+`pitlane` releases after `1.0.0-alpha.1` also install the guides, scoped package READMEs, and a generated `INDEX.md`. In an app, start with `node_modules/pitlane/INDEX.md` to find documentation for the installed version. The website remains useful without an installation; its pages track the latest deployed documentation.
 
 ## Repository
 

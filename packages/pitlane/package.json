@@ -20,6 +20,8 @@
     },
     "files": [
         "dist",
+        "guides",
+        "INDEX.md",
         "CHANGELOG.md"
     ],
     "type": "module",
