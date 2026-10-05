@@ -1,7 +1,7 @@
 ---
 id: decision.0003
 title: Umbrella Package
-status: proposed
+status: accepted
 established-by: pull-request.55
 supersedes: []
 ---
@@ -78,6 +78,7 @@ Registering through a global set keeps the umbrella's modules uniform and keeps 
 
 ## Revision history
 
-| Date       | Change                  | Proposal        |
-| ---------- | ----------------------- | --------------- |
-| 2026-10-03 | Proposed this decision. | pull-request.55 |
+| Date       | Change                                   | Proposal        |
+| ---------- | ---------------------------------------- | --------------- |
+| 2026-10-03 | Proposed this decision.                  | pull-request.55 |
+| 2026-10-05 | Accepted for the first umbrella release. | pull-request.55 |

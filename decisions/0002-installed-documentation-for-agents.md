@@ -1,7 +1,7 @@
 ---
 id: decision.0002
 title: Installed Documentation for Agents
-status: proposed
+status: accepted
 established-by: pull-request.55
 supersedes: []
 ---
@@ -66,6 +66,7 @@ Following Remix keeps one convention in a Pitlane app. An agent working in one a
 
 ## Revision history
 
-| Date       | Change                  | Proposal        |
-| ---------- | ----------------------- | --------------- |
+| Date | Change | Proposal |
+| --- | --- | --- |
 | 2026-10-03 | Proposed this decision. | pull-request.55 |
+| 2026-10-05 | Accepted; installed documentation remains a follow-up to the first umbrella release. | pull-request.55 |
