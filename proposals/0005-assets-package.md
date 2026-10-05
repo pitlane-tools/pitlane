@@ -103,60 +103,241 @@ Four specimens.
 
 Give Pitlane the asset server's method surface, backed by a Vite build instead of a compiler, as its own package; let the renderer's own contract resolve islands; compose the package into `remix()`.
 
+The rest of this section follows one small server-rendered app through the change: a document, a stylesheet, and one island.
+
+```text
+app/
+├── assets.ts          constructs the resolver; the only Pitlane-specific file
+├── counter.tsx        an island
+├── document.tsx       the remix CLI template's document
+├── entry.browser.ts   the browser entry
+├── entry.server.tsx   the router, passing the resolver to render()
+├── routes.ts
+└── styles.css
+vite.config.ts
+```
+
+### The app
+
+`app/assets.ts` is where a No Build app calls `createAssetServer(options)`. Under Pitlane it constructs a resolver from the manifest the build writes, and resolves the browser entry and the stylesheet once, at module load:
+
 ```ts
 // app/assets.ts
 import { createAssetResolver } from "@pitlane/assets";
 import manifest from "@pitlane/assets/manifest";
 
 export let assets = createAssetResolver(manifest);
+
 export let scriptEntry = await assets.getScriptEntry("app/entry.browser.ts");
+export let stylesheetHref = await assets.getHref("app/styles.css");
 ```
+
+The two string literals are also how the build learns what to emit, the way Vite learns what `new URL("./x", import.meta.url)` names: a literal argument to a resolver method in server code registers that file as a client build input. A path computed at runtime is registered with `assets({ include })` instead.
+
+The document is the remix CLI template's, plus one stylesheet link. Nothing in it is Pitlane's:
 
 ```tsx
-// app/document.tsx — the remix CLI template, unchanged
-let { href, importMap, preloads } = scriptEntry;
-<ImportMap value={importMap} />
-{preloads.map(preloadHref => <link key={preloadHref} rel="modulepreload" href={preloadHref} />)}
-<link rel="stylesheet" href={await assets.getHref("app/styles.css")} />
-<script type="module" src={href} />
+// app/document.tsx
+import type { Handle, RemixNode } from "remix/component";
+import { ImportMap } from "remix/component/server";
+
+import { scriptEntry, stylesheetHref } from "./assets.ts";
+
+export interface DocumentProps {
+    children?: RemixNode;
+    title?: string;
+}
+
+export function Document(handle: Handle<DocumentProps>) {
+    return () => {
+        let { children, title = "Counter" } = handle.props;
+        let { href, importMap, preloads } = scriptEntry;
+
+        return (
+            <html lang="en">
+                <head>
+                    <meta charSet="utf-8" />
+                    <title>{title}</title>
+                    <link rel="stylesheet" href={stylesheetHref} />
+                    <ImportMap value={importMap} />
+                    {preloads.map(preloadHref => (
+                        <link key={preloadHref} rel="modulepreload" href={preloadHref} />
+                    ))}
+                    <script type="module" src={href} />
+                </head>
+                <body>{children}</body>
+            </html>
+        );
+    };
+}
 ```
 
-```ts
-// app/entry.server.ts
-createRouter({ middleware: [staticFiles("./dist/client"), render({ assets })] });
+The island is written as it is today, with `import.meta.url` as its entry id:
+
+```tsx
+// app/counter.tsx
+import { clientEntry, on } from "remix/component";
+
+export let Counter = clientEntry(import.meta.url, function Counter(handle) {
+    let count = 0;
+
+    return () => (
+        <button
+            mix={[
+                on("click", () => {
+                    count++;
+                    handle.update();
+                }),
+            ]}
+        >
+            Count: {count}
+        </button>
+    );
+});
 ```
 
+The router passes the same `assets` object to Remix's own `render()` middleware. There is no Pitlane renderer and no hand-written `resolveClientEntry`:
+
+```tsx
+// app/entry.server.tsx
+import { render } from "remix/middleware/render";
+import { staticFiles } from "remix/middleware/static";
+import { createRouter, type MiddlewareContext } from "remix/router";
+
+import { assets } from "./assets.ts";
+import { Counter } from "./counter.tsx";
+import { Document } from "./document.tsx";
+import { routes } from "./routes.ts";
+
+let renderMiddleware = render({ assets });
+type AppContext = MiddlewareContext<[typeof renderMiddleware]>;
+
+declare module "remix" {
+    interface RouterTypes {
+        context: AppContext;
+    }
+}
+
+export let router = createRouter<AppContext>({
+    middleware: [staticFiles("./dist/client"), renderMiddleware],
+});
+
+router.map(routes.home, ({ render }) =>
+    render(
+        <Document>
+            <Counter />
+        </Document>,
+    ),
+);
+
+export default router;
+```
+
+The Vite config does not change. `remix()` composes the assets plugin:
+
 ```ts
-// vite.config.ts — with remix()
+// vite.config.ts
 import { remix } from "@pitlane/dev";
-export default defineConfig({ plugins: [remix()] });
+import { defineConfig } from "vite";
 
-// vite.config.ts — without it
+export default defineConfig({
+    plugins: [remix()],
+});
+```
+
+Moving this app to No Build changes how `app/assets.ts` constructs `assets`, and serves `/assets/*` through `assets.fetch` instead of `staticFiles("./dist/client")`. The document, the island, and `render({ assets })` stay as they are.
+
+### What happens to the island
+
+The plugin rewrites the island's entry id to the same literal in every environment, an identity with no machine path and no runtime value in it:
+
+```diff
+-export let Counter = clientEntry(import.meta.url, function Counter(handle) {
++export let Counter = clientEntry("file:app/counter.tsx#Counter", function Counter(handle) {
+```
+
+When the page renders `<Counter />`, `render({ assets })` sees the `file:` prefix and calls `assets.getScriptEntry("file:app/counter.tsx")`. The resolver strips `file:` to the key `app/counter.tsx`, finds it in the manifest, and returns a `ScriptEntry`. Under `vite dev`, the href is the module's dev URL:
+
+```ts
+import type { ScriptEntry } from "@pitlane/assets";
+
+let counterInDev: ScriptEntry = {
+    href: "/app/counter.tsx",
+    preloads: [],
+    importMap: { imports: {} },
+};
+```
+
+After `vite build`, `href` is the emitted chunk, `preloads` lists that chunk followed by its static imports, and `importMap` is the complete map Vite generated for the client build. Hashes here are illustrative:
+
+```ts
+import type { ScriptEntry } from "@pitlane/assets";
+
+let counterInBuild: ScriptEntry = {
+    href: "/assets/counter-BuA5dl53.js",
+    preloads: ["/assets/counter-BuA5dl53.js", "/assets/component-D4xq9a1E.js"],
+    importMap: {
+        imports: {
+            "/assets/component-Kp3vQ8sN.js": "/assets/component-D4xq9a1E.js",
+            "/assets/counter-Bj6c-xfy.js": "/assets/counter-BuA5dl53.js",
+            "/assets/entry.browser-DwBno1Lm.js": "/assets/entry.browser-ClAcATfe.js",
+        },
+    },
+};
+```
+
+Remix's renderer hoists the preloads into the head and writes the island's hydration record. The built page carries:
+
+```html
+<link data-rmx-module-preload rel="modulepreload" href="/assets/counter-BuA5dl53.js" />
+<link data-rmx-module-preload rel="modulepreload" href="/assets/component-D4xq9a1E.js" />
+<!-- … -->
+<script type="application/json" id="rmx-data">
+    {
+        "h": {
+            "h1": {
+                "moduleUrl": "/assets/counter-BuA5dl53.js",
+                "exportName": "Counter",
+                "props": {}
+            }
+        }
+    }
+</script>
+```
+
+Islands get preload hints they do not get today, and the serialized `moduleUrl` stays an emitted chunk URL rather than an import-map identifier.
+
+Chunk import maps are on by default for the client build, so a dependency's new hash changes its map entry instead of the bytes of every chunk importing it. An app that needs `experimental.renderBuiltUrl`, or targets browsers without import-map support, opts out with `remix({ assets: { chunkImportMap: false } })`, and `importMap` is then `{ imports: {} }`, as it always is in dev.
+
+With `remix({ assets: { types: true } })`, the resolver's methods accept only the app's source paths, so `assets.getScriptEntry("app/entry.broswer.ts")` is a type error before any build runs. The imports in `app/assets.ts` stay the same.
+
+### Without `remix()`
+
+A Remix app on plain Vite environments takes the same package without the rest of `@pitlane/dev`. The app files above are unchanged; only the config differs:
+
+```ts
+// vite.config.ts
 import { assets } from "@pitlane/assets/vite";
+import { defineConfig } from "vite";
+
 export default defineConfig({
     environments: {
         client: {},
-        ssr: { build: { rollupOptions: { input: "app/entry.server.ts" } } },
+        ssr: {
+            build: {
+                rolldownOptions: { input: "app/entry.server.tsx" },
+            },
+        },
     },
     plugins: [assets()],
 });
 ```
 
-Islands need nothing from the app:
+`assets()` keys islands, registers inputs, orders the server build before the client build, and writes the manifest. Serving requests in dev, prerendering, and component HMR stay in `remix()`.
 
-```text
-export let Counter = clientEntry(import.meta.url, …)   in app/components/counter.tsx
-  → transform (every environment):  clientEntry("file:app/components/counter.tsx#Counter", …)
-  → render({ assets }) sees "file:" and calls assets.getScriptEntry("file:app/components/counter.tsx")
-  → dev:   { href: "/app/components/counter.tsx", preloads: [], importMap: { imports: {} } }
-  → build: { href: "/assets/counter-Bx1.js", preloads: ["/assets/counter-Bx1.js", "/assets/chunk-9k.js"], importMap: clientImportMap }
-  → #rmx-data: { moduleUrl: "/assets/counter-Bx1.js", exportName: "Counter" }
-  → <head>: <link rel="modulepreload" href="/assets/counter-Bx1.js"> …
-```
+### What goes away
 
-`clientImportMap` is the complete map generated by Vite in the default build. With `assets({ chunkImportMap: false })`, it is `{ imports: {} }`; development also keeps the empty map.
-
-The build learns what the document names the way Vite learns what `new URL("./x", import.meta.url)` names: literal arguments to these methods in server code register the files as client inputs. `?assets=` imports, `ImportedAssets`, `mergeAssets`, and `pitlane:dev` are removed; `HMR` moves to `@pitlane/dev/runtime`; `@hiogawa/vite-plugin-fullstack` goes with them.
+`?assets=` imports, `ImportedAssets`, `mergeAssets`, and `pitlane:dev` are removed, and `@hiogawa/vite-plugin-fullstack` goes with them. `HMR` moves to `import { HMR } from "@pitlane/dev/runtime"`. Compatibility maps each removed form to its replacement.
 
 ## Detailed design
 
