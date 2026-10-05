@@ -77,7 +77,7 @@ export function rewriteMarkdownLinks(markdown: string, link: (href: string) => s
             let { start, end } = node.position;
             let source = markdown.slice(start.offset, end.offset);
             if (target !== href) {
-                if (source.startsWith("<")) {
+                if (source.startsWith("<") || source === href) {
                     edits.push({
                         start: start.offset!,
                         end: end.offset!,
