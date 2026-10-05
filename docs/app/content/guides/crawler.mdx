@@ -1,19 +1,20 @@
 ---
 title: Crawler
-description: "How @pitlane/crawler walks a Remix 3 fetch router in memory, and the jobs that walk is good for: sitemaps, link checks, and render smoke tests."
+description: "How pitlane/crawler walks a Remix 3 fetch router in memory, and the jobs that walk is good for: sitemaps, link checks, and render smoke tests."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
-export const installation = await installAlternatives({ packages: ["@pitlane/crawler"] });
+export const installation = await installAlternatives({ packages: ["pitlane"] });
+export const standaloneInstallation = await installAlternatives({ packages: ["@pitlane/crawler"] });
 
 # Crawler
 
-[`@pitlane/crawler`](/package/crawler/) walks an app by dispatching requests straight into its router:
+[`pitlane/crawler`](/package/crawler/) walks an app by dispatching requests straight into its router:
 
 ```ts
-import { crawl } from "@pitlane/crawler";
+import { crawl } from "pitlane/crawler";
 
 import router from "./app/entry.server.ts";
 
@@ -36,7 +37,11 @@ Writing an app's pages to disk has its own guide in two halves. [Prerendering](/
 
 <InstallGroup alternatives={installation} />
 
-Remix 3 is a peer dependency. The first argument to [`crawl()`](/package/crawler/function/crawl) is anything with a `fetch(request: Request)` method, so a `createRouter()` router works, and so does a built bundle's default export or a hand-written `{ fetch }` object.
+The `pitlane` package provides `pitlane/crawler` along with the rest of Pitlane. It requires `remix@^3.0.0` and `vite@>=8` as peer dependencies. An app without Vite can use `@pitlane/crawler` on its own with `remix@^3.0.0`. [Prerendering without a build](/guides/prerendering-no-build) uses that setup. For this install, change the examples' imports to `@pitlane/crawler`:
+
+<InstallGroup alternatives={standaloneInstallation} />
+
+The [Pitlane package guide](/guides/umbrella) compares the two installs. The first argument to [`crawl()`](/package/crawler/function/crawl) is anything with a `fetch(request: Request)` method, so a `createRouter()` router works, and so does a built bundle's default export or a hand-written `{ fetch }` object.
 
 ## Exporting a static site
 
@@ -47,7 +52,7 @@ Writing every response to disk has moved into [prerendering without a build](/gu
 A crawl already knows every URL, so a sitemap is the same loop with a different body:
 
 ```ts
-import { crawl } from "@pitlane/crawler";
+import { crawl } from "pitlane/crawler";
 
 const ORIGIN = "https://example.com";
 
@@ -74,7 +79,7 @@ The `Content-Type` check keeps JSON endpoints out of the file. Redirects never a
 A crawl aborts on the first failing response, meaning any status outside the 2xx range that is not a redirect, with the failing path in the message. That makes a link check a test with no assertions in it:
 
 ```ts
-import { crawl } from "@pitlane/crawler";
+import { crawl } from "pitlane/crawler";
 import { it } from "vitest";
 
 import router from "../app/entry.server.ts";
@@ -139,7 +144,7 @@ crawl(router, {
 [`staticPaths()`](/package/crawler/function/staticPaths) answers the question that comes before a crawl: which paths can this app serve with no params?
 
 ```ts
-import { staticPaths } from "@pitlane/crawler";
+import { staticPaths } from "pitlane/crawler";
 import { get, route } from "remix/routes";
 
 export let routes = route({

@@ -2,17 +2,17 @@ import { Callout, InstallGroup, NoBuild, Vite } from "../../components/documenta
 import { installAlternatives } from "../../install.ts";
 
 export const viteInstallation = await installAlternatives({
-    packages: ["@pitlane/content"],
+    packages: ["pitlane"],
     dev: ["satteri", "vite-plugin-satteri"],
 });
 
 export const noBuildInstallation = await installAlternatives({
-    packages: ["@pitlane/content", "satteri"],
+    packages: ["pitlane", "satteri"],
 });
 
 # Content
 
-**`@pitlane/content`** is the best way to manage Markdown, MDX, JSON, YAML, or any other kind of content for your Remix project, including blog posts, product descriptions, character profiles, recipes, or any structured content. Collections help you organize, validate, and query your documents.
+**`pitlane/content`** is the best way to manage Markdown, MDX, JSON, YAML, or any other kind of content for your Remix project, including blog posts, product descriptions, character profiles, recipes, or any structured content. Collections help you organize, validate, and query your documents.
 
 The content package enables you to render content from anywhere, whether it lives in your repo or behind a remote API, fetched once or on every request.
 
@@ -20,7 +20,7 @@ The content package enables you to render content from anywhere, whether it live
 
 <Vite>
 
-`@pitlane/content` is a runtime dependency. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and [`contentLayer()`](/package/content/vite/function/contentLayer) calls `satteri` directly to retrieve a Markdown file's heading list.
+`pitlane/content` is part of the `pitlane` package, which is a runtime dependency because your controllers import the content client. The same install provides [`pitlane/dev`](/guides/vite-plugin), so the Vite config below needs nothing more from Pitlane. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and [`contentLayer()`](/package/content/vite/function/contentLayer) calls `satteri` directly to retrieve a Markdown file's heading list.
 
 <InstallGroup alternatives={viteInstallation} />
 
@@ -28,11 +28,11 @@ The content package enables you to render content from anywhere, whether it live
 
 <NoBuild>
 
-`@pitlane/content` and `satteri` are runtime dependencies because the content client transforms the Markdown and MDX at runtime when using it within a Remix no-build setup.
+`pitlane` and `satteri` are runtime dependencies because the content client transforms the Markdown and MDX at runtime when using it within a Remix no-build setup.
 
 <InstallGroup alternatives={noBuildInstallation} />
 
-`satteri` is an optional peer dependency of `@pitlane/content`, needed only when a collection holds `.md` or `.mdx` files.
+`satteri` is an optional peer dependency of `pitlane`, needed only when a collection holds `.md` or `.mdx` files. `pitlane` also requires `vite` 8 or later as a peer dependency, so installing it brings Vite into the project even though nothing here bundles. To leave Vite out, install the standalone `@pitlane/content` package instead and import from `@pitlane/content`. [The `pitlane` Package](/guides/umbrella) explains the trade.
 
 </NoBuild>
 
@@ -40,7 +40,7 @@ The content package enables you to render content from anywhere, whether it live
 
 When writing a custom `LiveLoader` that returns a Markdown body which renders at request time even in a bundled application, make sure to declare `satteri` as a runtime dependency instead of a dev dependency.
 
-[`@pitlane/dev`](/guides/vite-plugin) is assumed here and installs itself the same way, as a dev dependency.
+Installing `pitlane` in `dependencies` already covers the dev server and build plugins, so there is no separate dev-only Pitlane install. Apps that want only the packages they use can install the scoped `@pitlane/*` packages instead, as [The `pitlane` Package](/guides/umbrella) describes.
 
 </Vite>
 
@@ -52,9 +52,9 @@ Register two plugins in your Vite config, before [`remix()`](/package/dev/functi
 
 ```ts
 // vite.config.ts
-import { headings, rawStyles } from "@pitlane/content/satteri";
-import { contentLayer } from "@pitlane/content/vite";
-import { remix } from "@pitlane/dev";
+import { headings, rawStyles } from "pitlane/content/satteri";
+import { contentLayer } from "pitlane/content/vite";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 import satteri from "vite-plugin-satteri";
 
@@ -102,8 +102,8 @@ Collections are defined in the schema file (`app/content.ts`, by convention) whi
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
@@ -129,7 +129,7 @@ Two types of content collections are available. A [`ContentLoader`](/package/con
 - A required `loader` to retrieve your content and data from wherever it is stored and make it available to your project through content-focused APIs.
 - A required `schema` that allows you to define the expected shape of each entry for type safety and validation.
 
-Collections stored locally in your repo or on your filesystem can use one of the two provided loaders (from `@pitlane/content/loaders`) to fetch data from Markdown, MDX, YAML, or JSON files. Point the content client to the location of your content, define your data schema, and you're good to go with a blog or another content-heavy, mostly static site in no time!
+Collections stored locally in your repo or on your filesystem can use one of the two provided loaders (from `pitlane/content/loaders`) to fetch data from Markdown, MDX, YAML, or JSON files. Point the content client to the location of your content, define your data schema, and you're good to go with a blog or another content-heavy, mostly static site in no time!
 
 By writing a `ContentLoader` or a [`LiveLoader`](/package/content/interface/LiveLoader) yourself, you can fetch remote data from any external source, such as a CMS, database, or headless payment system, once or live on demand.
 
@@ -137,13 +137,13 @@ By writing a `ContentLoader` or a [`LiveLoader`](/package/content/interface/Live
 
 <NoBuild>
 
-All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `@pitlane/content`. There is no special location your collections must be defined in. Our demos use `app/content.ts` by convention.
+All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `pitlane/content`. There is no special location your collections must be defined in. Our demos use `app/content.ts` by convention.
 
 </NoBuild>
 
 <Vite>
 
-All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `@pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `@pitlane/content` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
+All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `pitlane/content/vite` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
 
 </Vite>
 
@@ -158,11 +158,11 @@ Each individual collection configures:
 
 ```ts
 // app/content.ts
-// 1. Import utilities from `@pitlane/content`
-import { createContent } from "@pitlane/content";
+// 1. Import utilities from `pitlane/content`
+import { createContent } from "pitlane/content";
 
 // 2. Import loader(s)
-import * as loaders from "@pitlane/content/loaders";
+import * as loaders from "pitlane/content/loaders";
 
 // 3. Import data schema
 import * as s from "remix/data-schema";
@@ -201,8 +201,8 @@ A `schema` is required. Every frontmatter or data property of your collection en
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
@@ -246,8 +246,8 @@ A common example is a blog post that references reusable author profiles stored 
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 import * as s from "remix/data-schema";
 
 export let content = createContent(c => ({
@@ -305,8 +305,8 @@ This loader requires a `pattern` of entry files to match, using the glob syntax 
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import { glob } from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import { glob } from "pitlane/content/loaders";
 
 export let content = createContent(c => ({
     blog: c.collection({
@@ -333,8 +333,8 @@ Your blog post content here.
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 
 export let content = createContent(c => ({
     blog: c.collection({
@@ -357,8 +357,8 @@ The `file()` loader fetches multiple entries from a single local file defined in
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import { file } from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import { file } from "pitlane/content/loaders";
 
 export let content = createContent(c => ({
     dogs: c.collection({
@@ -398,8 +398,8 @@ The following example shows importing a third-party CSV parser then passing a cu
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 import { parse as parseCsv } from "csv-parse/sync";
 
 export let content = createContent(c => ({
@@ -425,8 +425,8 @@ You can separate these collections by passing a custom `parser()` function to th
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 
 export let content = createContent(c => ({
     dogs: c.collection({
@@ -450,7 +450,7 @@ Anything that is not a local file is a loader you write, and the shape of the ob
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
+import { createContent } from "pitlane/content";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
@@ -600,7 +600,7 @@ A `.md` or `.mdx` body is compiled during the build by the `satteri()` plugin [c
 
 <NoBuild>
 
-Sätteri compiles the body when `render()` is called, and the result is cached with the entry, so a second render of the same post costs nothing. The heading list needs no setup: `@pitlane/content` registers the plugin that produces it on `.md` and `.mdx` alike. Extra Sätteri plugins go through the loader:
+Sätteri compiles the body when `render()` is called, and the result is cached with the entry, so a second render of the same post costs nothing. The heading list needs no setup: `pitlane/content` registers the plugin that produces it on `.md` and `.mdx` alike. Extra Sätteri plugins go through the loader:
 
 ```ts
 loaders.glob({
@@ -628,7 +628,7 @@ Use the [`CollectionEntry`](/package/content/type/CollectionEntry) type to corre
 
 ```tsx
 // app/ui/blog-card.tsx
-import type { CollectionEntry } from "@pitlane/content";
+import type { CollectionEntry } from "pitlane/content";
 import type { Handle } from "remix/component";
 
 import type { content } from "../content.ts";
@@ -802,7 +802,7 @@ Live collections use the same `createContent()` and the same `c.collection()`, a
 
 ```ts
 // app/content.ts
-import { createContent } from "@pitlane/content";
+import { createContent } from "pitlane/content";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
 
@@ -872,7 +872,7 @@ Add one line beside `createContent()`:
 
 ```ts
 // app/content.ts
-import { hotContent } from "@pitlane/content/hot";
+import { hotContent } from "pitlane/content/hot";
 
 export let content = createContent(c => ({ ... }));
 
@@ -893,18 +893,18 @@ This call is safe to leave in place for production. [`hotContent()`](/package/co
 
 {/* - [Creating a Content Loader](/guides/content-loaders): reading from anywhere other than the filesystem */}
 
-- [`@pitlane/content`](/package/content/): [`createContent()`](/package/content/function/createContent) and the types
-- [`@pitlane/content/loaders`](/package/content/loaders): [`glob()`](/package/content/loaders/function/glob) and [`file()`](/package/content/loaders/function/file)
+- [`pitlane/content`](/package/content/): [`createContent()`](/package/content/function/createContent) and the types
+- [`pitlane/content/loaders`](/package/content/loaders): [`glob()`](/package/content/loaders/function/glob) and [`file()`](/package/content/loaders/function/file)
 
 <Vite>
 
-- [`@pitlane/content/satteri`](/package/content/satteri): the [`headings()`](/package/content/satteri/function/headings) and [`rawStyles()`](/package/content/satteri/function/rawStyles) plugins
-- [`@pitlane/content/vite`](/package/content/vite): the [`contentLayer()`](/package/content/vite/function/contentLayer) plugin
+- [`pitlane/content/satteri`](/package/content/satteri): the [`headings()`](/package/content/satteri/function/headings) and [`rawStyles()`](/package/content/satteri/function/rawStyles) plugins
+- [`pitlane/content/vite`](/package/content/vite): the [`contentLayer()`](/package/content/vite/function/contentLayer) plugin
 
 </Vite>
 
 <NoBuild>
 
-- [`@pitlane/content/hot`](/package/content/hot): [`hotContent()`](/package/content/hot/function/hotContent)
+- [`pitlane/content/hot`](/package/content/hot): [`hotContent()`](/package/content/hot/function/hotContent)
 
 </NoBuild>

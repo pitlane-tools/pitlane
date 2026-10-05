@@ -2,6 +2,7 @@ import { Callout, InstallGroup, NoBuild, Vite } from "../../components/documenta
 import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ dev: ["@railway/cli"] });
+export const pitlaneInstallation = await installAlternatives({ dev: ["pitlane"] });
 
 # Railway
 
@@ -383,13 +384,19 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [remix({ server: false })],
 });
 ```
+
+`pitlane/dev` comes from the `pitlane` package. The Railway templates still depend on the scoped `@pitlane/dev` package, so add `pitlane` before switching the import. Only `vite.config.ts` imports it, so a dev dependency is enough:
+
+<InstallGroup alternatives={pitlaneInstallation} />
+
+The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires.
 
 The Caddyfile binds Railway's injected port and rewrites deep links to `index.html`:
 

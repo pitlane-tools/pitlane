@@ -1,12 +1,12 @@
 ---
 title: Theme
-description: Style Remix apps with remix/component css mixins and @pitlane/theme design tokens.
+description: Style Remix apps with remix/component css mixins and pitlane/theme design tokens.
 ---
 
 import { InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
-export const installation = await installAlternatives({ packages: ["@pitlane/theme"] });
+export const installation = await installAlternatives({ packages: ["pitlane"] });
 
 # Theme
 
@@ -20,19 +20,21 @@ function Card() {
 }
 ```
 
-That works, but every value is a loose string. Nothing stops `#111` here and `#121212` two files over. `@pitlane/theme` layers design tokens and type safety on top. The [demo app](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) contains an application-level example.
+That works, but every value is a loose string. Nothing stops `#111` here and `#121212` two files over. `pitlane/theme` layers design tokens and type safety on top. The [demo app](https://github.com/pitlane-tools/pitlane/tree/main/demos/theme) contains an application-level example.
 
-First, install the package. `remix@^3.0.0` is a peer dependency:
+First, install `pitlane` as a dependency, since the theme runs in production. `remix@^3.0.0` and `vite@>=8` are peer dependencies:
 
 <InstallGroup alternatives={installation} />
+
+The theme also installs on its own as `@pitlane/theme`, which needs only the `remix` peer. Import from `@pitlane/theme` in place of `pitlane/theme` if you install it that way. [The `pitlane` package](/guides/umbrella) compares the two.
 
 ## Define a theme
 
 A theme has a schema tree, a token tree, and optional modes. Define it once with [`createTheme()`](/package/theme/function/createTheme), such as in `app/theme.ts`, then export the typed accessor, raw-value resolver, and component:
 
 ```ts
-import { createTheme, lightDark } from "@pitlane/theme";
-import * as s from "@pitlane/theme/schema";
+import { createTheme, lightDark } from "pitlane/theme";
+import * as s from "pitlane/theme/schema";
 
 export let {
     token: t,
@@ -73,7 +75,7 @@ Token values are the CSS they become. Each schema decides its leaf shape. It can
 
 ### Choose schemas
 
-The schema names the type for each token or group. Import the [factories](/package/theme/schema) from `@pitlane/theme/schema` as `s` to keep those declarations separate from the token values.
+The schema names the type for each token or group. Import the [factories](/package/theme/schema) from `pitlane/theme/schema` as `s` to keep those declarations separate from the token values.
 
 | Factory | Token type | Accepted authored value |
 | --- | --- | --- |
@@ -106,7 +108,7 @@ t.spacing.token; // var(--spacing)
 The module-level [`scale()`](/package/theme/function/scale) applies the same operation to an ordinary dimension, duration, or number token:
 
 ```ts
-import { scale } from "@pitlane/theme";
+import { scale } from "pitlane/theme";
 
 scale(t.text.sm)(2); // calc(var(--text-sm) * 2)
 ```
@@ -169,12 +171,12 @@ let publicTheme = baseTheme.select(base => ({
 publicTheme.token.brand.primary; // var(--brand-primary)
 ```
 
-`@pitlane/theme/default` exports [`DefaultTheme`](/package/theme/default/variable/DefaultTheme), a `<Theme />` component built from Tailwind v4 primitives. It has colors, spacing, radii, fonts, and other primitives. Semantic names belong in the theme that extends it. Select the primitives an application uses before rendering the theme:
+`pitlane/theme/default` exports [`DefaultTheme`](/package/theme/default/variable/DefaultTheme), a `<Theme />` component built from Tailwind v4 primitives. It has colors, spacing, radii, fonts, and other primitives. Semantic names belong in the theme that extends it. Select the primitives an application uses before rendering the theme:
 
 ```ts
-import { createTheme } from "@pitlane/theme";
-import { DefaultTheme } from "@pitlane/theme/default";
-import * as s from "@pitlane/theme/schema";
+import { createTheme } from "pitlane/theme";
+import { DefaultTheme } from "pitlane/theme/default";
+import * as s from "pitlane/theme/schema";
 
 export let {
     token: t,
@@ -217,10 +219,10 @@ function App() {
 
 ## Use tokens in styles
 
-[`css`](/package/theme/function/css) from `@pitlane/theme` is remix/component's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:
+[`css`](/package/theme/function/css) from `pitlane/theme` is remix/component's `css()` with brand enforcement. Token-mapped properties only accept tokens from your theme:
 
 ```tsx
-import { css } from "@pitlane/theme";
+import { css } from "pitlane/theme";
 import { t } from "./theme.ts";
 
 <article
@@ -287,7 +289,7 @@ Call `setColorScheme(undefined)` to return control to the operating-system prefe
 [`tva`](/package/theme/function/tva) (Theme Variance Authority) is a cva-style variant resolver. It takes brand-enforced style objects instead of class strings and returns a `mix`-ready descriptor:
 
 ```ts
-import { tva } from "@pitlane/theme";
+import { tva } from "pitlane/theme";
 import { t } from "./theme.ts";
 
 export let button = tva({
@@ -356,7 +358,7 @@ button({ intent: undefined }); // still "primary"
 [`combine`](/package/theme/function/combine) merges tva components into one, like cva's `compose`. The composed component accepts the union of both prop sets and keeps each input's defaults:
 
 ```ts
-import { combine, tva } from "@pitlane/theme";
+import { combine, tva } from "pitlane/theme";
 
 let rounded = tva({
     variants: {
@@ -376,7 +378,7 @@ export let pillButton = combine(button, rounded);
 `mix` and `className` compose on the same element, so tokens and existing CSS coexist. [`cx`](/package/theme/function/cx) joins class values, compatible with clsx:
 
 ```tsx
-import { css, cx } from "@pitlane/theme";
+import { css, cx } from "pitlane/theme";
 
 <span className={cx("mono", isReference && "reference-tag")} mix={css({ fontSize: t.text.sm })}>
     color.page
@@ -388,7 +390,7 @@ import { css, cx } from "@pitlane/theme";
 [`TVAProps`](/package/theme/type/TVAProps) extracts a component's variant props, like cva's `VariantProps`:
 
 ```ts
-import type { TVAProps } from "@pitlane/theme";
+import type { TVAProps } from "pitlane/theme";
 
 export type ButtonProps = TVAProps<typeof button>;
 // { intent?: "primary" | "neutral"; block?: boolean }
@@ -411,7 +413,7 @@ function SaveButton(handle: Handle<{ intent?: ButtonProps["intent"] }>) {
 Every variant prop is optional. To require one, wrap the component and re-declare that prop as required:
 
 ```ts
-import type { TVAProps } from "@pitlane/theme";
+import type { TVAProps } from "pitlane/theme";
 
 type ButtonVariants = TVAProps<typeof button>;
 
@@ -428,8 +430,8 @@ These three files define a theme, a typed button variant, and a component that i
 
 ```ts
 // app/theme.ts
-import { createTheme, lightDark } from "@pitlane/theme";
-import * as s from "@pitlane/theme/schema";
+import { createTheme, lightDark } from "pitlane/theme";
+import * as s from "pitlane/theme/schema";
 
 export let {
     token: t,
@@ -457,8 +459,8 @@ export let {
 
 ```ts
 // app/components/button.ts
-import { tva } from "@pitlane/theme";
-import type { TVAProps } from "@pitlane/theme";
+import { tva } from "pitlane/theme";
+import type { TVAProps } from "pitlane/theme";
 
 import { t } from "../theme.ts";
 

@@ -1,20 +1,20 @@
 ---
 title: Cloudflare D1
-description: "How @pitlane/data-table-d1 runs Remix 3's data-table on Cloudflare D1, and which parts of D1 the driver cannot paper over."
+description: "How pitlane/data-table-d1 runs Remix 3's data-table on Cloudflare D1, and which parts of D1 the driver cannot paper over."
 ---
 
 import { InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
-export const installation = await installAlternatives({ dev: ["@pitlane/data-table-d1"] });
+export const installation = await installAlternatives({ packages: ["pitlane"] });
 
 # Cloudflare D1
 
-[`@pitlane/data-table-d1`](/package/data-table-d1/) enables you to use the Cloudflare Workers [D1](https://developers.cloudflare.com/d1/) SQLite database with Remix in the same way you'd use `remix/data-table` in a Node app.
+[`pitlane/data-table-d1`](/package/data-table-d1/) enables you to use the Cloudflare Workers [D1](https://developers.cloudflare.com/d1/) SQLite database with Remix in the same way you'd use `remix/data-table` in a Node app.
 
 ```ts
 // app/middleware/database.ts
-import { createD1Database } from "@pitlane/data-table-d1";
+import { createD1Database } from "pitlane/data-table-d1";
 import { env } from "cloudflare:workers";
 
 export let db = createD1Database(env.DB);
@@ -43,9 +43,11 @@ Declare the binding in `wrangler.jsonc`:
 }
 ```
 
-Install the driver alongside the Vite plugin:
+Install `pitlane` as a dependency, since the app imports the driver at run time. The same install provides the Vite plugin from `pitlane/dev`:
 
 <InstallGroup alternatives={installation} />
+
+The driver also installs on its own as `@pitlane/data-table-d1`. Import from `@pitlane/data-table-d1` in place of `pitlane/data-table-d1` if you install it that way. [The `pitlane` package](/guides/umbrella) compares the two.
 
 Nothing else is required. Now you can start using the D1 database in your Cloudflare Workers Remix app!
 
@@ -57,7 +59,7 @@ Author migrations as `data-table` migrations, compile them to `.sql`, and let Wr
 
 ```ts
 // db/generate-migrations.ts
-import { generateD1Migrations } from "@pitlane/data-table-d1/migrations";
+import { generateD1Migrations } from "pitlane/data-table-d1/migrations";
 
 let migrations = await generateD1Migrations({
     to: "db/d1-migrations",

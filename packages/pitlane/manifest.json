@@ -1,0 +1,18 @@
+{
+    "_comment": "Each pitlane/* subpath and the @pitlane/* export it re-exports. Naming rules: decisions/0003-umbrella-package.md. Run `vp run generate` after editing.",
+    "pitlane/content": "@pitlane/content",
+    "pitlane/content/hot": "@pitlane/content/hot",
+    "pitlane/content/loaders": "@pitlane/content/loaders",
+    "pitlane/content/satteri": "@pitlane/content/satteri",
+    "pitlane/content/vite": "@pitlane/content/vite",
+    "pitlane/crawler": "@pitlane/crawler",
+    "pitlane/data-table-d1": "@pitlane/data-table-d1",
+    "pitlane/data-table-d1/migrations": "@pitlane/data-table-d1/migrations",
+    "pitlane/dev": "@pitlane/dev",
+    "pitlane/dev/assets": "@pitlane/dev/assets",
+    "pitlane/dev/runtime": "@pitlane/dev/runtime",
+    "pitlane/theme": "@pitlane/theme",
+    "pitlane/theme/default": "@pitlane/theme/default",
+    "pitlane/theme/dtcg": "@pitlane/theme/dtcg",
+    "pitlane/theme/schema": "@pitlane/theme/schema"
+}

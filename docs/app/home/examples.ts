@@ -9,7 +9,7 @@ let sources = [
         file: "vite.config.ts",
         guide: "vite-plugin",
         description: "Development, server, and browser builds, all in one Vite plugin.",
-        code: `import { remix } from "@pitlane/dev";
+        code: `import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -23,8 +23,8 @@ export default defineConfig({
         file: "app/content.ts",
         guide: "content",
         description: "Your files become typed, queryable collections.",
-        code: `import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
+        code: `import { createContent } from "pitlane/content";
+import * as loaders from "pitlane/content/loaders";
 import * as s from "remix/data-schema";
 
 export let content = createContent(c => ({
@@ -44,8 +44,8 @@ export let content = createContent(c => ({
         file: "app/theme.ts",
         guide: "theme",
         description: "Typed design tokens. Native Remix styling.",
-        code: `import { createTheme } from "@pitlane/theme";
-import * as s from "@pitlane/theme/schema";
+        code: `import { createTheme } from "pitlane/theme";
+import * as s from "pitlane/theme/schema";
 
 export let { token: t, Theme } = createTheme({
     schema: {
@@ -65,7 +65,7 @@ export let { token: t, Theme } = createTheme({
         file: "scripts/crawl.ts",
         guide: "crawler",
         description: "Follow your app’s links without starting an HTTP server.",
-        code: `import { crawl } from "@pitlane/crawler";
+        code: `import { crawl } from "pitlane/crawler";
 import router from "../app/entry.server.ts";
 
 for await (let { pathname, response } of crawl(router)) {
@@ -79,7 +79,7 @@ for await (let { pathname, response } of crawl(router)) {
         file: "app/database.ts",
         guide: "cloudflare-d1",
         description: "Remix’s database API, backed by your Cloudflare D1 binding.",
-        code: `import { createD1Database } from "@pitlane/data-table-d1";
+        code: `import { createD1Database } from "pitlane/data-table-d1";
 import { env } from "cloudflare:workers";
 
 export let db = createD1Database(env.DB);`,

@@ -1,12 +1,13 @@
 ---
 title: Deploy to Vercel
-description: "Run a Remix 3 app on Vercel with @pitlane/dev and the Nitro Vite plugin, which produces Vercel Functions through the Build Output API."
+description: "Run a Remix 3 app on Vercel with pitlane/dev and the Nitro Vite plugin, which produces Vercel Functions through the Build Output API."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ dev: ["nitro"] });
+export const pitlaneInstallation = await installAlternatives({ packages: ["pitlane"] });
 
 # Vercel
 
@@ -20,11 +21,17 @@ Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing [`remix()`](/p
 
 ## Configuration
 
+The examples import from `pitlane/*` paths, which come from the `pitlane` package. The vercel template still depends on the scoped `@pitlane/dev` and `@pitlane/theme` packages, so add `pitlane` before switching its imports. Put it in `dependencies` when app code imports runtime subpaths such as `pitlane/dev/runtime`:
+
+<InstallGroup alternatives={pitlaneInstallation} />
+
+The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires and the standalone scoped packages. Then install Nitro:
+
 <InstallGroup alternatives={installation} />
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
@@ -168,7 +175,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({

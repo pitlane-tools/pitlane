@@ -336,11 +336,65 @@ jobs:
                       exit 1
                   fi
 
+            - name: Install
+              run: vp install --frozen-lockfile
+
+            - name: Run tests
+              run: vp test
+
+            - name: Build package
+              run: vp run build
+
+            # Same reason as publish-dev: only pnpm rewrites `workspace:*` to
+            # the exact versions the umbrella pins.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: |
+                  npx --yes pnpm@11.17.0 pack --pack-destination .
+                  if tar -xzOf ./*.tgz package/package.json | grep -q '"workspace:'; then
+                      echo "Packed tarball still declares a workspace: dependency" >&2
+                      exit 1
+                  fi
+
+            # The umbrella pins exact package versions that were usually
+            # released minutes earlier, and a version npm reports can still 404
+            # on its tarball (AGENTS.md, "A green job is not yet an installable
+            # package"). Publishing before then ships an uninstallable umbrella.
+            - name: Wait until every pinned package is installable
+              run: |
+                  tar -xzOf ./*.tgz package/package.json > packed.json
+                  node -e '
+                  const { dependencies } = require("./packed.json");
+                  for (const [name, version] of Object.entries(dependencies))
+                      console.log(`https://registry.npmjs.org/${name}/-/${name.split("/")[1]}-${version}.tgz`);
+                  ' | while read -r tarball; do
+                      for attempt in $(seq 1 40); do
+                          if curl -sfI "$tarball" > /dev/null; then
+                              echo "Installable: $tarball"
+                              continue 2
+                          fi
+                          sleep 30
+                      done
+                      echo "Still not installable after 20 minutes: $tarball" >&2
+                      exit 1
+                  done
+
+            # Prereleases go to `latest` until a stable 1.0.0 or later exists,
+            # since the only older versions are the 0.0.x placeholders, and to
+            # `next` from then on.
+            - name: Choose the dist-tag
+              id: dist-tag
+              run: |
+                  tag=$(npm view pitlane versions --json | node -e '
+                  const version = require("./package.json").version;
+                  const versions = [].concat(JSON.parse(require("fs").readFileSync(0, "utf8")));
+                  const stable = versions.some(v => !v.includes("-") && Number(v.split(".")[0]) >= 1);
+                  console.log(version.includes("-") && stable ? "next" : "latest");
+                  ')
+                  echo "Publishing with dist-tag $tag"
+                  echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
             - name: Publish to npm with provenance
-              run: npm publish ./*.tgz --provenance --access public --tag latest
+              run: npm publish ./*.tgz --provenance --access public --tag ${{ steps.dist-tag.outputs.tag }}
 
     publish-create-pitlane:
         if: startsWith(github.event.release.tag_name, 'create-pitlane@')

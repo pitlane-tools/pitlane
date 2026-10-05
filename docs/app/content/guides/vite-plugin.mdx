@@ -1,22 +1,22 @@
 ---
 title: Using the Vite plugin
-description: How @pitlane/dev's remix() plugin behaves in your app day to day, across the asset runtime, the clientEntry() transform and its footguns, dev-server semantics, preview, and the build.
+description: How the remix() plugin from pitlane/dev behaves in your app day to day, across the asset runtime, the clientEntry() transform and its footguns, dev-server semantics, preview, and the build.
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
-export const installation = await installAlternatives({ dev: ["@pitlane/dev"] });
+export const installation = await installAlternatives({ packages: ["pitlane"] });
 
 # Using the Vite plugin
 
-This guide covers living with [`remix()`](/package/dev/function/remix) from `@pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
+This guide covers living with [`remix()`](/package/dev/function/remix) from `pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
 
 ## Installation
 
 <InstallGroup alternatives={installation} />
 
-`@pitlane/dev` declares `remix@^3.0.0` and `vite@>=7` as peer dependencies. The tested matrix is **Vite 8** (Rolldown) and **Vite+ 1.0** (`vp`) with `remix@3.0.0`.
+The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/dev/runtime`. It requires `remix@^3.0.0` and `vite@>=8` as peer dependencies. The underlying `@pitlane/dev` package also installs on its own and declares `remix@^3.0.0` and `vite@>=7`. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8** (Rolldown) and **Vite+ 1.0** (`vp`) with `remix@3.0.0`.
 
 ### Upgrading from a Remix prerelease
 
@@ -37,7 +37,7 @@ Prefer starting from a working app? The [`pitlane-tools/templates`](https://gith
 npx giget github:pitlane-tools/templates/<template> my-app
 ```
 
-Because every template is the same app, diffing any two shows exactly what a platform swap touches, usually only the database middleware and deploy config.
+Because every template is the same app, diffing any two shows exactly what a platform swap touches, usually only the database middleware and deploy config. The templates still depend on the scoped `@pitlane/*` packages and import from them. Those imports keep working; to use the `pitlane/*` paths this guide shows, add `pitlane` and update the imports.
 
 ## The three-file core
 
@@ -90,11 +90,11 @@ The switch removes the server, not the server rendering. An app that wants a bro
 
 ## The asset runtime
 
-Server-rendered HTML has to name the hashed client assets. The plugin's answer is the `?assets=` import query plus [`mergeAssets`](/package/dev/runtime/variable/mergeAssets) from `@pitlane/dev/runtime`:
+Server-rendered HTML has to name the hashed client assets. The plugin's answer is the `?assets=` import query plus [`mergeAssets`](/package/dev/runtime/variable/mergeAssets) from `pitlane/dev/runtime`:
 
 ```tsx
 // app/document.tsx
-import { mergeAssets } from "@pitlane/dev/runtime";
+import { mergeAssets } from "pitlane/dev/runtime";
 
 import clientAssets from "./entry.browser.ts?assets=client";
 import serverAssets from "./entry.server.tsx?assets=ssr";
@@ -119,10 +119,10 @@ export function Document() {
 }
 ```
 
-Each result is an [`ImportedAssets`](/package/dev/runtime/interface/ImportedAssets), `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json` with [`@pitlane/dev/assets`](/package/dev/assets):
+Each result is an [`ImportedAssets`](/package/dev/runtime/interface/ImportedAssets), `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json` with [`pitlane/dev/assets`](/package/dev/assets):
 
 ```jsonc
-{ "compilerOptions": { "types": ["@pitlane/dev/assets"] } }
+{ "compilerOptions": { "types": ["pitlane/dev/assets"] } }
 ```
 
 ### Dev and production resolve differently, by design

@@ -1,12 +1,13 @@
 ---
 title: Deploy to Netlify
-description: "Run a Remix 3 app on Netlify with @pitlane/dev: a one-file Netlify Function wraps the built fetch handler, and the Netlify Vite plugin emulates the platform locally."
+description: "Run a Remix 3 app on Netlify with pitlane/dev: a one-file Netlify Function wraps the built fetch handler, and the Netlify Vite plugin emulates the platform locally."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ dev: ["@netlify/vite-plugin"] });
+export const pitlaneInstallation = await installAlternatives({ packages: ["pitlane"] });
 
 # Netlify
 
@@ -20,11 +21,17 @@ Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the cli
 
 ## Configuration
 
+The examples import from `pitlane/*` paths, which come from the `pitlane` package. The netlify template still depends on the scoped `@pitlane/dev` and `@pitlane/theme` packages, so add `pitlane` before switching its imports. Put it in `dependencies` when app code imports runtime subpaths such as `pitlane/dev/runtime`:
+
+<InstallGroup alternatives={pitlaneInstallation} />
+
+The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires and the standalone scoped packages. Then install the Netlify plugin:
+
 <InstallGroup alternatives={installation} />
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import netlify from "@netlify/vite-plugin";
 import { defineConfig } from "vite";
 
@@ -109,7 +116,7 @@ The Functions variant is the same shape Netlify's TanStack Start integration gen
 ```sh
 vp dev      # dev server + Netlify platform emulation
 vp build    # production build
-vp preview  # serve the production build via @pitlane/dev's preview
+vp preview  # serve the production build via the pitlane/dev preview
 ```
 
 Running under the Netlify CLI instead? `netlify dev` configures the environment itself and the Vite plugin steps aside automatically.
@@ -225,7 +232,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite";
 
 export default defineConfig({

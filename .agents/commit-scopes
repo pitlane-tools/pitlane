@@ -15,8 +15,10 @@ data-table-d1
 dev
 theme
 
-# Reserved npm names with no implementation yet, packages/<name>
+# The umbrella, packages/pitlane
 pitlane
+
+# Reserved npm names with no implementation yet, packages/<name>
 create-pitlane
 
 # demos/theme and demos/tui

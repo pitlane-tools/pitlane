@@ -9,13 +9,15 @@ Some Remix 3 apps have no server. The router runs in the browser. The build is a
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/dev";
+import { remix } from "pitlane/dev";
 import { defineConfig } from "vite"; // or "vite-plus"
 
 export default defineConfig({
     plugins: [remix({ server: false })],
 });
 ```
+
+The `pitlane` package provides `pitlane/dev`. If only `vite.config.ts` imports it, the app can install `pitlane` as a dev dependency. The [Pitlane package guide](/guides/umbrella) covers its `remix` and `vite` requirements and the standalone `@pitlane/dev` alternative.
 
 If you want browser-only UI in front of server routes that still run per request, that is [the default mode](#client-rendering-with-a-server), not this one.
 

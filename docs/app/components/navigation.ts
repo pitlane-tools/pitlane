@@ -40,7 +40,7 @@ export type Navigation =
  * without the list.
  */
 export const PRIMARY_LINKS = {
-    guides: routes.guide.href({ slug: "vite-plugin" }),
+    guides: routes.guide.href({ slug: "umbrella" }),
     api: routes.api.href({ path: "dev/" }),
 } as const;
 
@@ -55,6 +55,7 @@ let deploy = (title: string, slug: string) => ({ title, url: routes.deploy.href(
  * page's own `counterpart` metadata, so the pairing has a single source.
  */
 const GUIDE_GROUPS: { title: string; links: { title: string; url: string }[] }[] = [
+    { title: "Getting Started", links: [guide("The pitlane Package", "umbrella")] },
     {
         title: "Vite Plugin",
         links: [
