@@ -1,5 +1,12 @@
 # @pitlane/content
 
+## 0.3.1
+
+### Patch Changes
+
+- 67d73ad: Errors that tell you to add `contentLayer()` now name the specifier your app can import. In an app that imports content through the `pitlane` umbrella they say `pitlane/content/vite`; otherwise they still say `@pitlane/content/vite`. Before, an umbrella app was told to import `@pitlane/content/vite`, which a strict package manager such as pnpm does not let it resolve.
+- 8d96c52: `contentLayer()` now prebuilds collections an app declares through the `pitlane` umbrella. An app importing `pitlane/content` instead of `@pitlane/content` previously got a server build with the umbrella externalized, so the bundle answered from the package's empty manifest and every collection came back empty on a host with no filesystem. The plugin now keeps `pitlane` bundled and out of dependency optimization, as it already did `@pitlane/content`.
+
 ## 0.3.0
 
 ### Minor Changes
