@@ -2,7 +2,7 @@
 id: proposal.0005
 title: Assets Package
 authors: [markmals]
-status: draft
+status: awaiting-implementation
 pull-request: https://github.com/pitlane-tools/pitlane/pull/58
 issues: [https://github.com/pitlane-tools/pitlane/issues/52]
 supersedes: []
@@ -16,7 +16,7 @@ A new `@pitlane/assets` package: a framework-neutral replacement for `@hiogawa/v
 
 Remix is a first-class consumer, not a dependency of the neutral core. A second package, `@pitlane/vite-plugin-fetch-server`, owns the framework-neutral Vite development request bridge. `@pitlane/dev` is renamed to `@pitlane/vite-plugin-remix`; it keeps `clientEntry()` recognition, export-name encoding, and Remix HMR and composes both neutral plugins. The resolver remains structurally compatible with `remix/assets`. The extractions, rename, caller migrations, and fullstack removal are one coordinated cutover, with no deprecated forwarding package.
 
-Chunk import maps are disabled by default. Applications opt in through `chunkImportMap: true` and deliver the map before their module scripts. A proposed framework-neutral HTML helper handles serialization without requiring Remix's `<ImportMap>`; its contract remains open for review below.
+Chunk import maps are disabled by default. Applications opt in through `chunkImportMap: true` and deliver the map before their module scripts. The framework-neutral `renderImportMap({ value, nonce? })` HTML helper handles serialization without requiring Remix's `<ImportMap>`.
 
 Manifest generation is also a public, bundler-neutral library at `@pitlane/assets/build`. The Vite adapter uses it, and an Rsbuild integration example shows how another integration author can translate their bundler's output into its input. Pitlane does not ship or maintain an Rsbuild adapter. This is a build-based asset pipeline; `remix/assets` remains the no-build solution.
 
@@ -424,7 +424,75 @@ The library owns the common computation: cycle-safe, deterministic static depend
 
 Source-to-output mappings may be many-to-many. A module split across multiple chunks must not lose dependencies because an adapter selected only the first chunk. A runtime entry URL remains a single browser-loadable ES module; an adapter whose bundler needs extra startup scripts must represent that startup through its emitted entry rather than pass an IIFE/runtime sequence off as an ES module. Preloads are hints, not substitutes for required script execution.
 
-The exported input types must use Pitlane-owned records rather than `OutputBundle`, `viteMetadata`, or Rspack `Stats`. The implementation proposal for their exact field layout remains open below; the observable semantics in this section are required.
+The exported input types use Pitlane-owned records rather than `OutputBundle`, `viteMetadata`, or Rspack `Stats`. The normalized input and runtime manifest have the following layout:
+
+```ts
+interface ImportMap {
+    imports: Record<string, string>;
+    scopes?: Record<string, Record<string, string>>;
+    integrity?: Record<string, string>;
+}
+
+interface AssetBuild {
+    base: string;
+    environments: Record<string, AssetBuildEnvironment>;
+    importMap?: ImportMap;
+}
+
+interface AssetBuildEnvironment {
+    role: "client" | "server";
+    chunks: Record<string, AssetBuildChunk>;
+    entries: Record<string, string>;
+    assets: Record<string, string>;
+}
+
+interface AssetBuildChunk {
+    file: string;
+    modules: string[];
+    imports: string[];
+    dynamicImports: string[];
+    stylesheets: string[];
+}
+
+interface AssetMetadata {
+    preloads: string[];
+    stylesheets: string[];
+}
+
+interface AssetEnvironment {
+    role: "client" | "server";
+    modules: Record<string, AssetMetadata>;
+}
+
+interface BuildAssetsManifest {
+    mode: "build";
+    environments: Record<string, AssetEnvironment>;
+    entries: Record<string, string>;
+    assets: Record<string, string>;
+    importMap: ImportMap;
+    serverEnvironment?: string;
+}
+
+interface DevAssetsManifest {
+    mode: "dev";
+    environments: Record<string, AssetEnvironment>;
+    entries: Record<string, string>;
+    assets: Record<string, string>;
+    serverEnvironment?: string;
+}
+
+type AssetsManifest = BuildAssetsManifest | DevAssetsManifest | { mode: "unavailable" };
+```
+
+`createAssetManifest(build: AssetBuild): BuildAssetsManifest` requires exactly one client environment. Chunk record keys are opaque, environment-local output identities; both edge arrays reference those keys, while `file` and `stylesheets` name emitted files or adapter-resolved public URLs. Environment `entries` maps portable browser-source keys to chunk identities and is populated only on the client; `assets` maps source keys to emitted non-script files. Every chunk has both edge arrays, even when empty. Dynamic references are validated but do not enter static preload or stylesheet traversal. Modules may belong to multiple chunks, and every membership contributes. Input order is preserved for equal-depth traversal and deduplication. The adapter must supply complete chunk membership; the generator cannot detect source facts an adapter omitted.
+
+The returned `entries` and `assets` contain public URLs; `environments` retains separately indexed JS/CSS observations. The generator leaves `serverEnvironment` unset; the adapter adds the consuming server environment when writing each manifest. File URLs and absolute checkout paths are normalized by the adapter before entering this model. Relative emitted filenames resolve against `base`; already absolute public URLs remain unchanged. The resolver does not import a filesystem or infer deployment paths.
+
+#### Portable source identity
+
+Source keys are slash-separated paths relative to the configured project root. Leading `../` segments are permitted for linked modules outside that root; identity therefore requires the same relative workspace layout, not the same absolute checkout directory. Adapters use their bundler's resolved module identity consistently, including its symlink policy, and reject conflicting entry mappings rather than invent a second package namespace.
+
+At runtime, `app/counter.tsx`, `./app/counter.tsx`, `/app/counter.tsx`, and `file:app/counter.tsx` denote the same project-relative source key. A leading slash is a project-root marker, not a host-filesystem path. Dot segments normalize lexically, leading parent segments remain, and an export fragment is ignored. Absolute filesystem paths and `file:///` URLs are accepted by build adapters, which know the root; they are not portable runtime inputs. The resolver rejects absolute file URLs with a diagnostic requesting the portable source key. It never serializes a checkout root or attempts to open deployed source files. Applications migrating absolute no-build inputs must change those inputs to portable keys.
 
 #### Integration-author example
 
@@ -437,7 +505,7 @@ No CLI or intermediate graph-file format is introduced now: bundler plugins alre
 ### The resolver and manifest
 
 - `createAssetResolver(manifest)` constructs an explicit resolver; there is no package-global instance. In Remix, the application passes it to `render({ assets })`; other renderers consume the same data directly.
-- Methods use root-relative source keys, including the `file:app/counter.tsx` form shown above, and ignore an export fragment for asset lookup. Absolute/file-URL input normalization and out-of-root module identity remain open below; neither may make a built manifest depend on the deployed machine having the source checkout.
+- Methods use the portable source-key contract above, including leading `../` for out-of-root modules and `file:app/counter.tsx` for Remix identities. Export fragments do not participate in asset lookup. Absolute filesystem/file-URL normalization belongs to the adapter, never the deployed resolver.
 - `getScriptEntry(path)` returns `{ href, preloads, importMap }` for a registered browser entry. Development returns its dev URL, `[]`, and `{ imports: {} }`. A build returns the emitted entry URL, its static preloads, and the complete client map or `{ imports: {} }` when maps are disabled.
 - `getHref(path)` returns the emitted URL of an entry, stylesheet, or other registered asset, or its dev URL. It has no image-transform option.
 - `getPreloads(path | path[])` observes client graph metadata and returns the union in argument order, deduplicated by href. Each script contributes its chunk and static JavaScript dependencies, not their CSS. An explicitly requested stylesheet contributes its own URL, preserving the upstream API's acceptance of stylesheet arguments; callers render those separately as style preloads, never as `modulepreload`. Use `getStylesheets` for transitive stylesheet links. Development returns `[]`.
@@ -459,7 +527,7 @@ No CLI or intermediate graph-file format is introduced now: bundler plugins alre
 
 Consider `page.ts` importing `button.ts`, which imports `button.css`. In production, the emitted build graph records the stylesheet. During development, no final bundle exists; Vite's live graph knows which stylesheet URL belongs to the page. `{ root, base }` can construct a URL for a known file but cannot answer that transitive question.
 
-**Recommendation for review: generate a data snapshot inside the Vite plugin and refresh it through Vite invalidation.** Keep live graph access out of the runtime resolver:
+Generate a data snapshot inside the Vite plugin and refresh it through Vite invalidation. Keep live graph access out of the runtime resolver:
 
 1. In Vite's process, discover the configured server graphs and registered browser inputs through transformation, without executing application modules. Include statically discoverable lazy routes as addressable metadata keys, while retaining the distinction between static and dynamic edges.
 2. Generate the development manifest module with serialized per-environment records: known keys, dev entry URLs, and collected server-graph CSS URLs. Graph traversal excludes the plugin's own metadata modules and handles cycles. Its load order must not require evaluating an entry that imports the manifest being generated.
@@ -467,7 +535,7 @@ Consider `page.ts` importing `button.ts`, which imports `button.css`. In product
 4. Track the source/stylesheet dependencies and discovery inputs used by the snapshot. On a relevant edit, addition, or removal, invalidate the affected snapshot and its server consumers in the corresponding environment before the next render. Recompute the dependency set rather than retaining deleted CSS or stale route keys. Do not rely on ordinary import edges where the plugin merely inspected a graph.
 5. Re-importing the server entry after invalidation refreshes module-level asset reads as well as request-time calls. Framework HMR remains responsible for requesting a new render when appropriate. A stylesheet content-only edit still uses Vite CSS HMR; changing which stylesheet a module imports also refreshes the HTML's stylesheet list.
 
-This is a proposed mechanism, not verified implementation. Verification must cover a first request through a cyclic entry/manifest graph, module-level asset reads, adding/removing CSS imports, adding/removing globbed routes, multiple server environments, and Node and Cloudflare runners. If a snapshot cannot meet those contracts without eager application execution, revisit the mechanism before implementation approval.
+This mechanism is approved subject to feasibility verification, not assumed to be proven. Before implementing it, probe a first request through a cyclic entry/manifest graph, module-level asset reads, adding/removing CSS imports, adding/removing globbed routes, multiple server environments, and Node and Cloudflare runners. If a snapshot cannot meet those contracts without eager application execution, return to design rather than substituting another mechanism.
 
 Alternatives are a generated per-query metadata-module graph, with finer invalidation but more generated modules, or a live request/response channel to Vite, with cross-runtime transport and lifecycle costs. Requiring authors to name every stylesheet is not an acceptable alternative: it loses the transitive asset behavior the compatibility matrix requires.
 
@@ -481,12 +549,12 @@ The existing CSS-link/injected-style reconciliation and CSS self-accept patches 
 - An effective `true` conflicts with `experimental.renderBuiltUrl` and produces a configuration error naming both options. `renderBuiltUrl` alone works with the default-disabled setting. There is no silent change to an explicit choice.
 - Opted-in documents deliver the map before modulepreload links and module scripts. A Remix document may keep its managed `<ImportMap>` and frame behavior; another renderer uses ordinary import-map HTML. No Remix component, browser map manager, or polyfill is required by the package.
 - Preserve root, non-root, relative, and absolute CDN deployment semantics. Normalize map delivery only where needed to preserve the identity generated imports resolve to. Test nested document routes, not only `/`.
-- The feature requires browser import maps and `import.meta.resolve`. Its caching guarantee excludes changes to exports, tree-shaking, chunk membership, CSS/assets, or compiler output. Checkout-path-sensitive Vite map identifiers remain a documented open question. Chunk grouping stays in Vite configuration, not a second Pitlane grouping API.
+- The feature requires browser import maps and `import.meta.resolve`. Its caching guarantee excludes changes to exports, tree-shaking, chunk membership, CSS/assets, or compiler output. Vite's opt-in map identifiers can depend on the absolute checkout path; changing checkout location can invalidate importing chunks. Document that limit rather than adding a Pitlane identity rewriter. Chunk grouping stays in Vite configuration, not a second Pitlane grouping API.
 - Production cache headers and retention of old hashed files remain deployment responsibilities. Pitlane neither sets those headers nor implements cache invalidation.
 
-#### Proposed HTML helper
+#### HTML helper
 
-`renderImportMap({ value, nonce? }): string` is proposed at the runtime root and is available through `pitlane/assets`. The verb distinguishes rendering existing map data from constructing the data. This name and the following contract remain subject to human review.
+`renderImportMap({ value, nonce? }): string` is exported at the runtime root and is available through `pitlane/assets`.
 
 - Return a complete inline `<script type="importmap">...</script>` string. Accept Pitlane-owned import-map data with `imports`, optional `scopes`, and optional `integrity`; preserve their contents without resolving URLs or generating mappings.
 - Serialize JSON, escaping every `<` as a JSON Unicode escape, not an HTML entity. Escape the optional nonce as a quoted HTML attribute. Do not accept arbitrary raw attributes or interpolate unescaped markup.
@@ -642,14 +710,16 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 - **Ship and maintain an Rsbuild adapter** — rejected: demonstrate the translation in an exercised integration-author example without expanding the supported bundler integrations.
 - **Add a manifest CLI now** — not selected: the concrete integrations already have in-memory output graphs. A CLI would add a serialization protocol without removing the bundler-specific extraction work.
 
-## Open questions
+## Approval decisions
 
-- [NEEDS CLARIFICATION: The resolver's dev href for an island omits Vite's `?t=` HMR timestamp. If the HMR end-to-end suite shows a stale island after a server-only change, is appending the module's `lastHMRTimestamp` acceptable, or should the island path never depend on the module graph?]
-- [NEEDS CLARIFICATION: Vite's chunk import-map keys include absolute source paths. For the opt-in feature, is documenting checkout-path-dependent cache stability sufficient, or must a mitigation precede support? Default-disabled builds no longer acquire this tradeoff.]
-- [NEEDS CLARIFICATION: Is the proposed development metadata snapshot and invalidation model the right contract, subject to the Node/Cloudflare and discovery-order probes described above, or should per-query metadata modules be preferred?]
-- [NEEDS CLARIFICATION: Approve `renderImportMap({ value, nonce? }): string`, including empty-map omission and stateless server-HTML serialization, or revise the helper's name or shape?]
-- [NEEDS CLARIFICATION: Review the public generator's normalized graph model and settle the exact input/manifest type layout before implementation. The Rsbuild translation must prove that the types describe emitted assets and dependency relationships rather than Vite-specific output objects.]
-- [NEEDS CLARIFICATION: Define portable keys for linked workspace/package modules outside the Vite root, including whether `../` keys are permitted or a package-relative namespace is needed. Reconcile absolute/file-URL input normalization with this identity scheme without serializing machine-specific checkout paths or relying on deployed source files.]
+Implementation was approved on 2026-10-06 with these decisions:
+
+- Keep timestamp-free development island hrefs unless the HMR end-to-end suite demonstrates stale loading. In that case, appending Vite's module `lastHMRTimestamp` is permitted without changing the portable source identity.
+- Document checkout-path-dependent caching for opt-in chunk import maps; mitigation is not a prerequisite.
+- Use the serialized development snapshot and invalidation contract, subject to the feasibility probes above. A failed probe returns to design.
+- Ship `renderImportMap({ value, nonce? }): string` with the specified empty-map, escaping, nonce, and stateless serialization behavior.
+- Delegate the exact public generator and manifest field layout within the existing graph semantics. The concrete contract is recorded under Bundler-neutral manifest generation.
+- Use project-relative `../` keys for linked modules outside the Vite root, with the normalization and deployment constraints recorded under Portable source identity.
 
 ## Acknowledgments
 
