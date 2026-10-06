@@ -7,8 +7,7 @@ import { t } from "../theme.ts";
 // Semantic lists also render as readable lists in the installed Markdown guides.
 let tiles = css<HTMLDivElement>({
     margin: [0, 0, t.spacing(6)],
-    // Repeated class selectors outrank the article's prose rules.
-    "&& > ul": {
+    "& > ul": {
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 13rem), 1fr))",
         gap: t.spacing(1),
@@ -16,7 +15,7 @@ let tiles = css<HTMLDivElement>({
         padding: 0,
         listStyle: "none",
     },
-    "&& > ul > li": {
+    "& > ul > li": {
         position: "relative",
         margin: 0,
         padding: t.spacing(6),
@@ -29,19 +28,19 @@ let tiles = css<HTMLDivElement>({
             outlineOffset: t.size.focus,
         },
     },
-    "&& > ul > li > p": { margin: [t.spacing(2), 0, 0], color: t.color.secondary },
-    "&& > ul > li > p:first-child": {
+    "& > ul > li > p": { margin: [t.spacing(2), 0, 0], color: t.color.secondary },
+    "& > ul > li > p:first-child": {
         margin: 0,
         fontSize: t.text.lg,
         fontWeight: t.weight.semibold,
         lineHeight: t.text.leading.snug,
         color: t.color.text,
     },
-    "&& > ul > li > p:first-child > a": {
+    "& > ul > li > p:first-child > a": {
         color: "inherit",
         textDecorationLine: "none",
         "@supports selector(:has(a))": { outline: "none" },
-        "&::after": { content: '""', position: "absolute", inset: 0, borderRadius: "inherit" },
+        "&::after": { content: '""', position: "absolute", inset: 0 },
         "&:hover": { color: t.color.linkHover },
     },
 });
