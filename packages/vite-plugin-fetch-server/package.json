@@ -1,0 +1,53 @@
+{
+    "name": "@pitlane/vite-plugin-fetch-server",
+    "version": "0.0.0",
+    "description": "Vite development server bridge that sends requests to an app's Fetch handler.",
+    "keywords": [
+        "fetch",
+        "pitlane",
+        "ssr",
+        "vite",
+        "vite-plugin"
+    ],
+    "homepage": "https://pitlane.tools/guides/fetch-server/",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/vite-plugin-fetch-server"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "dependencies": {
+        "@remix-run/node-fetch-server": "^1.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "typescript": "^7.0.2",
+        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
+        "vite-plus": "^1.0.0"
+    },
+    "peerDependencies": {
+        "vite": ">=8.1.0"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
+}

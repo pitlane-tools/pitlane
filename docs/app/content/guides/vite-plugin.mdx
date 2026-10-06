@@ -1,6 +1,6 @@
 ---
 title: Using the Vite plugin
-description: How the remix() plugin from pitlane/dev behaves in your app day to day, across the asset runtime, the clientEntry() transform and its footguns, dev-server semantics, preview, and the build.
+description: How the remix() plugin from pitlane/vite-plugin-remix behaves in your app day to day, across document assets, the clientEntry() transform and its footguns, dev-server semantics, preview, and the build.
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
@@ -10,13 +10,30 @@ export const installation = await installAlternatives({ packages: ["pitlane"] })
 
 # Using the Vite plugin
 
-This guide covers living with [`remix()`](/package/dev/function/remix) from `pitlane/dev` day to day. It explains how asset references flow through your app and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/dev/). Per-target deployment configs live in the [deploy guides](#deploying).
+This guide covers living with [`remix()`](/package/vite-plugin-remix/function/remix) from `pitlane/vite-plugin-remix` day to day. It explains how your document and islands find their browser assets and what the `clientEntry()` transform does, including what it deliberately refuses to do. Dev, preview, and the production build each get their own section. Hot module replacement has its own guide, [Hot module replacement](/guides/hmr). Exact API signatures live in the generated [API reference](/package/vite-plugin-remix/). Per-target deployment configs live in the [deploy guides](#deploying).
 
 ## Installation
 
 <InstallGroup alternatives={installation} />
 
-The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/dev/runtime`. It requires `remix@^3.0.0` and `vite@>=8` as peer dependencies. The underlying `@pitlane/dev` package also installs on its own and declares `remix@^3.0.0` and `vite@>=7`. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8** (Rolldown) and **Vite+ 1.0** (`vp`) with `remix@3.0.0`.
+The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets`. It requires `remix@^3.0.0` and `vite@>=8.1` as peer dependencies. The underlying `@pitlane/vite-plugin-remix` package also installs on its own, with the same peers. An app using it directly adds `@pitlane/assets` to `dependencies` for the resolver. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8.1 and later** (Rolldown) and **Vite+ 1.0** (`vp`) with `remix@3.0.0`. Vite 7 and 8.0 are not supported.
+
+### Upgrading from `pitlane/dev`
+
+The plugin was published as `@pitlane/dev` and `pitlane/dev` until this release. The rename comes with a new way to name assets, and there are no aliases for the old paths. Change these together:
+
+| Before | After |
+| --- | --- |
+| `remix` from `pitlane/dev` | `remix` from `pitlane/vite-plugin-remix` |
+| `revalidate` from `pitlane/dev/hmr` | `revalidate` from `pitlane/vite-plugin-remix/hmr` |
+| `import clientAssets from "./entry.browser.ts?assets=client"`, then `.entry` | `(await assets.getScriptEntry("app/entry.browser.ts")).href` |
+| `clientAssets.js` as `modulepreload` links | `.preloads` from the same call |
+| `import serverAssets from "./entry.server.tsx?assets=ssr"`, then `.css` | `await assets.getStylesheets("app/entry.server.tsx")` |
+| `mergeAssets(…)` from `pitlane/dev/runtime` | plain arrays; the resolver deduplicates |
+| `render()` without options, or a hand-written `resolveClientEntry` | `render({ assets })` from `remix/middleware/render` |
+| `"types": ["pitlane/dev/assets"]` in `tsconfig.json` | delete it |
+
+[Document assets](#document-assets) shows the resulting files.
 
 ### Upgrading from a Remix prerelease
 
@@ -47,11 +64,13 @@ Everything the plugin does orbits three files you own:
 - **`app/entry.server.tsx`** builds a router and **default-exports it**. The default export's `.fetch(Request)` is the contract every consumer reads: the dev server, `vite preview`, and whatever runs in production.
 - **`app/entry.browser.ts`** calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML.
 
+A server-rendered app adds a fourth, `app/assets.ts`, which constructs the asset resolver your document and renderer share. See [Document assets](#document-assets).
+
 `vite dev`, `vite build`, `vite preview`: the standard lifecycle, nothing bespoke.
 
 ## Options
 
-Every option has a sensible default. Most projects pass none. [`RemixPluginOptions`](/package/dev/interface/RemixPluginOptions) documents each one.
+Every option has a sensible default. Most projects pass none. [`RemixPluginOptions`](/package/vite-plugin-remix/interface/RemixPluginOptions) documents each one.
 
 ```ts
 remix({
@@ -61,6 +80,7 @@ remix({
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
     serverHandler: true, // false when a platform plugin serves dev requests
+    assets: {}, // { include, chunkImportMap } for the asset plugin
 });
 ```
 
@@ -69,9 +89,10 @@ remix({
 | `server` | `boolean` | `true` | Whether the app has a server. Pass `false` for [SPA mode](#spa-mode), which ignores every option below. |
 | `prerender` | `boolean \| string[] \| fn \| obj` | none | Render paths to static HTML at build time. See [Prerendering](/guides/prerendering). |
 | `clientEntry` | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration. |
-| `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`. |
-| `serverEnvironments` | `string[]` | `["ssr"]` | Environment names the `clientEntry()` transform treats as "server". |
+| `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`, and the module dev requests are served through. |
+| `serverEnvironments` | `string[]` | `["ssr"]` | Environment names treated as "server" by asset collection and hot module replacement. |
 | `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+| `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the asset plugin: extra browser entries for computed paths, and the [chunk import map](#chunk-import-maps) opt-in. |
 
 ## SPA mode
 
@@ -88,63 +109,126 @@ The three-file core collapses to one. `index.html` is the entry, and `vite build
 
 The switch removes the server, not the server rendering. An app that wants a browser-rendered UI in front of routes that still run per request keeps the default mode: see [client rendering with a server](/guides/spa#client-rendering-with-a-server).
 
-## The asset runtime
+## Document assets
 
-Server-rendered HTML has to name the hashed client assets. The plugin's answer is the `?assets=` import query plus [`mergeAssets`](/package/dev/runtime/variable/mergeAssets) from `pitlane/dev/runtime`:
+Server-rendered HTML needs browser asset URLs that differ between `vite dev` and a build. The plugin supplies a manifest for the resolver from [`pitlane/assets`](/guides/assets). Construct the resolver in `app/assets.ts`:
+
+```ts
+// app/assets.ts
+import { createAssetResolver } from "pitlane/assets";
+import manifest from "pitlane/assets/manifest";
+
+export let assets = createAssetResolver(manifest);
+
+export let scriptEntry = await assets.getScriptEntry("app/entry.browser.ts");
+export let stylesheets = await assets.getStylesheets("app/entry.server.tsx");
+```
+
+Paths are relative to the project root, the directory holding `vite.config.ts`. Writing `getScriptEntry` with a literal path makes that module a browser entry. `getStylesheets` only reports the CSS a module already imports and never sends server code to the browser. The [assets guide](/guides/assets#resolver-methods) lists every method.
+
+The document reads those values. Nothing in it is specific to Pitlane, and the same document works against `remix/assets` in a no-build app:
 
 ```tsx
 // app/document.tsx
-import { mergeAssets } from "pitlane/dev/runtime";
+import type { Handle, RemixNode } from "remix/component";
 
-import clientAssets from "./entry.browser.ts?assets=client";
-import serverAssets from "./entry.server.tsx?assets=ssr";
+import { scriptEntry, stylesheets } from "./assets.ts";
 
-export function Document() {
-    let assets = mergeAssets(clientAssets, serverAssets);
-
+export function Document(handle: Handle<{ children?: RemixNode }>) {
     return () => (
         <html lang="en">
             <head>
-                {assets.css.map(attrs => (
-                    <link key={attrs.href} {...attrs} rel="stylesheet" />
+                <meta charSet="utf-8" />
+                {stylesheets.map(href => (
+                    <link key={href} rel="stylesheet" href={href} />
                 ))}
-                <script async src={clientAssets.entry} type="module" />
-                {assets.js.map(attrs => (
-                    <link key={attrs.href} {...attrs} rel="modulepreload" />
+                {scriptEntry.preloads.map(href => (
+                    <link key={href} rel="modulepreload" href={href} />
                 ))}
+                <script type="module" src={scriptEntry.href} />
             </head>
-            <body>{/* ... */}</body>
+            <body>{handle.props.children}</body>
         </html>
     );
 }
 ```
 
-Each result is an [`ImportedAssets`](/package/dev/runtime/interface/ImportedAssets), `{ entry?, js: [{ href }], css: [{ href }] }`. `mergeAssets` deduplicates by `href`. Type the imports once in `tsconfig.json` with [`pitlane/dev/assets`](/package/dev/assets):
+The server entry hands the same object to Remix's own `render()` middleware, which uses it to resolve islands:
 
-```jsonc
-{ "compilerOptions": { "types": ["pitlane/dev/assets"] } }
+```tsx
+// app/entry.server.tsx
+import { render } from "remix/middleware/render";
+import { staticFiles } from "remix/middleware/static";
+import { createRouter, type MiddlewareContext } from "remix/router";
+
+import { assets } from "./assets.ts";
+import { Document } from "./document.tsx";
+import { routes } from "./routes.ts";
+
+let renderMiddleware = render({ assets });
+type AppContext = MiddlewareContext<[typeof renderMiddleware]>;
+
+declare module "remix/router" {
+    interface RouterTypes {
+        context: AppContext;
+    }
+}
+
+export let router = createRouter<AppContext>({
+    middleware: [staticFiles("./dist/client"), renderMiddleware],
+});
+
+router.map(routes.home, ({ render }) => render(<Document>{/* ... */}</Document>));
+
+export default router;
+
+if (import.meta.hot) {
+    import.meta.hot.accept();
+}
 ```
+
+<Callout kind="warning" title="Footgun Warning">
+
+`render()` without `assets` renders pages until the first island, then fails with Remix's own error: `clientEntry() cannot use a file: source entry ID without an asset server. Pass the asset server to render({ assets }).` Pass the resolver.
+
+</Callout>
 
 ### Dev and production resolve differently, by design
 
 |  | `vite dev` | production build |
 | --- | --- | --- |
-| `entry` | source URL (`/app/entry.browser.ts`) | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
-| `js` | **always empty** (no chunk graph exists yet) | reachable chunks, for `modulepreload` |
-| `css` (`?assets=ssr`) | dev links carrying `data-vite-dev-id` | hashed files copied into `dist/client` |
-| `css` (`?assets=client`) | empty (Vite injects dev styles itself) | hashed files |
+| `scriptEntry.href` | source URL (`/app/entry.browser.ts`) | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
+| `scriptEntry.preloads` | **always empty** (no chunk graph exists yet) | the entry chunk, then its static imports |
+| `scriptEntry.importMap` | `{ imports: {} }` | `{ imports: {} }` unless chunk import maps are on |
+| `getStylesheets(…)` | dev URLs for the CSS the server graph imports | hashed files in `dist/client` |
 
-Write the `Document` once against the full shape and both modes come out right: empty arrays render nothing in dev, real tags in production.
+The same document works in both modes. Empty hint arrays produce no tags during development. Vite injects browser-only CSS and updates stylesheets in place when their rules change.
 
-<Callout kind="warning" title="Footgun Warning">
+The manifest is server-side data. Import `app/assets.ts` from server-rendered modules such as your document, never from code that only runs in the browser.
 
-`?assets=` is server-side data. In the client environment, `?assets=` imports resolve to an empty result, because the browser already knows its own modules, and Vite's preload optimization covers chunk loading. Read `?assets=` in server-rendered components (your `Document`), never in code that only runs in the browser expecting real values.
+### Chunk import maps
 
-</Callout>
+Off by default. `remix({ assets: { chunkImportMap: true } })` turns on Vite's chunk import map for the client build, so a dependency's new hash changes one map entry instead of every chunk importing it. `scriptEntry.importMap` then carries the complete map, and the document must deliver it before any module script or `modulepreload` link:
+
+```tsx
+import { ImportMap } from "remix/component/server";
+
+// inside <head>, first:
+<ImportMap value={scriptEntry.importMap} />;
+```
+
+The option requires browsers with import maps and `import.meta.resolve`, and conflicts with Vite's `experimental.renderBuiltUrl`. The [assets guide](/guides/assets#chunk-import-maps) covers the caching limits and renderers other than Remix.
 
 ## The `clientEntry()` transform
 
-`clientEntry(import.meta.url, …)` marks a component for hydration. At build time the plugin rewrites the first argument into the module's asset URL plus an `#ExportName` fragment. At runtime the server writes that URL into hydration markers, and the browser's `run()` imports the chunk and hydrates in place.
+`clientEntry(import.meta.url, …)` marks a component for hydration. The plugin rewrites the first argument into a portable identity: `file:` plus the module's path from the project root, plus an `#ExportName` fragment. Every environment, in dev and in the build, gets the same literal:
+
+```diff
+-export let Counter = clientEntry(import.meta.url, function Counter(handle) {
++export let Counter = clientEntry("file:app/counter.tsx#Counter", function Counter(handle) {
+```
+
+When a page renders `<Counter />`, `render({ assets })` sees the `file:` prefix and asks the resolver for the island's script entry. In dev that is the module's own URL, `/app/counter.tsx`. In a build it is the island's emitted chunk, and the renderer hoists the chunk and its static imports into the head as `modulepreload` links. The hydration record still names the chunk URL and export, and the browser's `run()` imports it and hydrates in place.
 
 ```tsx
 import { clientEntry, on } from "remix/component";
@@ -166,9 +250,13 @@ export let Counter = clientEntry(import.meta.url, handle => {
 });
 ```
 
-Multiple `clientEntry` exports in one file share a single assets import, so grouping related islands per file is free.
+Each island module becomes its own client chunk with its exports intact, even when no browser code imports it: the plugin finds islands while building the server and emits them in the client build. Multiple `clientEntry` exports in one file share that chunk, so grouping related islands per file is free.
 
-### The pattern is strict and silent
+`vite dev` follows the same rule without a build. When the server imports a module that declares an island, the plugin registers that module as a browser entry. The resolver then answers with its dev URL. Delete the module's last `clientEntry` export and the registration goes with it on the next edit. An island file outside the server graph is not an entry.
+
+The identity contains no checkout directory, so builds on different machines write the same server code. A module linked from outside the project root, such as a workspace package, keeps leading `../` segments (`file:../packages/ui/src/counter.tsx#Counter`), which assumes the same relative workspace layout on every machine that builds it.
+
+### The pattern is strict
 
 The transform matches **exactly** this shape, at the top level of a module:
 
@@ -178,7 +266,7 @@ export let Name = clientEntry(import.meta.url, …at least one more argument)
 
 The declaration kind is the one part that is free. `let`, `const`, and `var` all match, because the `#Name` fragment comes from the name the export binds and nothing else. Examples here use `let`, matching the rest of the codebase.
 
-Anything else is silently left untouched. An untransformed call passes `import.meta.url` through as a plain string. Server rendering still succeeds, but the hydration data points at a URL that isn't a client chunk. The failed module request leaves the component inert in the browser. If an island won't hydrate, check these first:
+Anything else is left untouched. An untransformed call keeps `import.meta.url`, which on Node is the module's absolute `file:///` URL. `render({ assets })` passes it to the resolver, which rejects absolute file URLs and asks for a portable source key, so the page fails to render. If you see that error for an island, check these first:
 
 ```tsx
 // ✗ default export — no export name for the #fragment
@@ -228,11 +316,13 @@ Only a top-level export binding whose initializer is a literal `clientEntry(impo
 
 ### `serverEnvironments`
 
-The transform needs to know which environments are "server". Server environments get the `?assets=client` prepend, and the client gets `import.meta.url + "#Name"`. The default, `["ssr"]`, is right unless you've renamed or added server environments. If you have, pass the same names to `remix({ serverEnvironments })`. [Hot module replacement](/guides/hmr) reads the same option to tell server modules from client ones, so a mismatch breaks both.
+The plugin needs to know which environments are "server". Islands are discovered while those environments build, and their stylesheets are collected from those graphs. The default, `["ssr"]`, is right unless you've renamed or added server environments. If you have, pass the same names to `remix({ serverEnvironments })`. [Hot module replacement](/guides/hmr) reads the same option to tell server modules from client ones, so a mismatch breaks both.
 
 ## Dev server semantics
 
-With the default `serverHandler: true`, every request is answered by your server entry through Vite's module runner. The entry is re-imported per request, so server-side edits are live without restarting. The `if (import.meta.hot) import.meta.hot.accept()` line in the server entry is what keeps those re-imports cheap, so keep it.
+With the default `serverHandler: true`, every request is answered by your server entry through Vite's module runner: `serverEntry`, so `app/entry.server` unless you set another path. The entry is re-imported per request, so server-side edits are live without restarting. The `if (import.meta.hot) import.meta.hot.accept()` line in the server entry is what keeps those re-imports cheap, so keep it.
+
+The request bridge is the [Fetch server plugin](/guides/fetch-server), which `remix()` installs for you with your `serverEntry`. Vite handles module requests and static files first. Everything else reaches your router.
 
 <Callout kind="info" title="Hot module replacement">
 
@@ -241,7 +331,7 @@ Component edits swap in place and keep live island state, and edits to server-on
 </Callout>
 
 - **Set `serverHandler: false` when a platform plugin owns dev requests.** `@cloudflare/vite-plugin` (workerd) and `nitro/vite` bring their own runtimes. Netlify's plugin does not serve SSR, so keep the default there. Each [deploy guide](#deploying) states the right value.
-- **Aborted requests don't panic the overlay.** Search-as-you-type and mid-navigation fetch cancellations throw `aborted` errors that the plugin filters out of Vite's error overlay. Real errors still surface.
+- **Aborted requests stay quiet.** Search-as-you-type and mid-navigation fetch cancellations end the response without reaching Vite's error overlay, and the next request is served normally. Real errors still surface.
 
 ## Preview and the static-files footgun
 
@@ -265,20 +355,20 @@ dist/
     └── index.js     # the fetch handler
 ```
 
-- **SSR builds first, then the client.** The client build resolves `?assets=ssr` against the SSR manifest, so the order matters. The plugin sequences it, so don't hand-orchestrate builds around it.
-- **Assets are never inlined** (`assetsInlineLimit: 0`) so every asset has a real hashed URL the `?assets=` runtime can name.
-- **Composing with another build orchestrator is coordinated.** When a platform plugin also drives builds (Cloudflare's does), each environment still builds exactly once.
+- **Server environments build first, then the client.** Islands and literal `getScriptEntry` paths are discovered while the server builds, and the client build emits them. The plugin sequences it and writes the asset manifest into `dist/ssr` before anything else reads the build, so don't hand-orchestrate builds around it.
+- **Server-imported stylesheets are copied into `dist/client`**, so every URL `getStylesheets` returns is served from the client output.
+- **Composing with another build orchestrator is coordinated.** When a platform plugin also drives builds (Cloudflare's does), each environment still builds exactly once, and [prerendering](/guides/prerendering) runs after the manifest is complete.
 
 ## Compatibility
 
 | Dependency  | Tested against             |
 | ----------- | -------------------------- |
-| `vite`      | 8 (the latest 8.x, in CI)  |
+| `vite`      | 8.1 and the latest 8.x     |
 | `vite-plus` | 1.0                        |
 | `remix`     | 3.0.0                      |
 | Node        | 24 LTS, 26                 |
 
-Each `@pitlane/dev` release records the exact Remix version it was verified against. Rolldown is optional. The transform runs identically on generic Vite and Vite+.
+Each `@pitlane/vite-plugin-remix` release records the exact Remix version it was verified against. The transform runs identically on generic Vite and Vite+.
 
 ### Troubleshooting
 

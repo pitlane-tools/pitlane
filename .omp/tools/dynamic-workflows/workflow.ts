@@ -1,8 +1,8 @@
 // Ported from pi-dynamic-workflows v1.0.1, commit 31b2aca0f1cb195aafbfc5e3ee2b8c83ad3f21a2.
-import type { OxcError, Program } from "oxc-parser";
+import type { ESTree, ParseResult } from "vite";
 
 import vm from "node:vm";
-import { parseSync } from "oxc-parser";
+import { parseSync } from "vite";
 
 declare global {
     interface PromiseConstructor {
@@ -523,7 +523,7 @@ export function parseWorkflowScript(script: string): { meta: WorkflowMeta; body:
         preserveParens: false,
         showSemanticErrors: true,
     });
-    let program = result.program as Program & AstNode;
+    let program = result.program as ESTree.Program & AstNode;
     let fatal = result.errors.find(
         error => error.severity === "Error" && !isWorkflowLevelReturnDiagnostic(error, program),
     );
@@ -549,7 +549,10 @@ export function parseWorkflowScript(script: string): { meta: WorkflowMeta; body:
     return { meta, body: script.slice(0, first.start) + script.slice(first.end) };
 }
 
-function isWorkflowLevelReturnDiagnostic(error: OxcError, program: AstNode): boolean {
+function isWorkflowLevelReturnDiagnostic(
+    error: ParseResult["errors"][number],
+    program: AstNode,
+): boolean {
     if (error.message !== "A 'return' statement can only be used within a function body.")
         return false;
     return error.labels.some(label => hasWorkflowLevelReturnAt(program, label.start, label.end));

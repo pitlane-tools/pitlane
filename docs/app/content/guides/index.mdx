@@ -11,11 +11,11 @@ export const installation = await installAlternatives({ packages: ["pitlane"] })
 
 # Pitlane guides
 
-Pitlane is a composable toolkit for [Remix 3](https://remix.run). Its Vite plugin runs the dev server and builds the app for its host. Additional packages handle content and styling, with a Cloudflare D1 driver and an in-memory crawler available separately.
+Pitlane is a composable toolkit for [Remix 3](https://remix.run). Its Vite plugin runs the dev server and builds the app for its host. Additional packages resolve built assets and handle content and styling, with a Cloudflare D1 driver and an in-memory crawler available separately.
 
 Remix owns routing and UI. Pitlane's packages compose with its APIs: content collections validate with `remix/data-schema`, and the D1 driver plugs into `remix/data-table`.
 
-These guides explain how each piece behaves and when to reach for it. The [API reference](/package/dev/) documents every export separately.
+These guides explain how each piece behaves and when to reach for it. The [API reference](/package/vite-plugin-remix/) documents every export separately.
 
 ## Guides
 
@@ -25,7 +25,7 @@ These guides explain how each piece behaves and when to reach for it. The [API r
 
 - [Using the Vite plugin](/guides/vite-plugin)
 
-  What `remix()` does in dev, preview, and the build, including the asset runtime and the `clientEntry()` transform.
+  What `remix()` does in dev, preview, and the build, including the `clientEntry()` transform.
 
 - [Hot module replacement](/guides/hmr)
 
@@ -38,6 +38,24 @@ These guides explain how each piece behaves and when to reach for it. The [API r
 - [Prerendering](/guides/prerendering)
 
   Rendering paths to static HTML during `vite build`, and where those paths come from.
+
+</GuideTiles>
+
+### Assets
+
+<GuideTiles>
+
+- [Asset resolution](/guides/assets)
+
+  Script entries, stylesheets, and preloads from `createAssetResolver()`, with or without Remix.
+
+- [Manifest integrations](/guides/asset-build)
+
+  Turning another bundler's output into an asset manifest with `createAssetManifest()`.
+
+- [Development fetch server](/guides/fetch-server)
+
+  Serving a `fetch` handler through Vite's dev server with `fetchServer()`.
 
 </GuideTiles>
 
@@ -119,15 +137,15 @@ The repository names the other targets, and the [deploy guides](#deploy) cover e
 
 ## Add Pitlane to a Remix app
 
-Install the `pitlane` package. It needs `remix` 3 and `vite` 8 or later as peer dependencies.
+Install the `pitlane` package. It needs `remix` 3 and `vite` 8.1 or later as peer dependencies.
 
 <InstallGroup alternatives={installation} />
 
-Then add the Vite plugin from `pitlane/dev` to `vite.config.ts`:
+Then add the Vite plugin from `pitlane/vite-plugin-remix` to `vite.config.ts`:
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -139,7 +157,7 @@ export default defineConfig({
 
 ### Imports
 
-`pitlane` installs every Pitlane package and re-exports each one under a subpath named after it: `@pitlane/dev` becomes `pitlane/dev`, and `@pitlane/theme/schema` becomes `pitlane/theme/schema`. Bare `pitlane` has no exports, so every import names a subpath.
+`pitlane` installs every Pitlane package and re-exports each one under a subpath named after it: `@pitlane/vite-plugin-remix` becomes `pitlane/vite-plugin-remix`, and `@pitlane/theme/schema` becomes `pitlane/theme/schema`. Bare `pitlane` has no exports, so every import names a subpath.
 
 Each package also installs on its own under its `@pitlane/*` name. That route suits an app that uses one package or needs a release newer than the one `pitlane` pins. [Installing Pitlane](/guides/umbrella) compares the installs and explains the version pins, with a full subpath reference.
 

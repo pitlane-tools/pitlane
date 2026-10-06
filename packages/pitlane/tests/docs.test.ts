@@ -5,17 +5,17 @@ import { parseManifest } from "../scripts/manifest.ts";
 
 let packages = [
     { name: "@pitlane/crawler", directory: "/repo/packages/crawler", description: "Crawls routes" },
-    { name: "@pitlane/dev", directory: "/repo/packages/dev", description: "The Vite plugin" },
+    { name: "@pitlane/assets", directory: "/repo/packages/assets", description: "Asset URLs" },
     { name: "@pitlane/unused", directory: "/repo/packages/unused", description: "Not re-exported" },
 ];
 
 it("mirrors each re-exported package's README beside its compiled subpaths, listing every subpath it documents", () => {
     let manifest = parseManifest({
         _comment: "ignored",
-        "pitlane/dev/runtime": "@pitlane/dev/runtime",
+        "pitlane/assets/vite-plugin": "@pitlane/assets/vite-plugin",
         "pitlane/crawler": "@pitlane/crawler",
-        "pitlane/dev": "@pitlane/dev",
-        "pitlane/dev/assets": "@pitlane/dev/assets",
+        "pitlane/assets": "@pitlane/assets",
+        "pitlane/assets/manifest": "@pitlane/assets/manifest",
     });
 
     expect(installedReadmes(manifest, packages)).toEqual([
@@ -27,11 +27,11 @@ it("mirrors each re-exported package's README beside its compiled subpaths, list
             exports: ["pitlane/crawler"],
         },
         {
-            name: "@pitlane/dev",
-            description: "The Vite plugin",
-            readme: "/repo/packages/dev/README.md",
-            path: "dist/dev/README.md",
-            exports: ["pitlane/dev", "pitlane/dev/assets", "pitlane/dev/runtime"],
+            name: "@pitlane/assets",
+            description: "Asset URLs",
+            readme: "/repo/packages/assets/README.md",
+            path: "dist/assets/README.md",
+            exports: ["pitlane/assets", "pitlane/assets/manifest", "pitlane/assets/vite-plugin"],
         },
     ]);
 });

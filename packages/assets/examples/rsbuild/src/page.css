@@ -1,0 +1,6 @@
+.page {
+    display: grid;
+    gap: 1rem;
+    padding: 2rem;
+    font-family: system-ui, sans-serif;
+}

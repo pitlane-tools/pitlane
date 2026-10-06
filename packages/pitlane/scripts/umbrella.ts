@@ -1,12 +1,12 @@
-import { parseSync } from "oxc-parser";
 import { subset } from "semver";
+import { parseSync } from "vite";
 
 import type { WorkspacePackage } from "./workspace.ts";
 
 /**
  * What a re-exported module is: an ES module, which the umbrella re-exports
- * binding for binding, or an ambient declaration file such as
- * `@pitlane/dev/assets`, which has no bindings and is pulled in by reference.
+ * binding for binding, or an ambient declaration file, which has no bindings
+ * and is pulled in by reference.
  */
 export type ExportShape = { kind: "module"; hasDefault: boolean } | { kind: "ambient" };
 

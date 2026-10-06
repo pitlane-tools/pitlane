@@ -1,0 +1,20 @@
+# An isolated workspace: the repository's root workspace lists only direct
+# children of packages/, so these fixtures never enter the root lockfile.
+packages:
+    - examples/*
+
+allowBuilds:
+    remix: true
+    workerd: true
+    esbuild: true
+    "@swc/core": true
+    sharp: false
+
+# Peers resolve strictly, as in an application install.
+strictPeerDependencies: true
+autoInstallPeers: true
+
+# Vite+ core reports its own 1.x version under the vite alias.
+peerDependencyRules:
+    allowedVersions:
+        vite: "1"

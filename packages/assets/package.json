@@ -1,0 +1,76 @@
+{
+    "name": "@pitlane/assets",
+    "version": "0.0.0",
+    "description": "Framework-neutral asset resolution for bundled applications.",
+    "keywords": [
+        "assets",
+        "import-map",
+        "manifest",
+        "modulepreload",
+        "pitlane",
+        "vite",
+        "vite-plugin"
+    ],
+    "homepage": "https://pitlane.tools/package/assets/",
+    "bugs": {
+        "url": "https://github.com/pitlane-tools/pitlane/issues"
+    },
+    "license": "MIT",
+    "author": "Mark Malstrom <mark@malstrom.me>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pitlane-tools/pitlane.git",
+        "directory": "packages/assets"
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "LICENSE.upstream"
+    ],
+    "type": "module",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        },
+        "./manifest": {
+            "types": "./dist/manifest.d.mts",
+            "import": "./dist/manifest.mjs"
+        },
+        "./build": {
+            "types": "./dist/build.d.mts",
+            "import": "./dist/build.mjs"
+        },
+        "./vite-plugin": {
+            "types": "./dist/vite-plugin.d.mts",
+            "import": "./dist/vite-plugin.mjs"
+        }
+    },
+    "scripts": {
+        "prepublishOnly": "vp run build"
+    },
+    "dependencies": {
+        "magic-string": "^0.30.21"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "fast-check": "4.10.2",
+        "playwright": "1.61.1",
+        "remix": "3.0.0",
+        "typescript": "^7.0.2",
+        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
+        "vite-plus": "^1.0.0"
+    },
+    "peerDependencies": {
+        "vite": ">=8.1.0"
+    },
+    "peerDependenciesMeta": {
+        "vite": {
+            "optional": true
+        }
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
+}

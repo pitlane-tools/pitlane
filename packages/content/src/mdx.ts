@@ -88,7 +88,7 @@ function readable(block: string, parse: Parse, where: string) {
 
     throw new Error(
         `Could not read the imports of "${where}": its \`import\` and \`export\` block is not ` +
-            `valid JavaScript. Add contentLayer() from ${contentSpecifier("vite")} so the build compiles ` +
+            `valid JavaScript. Add contentLayer() from ${contentSpecifier("vite-plugin")} so the build compiles ` +
             `this collection.`,
     );
 }
@@ -451,7 +451,7 @@ function importMeta(where: string) {
     return new Error(
         `"${where}" uses \`import.meta\`, which cannot be evaluated outside a bundler: the ` +
             `document is compiled to a function body rather than a module. Add contentLayer() from ` +
-            `${contentSpecifier("vite")} so the build compiles this collection.`,
+            `${contentSpecifier("vite-plugin")} so the build compiles this collection.`,
     );
 }
 
@@ -477,7 +477,7 @@ function namespaceImport(local: string, statement: string, where: string) {
     return new Error(
         `"${where}" imports \`* as ${local}\` in \`${statement}\`, which cannot be resolved ` +
             `outside a bundler. Import the components by name instead, or add contentLayer() from ` +
-            `${contentSpecifier("vite")} so the build compiles this collection.`,
+            `${contentSpecifier("vite-plugin")} so the build compiles this collection.`,
     );
 }
 

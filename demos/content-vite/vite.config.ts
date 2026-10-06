@@ -1,6 +1,6 @@
 import { headings, rawStyles } from "@pitlane/content/satteri";
-import { contentLayer } from "@pitlane/content/vite";
-import { remix } from "@pitlane/dev";
+import { contentLayer } from "@pitlane/content/vite-plugin";
+import { remix } from "@pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 import satteri from "vite-plugin-satteri";
 

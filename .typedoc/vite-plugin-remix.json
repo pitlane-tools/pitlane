@@ -1,0 +1,11 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "./base.json",
+    "entryPoints": [
+        "../packages/vite-plugin-remix/src/index.ts",
+        "../packages/vite-plugin-remix/src/hmr-client.ts"
+    ],
+    "tsconfig": "../packages/vite-plugin-remix/tsconfig.json",
+    "out": "../docs/app/content/api/vite-plugin-remix",
+    "entryModule": "@pitlane/vite-plugin-remix"
+}

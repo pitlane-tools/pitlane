@@ -2,8 +2,8 @@ import type { Handle, RemixNode } from "remix/component";
 
 import { css, type ThemedCSSProps, tva } from "@pitlane/theme";
 
+import { scriptEntry, stylesheets } from "../assets.ts";
 import { type DocumentPage, markdownPath } from "../document.ts";
-import clientAssets from "../entry.browser.ts?assets=client";
 import { eyebrow } from "../styles/controls.ts";
 import {
     belowOutlineColumn,
@@ -258,12 +258,12 @@ export function Document(handle: Handle<DocumentProps>) {
                     <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
                     <script>{SWAP_FAVICON}</script>
                     <Theme />
-                    {clientAssets.css.map(attrs => (
-                        <link key={attrs.href} {...attrs} rel="stylesheet" />
+                    {stylesheets.map(href => (
+                        <link href={href} key={href} rel="stylesheet" />
                     ))}
-                    <script async src={clientAssets.entry} type="module" />
-                    {clientAssets.js.map(attrs => (
-                        <link key={attrs.href} {...attrs} rel="modulepreload" />
+                    <script async src={scriptEntry.href} type="module" />
+                    {scriptEntry.preloads.map(href => (
+                        <link href={href} key={href} rel="modulepreload" />
                     ))}
                 </head>
                 <body mix={css({ margin: 0 })}>

@@ -1,0 +1,25 @@
+{
+    "name": "@pitlane-compat/react-router",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev",
+        "build": "vite build",
+        "preview": "srvx --prod -s ../client dist/ssr/index.js"
+    },
+    "dependencies": {
+        "@pitlane/assets": "candidate"
+    },
+    "devDependencies": {
+        "@pitlane/vite-plugin-fetch-server": "candidate",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@vitejs/plugin-react": "5.2.0",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
+        "react-router": "7.12.0",
+        "srvx": "0.10.1",
+        "vite": "8.3.3",
+        "vite-plugin-devtools-json": "1.1.0"
+    }
+}

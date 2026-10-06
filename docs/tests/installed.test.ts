@@ -34,12 +34,16 @@ test("a link to an installed guide leads to its copy, relative to the file holdi
         ["guides/deploy/vercel.md", "/guides", "../index.md"],
         ["guides/deploy/vercel.md", "/guides/hmr?x=1#state", "../hmr.md?x=1#state"],
         [
-            "dist/dev/README.md",
+            "dist/vite-plugin-remix/README.md",
             "https://pitlane.tools/guides/hmr#state",
             "../../guides/hmr.md#state",
         ],
         // The site's own Markdown of an installed page is that page too.
-        ["dist/dev/README.md", "https://pitlane.tools/guides/hmr.md", "../../guides/hmr.md"],
+        [
+            "dist/vite-plugin-remix/README.md",
+            "https://pitlane.tools/guides/hmr.md",
+            "../../guides/hmr.md",
+        ],
         ["INDEX.md", "/deploy/vercel", "guides/deploy/vercel.md"],
     ] as const) {
         assert.equal(installedLinks(SITE, from, urls)(href), expected, `${href} from ${from}`);
@@ -49,14 +53,17 @@ test("a link to an installed guide leads to its copy, relative to the file holdi
 test("a link to nothing installed leads to the website, and every other link stays as it is", () => {
     let link = installedLinks(SITE, "guides/hmr.md", urls);
     for (let [href, expected] of [
-        ["/package/dev/", "https://pitlane.tools/package/dev/"],
+        ["/package/vite-plugin-remix/", "https://pitlane.tools/package/vite-plugin-remix/"],
         [
-            "/package/dev/function/remix#returns",
-            "https://pitlane.tools/package/dev/function/remix#returns",
+            "/package/vite-plugin-remix/function/remix#returns",
+            "https://pitlane.tools/package/vite-plugin-remix/function/remix#returns",
         ],
         ["/media/lockup.png", "https://pitlane.tools/media/lockup.png"],
         ["https://pitlane.tools/llms.txt", "https://pitlane.tools/llms.txt"],
-        ["https://pitlane.tools/package/dev/", "https://pitlane.tools/package/dev/"],
+        [
+            "https://pitlane.tools/package/vite-plugin-remix/",
+            "https://pitlane.tools/package/vite-plugin-remix/",
+        ],
         ["https://remix.run/docs", "https://remix.run/docs"],
         ["https://pitlane.tools.example/guides/hmr", "https://pitlane.tools.example/guides/hmr"],
         ["#state", "#state"],
@@ -68,7 +75,7 @@ test("a link to nothing installed leads to the website, and every other link sta
 
 test("for any installed file and fragment, a mapped link resolves to the target's copy and keeps the fragment", () => {
     let file = fc.oneof(
-        fc.constantFrom("INDEX.md", "dist/dev/README.md", "dist/content/README.md"),
+        fc.constantFrom("INDEX.md", "dist/vite-plugin-remix/README.md", "dist/content/README.md"),
         fc.constantFrom(...urls).map(installedPath),
     );
     let fragment = fc.option(fc.stringMatching(/^[a-z0-9-]{1,20}$/), { nil: undefined });
@@ -91,7 +98,7 @@ test("for any installed file and fragment, a mapped link resolves to the target'
 
 test("rewriting a Markdown file's links changes their destinations and nothing else", () => {
     let source = [
-        "# @pitlane/dev",
+        "# @pitlane/vite-plugin-remix",
         "",
         'See [HMR](https://pitlane.tools/guides/hmr#state "Hot") and <https://pitlane.tools/guides/spa>.',
         "",
@@ -116,7 +123,7 @@ test("rewriting a Markdown file's links changes their destinations and nothing e
     assert.equal(
         rewritten,
         [
-            "# @pitlane/dev",
+            "# @pitlane/vite-plugin-remix",
             "",
             'See [HMR](LOCAL/hmr#state "Hot") and [https://pitlane.tools/guides/spa](LOCAL/spa).',
             "",
@@ -137,7 +144,7 @@ test("rewriting a Markdown file's links changes their destinations and nothing e
 });
 
 test("README link destinations use their parsed meaning, not their source spelling", () => {
-    let link = installedLinks(SITE, "dist/dev/README.md", urls);
+    let link = installedLinks(SITE, "dist/vite-plugin-remix/README.md", urls);
     for (let [source, expected] of [
         ["[Guide](https://pitlane.tools/guides/h&#109;r)", "../../guides/hmr.md"],
         [
@@ -196,10 +203,10 @@ test("the index lists every guide under its group and every export beside its RE
         ],
         [
             {
-                name: "@pitlane/dev",
+                name: "@pitlane/vite-plugin-remix",
                 description: "The Vite plugin for Remix",
-                path: "dist/dev/README.md",
-                exports: ["pitlane/dev", "pitlane/dev/runtime"],
+                path: "dist/vite-plugin-remix/README.md",
+                exports: ["pitlane/vite-plugin-remix", "pitlane/vite-plugin-remix/hmr"],
             },
         ],
     );
@@ -212,13 +219,13 @@ test("the index lists every guide under its group and every export beside its RE
         found.filter(href => href.endsWith("prerendering.md")),
         ["guides/prerendering.md", "guides/prerendering.md"],
     );
-    assert.ok(found.includes("dist/dev/README.md"));
+    assert.ok(found.includes("dist/vite-plugin-remix/README.md"));
     let groups = index.split("\n").filter(line => line.startsWith("#"));
     assert.ok(
         groups.findIndex(line => line.includes("Getting Started")) <
             groups.findIndex(line => line.includes("Deployment")),
     );
-    for (let subpath of ["pitlane/dev", "pitlane/dev/runtime"]) {
+    for (let subpath of ["pitlane/vite-plugin-remix", "pitlane/vite-plugin-remix/hmr"]) {
         assert.ok(index.includes(`\`${subpath}\``), subpath);
     }
 });
@@ -226,16 +233,16 @@ test("the index lists every guide under its group and every export beside its RE
 test("the installed export writes every published guide as plain Markdown whose local links resolve", async () => {
     let out = await mkdtemp(join(tmpdir(), "pitlane-installed-"));
     try {
-        let readme = new URL("dev/README.md", PACKAGES).pathname;
+        let readme = new URL("vite-plugin-remix/README.md", PACKAGES).pathname;
         let guides = await exportInstalled({
             out,
             packages: [
                 {
-                    name: "@pitlane/dev",
+                    name: "@pitlane/vite-plugin-remix",
                     description: "The Vite plugin for Remix",
                     readme,
-                    path: "dist/dev/README.md",
-                    exports: ["pitlane/dev", "pitlane/dev/runtime"],
+                    path: "dist/vite-plugin-remix/README.md",
+                    exports: ["pitlane/vite-plugin-remix", "pitlane/vite-plugin-remix/hmr"],
                 },
             ],
         });
@@ -259,7 +266,11 @@ test("the installed export writes every published guide as plain Markdown whose 
         assert.deepEqual(guides.map(guide => guide.page.url).sort(), sources.sort());
 
         let articles = new Map(guides.map(guide => [guide.path, guide.article]));
-        let files = [...guides.map(guide => guide.path), "dist/dev/README.md", "INDEX.md"];
+        let files = [
+            ...guides.map(guide => guide.path),
+            "dist/vite-plugin-remix/README.md",
+            "INDEX.md",
+        ];
         for (let file of files) {
             let markdown = await readFile(join(out, file), "utf8");
             let prose = withoutCode(markdown);

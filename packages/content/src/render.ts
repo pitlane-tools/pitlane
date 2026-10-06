@@ -114,7 +114,7 @@ function compile(names: readonly string[], code: string, where: string) {
         throw new Error(
             `"${where}" has a body that cannot be compiled outside a bundler: ${cause}. The ` +
                 `document becomes a function body here rather than a module. Add contentLayer() from ` +
-                `${contentSpecifier("vite")} so the build compiles this collection.`,
+                `${contentSpecifier("vite-plugin")} so the build compiles this collection.`,
             { cause: error },
         );
     }
@@ -368,7 +368,7 @@ async function loadSatteri(where: string): Promise<Satteri> {
     } catch {
         throw new Error(
             `Rendering "${where}" needs the optional peer dependency "satteri"; install it, ` +
-                `or add contentLayer() from ${contentSpecifier("vite")} so the build compiles this collection.`,
+                `or add contentLayer() from ${contentSpecifier("vite-plugin")} so the build compiles this collection.`,
         );
     }
 }

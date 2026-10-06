@@ -2,7 +2,7 @@
  * Each module of the `pitlane` umbrella adds the package it re-exports to
  * this set when it loads, so a package can name itself the way the app
  * imports it. An app that installed only `pitlane` cannot import
- * `@pitlane/content/vite` under a strict package manager.
+ * `@pitlane/content/vite-plugin` under a strict package manager.
  */
 const UMBRELLA_PACKAGES = Symbol.for("pitlane.umbrella.packages");
 

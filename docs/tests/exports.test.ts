@@ -20,7 +20,10 @@ function page(url: string, title: string, extra: Partial<DocumentPage> = {}): Do
 }
 
 let hmr = page("/guides/hmr", "Hot module replacement");
-let dev = page("/package/dev/", "@pitlane/dev", { section: "api", module: "@pitlane/dev" });
+let dev = page("/package/vite-plugin-remix/", "@pitlane/vite-plugin-remix", {
+    section: "api",
+    module: "@pitlane/vite-plugin-remix",
+});
 let vite = page("/guides/prerendering", "Prerendering", {
     buildMode: "vite",
     counterpart: "/guides/prerendering-no-build",
@@ -43,9 +46,12 @@ test("links to published pages lead to their Markdown, absolute, keeping the fra
         ["/guides/hmr/", "https://pitlane.tools/guides/hmr.md"],
         ["https://pitlane.tools/guides/hmr#state", "https://pitlane.tools/guides/hmr.md#state"],
         ["https://pitlane.tools/guides/hmr/", "https://pitlane.tools/guides/hmr.md"],
-        ["/package/dev/", "https://pitlane.tools/package/dev/index.md"],
-        ["/package/dev", "https://pitlane.tools/package/dev/index.md"],
-        ["/package/dev/#install", "https://pitlane.tools/package/dev/index.md#install"],
+        ["/package/vite-plugin-remix/", "https://pitlane.tools/package/vite-plugin-remix/index.md"],
+        ["/package/vite-plugin-remix", "https://pitlane.tools/package/vite-plugin-remix/index.md"],
+        [
+            "/package/vite-plugin-remix/#install",
+            "https://pitlane.tools/package/vite-plugin-remix/index.md#install",
+        ],
         ["/", "https://pitlane.tools/index.md"],
         ["https://pitlane.tools", "https://pitlane.tools/index.md"],
         // Not published documents: an asset, an unknown path, another site, an anchor.

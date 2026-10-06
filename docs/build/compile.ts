@@ -1,7 +1,7 @@
 import type { PluginOption } from "vite";
 
 import { headings } from "@pitlane/content/satteri";
-import { contentLayer } from "@pitlane/content/vite";
+import { contentLayer } from "@pitlane/content/vite-plugin";
 import { satteri } from "vite-plugin-satteri";
 
 import { bindings } from "./bindings.ts";

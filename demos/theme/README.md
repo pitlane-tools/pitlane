@@ -11,11 +11,14 @@ Dark mode is entirely CSS: `<Theme />` emits the base `:root` variables plus a `
 
 ## Run it
 
-From the repo root (the demo consumes the workspace build of `@pitlane/theme`):
+From the repo root (the demo consumes the workspace builds of `@pitlane/theme`, `@pitlane/assets`, and the Vite plugins):
 
 ```sh
 vp install
 vp -C packages/theme run build
+vp -C packages/assets run build
+vp -C packages/vite-plugin-fetch-server run build
+vp -C packages/vite-plugin-remix run build
 ```
 
 Then:
@@ -27,4 +30,4 @@ vp run build   # production build
 vp run preview # serve the production build
 ```
 
-These scripts run `vp`, which loads Vite+ core. Every `vite` in this workspace is aliased to that same core, so the dev server and `@pitlane/dev` share one copy of Vite.
+These scripts run `vp`, which loads Vite+ core. Every `vite` in this workspace is aliased to that same core, so the dev server and `@pitlane/vite-plugin-remix` share one copy of Vite.

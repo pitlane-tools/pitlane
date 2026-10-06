@@ -1,6 +1,6 @@
 ---
 title: Deploy to Vercel
-description: "Run a Remix 3 app on Vercel with pitlane/dev and the Nitro Vite plugin, which produces Vercel Functions through the Build Output API."
+description: "Run a Remix 3 app on Vercel with pitlane/vite-plugin-remix and the Nitro Vite plugin, which produces Vercel Functions through the Build Output API."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
@@ -11,7 +11,7 @@ export const pitlaneInstallation = await installAlternatives({ packages: ["pitla
 
 # Vercel
 
-Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing [`remix()`](/package/dev/function/remix) with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target. Vercel injects `VERCEL=1` into builds, so Nitro auto-selects its `vercel` preset and emits Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly. There is no **Framework Preset**, build command, or output directory to configure by hand.
+Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing [`remix()`](/package/vite-plugin-remix/function/remix) with [`nitro/vite`](https://nitro.build). Nitro packages the `ssr` environment's fetch handler for the deploy target. Vercel injects `VERCEL=1` into builds, so Nitro auto-selects its `vercel` preset and emits Vercel's [Build Output API](https://vercel.com/docs/build-output-api) format that the platform reads directly. There is no **Framework Preset**, build command, or output directory to configure by hand.
 
 <Callout kind="tip" title="Start from the template">
 
@@ -21,7 +21,7 @@ Deploy a Remix 3 app to [Vercel](https://vercel.com) by composing [`remix()`](/p
 
 ## Configuration
 
-The examples import from `pitlane/*` paths, which come from the `pitlane` package. The vercel template still depends on the scoped `@pitlane/dev` and `@pitlane/theme` packages, so add `pitlane` before switching its imports. Put it in `dependencies` when app code imports runtime subpaths such as `pitlane/dev/runtime`:
+The examples import from `pitlane/*` paths, which come from the `pitlane` package. The vercel template depends on scoped packages such as `@pitlane/vite-plugin-remix`, `@pitlane/assets`, and `@pitlane/theme`, so add `pitlane` before switching its imports. Put it in `dependencies` when app code imports runtime subpaths such as `pitlane/assets`:
 
 <InstallGroup alternatives={pitlaneInstallation} />
 
@@ -31,7 +31,7 @@ The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versi
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
@@ -40,7 +40,7 @@ export default defineConfig({
 });
 ```
 
-[`serverHandler: false`](/package/dev/interface/RemixPluginOptions#serverhandler) hands dev-time request handling to Nitro's dev server, which runs the same fetch handler Nitro packages for production.
+[`serverHandler: false`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverhandler) hands dev-time request handling to Nitro's dev server, which runs the same fetch handler Nitro packages for production.
 
 Server routes run as [Vercel Functions](https://vercel.com/docs/functions) on Fluid compute, with standard Web APIs and scale-to-zero. Client assets are served from Vercel's CDN.
 
@@ -175,7 +175,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({

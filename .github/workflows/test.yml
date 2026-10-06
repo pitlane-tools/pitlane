@@ -24,27 +24,44 @@ jobs:
             fail-fast: false
             matrix:
                 include:
+                    - package: "@pitlane/assets"
+                      directory: packages/assets
+                    - package: "@pitlane/vite-plugin-fetch-server"
+                      directory: packages/vite-plugin-fetch-server
                     - package: "@pitlane/content"
                       directory: packages/content
                     - package: "@pitlane/crawler"
                       directory: packages/crawler
-                    - package: "@pitlane/dev"
-                      directory: packages/dev
+                    - package: "@pitlane/vite-plugin-remix"
+                      directory: packages/vite-plugin-remix
                     - package: "@pitlane/data-table-d1"
                       directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
                     - package: "pitlane"
                       directory: packages/pitlane
-                    # The workspace's `vite` is Vite+ core, which `vp pack`
-                    # requires. These two packages run Vite as a peer, so their
-                    # suites also run against upstream Vite 8.
+                    # Exercise the supported minimum as well as current Vite.
+                    - package: "@pitlane/assets (Vite 8.1)"
+                      directory: packages/assets
+                      vite: "8.1.0"
+                    - package: "@pitlane/assets (Vite 8)"
+                      directory: packages/assets
+                      vite: "^8"
+                    - package: "@pitlane/vite-plugin-fetch-server (Vite 8.1)"
+                      directory: packages/vite-plugin-fetch-server
+                      vite: "8.1.0"
+                    - package: "@pitlane/vite-plugin-fetch-server (Vite 8)"
+                      directory: packages/vite-plugin-fetch-server
+                      vite: "^8"
+                    - package: "@pitlane/vite-plugin-remix (Vite 8.1)"
+                      directory: packages/vite-plugin-remix
+                      vite: "8.1.0"
                     - package: "@pitlane/content (Vite 8)"
                       directory: packages/content
-                      vite: upstream
-                    - package: "@pitlane/dev (Vite 8)"
-                      directory: packages/dev
-                      vite: upstream
+                      vite: "^8"
+                    - package: "@pitlane/vite-plugin-remix (Vite 8)"
+                      directory: packages/vite-plugin-remix
+                      vite: "^8"
         defaults:
             run:
                 working-directory: ${{ matrix.directory }}
@@ -59,22 +76,20 @@ jobs:
               uses: voidzero-dev/setup-vp@v1.21.1
               with:
                   node-version-file: .node-version
-                  cache: ${{ matrix.vite != 'upstream' }}
+                  cache: ${{ !matrix.vite }}
 
             - name: Install
               run: vp install --frozen-lockfile
 
-            # The @pitlane/dev browser HMR suite drives Playwright's Chromium;
-            # it self-skips when no browser is present, so install one here.
+            # Browser tests must run rather than silently skip missing Chromium.
             - name: Install Playwright Chromium
-              if: matrix.directory == 'packages/dev'
+              if: matrix.directory == 'packages/vite-plugin-remix' || matrix.directory == 'packages/assets'
               run: npx playwright install --with-deps chromium
 
-            # Dev fixtures resolve @pitlane/crawler through package exports, which point at build output.
-            - name: Build crawler for dev fixtures
-              if: matrix.directory == 'packages/dev'
-              working-directory: packages/crawler
-              run: vp run build
+            - name: Build Remix plugin dependencies
+              if: matrix.directory == 'packages/vite-plugin-remix'
+              working-directory: .
+              run: vp run --filter '@pitlane/vite-plugin-remix^...' build
 
             # The runtime fixture imports content through its published exports.
             - name: Build content for runtime fixtures
@@ -84,13 +99,13 @@ jobs:
             # Sibling builds above ran on Vite+ core; only the suite under test
             # swaps to upstream Vite.
             - name: Use upstream Vite 8
-              if: matrix.vite == 'upstream'
-              run: vp add -D vite@^8
+              if: matrix.vite
+              run: vp add -D vite@${{ matrix.vite }}
 
             # A green upstream run proves nothing unless the suite really
             # resolved upstream Vite rather than Vite+ core.
             - name: Confirm upstream Vite
-              if: matrix.vite == 'upstream'
+              if: matrix.vite
               run: |
                   node -e '
                   const vite = require("vite/package.json");
@@ -107,8 +122,58 @@ jobs:
             # `vp pack` refuses any `vite` but Vite+ core, so the upstream
             # variants test without building.
             - name: Build package
-              if: matrix.vite != 'upstream'
+              if: ${{ !matrix.vite }}
               run: vp run build
+
+    asset-compatibility:
+        name: Assets examples (${{ matrix.vite }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                vite: ["8.1.0", "^8", "npm:@voidzero-dev/vite-plus-core@1.0.0"]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
+            - run: vp install --frozen-lockfile
+            - run: vp run --filter '@pitlane/vite-plugin-remix...' build
+            - name: Install the isolated examples
+              working-directory: packages/assets/tests/compat
+              env:
+                  PITLANE_COMPAT_VITE: ${{ matrix.vite }}
+              run: pnpm install --no-frozen-lockfile
+            - name: Install Chromium
+              working-directory: packages/assets/tests/compat
+              run: pnpm exec playwright install --with-deps chromium
+            - name: Exercise development and production with maps off and on
+              working-directory: packages/assets/tests/compat
+              run: pnpm test
+
+    assets-without-vite:
+        name: Assets with Rsbuild, without Vite or Remix
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
+            - run: vp install --frozen-lockfile
+            - run: vp run --filter @pitlane/assets build
+            - name: Pack the consumer artifact
+              working-directory: packages/assets
+              run: pnpm pack --pack-destination "$RUNNER_TEMP/assets-package"
+            - name: Build and verify an isolated non-Vite application
+              run: |
+                  cp -R packages/assets/examples/rsbuild "$RUNNER_TEMP/rsbuild"
+                  cd "$RUNNER_TEMP/rsbuild"
+                  tarballs=("$RUNNER_TEMP"/assets-package/*.tgz)
+                  npm pkg set "dependencies.@pitlane/assets=file:${tarballs[0]}"
+                  npm install --no-audit --no-fund
+                  npm run check
 
     leaks:
         name: Dependency APIs must not leak
@@ -135,7 +200,7 @@ jobs:
             - name: Grep the published surface for dependency APIs
               run: |
                   if grep -rn '@hiogawa' \
-                      packages/dev/README.md packages/theme/README.md \
+                      packages/vite-plugin-remix/README.md packages/theme/README.md \
                       docs/app/content/guides docs/app/content/api; then
                       echo "Dependency API leaked into user-facing docs" >&2
                       exit 1

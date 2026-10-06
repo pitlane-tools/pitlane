@@ -3,10 +3,11 @@ import { clientEntry, on, type Handle } from "remix/component";
 /**
  * A browser component: it hydrates and keeps its own state across clicks.
  *
- * The entry id is this file's own URL on every host. Under `@pitlane/dev` the
- * bundler rewrites it to the built asset; with no bundler `render({ assets })`
- * hands the `file:` URL to the asset server, which answers with the URL the
- * browser loads. Giving a browser module its URL is the host's job either way.
+ * The entry id is this file's own URL on every host. Under
+ * `@pitlane/vite-plugin-remix` the bundler rewrites it to a portable `file:`
+ * id; with no bundler it stays the `file:` URL. Either way `render({ assets })`
+ * hands it to the app's asset object, which answers with the URL the browser
+ * loads. Giving a browser module its URL is the host's job.
  */
 export const Counter = clientEntry(
     import.meta.url,

@@ -20,7 +20,7 @@ The content package enables you to render content from anywhere, whether it live
 
 <Vite>
 
-`pitlane/content` is part of the `pitlane` package, which is a runtime dependency because your controllers import the content client. The same install provides [`pitlane/dev`](/guides/vite-plugin), so the Vite config below needs nothing more from Pitlane. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and [`contentLayer()`](/package/content/vite/function/contentLayer) calls `satteri` directly to retrieve a Markdown file's heading list.
+`pitlane/content` is part of the `pitlane` package, which is a runtime dependency because your controllers import the content client. The same install provides [`pitlane/vite-plugin-remix`](/guides/vite-plugin), so the Vite config below needs nothing more from Pitlane. Markdown and MDX add two more dependencies, and both are build-only: the plugin compiles the bodies, and [`contentLayer()`](/package/content/vite-plugin/function/contentLayer) calls `satteri` directly to retrieve a Markdown file's heading list.
 
 <InstallGroup alternatives={viteInstallation} />
 
@@ -32,7 +32,7 @@ The content package enables you to render content from anywhere, whether it live
 
 <InstallGroup alternatives={noBuildInstallation} />
 
-`satteri` is an optional peer dependency of `pitlane`, needed only when a collection holds `.md` or `.mdx` files. `pitlane` also requires `vite` 8 or later as a peer dependency, so installing it brings Vite into the project even though nothing here bundles. To leave Vite out, install the standalone `@pitlane/content` package instead and import from `@pitlane/content`. [The `pitlane` Package](/guides/umbrella) explains the trade.
+`satteri` is an optional peer dependency of `pitlane`, needed only when a collection holds `.md` or `.mdx` files. `pitlane` also requires `vite` 8.1 or later as a peer dependency, so installing it brings Vite into the project even though nothing here bundles. To leave Vite out, install the standalone `@pitlane/content` package instead and import from `@pitlane/content`. [The `pitlane` Package](/guides/umbrella) explains the trade.
 
 </NoBuild>
 
@@ -48,13 +48,13 @@ Installing `pitlane` in `dependencies` already covers the dev server and build p
 
 ## Configuring Vite
 
-Register two plugins in your Vite config, before [`remix()`](/package/dev/function/remix):
+Register two plugins in your Vite config, before [`remix()`](/package/vite-plugin-remix/function/remix):
 
 ```ts
 // vite.config.ts
 import { headings, rawStyles } from "pitlane/content/satteri";
-import { contentLayer } from "pitlane/content/vite";
-import { remix } from "pitlane/dev";
+import { contentLayer } from "pitlane/content/vite-plugin";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 import satteri from "vite-plugin-satteri";
 
@@ -143,7 +143,7 @@ All of your content collections are defined using the [`createContent()`](/packa
 
 <Vite>
 
-All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `pitlane/content/vite` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
+All of your content collections are defined using the [`createContent()`](/package/content/function/createContent) function from `pitlane/content`. There is no special location your collections must be defined in, though the `contentLayer()` plugin from `pitlane/content/vite-plugin` uses `app/content.ts` as the default. If you change this location, you'll need to make sure to update the `entry` option of the `contentLayer()` plugin in your `vite.config.ts` file.
 
 </Vite>
 
@@ -899,7 +899,7 @@ This call is safe to leave in place for production. [`hotContent()`](/package/co
 <Vite>
 
 - [`pitlane/content/satteri`](/package/content/satteri): the [`headings()`](/package/content/satteri/function/headings) and [`rawStyles()`](/package/content/satteri/function/rawStyles) plugins
-- [`pitlane/content/vite`](/package/content/vite): the [`contentLayer()`](/package/content/vite/function/contentLayer) plugin
+- [`pitlane/content/vite-plugin`](/package/content/vite-plugin): the [`contentLayer()`](/package/content/vite-plugin/function/contentLayer) plugin
 
 </Vite>
 

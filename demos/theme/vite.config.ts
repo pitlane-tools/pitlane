@@ -1,6 +1,5 @@
+import { remix } from "@pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
-
-import { remix } from "./remix.plugin.ts";
 
 export default defineConfig({
     plugins: [remix({ clientEntry: false })],

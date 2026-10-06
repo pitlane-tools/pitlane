@@ -46,7 +46,7 @@ export type Navigation =
  */
 export const PRIMARY_LINKS = {
     guides: routes.guides.href(),
-    api: routes.api.href({ path: "dev/" }),
+    api: routes.api.href({ path: "vite-plugin-remix/" }),
 } as const;
 
 export const REPOSITORY_URL = "https://github.com/pitlane-tools/pitlane";
@@ -73,6 +73,14 @@ const GUIDE_GROUPS: { title: string; links: { title: string; url: string }[] }[]
             guide("Overview", "vite-plugin"),
             guide("Hot Module Replacement", "hmr"),
             guide("Single-Page Apps", "spa"),
+        ],
+    },
+    {
+        title: "Assets",
+        links: [
+            guide("Asset Resolution", "assets"),
+            guide("Manifest Integrations", "asset-build"),
+            guide("Development Fetch Server", "fetch-server"),
         ],
     },
     {

@@ -1,0 +1,26 @@
+{
+    "name": "pitlane-assets-rsbuild-example",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "rsbuild build",
+        "check": "npm run typecheck && npm run build && npm run verify",
+        "start": "node dist/server/server.js",
+        "typecheck": "tsc",
+        "verify": "node verify.ts"
+    },
+    "dependencies": {
+        "@pitlane/assets": "^0.1.0"
+    },
+    "devDependencies": {
+        "@rsbuild/core": "2.2.12",
+        "@types/node": "^25.5.0",
+        "typescript": "^7.0.2"
+    },
+    "overrides": {
+        "@rspack/core": "2.2.8"
+    },
+    "engines": {
+        "node": ">=22.18.0"
+    }
+}

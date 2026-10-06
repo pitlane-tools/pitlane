@@ -45,11 +45,11 @@ if (post) {
 
 `createContent()` returns synchronously without loading entries. Import the returned object wherever you need it; reads and rendering stay asynchronous.
 
-The loaders are ordinary runtime code, which covers Node, Bun, Deno, and container hosts. For a host with no filesystem, add `contentLayer()` from `@pitlane/content/vite` and the build resolves the collections ahead of time, inlining entry data and compiling Markdown bodies into the bundle. The collection declarations do not change.
+The loaders are ordinary runtime code, which covers Node, Bun, Deno, and container hosts. For a host with no filesystem, add `contentLayer()` from `@pitlane/content/vite-plugin` and the build resolves the collections ahead of time, inlining entry data and compiling Markdown bodies into the bundle. The collection declarations do not change.
 
 ## Configuring Vite
 
-With a Vite build, Markdown and MDX need two build-only dependencies. [`@pitlane/dev`](https://pitlane.tools/guides/vite-plugin) is assumed and installs the same way:
+With a Vite build, Markdown and MDX need two build-only dependencies. [`@pitlane/vite-plugin-remix`](https://pitlane.tools/guides/vite-plugin) is assumed and installs the same way:
 
 ```sh
 npm install --save-dev satteri vite-plugin-satteri
@@ -60,8 +60,8 @@ Register the Sätteri plugin and `contentLayer()` in your Vite config, before `r
 ```ts
 // vite.config.ts
 import { headings, rawStyles } from "@pitlane/content/satteri";
-import { contentLayer } from "@pitlane/content/vite";
-import { remix } from "@pitlane/dev";
+import { contentLayer } from "@pitlane/content/vite-plugin";
+import { remix } from "@pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 import satteri from "vite-plugin-satteri";
 
@@ -88,13 +88,13 @@ The [content guide](https://pitlane.tools/guides/content#configuring-vite) cover
 
 ## Entry points
 
-| Entry point                | Exports                                                      |
-| -------------------------- | ------------------------------------------------------------ |
-| `@pitlane/content`         | `createContent` and the collection types                     |
-| `@pitlane/content/loaders` | `glob`, `file`                                               |
-| `@pitlane/content/satteri` | `headings` and `rawStyles`, Sätteri plugins                  |
-| `@pitlane/content/vite`    | `contentLayer`, the build-time plugin                        |
-| `@pitlane/content/hot`     | `hotContent`, which reloads the browser when content changes |
+| Entry point                    | Exports                                                      |
+| ------------------------------ | ------------------------------------------------------------ |
+| `@pitlane/content`             | `createContent` and the collection types                     |
+| `@pitlane/content/loaders`     | `glob`, `file`                                               |
+| `@pitlane/content/satteri`     | `headings` and `rawStyles`, Sätteri plugins                  |
+| `@pitlane/content/vite-plugin` | `contentLayer`, the build-time plugin                        |
+| `@pitlane/content/hot`         | `hotContent`, which reloads the browser when content changes |
 
 `hotContent()` is for an application that runs from source with no build. It does nothing unless `remix/node-hmr` supervises the process, so it can stay in production code.
 
