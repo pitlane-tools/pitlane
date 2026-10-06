@@ -6,7 +6,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { resolveConfig } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { fetchServer } from "../src/index.ts";
 import {
@@ -158,14 +158,16 @@ describe("proposal 0005: fetchServer module updates", () => {
     let entryPath: string;
     let original: string;
 
-    beforeAll(async () => {
+    // Vite's watcher drops a second change to one file within 50ms, so an edit
+    // made right after another test's edit is never seen. Each test starts fresh.
+    beforeEach(async () => {
         fixture = await copyFixture();
         entryPath = join(fixture.root, ENTRY);
         original = await readFile(entryPath, "utf8");
         server = await startDevServer({ ...fixture, plugin: { entry: ENTRY } });
     });
 
-    afterAll(async () => {
+    afterEach(async () => {
         await server?.close();
         await fixture?.remove();
     });
@@ -181,6 +183,8 @@ describe("proposal 0005: fetchServer module updates", () => {
     });
 
     it("reports a broken entry through Vite's error path instead of a stale response, then recovers", async () => {
+        expect(await version()).toBe("v1");
+
         await writeFile(entryPath, `${original}\nexport const broken = ;\n`);
 
         let response: Response | undefined;
@@ -190,7 +194,7 @@ describe("proposal 0005: fetchServer module updates", () => {
         });
         let body = await response!.text();
         expect(body).toContain("<title>Error</title>");
-        expect(body).not.toBe("v2");
+        expect(body).not.toBe("v1");
         expect(server.stderr()).toContain("Internal server error");
 
         await writeFile(entryPath, original.replace('version: "v1"', 'version: "v3"'));
