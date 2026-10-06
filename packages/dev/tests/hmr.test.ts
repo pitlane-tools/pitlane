@@ -1,6 +1,6 @@
 import type { Plugin } from "vite";
 
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { componentHmr, serverDataHmr } from "../src/hmr.ts";
 import { clientEntryTransform } from "../src/transform.ts";
@@ -373,7 +373,7 @@ describe("serverDataHmr hotUpdate", () => {
         expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
-    it("coalesces a burst of server changes into one revalidation", async () => {
+    it("waits 50ms after the last server change before broadcasting", () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         let hook = plugin.hotUpdate;
         if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
@@ -388,12 +388,21 @@ describe("serverDataHmr hotUpdate", () => {
             options: { file: string; modules: HotUpdateModule[]; server: unknown },
         ) => void;
 
-        for (let file of ["/project/app/a.ts", "/project/app/b.ts", "/project/app/c.ts"]) {
-            invoke.call({ environment: { name: "ssr" } }, { file, modules: [{ file }], server });
+        vi.useFakeTimers();
+        try {
+            for (let file of ["/project/app/a.ts", "/project/app/b.ts", "/project/app/c.ts"]) {
+                invoke.call(
+                    { environment: { name: "ssr" } },
+                    { file, modules: [{ file }], server },
+                );
+                vi.advanceTimersByTime(49);
+                expect(sent).toEqual([]);
+            }
+            vi.advanceTimersByTime(1);
+            expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        } finally {
+            vi.useRealTimers();
         }
-        await settleServerUpdate();
-
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
     it("ignores updates outside the server environment", async () => {

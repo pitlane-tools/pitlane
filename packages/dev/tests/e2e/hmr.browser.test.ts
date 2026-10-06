@@ -17,6 +17,7 @@ declare global {
         // Navigation types the app observed. Revalidating by navigating would show
         // up here; a direct frame reload does not.
         __navigations?: string[];
+        __hmrServerUpdate?: Promise<void>;
     }
 }
 
@@ -149,74 +150,147 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
         expect(await page.evaluate(() => window.__navigations)).toEqual([]);
     });
 
-    it("collapses server updates that arrive mid-revalidation into one follow-up", async () => {
-        // Count the server-update events the dev server pushes over Vite's HMR
-        // socket, so each edit below lands as its own event rather than being
-        // folded into the server-side settle window.
+    it("waits for initial hydration before applying a server update", async () => {
         page = await browser.newPage();
-        let serverUpdates = 0;
-        page.on("websocket", socket => {
-            socket.on("framereceived", ({ payload }) => {
-                if (String(payload).includes("pitlane:server-update")) serverUpdates++;
-            });
-        });
-        await page.goto(baseUrl, { waitUntil: "networkidle" });
-        await page.waitForSelector("[data-fn-counter]");
-
-        await page.click("[data-fn-counter]");
-        await page.click("[data-fn-counter]");
-        await page.evaluate(() => {
-            window.__hmrAlive = "coalesce";
-            window.__navigations!.length = 0;
-        });
-
-        // Hold the first page refetch open so later updates arrive while it is
-        // still in flight.
+        let hydrationHeld = Promise.withResolvers<void>();
+        let releaseHydration = Promise.withResolvers<void>();
         let reloads = 0;
-        let held = Promise.withResolvers<void>();
-        let release = Promise.withResolvers<void>();
+        page.on("request", request => {
+            if (request.headers()["x-remix-frame"]) reloads++;
+        });
         await page.route(
-            url => url.pathname === "/",
+            url => url.pathname === "/app/fn-counter.tsx",
             async route => {
-                reloads++;
-                if (reloads === 1) {
-                    held.resolve();
-                    await release.promise;
-                }
+                hydrationHeld.resolve();
+                await releaseHydration.promise;
                 await route.continue();
             },
         );
+        await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+        await hydrationHeld.promise;
+        // A browser module keeps Vitest from rewriting the fixture's Vite client import.
+        await page.addScriptTag({
+            type: "module",
+            content: `
+                import { createHotContext } from "/@vite/client";
+                let update = Promise.withResolvers();
+                window.__hmrServerUpdate = update.promise;
+                createHotContext("/__hmr-test-observer").on("pitlane:server-update", update.resolve);
+            `,
+        });
 
         await edit("document.tsx", "Server heading A", "Server heading B");
-        await held.promise;
+        await page.evaluate(() => window.__hmrServerUpdate);
+        expect(reloads).toBe(0);
+        expect(await page.textContent("[data-h1]")).toBe("Server heading A");
 
-        await edit("document.tsx", "Server heading B", "Server heading C");
-        await expect.poll(() => serverUpdates, { timeout: 10_000 }).toBe(2);
-        await edit("document.tsx", "Server heading C", "Server heading D");
-        await expect.poll(() => serverUpdates, { timeout: 10_000 }).toBe(3);
-
-        // Two updates arrived during the held refetch and neither started one.
-        expect(reloads).toBe(1);
-
-        release.resolve();
+        releaseHydration.resolve();
         await page.waitForFunction(
-            () => document.querySelector("[data-h1]")?.textContent === "Server heading D",
+            () => document.querySelector("[data-h1]")?.textContent === "Server heading B",
             undefined,
             { timeout: 10_000 },
         );
-        await expect.poll(() => reloads, { timeout: 10_000 }).toBe(2);
-
-        // The queued updates collapsed into exactly one follow-up refetch, and
-        // nothing else stacked up behind it. Proving an absence needs a quiet
-        // window on the real clock: the refetches run in the browser against a
-        // live dev server, out of reach of fake timers.
-        await new Promise(resolve => setTimeout(resolve, 500));
-        expect(reloads).toBe(2);
-        expect(await page.textContent("[data-h1]")).toBe("Server heading D");
-        expect(await page.textContent("[data-fn-count]")).toBe("2");
-        expect(await page.evaluate(() => window.__hmrAlive)).toBe("coalesce");
-        expect(await page.evaluate(() => window.__navigations)).toEqual([]);
+        expect(reloads).toBe(1);
+        await page.click("[data-fn-counter]");
+        expect(await page.textContent("[data-fn-count]")).toBe("1");
     });
+
+    it.each(["succeeds", "fails"] as const)(
+        "collapses overlapping updates when the first reload %s",
+        async outcome => {
+            // Count the server-update events the dev server pushes over Vite's HMR
+            // socket, so each edit below lands as its own event rather than being
+            // folded into the server-side settle window.
+            page = await browser.newPage();
+            let loggedErrors: string[] = [];
+            let unhandledErrors: Error[] = [];
+            page.on("console", message => {
+                if (message.type() === "error") loggedErrors.push(message.text());
+            });
+            page.on("pageerror", error => unhandledErrors.push(error));
+            let serverUpdates = 0;
+            page.on("websocket", socket => {
+                socket.on("framereceived", ({ payload }) => {
+                    if (String(payload).includes("pitlane:server-update")) serverUpdates++;
+                });
+            });
+            await page.goto(baseUrl, { waitUntil: "networkidle" });
+            await page.waitForSelector("[data-fn-counter]");
+
+            await page.click("[data-fn-counter]");
+            await page.click("[data-fn-counter]");
+            await page.evaluate(() => {
+                window.__hmrAlive = "coalesce";
+                window.__navigations!.length = 0;
+            });
+
+            // Hold the first page refetch open so later updates arrive while it is
+            // still in flight.
+            let reloads = 0;
+            let held = Promise.withResolvers<void>();
+            let release = Promise.withResolvers<void>();
+            await page.route(
+                url => url.pathname === "/",
+                async route => {
+                    reloads++;
+                    if (reloads === 1) {
+                        held.resolve();
+                        await release.promise;
+                        if (outcome === "fails") {
+                            await route.abort("failed");
+                            return;
+                        }
+                    }
+                    await route.continue();
+                },
+            );
+
+            await edit("document.tsx", "Server heading A", "Server heading B");
+            await held.promise;
+
+            await edit("document.tsx", "Server heading B", "Server heading C");
+            await expect.poll(() => serverUpdates, { timeout: 10_000 }).toBe(2);
+            await edit("document.tsx", "Server heading C", "Server heading D");
+            await expect.poll(() => serverUpdates, { timeout: 10_000 }).toBe(3);
+
+            // Two updates arrived during the held refetch and neither started one.
+            expect(reloads).toBe(1);
+
+            release.resolve();
+            await page.waitForFunction(
+                () => document.querySelector("[data-h1]")?.textContent === "Server heading D",
+                undefined,
+                { timeout: 10_000 },
+            );
+            await expect.poll(() => reloads, { timeout: 10_000 }).toBe(2);
+
+            // Browser refetches are outside Vitest's fake clock. A quiet window
+            // checks that no third request follows the two completed refetches.
+            let quiet = Promise.withResolvers<void>();
+            setTimeout(quiet.resolve, 500);
+            await quiet.promise;
+            expect(reloads).toBe(2);
+            if (outcome === "fails") {
+                expect(loggedErrors).toEqual(
+                    expect.arrayContaining([expect.stringMatching(/^\[pitlane\]/)]),
+                );
+                await edit("document.tsx", "Server heading D", "Server heading E");
+                await page.waitForFunction(
+                    () => document.querySelector("[data-h1]")?.textContent === "Server heading E",
+                    undefined,
+                    { timeout: 10_000 },
+                );
+                expect(reloads).toBe(3);
+            }
+            expect(unhandledErrors).toEqual([]);
+            expect(await page.textContent("[data-h1]")).toBe(
+                outcome === "fails" ? "Server heading E" : "Server heading D",
+            );
+            expect(await page.textContent("[data-fn-count]")).toBe("2");
+            expect(await page.evaluate(() => window.__hmrAlive)).toBe("coalesce");
+            expect(await page.evaluate(() => window.__navigations)).toEqual([]);
+        },
+    );
 
     it("hot-swaps arrow-form islands while preserving their state", async () => {
         await openApp();
