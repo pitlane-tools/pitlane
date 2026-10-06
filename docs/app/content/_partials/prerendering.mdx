@@ -213,7 +213,7 @@ The build logs each file as it writes it.
 
 The `assets/` directory beside them is the build's own output. Prerendering never fetches a page's stylesheets or scripts, because Vite already emitted every one of them.
 
-Prerendering runs last, after both environments are built and the asset manifest is written. That ordering is what makes the HTML on disk identical to the HTML the runtime server would produce: the [asset resolver](/guides/vite-plugin#document-assets) returns real hashed chunk URLs, not dev paths, and islands carry their preload links.
+Prerendering runs last, after both environments are built and the asset manifest is written. The [asset resolver](/guides/vite-plugin#document-assets) supplies the same hashed chunk URLs and island preload links as it does for runtime server responses.
 
 If the app is served from a sub-path, declare the routes under it (the [GitHub Pages guide](/deploy/github-pages) shows the pattern) and set Vite's `base` to match. The rendered files still go to the top of the client output, because the host mounts that whole directory at the base.
 
