@@ -63,6 +63,10 @@
         "./dev/assets": {
             "types": "./dist/dev/assets.d.ts"
         },
+        "./dev/hmr": {
+            "types": "./dist/dev/hmr.d.mts",
+            "import": "./dist/dev/hmr.mjs"
+        },
         "./dev/runtime": {
             "types": "./dist/dev/runtime.d.mts",
             "import": "./dist/dev/runtime.mjs"
