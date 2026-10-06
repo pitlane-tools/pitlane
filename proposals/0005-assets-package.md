@@ -356,7 +356,7 @@ The same resolver works for a Remix application that supplies its own entry regi
 
 ### Framework-neutral compatibility matrix
 
-The seven [upstream examples at `28e9540`](https://github.com/hi-ogawa/vite-plugin-fullstack/tree/28e9540a68529c58842e9a3bf17d2193a065d524/examples) are behavioral fixtures, not a promise to preserve their query-import API or old Vite dependency range. Migrate their asset consumption and build integration without changing their rendering model:
+The seven [upstream examples at `28e9540`](https://github.com/hi-ogawa/vite-plugin-fullstack/tree/28e9540a68529c58842e9a3bf17d2193a065d524/examples) are behavioral baselines, not a promise to preserve their query-import API or old dependency versions. Preserve the non-Remix examples' rendering models. Replace the legacy Remix example with an example targeting the released `remix@3.0.0` API:
 
 | Example | Behavior to preserve |
 | --- | --- |
@@ -365,10 +365,10 @@ The seven [upstream examples at `28e9540`](https://github.com/hi-ogawa/vite-plug
 | `data-fetching` | Client-entry and shared/server CSS metadata alongside the existing oRPC and TanStack Query integration, with no asset-layer involvement in data fetching. |
 | `island` | Preact's existing custom island transform and hydration runtime consume generic browser-entry metadata; CSS and preload hints remain correct. |
 | `react-router` | Matched-route assets from `import.meta.glob` discovery. Adding or removing a page requires no second asset list; unrelated routes are not preloaded. |
-| `remix` | The example's older `@remix-run/dom` `hydrated()` and frame convention remains distinct from current Remix `clientEntry()`. Its existing integration consumes the same generic asset contract. |
+| `remix` | Use released `remix@3.0.0`, `clientEntry()`, and `render({ assets })` through `@pitlane/vite-plugin-remix`. Verify document assets, island hydration, preloads, current frame navigation, and HMR. Do not preserve `@remix-run/dom`, `hydrated()`, or legacy frame conventions. |
 | `vue-router` | Matched-route CSS and preloads, scoped-style HMR, and the existing SSG plugin consuming the completed build manifest. |
 
-Run all seven in dev and production with maps disabled, then verify opted-in maps with their normal documents rather than substituting a Remix document. Exercise their existing navigation or hydration and CSS-update behavior. Node-hosted development fixtures compose `fetchServer()`; Cloudflare keeps its existing request integration. Generic asset integration may replace the old query-import plumbing in custom island transforms; neither package implements those transforms.
+Run all seven in dev and production with maps disabled, then verify opted-in maps with each example's own document. Exercise navigation, hydration, and CSS updates against the framework versions specified above. Non-Remix Node fixtures compose `fetchServer()` directly; the Remix example uses `remix()` to compose assets and serving; Cloudflare keeps its existing request integration. Generic asset integration may replace old query-import plumbing in custom island transforms, but those transforms remain outside the neutral packages.
 
 ### What goes away
 
