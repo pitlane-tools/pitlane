@@ -69,9 +69,9 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            # The upstream variants' `vp add` re-resolves the workspace's
-            # `latest` specifiers, so they neither restore nor save the shared
-            # cache, keeping its contents matched to the lockfile.
+            # The upstream variants re-resolve the workspace's `latest`
+            # specifiers, so they neither restore nor save the shared cache,
+            # keeping its contents matched to the lockfile.
             - name: Setup Vite+
               uses: voidzero-dev/setup-vp@v1.21.1
               with:
@@ -96,24 +96,63 @@ jobs:
               if: matrix.directory == 'packages/content'
               run: vp run build
 
-            # Sibling builds above ran on Vite+ core; only the suite under test
-            # swaps to upstream Vite.
+            # Builds above ran on Vite+ core, which `vp pack` requires. Workspace
+            # packages are symlinked, so each loads `vite` from its own
+            # devDependency; the suite and every workspace package it reaches
+            # must swap together, or guards such as `isRunnableDevEnvironment`
+            # (an `instanceof`) reject the suite's environments. The manifest is
+            # rewritten because `vp add -E vite@8.1.0` still saves `^8.1.0`.
             - name: Use upstream Vite 8
               if: matrix.vite
-              run: vp add -D vite@${{ matrix.vite }}
+              env:
+                  VITE_SPEC: ${{ matrix.vite }}
+              run: |
+                  pnpm ls --filter "{.}..." --depth -1 --json | node -e '
+                  const fs = require("node:fs");
+                  for (const { path } of JSON.parse(fs.readFileSync(0, "utf8"))) {
+                      const file = `${path}/package.json`;
+                      const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+                      if (!manifest.devDependencies?.vite) continue;
+                      manifest.devDependencies.vite = process.env.VITE_SPEC;
+                      fs.writeFileSync(file, `${JSON.stringify(manifest, null, 4)}\n`);
+                      console.log(`${manifest.name}: vite@${process.env.VITE_SPEC}`);
+                  }
+                  '
+                  vp install --no-frozen-lockfile
 
-            # A green upstream run proves nothing unless the suite really
-            # resolved upstream Vite rather than Vite+ core.
+            # A green upstream run proves nothing unless the suite and every
+            # workspace package it loads resolved one copy of the requested Vite.
             - name: Confirm upstream Vite
               if: matrix.vite
+              env:
+                  VITE_SPEC: ${{ matrix.vite }}
               run: |
-                  node -e '
-                  const vite = require("vite/package.json");
-                  if (vite.name !== "vite" || !vite.version.startsWith("8.")) {
-                      console.error(`Expected upstream Vite 8, found ${vite.name}@${vite.version}`);
+                  pnpm ls --filter "{.}..." --depth -1 --json | node -e '
+                  const fs = require("node:fs");
+                  const { createRequire } = require("node:module");
+                  const spec = process.env.VITE_SPEC;
+                  // "8.1.0" must resolve exactly; "^8" to any 8.x.
+                  const matches = spec.startsWith("^")
+                      ? version => version.split(".")[0] === spec.slice(1)
+                      : version => version === spec;
+                  const copies = new Set();
+                  let failed = false;
+                  const check = (label, from) => {
+                      const file = fs.realpathSync(createRequire(from).resolve("vite/package.json"));
+                      const { name, version } = JSON.parse(fs.readFileSync(file, "utf8"));
+                      copies.add(file);
+                      console.log(`${label}: ${name}@${version} (${file})`);
+                      if (name !== "vite" || !matches(version)) failed = true;
+                  };
+                  check("suite", `${process.cwd()}/package.json`);
+                  for (const { name, path } of JSON.parse(fs.readFileSync(0, "utf8"))) {
+                      const manifest = JSON.parse(fs.readFileSync(`${path}/package.json`, "utf8"));
+                      if (manifest.devDependencies?.vite) check(name, `${path}/package.json`);
+                  }
+                  if (failed || copies.size !== 1) {
+                      console.error(`Expected one copy of vite@${spec}, found ${copies.size}`);
                       process.exit(1);
                   }
-                  console.log(`Testing against vite@${vite.version}`);
                   '
 
             - name: Run tests
