@@ -4,6 +4,9 @@ node_modules
 .superpowers/
 packages/*/dist
 demos/*/dist
+# The pitlane package's installed documentation, which its build writes.
+packages/pitlane/guides
+packages/pitlane/INDEX.md
 .vale/
 dist
 .wrangler

@@ -30,7 +30,12 @@ let authored = (
             async ([directory, section]) =>
                 (await readdir(new URL(`../app/content/${directory}/`, import.meta.url)))
                     .filter(name => !name.startsWith("_") && /\.mdx?$/.test(name))
-                    .map(name => `/${section}/${name.replace(/\.mdx?$/, "")}`),
+                    .map(name => {
+                        let slug = name.replace(/\.mdx?$/, "");
+                        return section === "guides" && slug === "index"
+                            ? "/guides"
+                            : `/${section}/${slug}`;
+                    }),
         ),
     )
 ).flat();
@@ -154,6 +159,9 @@ test("proposal.0004: alternate document spellings redirect temporarily, preservi
 
 test("proposal.0004: legacy file and index spellings preserve their canonical destination and query", async () => {
     for (let [from, to] of [
+        ["/guides/index", "/guides"],
+        ["/guides/index.html", "/guides"],
+        ["/guides/index.md", "/guides.md"],
         ["/guides/vite-plugin.html/", "/guides/vite-plugin"],
         ["/guides/vite-plugin/index/", "/guides/vite-plugin"],
         ["/guides/vite-plugin/index.html/", "/guides/vite-plugin"],

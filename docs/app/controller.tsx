@@ -21,6 +21,7 @@ let moved = new Map<string, string>(Object.entries(referenceRedirects));
 export default createController(routes, {
     actions: {
         home: ({ render }) => render(<Home />),
+        guides: ({ render, url }) => respond(routes.guides.href(), url, render),
         guide: ({ params, render, url }) => respond(routes.guide.href(params), url, render),
         deploy: ({ params, render, url }) => respond(routes.deploy.href(params), url, render),
         api: ({ params, render, url }) => respond(routes.api.href(params), url, render),

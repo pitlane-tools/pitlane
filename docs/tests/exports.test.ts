@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { markdownToMdast } from "satteri";
 
 import type { DocumentPage } from "../app/document.ts";
 
@@ -67,9 +68,68 @@ test("an exported page's links and images follow the same rule", () => {
         ),
         link,
     );
-    assert.match(body, /\[HMR\]\(https:\/\/pitlane\.tools\/guides\/hmr\.md#state\)/);
-    assert.match(body, /\[Remix\]\(https:\/\/remix\.run\)/);
-    assert.match(body, /!\[Lockup\]\(\/media\/lockup\.png\)/);
+    let root = markdownToMdast(body);
+    assert.ok("children" in root);
+    let paragraph = root.children.find(
+        child => "children" in child && child.children.some(node => node.type === "image"),
+    );
+    assert.ok(paragraph && "children" in paragraph);
+    assert.deepEqual(
+        paragraph.children.filter(child => "url" in child).map(child => [child.type, child.url]),
+        [
+            ["link", "https://pitlane.tools/guides/hmr.md#state"],
+            ["link", "https://remix.run"],
+            ["image", "/media/lockup.png"],
+        ],
+    );
+});
+
+test("exported link destinations preserve Markdown punctuation, whitespace, and literal entities", () => {
+    for (let [htmlHref, expected] of [
+        ["https://example.org/query?expr=one)two", "https://example.org/query?expr=one)two"],
+        ["https://example.org/path(one", "https://example.org/path(one"],
+        ["https://example.org/path with spaces", "https://example.org/path with spaces"],
+        [
+            "https://example.org/query?literal=&amp;copy;",
+            "https://example.org/query?literal=&copy;",
+        ],
+        ["https://example.org/query?slash=\\b", "https://example.org/query?slash=\\b"],
+        ["https://example.org/query?expr=&lt;item&gt;", "https://example.org/query?expr=<item>"],
+    ]) {
+        let { body } = exportDocument(hmr, article(`<p><a href="${htmlHref}">Read</a></p>`), link);
+        let root = markdownToMdast(body);
+        assert.ok("children" in root);
+        let paragraph = root.children[0]!;
+        assert.ok("children" in paragraph);
+        let anchor = paragraph.children[0]!;
+        assert.ok("url" in anchor);
+        assert.equal(anchor.url, expected);
+    }
+});
+
+test("exported images retain literal alt text and their destination", () => {
+    for (let [htmlAlt, expected] of [
+        ["Photo ] today", "Photo ] today"],
+        ["*Important* _photo_", "*Important* _photo_"],
+        ["Photo ~~front~~ side", "Photo ~~front~~ side"],
+        ["A literal &amp;copy; label", "A literal &copy; label"],
+        ["Photo [front] \\ side", "Photo [front] \\ side"],
+    ]) {
+        let { body } = exportDocument(
+            hmr,
+            article(`<p><img alt="${htmlAlt}" src="/assets/pic(one).png"></p>`),
+            link,
+        );
+        let root = markdownToMdast(body);
+        assert.ok("children" in root);
+        let paragraph = root.children[0]!;
+        assert.ok("children" in paragraph);
+        let image = paragraph.children[0]!;
+        assert.equal(image.type, "image");
+        assert.ok("alt" in image && "url" in image);
+        assert.equal(image.alt, expected);
+        assert.equal(image.url, "/assets/pic(one).png");
+    }
 });
 
 test("a two-setup page names its build mode and links its counterpart's Markdown", () => {

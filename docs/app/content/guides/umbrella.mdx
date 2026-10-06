@@ -1,9 +1,9 @@
 ---
-title: The pitlane package
+title: Installing Pitlane
 description: "Install every Pitlane package with one dependency, import each through a pitlane/* subpath, and decide when the scoped @pitlane/* packages fit better."
 ---
 
-import { Callout, InstallGroup } from "../../components/documentation.tsx";
+import { InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ packages: ["pitlane"] });
@@ -12,7 +12,7 @@ export const scopedInstallation = await installAlternatives({
     dev: ["@pitlane/dev"],
 });
 
-# The `pitlane` package
+# Installing Pitlane
 
 `pitlane` is one install for all five Pitlane packages. Each package is published on its own under `@pitlane/*`, and `pitlane` re-exports every one of them through focused subpaths, the way `remix` re-exports the `@remix-run/*` packages:
 
@@ -104,8 +104,24 @@ The umbrella excludes `@pitlane/content/internal/*`. Custom bundler integrations
 
 An app can keep a direct `@pitlane/*` dependency next to `pitlane`. Different versions mean two copies of that package. The `pitlane/*` import reaches the pinned copy, while the `@pitlane/*` import reaches the direct dependency. Use one import path consistently for each package.
 
-<Callout kind="info" title="Installed agent documentation">
+## Documentation for coding agents
 
-`remix` includes guides in the installed package so coding agents can read documentation that matches the installed version. `pitlane` does not include those files yet. Read these guides and the [API reference](/package/dev/) on pitlane.tools, or as Markdown through [`llms.txt`](https://pitlane.tools/llms.txt).
+`pitlane` releases after `1.0.0-alpha.1` install these guides and every package's README with the package. A coding agent working in the app reads documentation for the version the app depends on, offline, instead of what it remembers or what pitlane.tools last deployed. The layout follows the one `remix` uses for its installed documentation:
 
-</Callout>
+| Path in `node_modules/pitlane/` | What it holds |
+| --- | --- |
+| `INDEX.md` | Every guide listed by task and every export listed by subpath, each linking the installed file that covers it |
+| `guides/index.md` | The [guides overview](/guides) |
+| `guides/<slug>.md` | Each guide, such as `guides/vite-plugin.md` |
+| `guides/deploy/<slug>.md` | Each deploy guide, such as `guides/deploy/cloudflare.md` |
+| `dist/<package>/README.md` | Each scoped package's README beside its compiled code, such as `dist/dev/README.md` for `pitlane/dev` and its subpaths |
+
+These are the same Markdown pages pitlane.tools publishes. A link between two of them leads to the installed copy, so following one never leaves the installed version. Links to the [API reference](/package/dev/) stay on pitlane.tools. The installed type declarations carry the same TSDoc, so an editor or agent can read an export's signature and documentation from the `.d.ts` file instead.
+
+An agent has to know the index exists. Point it there with a line in the app's `AGENTS.md`:
+
+```md
+Before changing Pitlane code, read `node_modules/pitlane/INDEX.md`; prefer the installed documentation over memory or the latest website.
+```
+
+An app that installs only scoped `@pitlane/*` packages has none of these files. It can read the same pages as Markdown through [`llms.txt`](https://pitlane.tools/llms.txt), which describes whatever was last deployed.

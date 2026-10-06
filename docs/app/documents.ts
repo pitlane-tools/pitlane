@@ -45,18 +45,51 @@ export function documents(): Promise<Documents> {
 }
 
 async function load(): Promise<Documents> {
-    let [guides, deploy, api] = await Promise.all([
+    let [authored, api] = await Promise.all([
+        authoredDocuments(),
+        content.api.getCollection().then(entries =>
+            Promise.all(
+                entries.map(entry =>
+                    document(
+                        entry,
+                        {
+                            ...page(referenceUrl(entry.data.url), "api", entry.data),
+                            module: entry.data.module,
+                            kind: entry.data.kind,
+                        },
+                        entry.data.aliases,
+                    ),
+                ),
+            ),
+        ),
+    ]);
+    let all = [...authored, ...api];
+
+    return {
+        all,
+        pages: all.map(({ page }) => page),
+        byUrl: new Map(all.map(document => [document.page.url, document])),
+        canonical: new Map(all.map(({ page }) => [page.url.replace(/\/$/, ""), page.url])),
+    };
+}
+
+/**
+ * The guides, then the deployment pages: every document written by hand,
+ * which needs nothing `vp run docs:api` generates. The installed
+ * documentation publishes exactly these.
+ */
+export async function authoredDocuments(): Promise<Document[]> {
+    let [guides, deploy] = await Promise.all([
         content.guides.getCollection(),
         content.deploy.getCollection(),
-        content.api.getCollection(),
     ]);
     let guideIds = new Set(guides.map(guide => guide.id));
     let deployIds = new Set(deploy.map(entry => entry.id));
 
-    let all = await Promise.all([
+    return Promise.all([
         ...guides.map(guide =>
             document(guide, {
-                ...page(routes.guide.href({ slug: guide.id }), "guides", guide.data),
+                ...page(guideUrl(guide.id), "guides", guide.data),
                 ...variant(guide.id, guide.data.build, guideIds, "guides", routes.guide),
             }),
         ),
@@ -66,25 +99,7 @@ async function load(): Promise<Documents> {
                 ...variant(entry.id, entry.data.build, deployIds, "deployment", routes.deploy),
             }),
         ),
-        ...api.map(entry =>
-            document(
-                entry,
-                {
-                    ...page(referenceUrl(entry.data.url), "api", entry.data),
-                    module: entry.data.module,
-                    kind: entry.data.kind,
-                },
-                entry.data.aliases,
-            ),
-        ),
     ]);
-
-    return {
-        all,
-        pages: all.map(({ page }) => page),
-        byUrl: new Map(all.map(document => [document.page.url, document])),
-        canonical: new Map(all.map(({ page }) => [page.url.replace(/\/$/, ""), page.url])),
-    };
 }
 
 type Published = CollectionEntry<
@@ -108,6 +123,11 @@ async function document(
         aliases,
         body: async () => createElement(Content, {}),
     };
+}
+
+/** A guide's URL: `guides/index` is the guides' landing page, every other guide is its slug under it. */
+function guideUrl(id: string): string {
+    return id === "index" ? routes.guides.href() : routes.guide.href({ slug: id });
 }
 
 /** A reference page's URL, which the generated manifest names and the api route must claim. */

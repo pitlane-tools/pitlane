@@ -50,13 +50,13 @@ describe("loaders.file", () => {
         );
     });
 
-    it("parses .yaml with the yaml parser", async () => {
+    it("parses YAML strings and numbers without coercing their types", async () => {
         let entries = await collect(file(`${fixtures}/settings.yaml`));
 
         expect(entries.map(entry => entry.id)).toEqual(["site"]);
         expect(entries[0]!.data).toEqual({
-            name: "Pitlane",
-            tagline: "A meta-framework for Remix 3",
+            name: "Example site",
+            pageSize: 25,
         });
     });
 

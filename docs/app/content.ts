@@ -1,34 +1,19 @@
 import { createContent } from "@pitlane/content";
-import * as loaders from "@pitlane/content/loaders";
 import * as s from "remix/data-schema";
 
+import { authored } from "./authored.ts";
 import { reference } from "./reference.ts";
 
-let page = s.object({
-    title: s.string(),
-    description: s.string(),
-    build: s.optional(s.enum_(["vite", "no-build"])),
-});
-
 /**
- * The published corpus: authored guides and deployment pages, and the API
- * reference `vp run docs:api` generates. Drafts and shared partials sit
- * outside these globs (`_`-prefixed files, `_partials/`), so they are
- * authoring inputs the build compiles into pages without ever becoming one.
+ * The published corpus: the authored guides and deployment pages, and the
+ * API reference `vp run docs:api` generates.
  *
  * `contentLayer()` compiles every body during the build through the Sätteri
  * plugins the Vite config registers: MDX to a component, Markdown to HTML.
  * Paths resolve against the content root, the `docs` Vite root.
  */
 export let content = createContent(c => ({
-    guides: c.collection({
-        loader: loaders.glob({ base: "./app/content/guides", pattern: "[!_]*.{md,mdx}" }),
-        schema: page,
-    }),
-    deploy: c.collection({
-        loader: loaders.glob({ base: "./app/content/deployment", pattern: "[!_]*.{md,mdx}" }),
-        schema: page,
-    }),
+    ...authored,
     api: c.collection({
         loader: reference({ manifest: "./.generated/reference.json", repository: ".." }),
         schema: s.object({

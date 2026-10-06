@@ -1,4 +1,9 @@
-import { buildModeVariants, buildNavigation, PRIMARY_LINKS } from "../app/components/navigation.ts";
+import {
+    buildModeVariants,
+    buildNavigation,
+    guideGroups,
+    PRIMARY_LINKS,
+} from "../app/components/navigation.ts";
 import {
     BUILD_MODE_LABELS,
     type DocumentPage,
@@ -13,7 +18,10 @@ export interface Site {
     description: string;
 }
 
-/** What an export says about the page it came from. */
+/**
+ * What an export says about the page it came from. Its `counterpart` is
+ * where a link to the other setup's page leads in this export.
+ */
 export type ExportedPage = Pick<
     DocumentPage,
     "url" | "title" | "description" | "buildMode" | "counterpart"
@@ -85,15 +93,29 @@ export function exportDocument(
         page: {
             url: page.url,
             title: page.title,
-            description: page.description.replace(
-                /\]\(([^)\s]+)\)/g,
-                (_target, href: string) => `](${link(href)})`,
-            ),
+            description: linkedDescription(page.description, link),
             buildMode: page.buildMode,
-            counterpart: page.counterpart,
+            counterpart: page.counterpart && link(page.counterpart),
         },
         body: setup ? `${setup}\n\n${body}` : body,
     };
+}
+
+/** A page's description, which may hold Markdown links, with each leading where `link` says. */
+export function linkedDescription(description: string, link: (href: string) => string): string {
+    return description.replace(/\]\(([^)\s]+)\)/g, (_target, href: string) => `](${link(href)})`);
+}
+
+/** A page's one `<article>`: the compiled body every export is derived from. */
+export function articleOf(html: string, url: string): string {
+    let start = html.indexOf("<article");
+    let end = html.lastIndexOf("</article>");
+    if (start === -1 || end < start || html.indexOf("<article", start + 1) !== -1) {
+        throw new Error(
+            `[docs-publish] ${url} must render exactly one <article>, holding its body.`,
+        );
+    }
+    return html.slice(start, end + "</article>".length);
 }
 
 /** The home page's Markdown: what each package is for, with its example and guide, where an app deploys, and how to start one. */
@@ -146,7 +168,7 @@ export function markdownFile(site: Site, { page, body }: Exported): string {
         description: page.description,
         url: `${site.url}${page.url}`,
         buildMode: page.buildMode,
-        counterpart: page.counterpart && `${site.url}${markdownPath(page.counterpart)}`,
+        counterpart: page.counterpart,
     };
     let frontmatter = Object.entries(fields)
         .filter(([, value]) => value !== undefined)
@@ -161,23 +183,15 @@ export function markdownFile(site: Site, { page, body }: Exported): string {
  * module, its overview first.
  */
 export function readingOrder(pages: DocumentPage[]): { heading: string; urls: string[] }[] {
-    let start = (url: string) => pages.find(page => page.url === url)!;
-    let guides = buildNavigation(pages, start(PRIMARY_LINKS.guides));
-    let api = buildNavigation(pages, start(PRIMARY_LINKS.api));
-    if (guides.section !== "guides" || api.section !== "api") {
-        throw new Error(
-            "[docs-publish] The header's section links must open the guides and the reference.",
-        );
+    let api = buildNavigation(
+        pages,
+        pages.find(page => page.url === PRIMARY_LINKS.api)!,
+    );
+    if (api.section !== "api") {
+        throw new Error("[docs-publish] The header's reference link must open the reference.");
     }
     return [
-        ...guides.groups.map(group => ({
-            heading: group.title,
-            urls: group.links.flatMap(link =>
-                link.variants
-                    ? PREFERENCE_CHOICES.buildMode.map(mode => link.variants![mode])
-                    : [link.url],
-            ),
-        })),
+        ...guideGroups(pages).map(group => ({ heading: group.title, urls: group.urls })),
         ...api.modules.map(module => ({
             heading: `${module.module} API`,
             urls: [
