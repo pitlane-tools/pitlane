@@ -100,14 +100,14 @@ function defineTest(f: Fixture) {
             await expect(page.getByRole("button", { name: "count is 1" })).toBeVisible();
 
             let jsFile = f.createEditor("src/App.tsx");
-            jsFile.edit(s => s.replace("count is", "count (edit) is"));
+            await jsFile.edit(s => s.replace("count is", "count (edit) is"));
             await expect(page.getByRole("button", { name: "count (edit) is 1" })).toBeVisible();
 
             // SSR is also updated
             let res = await page.request.get(page.url());
             expect(await res.text()).toContain("count (edit)");
 
-            jsFile.reset();
+            await jsFile.reset();
             await expect(page.getByRole("button", { name: "count is 1" })).toBeVisible();
         });
 
@@ -120,9 +120,9 @@ function defineTest(f: Fixture) {
             await expect(page.getByRole("button", { name: "count is 1" })).toBeVisible();
 
             let cssFile = f.createEditor("src/App.css");
-            cssFile.edit(s => s.replace("color: rgb(136, 136, 136);", "color: rgb(36, 36, 36);"));
+            await cssFile.edit(s => s.replace("color: rgb(136, 136, 136);", "color: rgb(36, 36, 36);"));
             await expect(page.locator(".read-the-docs")).toHaveCSS("color", "rgb(36, 36, 36)");
-            cssFile.reset();
+            await cssFile.reset();
             await expect(page.locator(".read-the-docs")).toHaveCSS("color", "rgb(136, 136, 136)");
 
             // css:no-duplicates — the server link and Vite's injected style coexist
@@ -141,9 +141,9 @@ function defineTest(f: Fixture) {
             await expect(page.getByTestId("css-module-test")).toHaveCSS("padding", "32px");
 
             let cssModuleFile = f.createEditor("src/App.module.css");
-            cssModuleFile.edit(s => s.replace("padding: 2em;", "padding: 4em;"));
+            await cssModuleFile.edit(s => s.replace("padding: 2em;", "padding: 4em;"));
             await expect(page.getByTestId("css-module-test")).toHaveCSS("padding", "64px");
-            cssModuleFile.reset();
+            await cssModuleFile.reset();
             await expect(page.getByTestId("css-module-test")).toHaveCSS("padding", "32px");
             await expect(page.getByRole("button", { name: "count is 1" })).toBeVisible();
         });
@@ -153,14 +153,14 @@ function defineTest(f: Fixture) {
         test("css import added and removed", async ({ page }) => {
             let added = f.createFile("src/added.css", ".read-the-docs { outline: 3px solid rgb(1, 2, 3); }\n");
             let app = f.createEditor("src/App.tsx");
-            app.edit(s => `import "./added.css";\n${s}`);
+            await app.edit(s => `import "./added.css";\n${s}`);
             await expect
                 .poll(async () => (await expectDocumentAssets(page, f)).stylesheets.some(h => h.includes("added.css")))
                 .toBe(true);
             await page.goto(f.url());
             await expect(page.locator(".read-the-docs")).toHaveCSS("outline-color", "rgb(1, 2, 3)");
 
-            app.reset();
+            await app.reset();
             await expect
                 .poll(async () => (await expectDocumentAssets(page, f)).stylesheets.some(h => h.includes("added.css")))
                 .toBe(false);

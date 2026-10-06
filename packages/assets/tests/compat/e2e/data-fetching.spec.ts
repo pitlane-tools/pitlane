@@ -55,11 +55,11 @@ function defineTest(f: Fixture) {
         test("module-level reads refresh after a css import change", async ({ page }) => {
             let added = f.createFile("src/added.css", ".todoapp h1 { outline: 3px solid rgb(1, 2, 3); }\n");
             let app = f.createEditor("src/app.tsx");
-            app.edit(s => s.replace('import "./app.css";', 'import "./app.css";\nimport "./added.css";'));
+            await app.edit(s => s.replace('import "./app.css";', 'import "./app.css";\nimport "./added.css";'));
             await expect
                 .poll(async () => (await expectDocumentAssets(page, f)).stylesheets.some(h => h.includes("added.css")))
                 .toBe(true);
-            app.reset();
+            await app.reset();
             await expect
                 .poll(async () => (await expectDocumentAssets(page, f)).stylesheets.some(h => h.includes("added.css")))
                 .toBe(false);

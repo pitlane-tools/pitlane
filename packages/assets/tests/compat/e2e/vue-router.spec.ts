@@ -88,13 +88,13 @@ function defineTest(f: Fixture) {
             await testClient(page);
 
             let jsFile = f.createEditor("src/pages/index.vue");
-            jsFile.edit(s => s.replace("Count:", "Count-edit:"));
+            await jsFile.edit(s => s.replace("Count:", "Count-edit:"));
             await expect(page.locator(".counter-card")).toContainText("Count-edit: 1");
 
             let res = await page.request.get(page.url());
             expect(await res.text()).toContain("Count-edit:");
 
-            jsFile.reset();
+            await jsFile.reset();
             await expect(page.locator(".counter-card")).toContainText("Count: 1");
             await testCss(page);
         });
@@ -109,12 +109,12 @@ function defineTest(f: Fixture) {
             await testClient(page);
 
             let cssFile = f.createEditor("src/pages/index.vue");
-            cssFile.edit(s => s.replace("color: rgb(100, 108, 255);", "color: rgb(0, 0, 255);"));
+            await cssFile.edit(s => s.replace("color: rgb(100, 108, 255);", "color: rgb(0, 0, 255);"));
             await expect(page.getByRole("heading", { name: "Vue Router Custom Framework" })).toHaveCSS(
                 "color",
                 "rgb(0, 0, 255)",
             );
-            cssFile.reset();
+            await cssFile.reset();
             await testCss(page);
         });
     }

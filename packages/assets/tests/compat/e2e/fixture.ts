@@ -5,12 +5,21 @@ import type { SpawnOptions } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { stripVTControlCharacters, styleText } from "node:util";
 import test from "@playwright/test";
 import { x } from "tinyexec";
 import treeKill from "tree-kill";
 
 const compatRoot = path.resolve(import.meta.dirname, "..");
+
+// Vite's watcher, the chokidar 3 it bundles, emits at most one change event per
+// path every 50ms and discards, rather than defers, a change inside that window
+// (`_throttle(EV_CHANGE, path, 50)` in _emit:
+// https://github.com/paulmillr/chokidar/blob/3.6.0/index.js#L616). Linux reports a
+// rewrite at once, so a revert written as soon as a test sees its edit applied
+// can land in the window and never reach the dev server.
+const WATCHER_CHANGE_THROTTLE_MS = 50;
 
 function runCli(options: { script: string; cwd: string; label: string } & SpawnOptions) {
     let require = createRequire(path.join(options.cwd, "package.json"));
@@ -54,7 +63,14 @@ export interface Fixture {
     root: string;
     readonly chunkImportMap: boolean;
     url(url?: string): string;
-    createEditor(filepath: string): { edit(editFn: (data: string) => string): void; reset(): void };
+    /**
+     * Await every edit and reset: writing a file again first waits for the dev
+     * server's watcher to be able to report the change.
+     */
+    createEditor(filepath: string): {
+        edit(editFn: (data: string) => string): Promise<void>;
+        reset(): Promise<void>;
+    };
     createFile(filepath: string, content: string): { remove(): void };
 }
 
@@ -110,6 +126,18 @@ export function useFixture(options: {
 
     let originalFiles: Record<string, string> = {};
     let createdFiles = new Set<string>();
+    let writtenFiles = new Set<string>();
+
+    /**
+     * Writes a watched file. Tests observe a write's effect before writing the
+     * same file again, so by this call the server has emitted the previous
+     * change; waiting out the watcher's window from here keeps this one.
+     */
+    async function write(filepath: string, content: string): Promise<void> {
+        if (writtenFiles.has(filepath)) await delay(WATCHER_CHANGE_THROTTLE_MS);
+        fs.writeFileSync(filepath, content);
+        writtenFiles.add(filepath);
+    }
 
     function createEditor(filepath: string) {
         filepath = path.resolve(cwd, filepath);
@@ -117,15 +145,15 @@ export function useFixture(options: {
         originalFiles[filepath] ??= init;
         let current = init;
         return {
-            edit(editFn: (data: string) => string): void {
+            async edit(editFn: (data: string) => string): Promise<void> {
                 let next = editFn(current);
                 assert(next !== current, "Edit function did not change the content");
                 current = next;
-                fs.writeFileSync(filepath, next);
+                await write(filepath, next);
             },
-            reset(): void {
-                fs.writeFileSync(filepath, originalFiles[filepath]!);
+            async reset(): Promise<void> {
                 current = originalFiles[filepath]!;
+                await write(filepath, current);
             },
         };
     }

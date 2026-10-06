@@ -97,12 +97,12 @@ function defineTest(f: Fixture) {
             await using _ = await expectNoReload(page);
 
             let cssFile = f.createEditor("app/pages/index.css");
-            cssFile.edit(s => s.replace("color: rgb(100, 108, 255);", "color: rgb(0, 0, 255);"));
+            await cssFile.edit(s => s.replace("color: rgb(100, 108, 255);", "color: rgb(0, 0, 255);"));
             await expect(page.getByRole("heading", { name: "Island Framework" })).toHaveCSS(
                 "color",
                 "rgb(0, 0, 255)",
             );
-            cssFile.reset();
+            await cssFile.reset();
             await testCss(page);
             // state:preserved — the island kept its count through the CSS update
             await expect(page.locator(".counter-card")).toContainText("Count: 3");
@@ -114,9 +114,9 @@ function defineTest(f: Fixture) {
             await using _ = await expectNoReload(page);
 
             let file = f.createEditor("app/pages/home.tsx");
-            file.edit(s => s.replace("Island Framework", "Island-edit-Framework"));
+            await file.edit(s => s.replace("Island Framework", "Island-edit-Framework"));
             await expect(page.locator(".hero")).toContainText("Island-edit-Framework");
-            file.reset();
+            await file.reset();
             await expect(page.locator(".hero")).toContainText("Island Framework");
             // state:preserved — server:update revalidates without resetting the island
             await expect(page.locator(".counter-card")).toContainText("Count: 3");
