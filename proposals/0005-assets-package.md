@@ -342,15 +342,15 @@ export default defineConfig({
         ssr: {
             build: {
                 outDir: "dist/server",
-                rolldownOptions: { input: "app/entry.server.ts" },
+                rolldownOptions: { input: "src/http.ts" },
             },
         },
     },
-    plugins: [assets(), fetchServer()],
+    plugins: [assets(), fetchServer({ entry: "src/http.ts" })],
 });
 ```
 
-`assets()` discovers browser inputs, orders the server build before the client build, collects asset metadata, and writes the manifest. `fetchServer()` sends application requests through the server entry loaded by Vite's module runner. Neither supplies a renderer, router, hydration protocol, or component HMR. Add the framework's ordinary Vite plugin when it needs one. When Cloudflare or another integration already owns request serving, omit `fetchServer()` and keep `assets()`.
+`assets()` discovers browser inputs, orders the server build before the client build, collects asset metadata, and writes the manifest. `fetchServer({ entry: "src/http.ts" })` sends application requests through the explicitly named server module loaded by Vite's module runner. The filename and directory belong to the application, not the plugin. Neither plugin supplies a renderer, router, hydration protocol, or component HMR. Add the framework's ordinary Vite plugin when it needs one. When Cloudflare or another integration already owns request serving, omit the Fetch-server plugin and keep `assets()`.
 
 The same resolver works for a Remix application that supplies its own entry registration and identity integration. `assets()` alone does not transform `clientEntry()`; `remix()` is the ready-made Remix composition.
 
@@ -368,7 +368,7 @@ The seven [upstream examples at `28e9540`](https://github.com/hi-ogawa/vite-plug
 | `remix` | Use released `remix@3.0.0`, `clientEntry()`, and `render({ assets })` through `@pitlane/vite-plugin-remix`. Verify document assets, island hydration, preloads, current frame navigation, and HMR. Do not preserve `@remix-run/dom`, `hydrated()`, or legacy frame conventions. |
 | `vue-router` | Matched-route CSS and preloads, scoped-style HMR, and the existing SSG plugin consuming the completed build manifest. |
 
-Run all seven in dev and production with maps disabled, then verify opted-in maps with each example's own document. Exercise navigation, hydration, and CSS updates against the framework versions specified above. Non-Remix Node fixtures compose `fetchServer()` directly; the Remix example uses `remix()` to compose assets and serving; Cloudflare keeps its existing request integration. Generic asset integration may replace old query-import plumbing in custom island transforms, but those transforms remain outside the neutral packages.
+Run all seven in dev and production with maps disabled, then verify opted-in maps with each example's own document. Exercise navigation, hydration, and CSS updates against the framework versions specified above. Non-Remix Node fixtures compose `fetchServer({ entry })` directly, with each fixture supplying its server module path; the Remix example uses `remix()` to compose assets and serving; Cloudflare keeps its existing request integration. Generic asset integration may replace old query-import plumbing in custom island transforms, but those transforms remain outside the neutral packages.
 
 ### What goes away
 
@@ -379,7 +379,7 @@ Run all seven in dev and production with maps disabled, then verify opted-in map
 ### Packages and dependency boundaries
 
 - **`@pitlane/assets`**, in `packages/assets`, exports `createAssetResolver`, the proposed `renderImportMap` helper, and Pitlane-owned runtime types from its root. `/manifest` exports the manifest value the build integration supplies; as published it is `{ mode: "unavailable" }`. `/build` exports the bundler-neutral manifest generator and its input types. `/vite-plugin` exports `assets(options?)`. Only `/vite-plugin` imports or requires Vite; the other entry points and their declarations work without Vite, Rolldown, Rsbuild, or Remix installed.
-- **`@pitlane/vite-plugin-fetch-server`**, in `packages/vite-plugin-fetch-server`, exports `fetchServer(options?)` from its root. It depends directly on `@remix-run/node-fetch-server` for Node HTTP conversion, not on the Remix umbrella, router, renderer, or component runtime. It has no dependency on `@pitlane/assets`.
+- **`@pitlane/vite-plugin-fetch-server`**, in `packages/vite-plugin-fetch-server`, exports `fetchServer(options)` from its root, with a required `entry` path. It depends directly on `@remix-run/node-fetch-server` for Node HTTP conversion, not on the Remix umbrella, router, renderer, or component runtime. It has no dependency on `@pitlane/assets`.
 - **`@pitlane/vite-plugin-remix`** replaces `@pitlane/dev`, including renaming `packages/dev` to `packages/vite-plugin-remix`. It exports `remix()` and retains the `/runtime` subpath for `HMR`. It composes both neutral plugins and owns Remix entry identity, export-name encoding, component/server-data HMR, prerendering, preview, and SPA mode. No `@pitlane/dev` alias, compatibility package, deprecated export, or duplicate implementation remains.
 - The Vite integration entry points retain a common minimum of Vite 8.1, covering the public parser and optional chunk-import-map feature. Vite is an optional peer of `@pitlane/assets`, needed only for `/vite-plugin`, and a required peer of both plugin-only packages. Vite+ is verified through its `vite` alias. `AssetResolver` remains structurally compatible with `Pick<AssetServer, "getScriptEntry" | "getHref" | "getPreloads" | "getImportMap">` without importing Remix.
 - `parseSync` and `ESTree` from Vite replace Pitlane's direct `oxc-parser` dependency. Generic literal-entry analysis lives in the assets adapter; the Remix entry transform, HMR, and route-map analysis stay in the renamed Remix plugin. `magic-string` remains behind the plugin implementations, not in the runtime or generator's published types.
@@ -493,7 +493,7 @@ An isolated Chromium experiment parsed a map containing closing-script text as a
 
 ### Standalone Vite Fetch server
 
-`fetchServer({ environment?: string, entry?: string } = {})` selects `ssr` by default. `entry` can explicitly identify the module to load; otherwise use the environment's string build input or its named `index` input, matching the existing integration. Ambiguous or missing inputs produce a diagnostic asking for `entry`, not an arbitrary first-file choice.
+`fetchServer(options)` requires `{ entry: string, environment?: string }`. `entry` is a non-empty path to the application's server module, resolved through [Vite's module runner](https://vite.dev/guide/api-environment-frameworks#runnabledevenvironment); `environment` defaults to `ssr`. The plugin has no filename or directory convention, performs no entry discovery, and never infers the path from Vite's build inputs. Missing or empty `entry` is a configuration error, even when the environment has a single build input or an input named `index`. The development entry is explicit and independent of the production build input.
 
 - It applies to development only, registers as Vite's application fallback after asset middleware, and uses `appType: "custom"` unless the application explicitly supplied another value. It opens no second port and owns no build or production-preview lifecycle.
 - For a runnable environment, import the entry through its runner for each request and read the current `default.fetch` after invalidation. Do not cache a handler across module updates. Invoke it with its owning object as receiver so a method using `this` remains valid.
@@ -502,11 +502,11 @@ An isolated Chromium experiment parsed a map containing closing-script text as a
 - Runtime integrations that own serving, including Cloudflare's custom environment, omit this plugin. Installing it for an unsupported environment is a clear configuration error explaining that choice, not an implicit takeover or no-op.
 - Support is initially the runnable-environment bridge required by the existing examples. Dispatch through Vite's separate Fetchable environment interface is not inferred from a runtime merely supporting `{ fetch }`; add such support only with a concrete consumer and verification.
 
-The README and guide show the plugin without the assets package, without Remix, and composed with `assets()`. It remains useful for any Vite-transformed application exporting `{ fetch }`.
+The README and guide show the plugin without the assets package, without Remix, and composed with `assets()`, always with an explicit entry path. It remains useful for any Vite-transformed application exporting `{ fetch }`. Standalone verification uses a non-Remix filename and directory, covers omitted and empty entries even when build inputs exist, and confirms that an explicit entry works without a build input and is not replaced by a different build input.
 
 ### Remix-specific composition
 
-- `remix()` from `@pitlane/vite-plugin-remix` composes `assets()` and `fetchServer({ environment: serverEnvironments[0] })` when its existing server handler is enabled. `serverHandler: false` still disables the bridge for runtime-owned serving. Existing environment, entry, output, prerender, preview, SPA, and HMR options retain their behavior.
+- `remix()` from `@pitlane/vite-plugin-remix` composes `assets()` and `fetchServer({ entry: serverEntry, environment: serverEnvironments[0] })` when its existing server handler is enabled. The Remix plugin alone supplies the existing `serverEntry` default of `"app/entry.server"`; a caller's override is passed to the bridge instead. Verify both the default and a custom entry. `serverHandler: false` still disables the bridge for runtime-owned serving. Existing environment, entry, output, prerender, preview, SPA, and HMR options retain their behavior.
 - The Remix transform matches exported `clientEntry(import.meta.url, component)` declarations and writes `"file:" + key + "#" + exportName` identically in every environment. Default exports, aliased callees, non-exported calls, and calls with fewer than two arguments retain the existing untouched behavior. Export-name extraction and the dev HMR island stay in this package.
 - The framework transform emits discovered island entries through the generic Vite entry mechanism. The assets package sees modules and graphs, never a Remix component or hydration record.
 - `@pitlane/vite-plugin-remix/runtime` exports `HMR`: the published module renders nothing; the development swap supplies the existing Remix revalidation island. Builds contain no HMR code. The umbrella runtime spelling is equivalent.
@@ -521,7 +521,7 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 | `@pitlane/dev` / `pitlane/dev` | `@pitlane/vite-plugin-remix` / `pitlane/vite-plugin-remix` |
 | `@pitlane/dev/runtime` / `pitlane/dev/runtime` | `@pitlane/vite-plugin-remix/runtime` / `pitlane/vite-plugin-remix/runtime` |
 | Existing runtime-package `/vite` exports, including `@pitlane/content/vite` and `pitlane/content/vite` | `/vite-plugin`, including `@pitlane/content/vite-plugin` and `pitlane/content/vite-plugin`; no aliases |
-| standalone `fullstack()` request serving | `fetchServer()` from `@pitlane/vite-plugin-fetch-server`, omitted when a runtime plugin owns requests |
+| standalone `fullstack()` request serving | `fetchServer({ entry: "path/to/server.ts" })` from `@pitlane/vite-plugin-fetch-server`, with the application's actual module path; omitted when a runtime plugin owns requests |
 | `import clientAssets from "./entry.browser.ts?assets=client"` → `.entry` | `(await assets.getScriptEntry("app/entry.browser.ts")).href` |
 | `clientAssets.js` → `modulepreload` links | `.preloads` from the same call, or `assets.getPreloads([...])` |
 | `import serverAssets from "./entry.server.tsx?assets=ssr"` → `.css` | `await assets.getStylesheets("app/entry.server.tsx", { environment: "ssr" })`, without emitting the server entry for browsers |
