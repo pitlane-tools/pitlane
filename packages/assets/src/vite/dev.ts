@@ -83,7 +83,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             try {
                 let snapshot = await createDevSnapshot(server!, state, graph, name);
                 snapshots.set(name, snapshot);
-                return `export default ${JSON.stringify(snapshot.manifest)};\n`;
+                return `export default JSON.parse(${JSON.stringify(JSON.stringify(snapshot.manifest))});\n`;
             } finally {
                 building.delete(name);
             }

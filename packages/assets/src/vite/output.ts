@@ -18,7 +18,12 @@ export function captureOutput(
     role: "client" | "server",
     assetReferences: Map<string, string>,
 ): AssetBuildEnvironment {
-    let graph: AssetBuildEnvironment = { role, chunks: {}, entries: {}, assets: {} };
+    let graph: AssetBuildEnvironment = {
+        role,
+        chunks: Object.create(null),
+        entries: Object.create(null),
+        assets: Object.create(null),
+    };
     // Vite keeps this original filename even when the combined CSS asset is renamed.
     let globalStylesheets = config.build.cssCodeSplit
         ? []

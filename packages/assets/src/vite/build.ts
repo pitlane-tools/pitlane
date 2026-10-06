@@ -44,9 +44,10 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
     for (let name of state.serverEnvironments) {
         let output = state.outputs.get(name)!;
         await mkdir(output.outDir, { recursive: true });
+        // Object literals reinterpret __proto__; JSON parsing preserves it as a source key.
         await writeFile(
             resolve(output.outDir, MANIFEST_FILE),
-            `export default ${JSON.stringify({ ...manifest, serverEnvironment: name })};\n`,
+            `export default JSON.parse(${JSON.stringify(JSON.stringify({ ...manifest, serverEnvironment: name }))});\n`,
         );
         for (let asset of Object.values(output.bundle)) {
             if (asset.type !== "asset") continue;

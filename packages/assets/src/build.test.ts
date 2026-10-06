@@ -57,6 +57,51 @@ function islandApp(): AssetBuild {
 }
 
 describe("proposal 0005: createAssetManifest", () => {
+    it("preserves source and environment keys through manifest serialization", async () => {
+        await fc.assert(
+            fc.asyncProperty(
+                fc.stringMatching(/^[A-Za-z_][A-Za-z0-9_]{0,16}$/),
+                fc.boolean(),
+                async (name, useAsEntry) => {
+                    let entryKey = useAsEntry ? name : "entry.js";
+                    let assetKey = useAsEntry ? "style.css" : name;
+                    let manifest = createAssetManifest({
+                        base: "/",
+                        environments: {
+                            [name]: client({
+                                chunks: {
+                                    [name]: chunk("entry.js", {
+                                        modules: [entryKey],
+                                        stylesheets: ["style.css"],
+                                    }),
+                                },
+                                entries: { [entryKey]: name },
+                                assets: { [assetKey]: "style.css" },
+                            }),
+                        },
+                    });
+                    let resolver = createAssetResolver(JSON.parse(JSON.stringify(manifest)));
+
+                    expect(await resolver.getScriptEntry(entryKey)).toEqual({
+                        href: "/entry.js",
+                        preloads: ["/entry.js"],
+                        importMap: { imports: {} },
+                    });
+                    expect(await resolver.getHref(assetKey)).toBe("/style.css");
+                    expect(await resolver.getStylesheets(entryKey, { environment: name })).toEqual([
+                        "/style.css",
+                    ]);
+                },
+            ),
+            {
+                examples: [
+                    ["__proto__", true],
+                    ["__proto__", false],
+                ],
+            },
+        );
+    });
+
     it("builds a manifest of entries, assets, and per-environment metadata", () => {
         let manifest = createAssetManifest(islandApp());
 

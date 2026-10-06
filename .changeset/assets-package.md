@@ -8,4 +8,6 @@ New package: framework-neutral asset resolution for server-rendered apps.
 
 `@pitlane/assets/manifest` is the manifest the `assets()` Vite plugin from `@pitlane/assets/vite-plugin` supplies. Published as is, it is `{ mode: "unavailable" }`, and every lookup explains how to supply one. `@pitlane/assets/build` exports `createAssetManifest`, which turns another bundler's normalized output into the same manifest.
 
+Generated manifests preserve source keys and environment names through JSON serialization, including names such as `__proto__`.
+
 Chunk import maps are off by default. With `assets({ chunkImportMap: true })`, `renderImportMap({ value, nonce })` serializes the returned map into a `<script type="importmap">` string that delivers it safely. The Vite plugin requires Vite 8.1 or later.

@@ -40,9 +40,9 @@ export function createAssetManifest(build: AssetBuild): BuildAssetsManifest {
     }
 
     let publicUrl = (file: string) => resolvePublicUrl(build.base, file);
-    let environments: Record<string, AssetEnvironment> = {};
-    let entries: Record<string, string> = {};
-    let assets: Record<string, string> = {};
+    let environments: Record<string, AssetEnvironment> = Object.create(null);
+    let entries: Record<string, string> = Object.create(null);
+    let assets: Record<string, string> = Object.create(null);
 
     for (let [name, environment] of Object.entries(build.environments)) {
         validateEnvironment(name, environment);
@@ -142,7 +142,7 @@ function indexModules(
         return closure;
     };
 
-    let modules: Record<string, AssetMetadata> = {};
+    let modules: Record<string, AssetMetadata> = Object.create(null);
     for (let [key, chunkIds] of memberships) {
         let preloads = new Set<string>();
         let stylesheets = new Set<string>();

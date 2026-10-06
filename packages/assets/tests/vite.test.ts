@@ -165,6 +165,32 @@ describe("proposal 0005: Vite asset integration", () => {
         expect(observed).toMatch(/^\/assets\/browser-[\w-]+\.js$/);
     });
 
+    it.each(["dev", "build"])("resolves an asset named __proto__ in %s", async mode => {
+        let root = await fixture({
+            ["__proto__"]: "opaque asset",
+            "app/entry.ts": `import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
+const assets = createAssetResolver(manifest);
+export const href = await assets.getHref("__proto__");
+export default { fetch: () => Response.json({ href }) };`,
+        });
+        let configured = config(root);
+        configured.assetsInclude = [/__proto__$/];
+
+        if (mode === "build") {
+            let module = await build(root, {}, configured);
+            expect(await readFile(join(root, "dist/client", module.href), "utf8")).toBe(
+                "opaque asset",
+            );
+        } else {
+            let server = await createServer(configured);
+            servers.push(server);
+            await server.listen();
+            let { href } = await query(server);
+            expect(href).toBe("/__proto__");
+        }
+    });
+
     it("returns development metadata on the first cyclic manifest import", async () => {
         let server = await serve(await fixture());
         expect(await query(server)).toEqual({

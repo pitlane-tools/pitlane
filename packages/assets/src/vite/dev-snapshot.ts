@@ -100,8 +100,8 @@ export async function createDevSnapshot(
         for (let entry of registrations?.get(id) ?? []) entryIds.add(entry);
     }
 
-    let entries: Record<string, string> = {};
-    let assets: Record<string, string> = {};
+    let entries: Record<string, string> = Object.create(null);
+    let assets: Record<string, string> = Object.create(null);
     let scripts: string[] = [];
     for (let id of entryIds) {
         let url = base + servedPath(root, id);
@@ -114,7 +114,7 @@ export async function createDevSnapshot(
     }
     let clientIds = await walkGraph(clientEnvironment, scripts, environmentEdges(graph, "client"));
 
-    let serverModules: AssetEnvironment["modules"] = {};
+    let serverModules: AssetEnvironment["modules"] = Object.create(null);
     for (let id of serverIds) {
         if (!sourceModule(id)) continue;
         serverModules[sourceKey(root, id)] = {
@@ -124,7 +124,7 @@ export async function createDevSnapshot(
             ),
         };
     }
-    let clientModules: AssetEnvironment["modules"] = {};
+    let clientModules: AssetEnvironment["modules"] = Object.create(null);
     for (let id of clientIds) {
         if (sourceModule(id))
             clientModules[sourceKey(root, id)] = { preloads: [], stylesheets: [] };
