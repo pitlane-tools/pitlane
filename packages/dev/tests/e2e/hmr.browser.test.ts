@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import type { Browser, Page } from "playwright";
+import type { Browser, Page, Request } from "playwright";
 
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -14,9 +14,10 @@ declare global {
         // Sentinel set after each navigation. A state-preserving HMR update keeps
         // it; a full page reload wipes it — the difference the tests assert on.
         __hmrAlive?: string;
-        // Navigation types the app observed. The injected fallback revalidates by
-        // navigating, so it shows up here; a direct frame reload does not.
+        // Navigation types the app observed. Revalidating by navigating would show
+        // up here; a direct frame reload does not.
         __navigations?: string[];
+        __hmrServerUpdate?: Promise<void>;
     }
 }
 
@@ -140,12 +141,181 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             { timeout: 10_000 },
         );
 
-        // `<HMR />` reloaded the top frame: the page refetched through the app's
+        // The browser entry reloaded the top frame: the page refetched through the app's
         // fetch handler, every island kept its state, and nothing navigated,
         // which is what distinguishes a frame reload from the alternatives.
         expect(await page.textContent("[data-fn-count]")).toBe("2");
         expect(await page.textContent("[data-arrow-count]")).toBe("1");
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
+        expect(await page.evaluate(() => window.__navigations)).toEqual([]);
+    });
+
+    it("waits for initial hydration before applying a server update", async () => {
+        page = await browser.newPage();
+        let hydrationHeld = Promise.withResolvers<void>();
+        let releaseHydration = Promise.withResolvers<void>();
+        let reloads = 0;
+        page.on("request", request => {
+            if (request.headers()["x-remix-frame"]) reloads++;
+        });
+        await page.route(
+            url => url.pathname === "/app/fn-counter.tsx",
+            async route => {
+                hydrationHeld.resolve();
+                await releaseHydration.promise;
+                await route.continue();
+            },
+        );
+        await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+        await hydrationHeld.promise;
+        // A browser module keeps Vitest from rewriting the fixture's Vite client import.
+        await page.addScriptTag({
+            type: "module",
+            content: `
+                import { createHotContext } from "/@vite/client";
+                let update = Promise.withResolvers();
+                window.__hmrServerUpdate = update.promise;
+                createHotContext("/__hmr-test-observer").on("server:update", update.resolve);
+            `,
+        });
+
+        await edit("document.tsx", "Server heading A", "Server heading B");
+        await page.evaluate(() => window.__hmrServerUpdate);
+        expect(reloads).toBe(0);
+        expect(await page.textContent("[data-h1]")).toBe("Server heading A");
+
+        releaseHydration.resolve();
+        await page.waitForFunction(
+            () => document.querySelector("[data-h1]")?.textContent === "Server heading B",
+            undefined,
+            { timeout: 10_000 },
+        );
+        expect(reloads).toBe(1);
+        await page.click("[data-fn-counter]");
+        expect(await page.textContent("[data-fn-count]")).toBe("1");
+    });
+
+    it("lets a newer server update supersede a reload still in flight", async () => {
+        page = await browser.newPage();
+        let loggedErrors: string[] = [];
+        let unhandledErrors: Error[] = [];
+        page.on("console", message => {
+            if (message.type() === "error") loggedErrors.push(message.text());
+        });
+        page.on("pageerror", error => unhandledErrors.push(error));
+        await page.goto(baseUrl, { waitUntil: "networkidle" });
+        await page.waitForSelector("[data-fn-counter]");
+
+        await page.click("[data-fn-counter]");
+        await page.click("[data-fn-counter]");
+        await page.evaluate(() => {
+            window.__hmrAlive = "supersede";
+            window.__navigations!.length = 0;
+        });
+
+        // Leave the first frame refetch unanswered, so it is still in flight
+        // when the newer edit lands.
+        let reloads = 0;
+        let held = Promise.withResolvers<Request>();
+        await page.route(
+            url => url.pathname === "/",
+            async route => {
+                if (!route.request().headers()["x-remix-frame"]) {
+                    await route.continue();
+                    return;
+                }
+                reloads++;
+                if (reloads === 1) {
+                    held.resolve(route.request());
+                    return;
+                }
+                await route.continue();
+            },
+        );
+        let abandoned = Promise.withResolvers<string | undefined>();
+        page.on("requestfailed", async request => {
+            if (request === (await held.promise)) abandoned.resolve(request.failure()?.errorText);
+        });
+
+        await edit("document.tsx", "Server heading A", "Server heading B");
+        await held.promise;
+
+        // The newer edit starts its own refetch while the first is still held,
+        // and its heading renders without waiting for the older one.
+        await edit("document.tsx", "Server heading B", "Server heading C");
+        await expect.poll(() => reloads, { timeout: 10_000 }).toBe(2);
+        await page.waitForFunction(
+            () => document.querySelector("[data-h1]")?.textContent === "Server heading C",
+            undefined,
+            { timeout: 10_000 },
+        );
+
+        // The page abandoned the superseded refetch rather than waiting on it.
+        expect(await abandoned.promise).toBe("net::ERR_ABORTED");
+
+        expect(await page.textContent("[data-h1]")).toBe("Server heading C");
+        expect(reloads).toBe(2);
+        expect(await page.textContent("[data-fn-count]")).toBe("2");
+        expect(await page.evaluate(() => window.__hmrAlive)).toBe("supersede");
+        expect(await page.evaluate(() => window.__navigations)).toEqual([]);
+        expect(loggedErrors.filter(text => text.startsWith("[pitlane]"))).toEqual([]);
+        expect(unhandledErrors).toEqual([]);
+    });
+
+    it("recovers on the next server update after a reload fails", async () => {
+        page = await browser.newPage();
+        let loggedErrors: string[] = [];
+        let unhandledErrors: Error[] = [];
+        page.on("console", message => {
+            if (message.type() === "error") loggedErrors.push(message.text());
+        });
+        page.on("pageerror", error => unhandledErrors.push(error));
+        await page.goto(baseUrl, { waitUntil: "networkidle" });
+        await page.waitForSelector("[data-fn-counter]");
+
+        await page.click("[data-fn-counter]");
+        await page.click("[data-fn-counter]");
+        await page.evaluate(() => {
+            window.__hmrAlive = "recover";
+            window.__navigations!.length = 0;
+        });
+
+        let reloads = 0;
+        await page.route(
+            url => url.pathname === "/",
+            async route => {
+                if (!route.request().headers()["x-remix-frame"]) {
+                    await route.continue();
+                    return;
+                }
+                reloads++;
+                if (reloads === 1) {
+                    await route.abort("failed");
+                    return;
+                }
+                await route.continue();
+            },
+        );
+
+        await edit("document.tsx", "Server heading A", "Server heading B");
+        await expect
+            .poll(() => loggedErrors.filter(text => text.startsWith("[pitlane]")).length, {
+                timeout: 10_000,
+            })
+            .toBe(1);
+        expect(await page.textContent("[data-h1]")).toBe("Server heading A");
+
+        await edit("document.tsx", "Server heading B", "Server heading C");
+        await page.waitForFunction(
+            () => document.querySelector("[data-h1]")?.textContent === "Server heading C",
+            undefined,
+            { timeout: 10_000 },
+        );
+
+        expect(reloads).toBe(2);
+        expect(unhandledErrors).toEqual([]);
+        expect(await page.textContent("[data-fn-count]")).toBe("2");
+        expect(await page.evaluate(() => window.__hmrAlive)).toBe("recover");
         expect(await page.evaluate(() => window.__navigations)).toEqual([]);
     });
 

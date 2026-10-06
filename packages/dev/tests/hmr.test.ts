@@ -1,8 +1,7 @@
 import type { Plugin } from "vite";
 
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
-import { hmrComponent } from "../src/hmr-component.ts";
 import { componentHmr, serverDataHmr } from "../src/hmr.ts";
 import { clientEntryTransform } from "../src/transform.ts";
 
@@ -290,81 +289,6 @@ describe("serverDataHmr", () => {
         expect(plugin.name).toBe("pitlane-remix-server-data-hmr");
         expect(plugin.apply).toBe("serve");
     });
-
-    it("only broadcasts, leaving the browser half to the HMR component", () => {
-        let plugin = serverDataHmr(new Set(["ssr"]));
-
-        // No virtual module and no client-entry rewrite: the listener is the
-        // island behind `<HMR />`, not injected code.
-        expect(plugin.resolveId).toBeUndefined();
-        expect(plugin.load).toBeUndefined();
-        expect(plugin.transform).toBeUndefined();
-    });
-});
-
-describe("hmrComponent", () => {
-    type ResolveContext = { environment: { mode: string } };
-    let resolve = (plugin: Plugin, mode: string, id = "pitlane:dev") => {
-        let hook = plugin.resolveId as (this: ResolveContext, id: string) => string | undefined;
-        return hook.call({ environment: { mode } }, id);
-    };
-    let load = (plugin: Plugin, id: string, base = "/") => {
-        let hook = plugin.load as (
-            this: { environment: { config: { base: string } } },
-            id: string,
-        ) => string | undefined;
-        return hook.call({ environment: { config: { base } } }, id);
-    };
-
-    it("resolves to a hydrated island during dev", () => {
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "dev");
-
-        expect(resolved).toBe("\0pitlane:dev");
-
-        let source = load(plugin, resolved!)!;
-        expect(source).toContain("clientEntry(import.meta.url");
-        expect(source).toContain('import.meta.hot.on("pitlane:server-update"');
-        expect(source).toContain("handle.frames.top.reload()");
-    });
-
-    it("answers its own ?assets=client query with a dev-server URL", () => {
-        // The clientEntry() transform resolves a module's client URL this way.
-        // A path on disk would land outside the app root, and the dev server
-        // hands out a file:// URL for those, which a browser refuses to import.
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "dev", "\0pitlane:dev?assets=client");
-
-        expect(resolved).toBe("\0pitlane:dev?island-assets");
-        expect(load(plugin, resolved!)).toContain('entry: "/@id/__x00__pitlane:dev"');
-    });
-
-    it("respects a configured base for that URL", () => {
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "dev", "\0pitlane:dev?assets=client");
-
-        expect(load(plugin, resolved!, "/app/")).toContain('"/app/@id/__x00__pitlane:dev"');
-    });
-
-    it("resolves to an inert component in a build", () => {
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "build");
-
-        expect(resolved).toBe("\0pitlane:dev?inert");
-        expect(load(plugin, resolved!)).toContain("() => () => null");
-    });
-
-    it("resolves to an inert component when the app has no client runtime", () => {
-        let plugin = hmrComponent(false);
-        let resolved = resolve(plugin, "dev");
-
-        expect(resolved).toBe("\0pitlane:dev?inert");
-        expect(load(plugin, resolved!)).toContain("() => () => null");
-    });
-
-    it("ignores other specifiers", () => {
-        expect(resolve(hmrComponent("app/entry.browser"), "dev", "pitlane:other")).toBeUndefined();
-    });
 });
 
 type HotUpdateContext = { environment: { name: string } };
@@ -419,7 +343,7 @@ describe("serverDataHmr hotUpdate", () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         let sent = await runHotUpdate(plugin, "ssr", [{ file: "/project/app/document.tsx" }], {});
 
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 
     it("stays quiet when the client graph serves the file as a script", async () => {
@@ -439,17 +363,17 @@ describe("serverDataHmr hotUpdate", () => {
             "/project/app/routes.tsx": [{ type: "asset" }],
         });
 
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 
     it("broadcasts when the changed server file has no invalidated modules", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         let sent = await runHotUpdate(plugin, "ssr", [], {}, "/project/app/actions/projects.tsx");
 
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 
-    it("coalesces a burst of server changes into one revalidation", async () => {
+    it("waits 50ms after the last server change before broadcasting", () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         let hook = plugin.hotUpdate;
         if (typeof hook !== "function") throw new Error("expected a function hotUpdate hook");
@@ -464,12 +388,21 @@ describe("serverDataHmr hotUpdate", () => {
             options: { file: string; modules: HotUpdateModule[]; server: unknown },
         ) => void;
 
-        for (let file of ["/project/app/a.ts", "/project/app/b.ts", "/project/app/c.ts"]) {
-            invoke.call({ environment: { name: "ssr" } }, { file, modules: [{ file }], server });
+        vi.useFakeTimers();
+        try {
+            for (let file of ["/project/app/a.ts", "/project/app/b.ts", "/project/app/c.ts"]) {
+                invoke.call(
+                    { environment: { name: "ssr" } },
+                    { file, modules: [{ file }], server },
+                );
+                vi.advanceTimersByTime(49);
+                expect(sent).toEqual([]);
+            }
+            vi.advanceTimersByTime(1);
+            expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
+        } finally {
+            vi.useRealTimers();
         }
-        await settleServerUpdate();
-
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
     });
 
     it("ignores updates outside the server environment", async () => {
@@ -544,7 +477,7 @@ describe("serverDataHmr hotUpdate edge cases", () => {
             },
         );
         await settleServerUpdate();
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 });
 

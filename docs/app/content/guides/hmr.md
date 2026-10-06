@@ -7,7 +7,7 @@ description: How the pitlane/dev Vite plugin hot-updates a Remix 3 app during vi
 
 `vite dev` updates a running app in place. Editing a component swaps its new code in without remounting, so hydrated islands keep their open menus, input values, and counters. Editing a server-only module refetches the current page through your fetch handler and reconciles the new HTML into the DOM, which keeps that same island state while the server output changes underneath it.
 
-Component HMR needs no configuration. Server-data revalidation needs one line in your document, described under [Setup](#setup). Neither exists in a production build, because the transforms are `apply: "serve"` only.
+Component HMR needs no configuration. Server-data revalidation needs a few lines in your browser entry, described under [Setup](#setup). Both are development-only. Component transforms run only during `vite dev`. A production build removes the browser-entry listener guarded by `import.meta.hot`.
 
 ## What each kind of edit does
 
@@ -24,35 +24,36 @@ No row in that table is a full page reload.
 
 ## Setup
 
-Render `<HMR />` once, anywhere in your document. It drives server-data revalidation:
+Keep the runtime that `run()` returns in your browser entry, and pass it to `revalidate` from `@pitlane/dev/hmr` when the plugin reports a server update:
 
-```tsx
-import { HMR } from "pitlane:dev";
+```ts
+// app/entry.browser.ts
+import { revalidate } from "@pitlane/dev/hmr";
+import { run } from "remix/component";
 
-export function Document() {
-    return () => (
-        <html lang="en">
-            <head>{/* ... */}</head>
-            <body>
-                <HMR />
-                {/* ... */}
-            </body>
-        </html>
-    );
+let app = run({
+    async loadModule(moduleUrl, exportName) {
+        let mod = await import(/* @vite-ignore */ moduleUrl);
+        return mod[exportName];
+    },
+});
+
+if (import.meta.hot) {
+    import.meta.hot.on("server:update", () => revalidate(app));
 }
 ```
 
-No environment guard needed. In a production build the specifier resolves to a component that renders nothing and carries no client code, so it costs nothing to leave in. Wrapping it in `{import.meta.env.DEV && <HMR />}` also works if you prefer the intent visible.
+Pass `run()` the same options you already do. Only the captured `app`, the import, and the `import.meta.hot` block are new.
 
-Component HMR is independent of it and runs whether or not you render it. Without it, server-only edits reach the server and the page does not change until you reload.
+`revalidate` waits on `app.ready()`, so an update that lands during initial hydration does not reload a frame that is still being adopted. It then reloads the top frame, which refetches the page through your fetch handler and reconciles it in place. A failed reload is logged, and the next server edit tries again.
 
-Add the types to your tsconfig if you have not already, which covers `pitlane:dev` and the `?assets=` imports:
+Keep the listener as written, without `async` or `await`. Vite handles HMR messages one at a time and waits for any promise a listener returns. A listener that awaited the reload would hold back every later HMR message until that reload settled, including the next server update. `revalidate` returns nothing for the same reason.
 
-```jsonc
-{ "compilerOptions": { "types": ["pitlane/dev/assets"] } }
-```
+No environment guard is needed beyond `import.meta.hot`. A production build replaces it with `undefined`, so the whole block, the event name included, is removed from the client bundle. `import.meta.hot` is typed by `vite/client`, which a Vite project's `vite-env.d.ts` already references.
 
-An app that installs `@pitlane/dev` directly instead of `pitlane` names `@pitlane/dev/assets` there. The [Pitlane package guide](/guides/umbrella) covers both installs.
+Component HMR is independent of this listener and runs whether or not you add it. Without it, server-only edits reach the server and the page does not change until you reload.
+
+`@pitlane/dev` 0.7 and earlier provided this listener as an `<HMR />` component imported from `pitlane:dev`. That module is gone: remove the import and the `<HMR />` element from your document, and add the block above to your browser entry.
 
 ## Component HMR
 
@@ -123,11 +124,11 @@ Editing the document, a middleware, a route handler, a data module, or anything 
 ### How a server edit reaches the browser
 
 1. The changed file is classified in your server environment. A file counts as server-only when the client module graph does not serve it as a script.
-2. The plugin broadcasts a `pitlane:server-update` event to the browser.
-3. `<HMR />` receives the event and calls `handle.frames.top.reload()`.
+2. The plugin broadcasts a `server:update` event to the browser.
+3. The listener in your browser entry receives the event and calls `revalidate(app)`, which reloads the top frame of the runtime `run()` returned.
 4. The frame runtime refetches the page through your fetch handler and reconciles the new HTML in place.
 
-`<HMR />` is a hydrated island, which is what gives step 3 a component handle. Remix hands the top frame to components only, so a plain module has no route to it. Reloading the frame directly is what revalidation means here. It produces no history entry and fires no `navigate` event, so an app that intercepts navigation itself keeps working, and a listener watching for real navigations never sees dev traffic.
+The browser entry is where the app's runtime lives, which is what gives step 3 the top frame. Reloading the frame directly is what revalidation means here. It produces no history entry and fires no `navigate` event, so an app that intercepts navigation itself keeps working, and a listener watching for real navigations never sees dev traffic.
 
 ### What counts as server-only
 
@@ -139,14 +140,14 @@ Files ending in `.ts`, `.tsx`, `.js`, and `.jsx` are considered. Other file type
 
 The broadcast waits 50ms. Two things fall out of that. A save that touches several files refetches _once_ instead of _once per file_. And the request cannot reach your fetch handler while Vite is still applying the update to the server environment, which on slower runtimes (such as workerd) can produce an error in dev mode.
 
-Overlapping revalidations coalesce in the browser too. A revalidation that arrives while one is in flight queues a single follow-up rather than stacking.
+A newer update supersedes one still in flight. The frame runtime abandons the older refetch, and the page shows the output of the latest server edit.
 
 ## Requirements
 
 | Requirement | Why | When unmet |
 | --- | --- | --- |
-| `<HMR />` rendered in the document | It is the browser half, and hydration gives it a frame handle | Server edits reach the server and the page does not change |
-| A client entry file (e.g. `entry.browser.tsx`) | Something has to hydrate the island | `<HMR />` renders nothing and revalidation never runs |
+| The server-update listener in your browser entry | It is the browser half, and it holds the runtime whose top frame it reloads | Server edits reach the server and the page does not change |
+| A client entry file (e.g. `entry.browser.ts`) that the document loads | The listener lives there, next to `run()` | Nothing receives the event and revalidation never runs |
 | `serverEnvironments` matches your config | It selects which environment classifies files as server-only | Neither half can tell client from server |
 
 If a platform plugin renames the server environment, pass the same names to [`remix({ serverEnvironments })`](/package/dev/interface/RemixPluginOptions#serverenvironments). `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
@@ -155,7 +156,7 @@ Nothing here depends on navigation, so an app that installs its own `navigate` l
 
 ### Fully server-rendered apps
 
-`clientEntry: false` turns off the client environment, so nothing calls `run()`, nothing hydrates, and no script tag reaches the browser. `<HMR />` resolves to the inert component there, because an island with no client runtime cannot receive anything.
+`clientEntry: false` turns off the client environment, so nothing calls `run()`, nothing hydrates, and no script tag reaches the browser. There is no browser entry to hold the listener, so server edits do not revalidate the page.
 
 To serve no browser JavaScript in production and still revalidate in dev, keep the client entry and gate the script tag instead:
 
@@ -169,7 +170,7 @@ Production drops the tag and serves zero JavaScript, since the hydration markers
 
 ### Client-rendered apps
 
-`remix({ server: false })` is the mirror image. Everything renders in the browser, so component HMR is the whole story and there is no server data to revalidate. `<HMR />` resolves to the inert component, and the requirements table above does not apply. The client entry is whatever `index.html` loads. There are no server environments to name.
+`remix({ server: false })` is the mirror image. Everything renders in the browser, so component HMR is the whole story and there is no server data to revalidate. The plugin never broadcasts a server update, so the browser entry needs no listener, and the requirements table above does not apply. The client entry is whatever `index.html` loads. There are no server environments to name.
 
 This is also the only mode that currently works under Vite's experimental bundled dev mode, component hot-swap included. See [Single-page apps](/guides/spa) for the whole mode.
 
@@ -179,7 +180,7 @@ This is also the only mode that currently works under Vite's experimental bundle
 
 **The first edit after a dependency change can be missed.** Installing or re-pinning a dependency makes Vite rebuild its client dependency cache. The first edit after that reaches the server but not the browser. One reload settles it. The cause is Vite's dependency prebundling rather than the plugin.
 
-**Production is untouched.** Both transforms are dev-only, so no wrapper indirection and no runtime imports reach a build. Nothing about HMR changes `vite build` output.
+**Production is untouched.** Both transforms are dev-only, so no wrapper indirection and no runtime imports reach a build, and the browser-entry listener is removed with its `import.meta.hot` branch. Nothing about HMR changes `vite build` output.
 
 ## How this maps to Remix's HMR packages
 

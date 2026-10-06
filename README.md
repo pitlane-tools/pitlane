@@ -42,9 +42,9 @@ Everything the plugin does orbits three files you own:
 
 - **`vite.config.ts`** — `plugins: [remix()]`. Defaults cover the rest.
 - **`app/entry.server.tsx`** — builds a router and default-exports it. The default export's `.fetch(Request)` is the contract every consumer reads: dev, preview, and whatever runs in production.
-- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML.
+- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML, and in dev passes the runtime to `revalidate` from `@pitlane/dev/hmr` on `server:update`.
 
-`vite dev` serves the app through your router, `vite build` produces `dist/ssr` and `dist/client`, and `vite preview` serves the production build through the same fetch handler production runs. Component and server-data [HMR](https://pitlane.tools/guides/hmr) are on in dev.
+`vite dev` serves the app through your router, `vite build` produces `dist/ssr` and `dist/client`, and `vite preview` serves the production build through the same fetch handler production runs. Component [HMR](https://pitlane.tools/guides/hmr) is on in dev, and server-data HMR follows once the browser entry [listens for server updates](https://pitlane.tools/guides/hmr#setup).
 
 Two options change the shape of the build: [`prerender`](https://pitlane.tools/guides/prerendering) renders paths to static HTML during `vite build`, and [`server: false`](https://pitlane.tools/guides/spa) drops the server entirely for a client-rendered app. See the [Vite plugin guide](https://pitlane.tools/guides/vite-plugin) for the asset runtime, the `clientEntry()` transform, and dev/preview semantics.
 

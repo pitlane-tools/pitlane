@@ -5,7 +5,12 @@ import MagicString from "magic-string";
 import { parseSync } from "oxc-parser";
 import { transformComponentsForBrowser, transformComponentsForServer } from "remix/component-hmr";
 
-import { SERVER_UPDATE_EVENT } from "./hmr-protocol.ts";
+/**
+ * Custom Vite HMR event that asks the browser to revalidate server-rendered
+ * data. Apps listen for it by name in their browser entry, so renaming it breaks
+ * every app that does.
+ */
+const SERVER_UPDATE_EVENT = "server:update";
 
 /**
  * Component modules Remix authors as `.tsx`/`.jsx`. The `remix/component-hmr` transform
@@ -117,8 +122,8 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
 
 /**
  * Server-data HMR, broadcast half: when a server-only module changes, tell the
- * browser to revalidate its server-rendered content. The `<HMR />` component
- * from the `pitlane:dev` module receives the event and reloads the top frame,
+ * browser to revalidate its server-rendered content. The app's browser entry
+ * receives the event and reloads the top frame of the runtime `run()` returned,
  * which refetches the page through the app's fetch handler and reconciles it,
  * keeping hydrated island state. This is the Remix 3 analog of React Router's
  * loader/action revalidation.
@@ -131,8 +136,8 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
  * for ordinary server files, and treating those as client modules would silently
  * disable server-data HMR for the whole app.
  *
- * Dev-only. An app that never renders `<HMR />` simply has no listener, so the
- * event is inert.
+ * Dev-only. An app whose browser entry does not listen for the event simply
+ * ignores it.
  */
 export function serverDataHmr(serverEnvironments: Set<string>): Plugin {
     let pending: ReturnType<typeof setTimeout> | undefined;

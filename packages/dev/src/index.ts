@@ -18,7 +18,6 @@ import fullstack from "@hiogawa/vite-plugin-fullstack";
 import type { PrerenderOption } from "./prerender.ts";
 
 import { build, buildCompat, runtimeInline } from "./build.ts";
-import { hmrComponent } from "./hmr-component.ts";
 import { componentHmr, serverDataHmr } from "./hmr.ts";
 import { preview } from "./preview.ts";
 import { clientEntryTransform } from "./transform.ts";
@@ -116,10 +115,10 @@ export interface RemixPluginOptions {
  *
  * During `vite dev` it also installs hot module replacement: component edits
  * swap in place through the `remix/component-hmr` transforms, and edits to modules the
- * browser never loads refetch the current page through the app's fetch handler,
- * keeping hydrated island state. Both are dev-only. The second half needs the
- * app to render `<HMR />` from the `pitlane:dev` module, which resolves to an
- * inert component in a build and when `clientEntry` is `false`.
+ * browser never loads broadcast a `server:update` event. An app whose
+ * browser entry passes its `run()` runtime to `revalidate` from
+ * `@pitlane/dev/hmr` on that event refetches the current page through the
+ * app's fetch handler, keeping hydrated island state. Both are dev-only.
  *
  * Platform-agnostic by design: deploy targets compose alongside it in the
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
@@ -193,7 +192,6 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         suppressAbortErrors(),
         normalizeWriteHead(),
         componentHmr(serverEnvironmentSet),
-        hmrComponent(clientEntry),
         clientEntryTransform(serverEnvironmentSet),
         serverDataHmr(serverEnvironmentSet),
     ];
@@ -207,17 +205,13 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
  *
  * Everything server-shaped is absent by construction: no server environment,
  * no `dist/ssr`, no dev fetch handler, and no server-data HMR (there is no
- * server data to revalidate, so `<HMR />` resolves to the inert component).
+ * server data to revalidate, so no server update is ever broadcast).
  */
 function spa(): PluginOption {
     // Every environment is a client one, so no environment name is "server".
     let serverEnvironmentSet = new Set<string>();
 
-    return [
-        componentHmr(serverEnvironmentSet),
-        hmrComponent(false),
-        clientEntryTransform(serverEnvironmentSet),
-    ];
+    return [componentHmr(serverEnvironmentSet), clientEntryTransform(serverEnvironmentSet)];
 }
 
 /**

@@ -10,6 +10,7 @@
     "pitlane/data-table-d1/migrations": "@pitlane/data-table-d1/migrations",
     "pitlane/dev": "@pitlane/dev",
     "pitlane/dev/assets": "@pitlane/dev/assets",
+    "pitlane/dev/hmr": "@pitlane/dev/hmr",
     "pitlane/dev/runtime": "@pitlane/dev/runtime",
     "pitlane/theme": "@pitlane/theme",
     "pitlane/theme/default": "@pitlane/theme/default",

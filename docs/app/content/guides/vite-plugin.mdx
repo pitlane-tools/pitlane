@@ -236,7 +236,7 @@ With the default `serverHandler: true`, every request is answered by your server
 
 <Callout kind="info" title="Hot module replacement">
 
-Component edits swap in place and keep live island state, and edits to server-only modules refetch the page through your fetch handler without discarding that state. Both are on by default in `vite dev`. See [Hot module replacement](/guides/hmr) for which edits preserve state, which remount, and the two requirements the server half has.
+Component edits swap in place and keep live island state, and edits to server-only modules refetch the page through your fetch handler without discarding that state. Component HMR is on by default in `vite dev`. Server-data revalidation also needs a short listener in your browser entry. See [Hot module replacement](/guides/hmr) for the listener, which edits preserve state, and which remount.
 
 </Callout>
 

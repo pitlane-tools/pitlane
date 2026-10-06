@@ -34,6 +34,10 @@
             "types": "./dist/runtime.d.mts",
             "import": "./dist/runtime.mjs"
         },
+        "./hmr": {
+            "types": "./dist/hmr.d.mts",
+            "import": "./dist/hmr.mjs"
+        },
         "./assets": {
             "types": "./dist/assets.d.mts"
         }

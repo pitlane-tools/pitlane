@@ -1,5 +1,3 @@
-import { HMR } from "pitlane:dev";
-
 import "./styles.css";
 import { mergeAssets } from "../../../../src/runtime.ts";
 import { ArrowCounter } from "./arrow-counter.tsx";
@@ -27,7 +25,6 @@ export function Document() {
                 <h1 data-h1>Server heading A</h1>
                 <FnCounter />
                 <ArrowCounter />
-                <HMR />
             </body>
         </html>
     );
