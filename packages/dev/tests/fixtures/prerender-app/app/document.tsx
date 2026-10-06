@@ -3,8 +3,6 @@ import type { RemixNode } from "remix/component";
 import { mergeAssets } from "@pitlane/dev/runtime";
 
 import "./styles.css";
-import { HMR } from "pitlane:dev";
-
 import clientAssets from "./entry.browser.ts?assets=client";
 import serverAssets from "./entry.server.tsx?assets=ssr";
 
@@ -29,7 +27,6 @@ export function Document(handle: { props: DocumentProps }) {
             <body>
                 <h1 data-title>{handle.props.title}</h1>
                 {handle.props.children}
-                <HMR />
             </body>
         </html>
     );

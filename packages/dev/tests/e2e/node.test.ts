@@ -37,6 +37,20 @@ describe("production build", () => {
         expect(assets.some(file => file.endsWith(".css"))).toBe(true);
     });
 
+    it("leaves the server-update listener out of the client bundle", () => {
+        // The browser entry wires revalidation behind `import.meta.hot`, which a
+        // build replaces with `undefined`, so the branch never ships.
+        let scripts = readdirSync(join(FIXTURE, "dist/client/assets"))
+            .filter(file => file.endsWith(".js"))
+            .map(file => readFileSync(join(FIXTURE, "dist/client/assets", file), "utf8"));
+
+        expect(scripts.length).toBeGreaterThan(0);
+        for (let script of scripts) {
+            expect(script).not.toContain("pitlane:server-update");
+            expect(script).not.toContain("import.meta.hot");
+        }
+    });
+
     it("inlines this package's runtime instead of importing it at run time", async () => {
         // The fixture imports `@pitlane/dev/runtime` the way an app does, and
         // @pitlane/dev is a devDependency: a bare import of it (or of anything

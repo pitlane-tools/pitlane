@@ -94,21 +94,45 @@ Only named (PascalCase) component exports in `.tsx`/`.jsx` files whose setup ret
 
 **Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
 
-It needs one line in your document:
+The plugin broadcasts a `pitlane:server-update` event; your browser entry keeps the runtime `run()` returns and reloads its top frame when one arrives:
 
-```tsx
-import { HMR } from "pitlane:dev";
+```ts
+// app/entry.browser.ts
+import { run } from "remix/component";
 
-// ...
-<body>
-    <HMR />
-    {/* ... */}
-</body>;
+let app = run({/* your existing options */});
+
+if (import.meta.hot) {
+    let inFlight = false;
+    let queued = false;
+
+    let revalidate = async (): Promise<void> => {
+        if (inFlight) {
+            queued = true;
+            return;
+        }
+        inFlight = true;
+        try {
+            await app.ready();
+            await app.frames.top.reload();
+        } catch (error) {
+            console.error("[pitlane] Failed to apply server update:", error);
+        } finally {
+            inFlight = false;
+        }
+        if (queued) {
+            queued = false;
+            await revalidate();
+        }
+    };
+
+    import.meta.hot.on("pitlane:server-update", () => void revalidate());
+}
 ```
 
-`<HMR />` is a hydrated island, so it has a component handle, and it revalidates with `handle.frames.top.reload()`. Remix hands the top frame to components only, which is why this is a component rather than something the plugin injects. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
+Overlapping updates collapse into one follow-up reload. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
 
-Leave it unguarded: in a production build the specifier resolves to a component that renders nothing and carries no client code. Apps with `clientEntry: false` have nothing to hydrate it, so it stays inert there too. See the [HMR guide](https://pitlane.tools/guides/hmr).
+A production build replaces `import.meta.hot` with `undefined` and drops the whole block. Apps with `clientEntry: false` have no browser entry to hold the listener, so server edits do not revalidate there. Version 0.7 and earlier rendered an `<HMR />` component from `pitlane:dev` instead; remove it from your document when you add the listener. See the [HMR guide](https://pitlane.tools/guides/hmr).
 
 ## Options
 
@@ -189,7 +213,7 @@ export default defineConfig({
 
 There is no server environment, nothing is built to `dist/ssr`, and `vite build` emits a static site from your `index.html`. The plugin's one remaining job is the one a SPA still wants: component HMR. Editing a component swaps it in place and keeps live state, arrow forms included.
 
-Every `server*` option goes with it, and `clientEntry` too — the browser entry is whatever `index.html` loads. `<HMR />` from `pitlane:dev` resolves to the inert component, because there is no server data to revalidate.
+Every `server*` option goes with it, and `clientEntry` too — the browser entry is whatever `index.html` loads. There is no server data to revalidate, so the browser entry needs no server-update listener.
 
 Deploying means pointing every unknown URL at `index.html` so the client router can resolve it; on GitHub Pages that is a copy of `index.html` at `404.html`, on Netlify a `/* /index.html 200` redirect.
 

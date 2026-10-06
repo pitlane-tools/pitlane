@@ -14,8 +14,8 @@ declare global {
         // Sentinel set after each navigation. A state-preserving HMR update keeps
         // it; a full page reload wipes it — the difference the tests assert on.
         __hmrAlive?: string;
-        // Navigation types the app observed. The injected fallback revalidates by
-        // navigating, so it shows up here; a direct frame reload does not.
+        // Navigation types the app observed. Revalidating by navigating would show
+        // up here; a direct frame reload does not.
         __navigations?: string[];
     }
 }
@@ -140,12 +140,81 @@ describe.skipIf(!browserInstalled)("HMR in the browser", () => {
             { timeout: 10_000 },
         );
 
-        // `<HMR />` reloaded the top frame: the page refetched through the app's
+        // The browser entry reloaded the top frame: the page refetched through the app's
         // fetch handler, every island kept its state, and nothing navigated,
         // which is what distinguishes a frame reload from the alternatives.
         expect(await page.textContent("[data-fn-count]")).toBe("2");
         expect(await page.textContent("[data-arrow-count]")).toBe("1");
         expect(await page.evaluate(() => window.__hmrAlive)).toBe("server-data");
+        expect(await page.evaluate(() => window.__navigations)).toEqual([]);
+    });
+
+    it("collapses server updates that arrive mid-revalidation into one follow-up", async () => {
+        // Count the server-update events the dev server pushes over Vite's HMR
+        // socket, so each edit below lands as its own event rather than being
+        // folded into the server-side settle window.
+        page = await browser.newPage();
+        let serverUpdates = 0;
+        page.on("websocket", socket => {
+            socket.on("framereceived", ({ payload }) => {
+                if (String(payload).includes("pitlane:server-update")) serverUpdates++;
+            });
+        });
+        await page.goto(baseUrl, { waitUntil: "networkidle" });
+        await page.waitForSelector("[data-fn-counter]");
+
+        await page.click("[data-fn-counter]");
+        await page.click("[data-fn-counter]");
+        await page.evaluate(() => {
+            window.__hmrAlive = "coalesce";
+            window.__navigations!.length = 0;
+        });
+
+        // Hold the first page refetch open so later updates arrive while it is
+        // still in flight.
+        let reloads = 0;
+        let held = Promise.withResolvers<void>();
+        let release = Promise.withResolvers<void>();
+        await page.route(
+            url => url.pathname === "/",
+            async route => {
+                reloads++;
+                if (reloads === 1) {
+                    held.resolve();
+                    await release.promise;
+                }
+                await route.continue();
+            },
+        );
+
+        await edit("document.tsx", "Server heading A", "Server heading B");
+        await held.promise;
+
+        await edit("document.tsx", "Server heading B", "Server heading C");
+        await expect.poll(() => serverUpdates, { timeout: 10_000 }).toBe(2);
+        await edit("document.tsx", "Server heading C", "Server heading D");
+        await expect.poll(() => serverUpdates, { timeout: 10_000 }).toBe(3);
+
+        // Two updates arrived during the held refetch and neither started one.
+        expect(reloads).toBe(1);
+
+        release.resolve();
+        await page.waitForFunction(
+            () => document.querySelector("[data-h1]")?.textContent === "Server heading D",
+            undefined,
+            { timeout: 10_000 },
+        );
+        await expect.poll(() => reloads, { timeout: 10_000 }).toBe(2);
+
+        // The queued updates collapsed into exactly one follow-up refetch, and
+        // nothing else stacked up behind it. Proving an absence needs a quiet
+        // window on the real clock: the refetches run in the browser against a
+        // live dev server, out of reach of fake timers.
+        await new Promise(resolve => setTimeout(resolve, 500));
+        expect(reloads).toBe(2);
+        expect(await page.textContent("[data-h1]")).toBe("Server heading D");
+        expect(await page.textContent("[data-fn-count]")).toBe("2");
+        expect(await page.evaluate(() => window.__hmrAlive)).toBe("coalesce");
         expect(await page.evaluate(() => window.__navigations)).toEqual([]);
     });
 

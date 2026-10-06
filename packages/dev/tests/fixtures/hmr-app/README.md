@@ -20,10 +20,10 @@ Open the URL, then edit files under `app/` and watch the page:
 | Edit | Expected |
 | --- | --- |
 | `app/fn-counter.tsx` — the label or render (function form) | Hot-swaps in place. The click count is preserved; no reload. |
-| `app/document.tsx` — the `<h1>` or any server-only markup | Re-fetches the page and reconciles it. Island click counts are preserved; no full-page reload. |
-| `app/arrow-counter.tsx` — the label (arrow form) | Falls back to a frame reload: this island re-initializes, but sibling islands and scroll are preserved. |
+| `app/document.tsx` — the `<h1>` or any server-only markup | Re-fetches the page and reconciles it, through the `pitlane:server-update` listener in `app/entry.browser.ts`. Island click counts are preserved; no full-page reload. |
+| `app/arrow-counter.tsx` — the label (arrow form) | Hot-swaps in place. The click count is preserved, just as for the function form. |
 
-The two islands are deliberately different: `FnCounter` is a named-`function` `clientEntry`, so it is a hot-swap boundary; `ArrowCounter` is an arrow `clientEntry`, so it is not (stable component identity needs a named function).
+Both islands are hot-swap boundaries. `FnCounter` uses a named-function `clientEntry`, while the plugin normalizes `ArrowCounter`'s arrow form to a named function before the HMR transform runs.
 
 ## Restoring after manual edits
 

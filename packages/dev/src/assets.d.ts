@@ -3,17 +3,15 @@
 // `import type` (which would turn this file into a module).
 
 /**
- * Type declarations for Pitlane's `?assets=` import convention and the
- * `pitlane:dev` module. Nothing here is imported directly: list
- * `@pitlane/dev/assets` in an app's tsconfig `types` and both kinds of import
- * are typed.
+ * Type declarations for Pitlane's `?assets=` import convention. Nothing here is
+ * imported directly: list `@pitlane/dev/assets` in an app's tsconfig `types`
+ * and every `?assets` import is typed.
  *
  * ```jsonc
  * { "compilerOptions": { "types": ["@pitlane/dev/assets"] } }
  * ```
  *
  * @see {@link https://pitlane.tools/guides/vite-plugin#the-asset-runtime | The asset runtime}
- * @see {@link https://pitlane.tools/guides/hmr | Hot module replacement guide}
  *
  * @module
  */
@@ -44,21 +42,4 @@ declare module "*?assets=ssr" {
      */
     let assets: import("@pitlane/dev/runtime").ImportedAssets;
     export default assets;
-}
-
-declare module "pitlane:dev" {
-    /**
-     * Revalidates the page when a server-only module changes during `vite dev`,
-     * keeping hydrated island state. Render it once, anywhere in the document:
-     *
-     * ```tsx
-     * import { HMR } from "pitlane:dev";
-     * // ...
-     * <HMR />
-     * ```
-     *
-     * Renders nothing, and carries no client code in a production build, so it
-     * needs no environment guard.
-     */
-    export const HMR: () => () => null;
 }

@@ -2,7 +2,6 @@ import type { Plugin } from "vite";
 
 import { describe, expect, it } from "vite-plus/test";
 
-import { hmrComponent } from "../src/hmr-component.ts";
 import { componentHmr, serverDataHmr } from "../src/hmr.ts";
 import { clientEntryTransform } from "../src/transform.ts";
 
@@ -289,81 +288,6 @@ describe("serverDataHmr", () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         expect(plugin.name).toBe("pitlane-remix-server-data-hmr");
         expect(plugin.apply).toBe("serve");
-    });
-
-    it("only broadcasts, leaving the browser half to the HMR component", () => {
-        let plugin = serverDataHmr(new Set(["ssr"]));
-
-        // No virtual module and no client-entry rewrite: the listener is the
-        // island behind `<HMR />`, not injected code.
-        expect(plugin.resolveId).toBeUndefined();
-        expect(plugin.load).toBeUndefined();
-        expect(plugin.transform).toBeUndefined();
-    });
-});
-
-describe("hmrComponent", () => {
-    type ResolveContext = { environment: { mode: string } };
-    let resolve = (plugin: Plugin, mode: string, id = "pitlane:dev") => {
-        let hook = plugin.resolveId as (this: ResolveContext, id: string) => string | undefined;
-        return hook.call({ environment: { mode } }, id);
-    };
-    let load = (plugin: Plugin, id: string, base = "/") => {
-        let hook = plugin.load as (
-            this: { environment: { config: { base: string } } },
-            id: string,
-        ) => string | undefined;
-        return hook.call({ environment: { config: { base } } }, id);
-    };
-
-    it("resolves to a hydrated island during dev", () => {
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "dev");
-
-        expect(resolved).toBe("\0pitlane:dev");
-
-        let source = load(plugin, resolved!)!;
-        expect(source).toContain("clientEntry(import.meta.url");
-        expect(source).toContain('import.meta.hot.on("pitlane:server-update"');
-        expect(source).toContain("handle.frames.top.reload()");
-    });
-
-    it("answers its own ?assets=client query with a dev-server URL", () => {
-        // The clientEntry() transform resolves a module's client URL this way.
-        // A path on disk would land outside the app root, and the dev server
-        // hands out a file:// URL for those, which a browser refuses to import.
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "dev", "\0pitlane:dev?assets=client");
-
-        expect(resolved).toBe("\0pitlane:dev?island-assets");
-        expect(load(plugin, resolved!)).toContain('entry: "/@id/__x00__pitlane:dev"');
-    });
-
-    it("respects a configured base for that URL", () => {
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "dev", "\0pitlane:dev?assets=client");
-
-        expect(load(plugin, resolved!, "/app/")).toContain('"/app/@id/__x00__pitlane:dev"');
-    });
-
-    it("resolves to an inert component in a build", () => {
-        let plugin = hmrComponent("app/entry.browser");
-        let resolved = resolve(plugin, "build");
-
-        expect(resolved).toBe("\0pitlane:dev?inert");
-        expect(load(plugin, resolved!)).toContain("() => () => null");
-    });
-
-    it("resolves to an inert component when the app has no client runtime", () => {
-        let plugin = hmrComponent(false);
-        let resolved = resolve(plugin, "dev");
-
-        expect(resolved).toBe("\0pitlane:dev?inert");
-        expect(load(plugin, resolved!)).toContain("() => () => null");
-    });
-
-    it("ignores other specifiers", () => {
-        expect(resolve(hmrComponent("app/entry.browser"), "dev", "pitlane:other")).toBeUndefined();
     });
 });
 

@@ -67,7 +67,7 @@ export function Counter(handle: Handle) {
 
 Editing the returned markup swaps it in and the count keeps counting. Editing the setup scope above the `return` remounts the component, which is the same rule as everywhere else. See [state survives a render edit](/guides/hmr#state-survives-a-render-edit-and-resets-on-a-setup-edit).
 
-Because server-data revalidation has no server to revalidate against, `<HMR />` from `pitlane:dev` resolves to the inert component here: it renders nothing and carries no client code, so an app that renders it unconditionally costs nothing.
+Server-data revalidation has no server to revalidate against, so the plugin never broadcasts a server update here and the browser entry needs no [server-update listener](/guides/hmr#setup).
 
 ## The app shell
 
