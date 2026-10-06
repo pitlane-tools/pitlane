@@ -94,10 +94,11 @@ Only named (PascalCase) component exports in `.tsx`/`.jsx` files whose setup ret
 
 **Server data.** Editing a server-only module (the document, a middleware, a route handler, any module the client never imports) re-fetches the current page through your fetch handler and reconciles the new server-rendered HTML into the DOM. Hydrated island state survives, so you see fresh server output without a full-page reload. This is the Remix analog of React Router's loader/action revalidation, driven through the frame runtime rather than a client data router.
 
-The plugin broadcasts a `pitlane:server-update` event; your browser entry keeps the runtime `run()` returns and reloads its top frame when one arrives:
+The plugin broadcasts a `server:update` event; your browser entry keeps the runtime `run()` returns and passes it to `revalidate` from `@pitlane/dev/hmr` when one arrives:
 
 ```ts
 // app/entry.browser.ts
+import { revalidate } from "@pitlane/dev/hmr";
 import { run } from "remix/component";
 
 let app = run({
@@ -108,34 +109,13 @@ let app = run({
 });
 
 if (import.meta.hot) {
-    let inFlight = false;
-    let queued = false;
-
-    let revalidate = async (): Promise<void> => {
-        if (inFlight) {
-            queued = true;
-            return;
-        }
-        inFlight = true;
-        try {
-            await app.ready();
-            await app.frames.top.reload();
-        } catch (error) {
-            console.error("[pitlane] Failed to apply server update:", error);
-        } finally {
-            inFlight = false;
-        }
-        if (queued) {
-            queued = false;
-            await revalidate();
-        }
-    };
-
-    import.meta.hot.on("pitlane:server-update", () => void revalidate());
+    import.meta.hot.on("server:update", () => revalidate(app));
 }
 ```
 
-Keep any existing `run()` options when adding the listener. Overlapping updates collapse into one follow-up reload. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
+Keep any existing `run()` options when adding the listener. `revalidate` waits for initial hydration, then reloads the top frame, which refetches the page through your fetch handler and reconciles it in place. A failed reload is logged and the next update retries. A newer update supersedes a reload still in flight, so the page shows the latest server output. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
+
+Don't make the listener `async` or return the reload from it: Vite waits for listener promises and handles HMR messages one at a time, so a pending reload would hold back the next update.
 
 A production build replaces `import.meta.hot` with `undefined` and drops the whole block. Apps with `clientEntry: false` have no browser entry to hold the listener, so server edits do not revalidate there. Version 0.7 and earlier rendered an `<HMR />` component from `pitlane:dev` instead; remove it from your document when you add the listener. See the [HMR guide](https://pitlane.tools/guides/hmr).
 

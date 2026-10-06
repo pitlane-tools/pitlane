@@ -42,7 +42,7 @@ Everything the plugin does orbits three files you own:
 
 - **`vite.config.ts`** — `plugins: [remix()]`. Defaults cover the rest.
 - **`app/entry.server.tsx`** — builds a router and default-exports it. The default export's `.fetch(Request)` is the contract every consumer reads: dev, preview, and whatever runs in production.
-- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML, and in dev reloads the runtime's top frame on `pitlane:server-update`.
+- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML, and in dev passes the runtime to `revalidate` from `@pitlane/dev/hmr` on `server:update`.
 
 `vite dev` serves the app through your router, `vite build` produces `dist/ssr` and `dist/client`, and `vite preview` serves the production build through the same fetch handler production runs. Component [HMR](https://pitlane.tools/guides/hmr) is on in dev, and server-data HMR follows once the browser entry [listens for server updates](https://pitlane.tools/guides/hmr#setup).
 

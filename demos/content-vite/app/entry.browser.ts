@@ -1,3 +1,4 @@
+import { revalidate } from "@pitlane/dev/hmr";
 import { run } from "remix/component";
 
 /**
@@ -14,33 +15,7 @@ let app = run({
     },
 });
 
-// During `vite dev`, @pitlane/dev broadcasts `pitlane:server-update` when a
-// server-only module changes. Reloading the top frame refetches the page through
-// the app's fetch handler and reconciles it in place. Overlapping updates
-// collapse into one follow-up. Builds drop this branch entirely.
+// Server-only edits during `vite dev` refetch the page in place.
 if (import.meta.hot) {
-    let inFlight = false;
-    let queued = false;
-
-    let revalidate = async (): Promise<void> => {
-        if (inFlight) {
-            queued = true;
-            return;
-        }
-        inFlight = true;
-        try {
-            await app.ready();
-            await app.frames.top.reload();
-        } catch (error) {
-            console.error("[pitlane] Failed to apply server update:", error);
-        } finally {
-            inFlight = false;
-        }
-        if (queued) {
-            queued = false;
-            await revalidate();
-        }
-    };
-
-    import.meta.hot.on("pitlane:server-update", () => void revalidate());
+    import.meta.hot.on("server:update", () => revalidate(app));
 }

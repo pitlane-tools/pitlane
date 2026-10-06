@@ -10,7 +10,7 @@ import { transformComponentsForBrowser, transformComponentsForServer } from "rem
  * data. Apps listen for it by name in their browser entry, so renaming it breaks
  * every app that does.
  */
-const SERVER_UPDATE_EVENT = "pitlane:server-update";
+const SERVER_UPDATE_EVENT = "server:update";
 
 /**
  * Component modules Remix authors as `.tsx`/`.jsx`. The `remix/component-hmr` transform

@@ -24,10 +24,11 @@ No row in that table is a full page reload.
 
 ## Setup
 
-Keep the runtime that `run()` returns in your browser entry, and reload its top frame when the plugin reports a server update:
+Keep the runtime that `run()` returns in your browser entry, and pass it to `revalidate` from `@pitlane/dev/hmr` when the plugin reports a server update:
 
 ```ts
 // app/entry.browser.ts
+import { revalidate } from "@pitlane/dev/hmr";
 import { run } from "remix/component";
 
 let app = run({
@@ -37,39 +38,16 @@ let app = run({
     },
 });
 
-// During `vite dev`, the plugin broadcasts `pitlane:server-update` when a
-// server-only module changes. Reloading the top frame refetches the page through
-// the app's fetch handler and reconciles it in place. Overlapping updates
-// collapse into one follow-up. Builds drop this branch entirely.
 if (import.meta.hot) {
-    let inFlight = false;
-    let queued = false;
-
-    let revalidate = async (): Promise<void> => {
-        if (inFlight) {
-            queued = true;
-            return;
-        }
-        inFlight = true;
-        try {
-            await app.ready();
-            await app.frames.top.reload();
-        } catch (error) {
-            console.error("[pitlane] Failed to apply server update:", error);
-        } finally {
-            inFlight = false;
-        }
-        if (queued) {
-            queued = false;
-            await revalidate();
-        }
-    };
-
-    import.meta.hot.on("pitlane:server-update", () => void revalidate());
+    import.meta.hot.on("server:update", () => revalidate(app));
 }
 ```
 
-Pass `run()` the same options you already do. Only the captured `app` and the `import.meta.hot` block are new. Waiting on `app.ready()` keeps an update that lands during initial hydration from reloading a frame that is still being adopted. A failed reload is logged, and the next server edit tries again.
+Pass `run()` the same options you already do. Only the captured `app`, the import, and the `import.meta.hot` block are new.
+
+`revalidate` waits on `app.ready()`, so an update that lands during initial hydration does not reload a frame that is still being adopted. It then reloads the top frame, which refetches the page through your fetch handler and reconciles it in place. A failed reload is logged, and the next server edit tries again.
+
+Keep the listener as written, without `async` or `await`. Vite handles HMR messages one at a time and waits for any promise a listener returns. A listener that awaited the reload would hold back every later HMR message until that reload settled, including the next server update. `revalidate` returns nothing for the same reason.
 
 No environment guard is needed beyond `import.meta.hot`. A production build replaces it with `undefined`, so the whole block, the event name included, is removed from the client bundle. `import.meta.hot` is typed by `vite/client`, which a Vite project's `vite-env.d.ts` already references.
 
@@ -146,8 +124,8 @@ Editing the document, a middleware, a route handler, a data module, or anything 
 ### How a server edit reaches the browser
 
 1. The changed file is classified in your server environment. A file counts as server-only when the client module graph does not serve it as a script.
-2. The plugin broadcasts a `pitlane:server-update` event to the browser.
-3. The listener in your browser entry receives the event and calls `app.frames.top.reload()` on the runtime `run()` returned.
+2. The plugin broadcasts a `server:update` event to the browser.
+3. The listener in your browser entry receives the event and calls `revalidate(app)`, which reloads the top frame of the runtime `run()` returned.
 4. The frame runtime refetches the page through your fetch handler and reconciles the new HTML in place.
 
 The browser entry is where the app's runtime lives, which is what gives step 3 the top frame. Reloading the frame directly is what revalidation means here. It produces no history entry and fires no `navigate` event, so an app that intercepts navigation itself keeps working, and a listener watching for real navigations never sees dev traffic.
@@ -162,7 +140,7 @@ Files ending in `.ts`, `.tsx`, `.js`, and `.jsx` are considered. Other file type
 
 The broadcast waits 50ms. Two things fall out of that. A save that touches several files refetches _once_ instead of _once per file_. And the request cannot reach your fetch handler while Vite is still applying the update to the server environment, which on slower runtimes (such as workerd) can produce an error in dev mode.
 
-Overlapping revalidations coalesce in the browser too. With the listener above, a revalidation that arrives while one is in flight queues a single follow-up rather than stacking.
+A newer update supersedes one still in flight. The frame runtime abandons the older refetch, and the page shows the output of the latest server edit.
 
 ## Requirements
 

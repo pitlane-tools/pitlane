@@ -46,7 +46,7 @@ describe("production build", () => {
 
         expect(scripts.length).toBeGreaterThan(0);
         for (let script of scripts) {
-            expect(script).not.toContain("pitlane:server-update");
+            expect(script).not.toContain("server:update");
             expect(script).not.toContain("import.meta.hot");
         }
     });

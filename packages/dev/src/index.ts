@@ -115,10 +115,10 @@ export interface RemixPluginOptions {
  *
  * During `vite dev` it also installs hot module replacement: component edits
  * swap in place through the `remix/component-hmr` transforms, and edits to modules the
- * browser never loads broadcast a `pitlane:server-update` event. An app whose
- * browser entry reloads its `run()` runtime's top frame on that event refetches
- * the current page through the app's fetch handler, keeping hydrated island
- * state. Both are dev-only.
+ * browser never loads broadcast a `server:update` event. An app whose
+ * browser entry passes its `run()` runtime to `revalidate` from
+ * `@pitlane/dev/hmr` on that event refetches the current page through the
+ * app's fetch handler, keeping hydrated island state. Both are dev-only.
  *
  * Platform-agnostic by design: deploy targets compose alongside it in the
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,

@@ -4,6 +4,7 @@
     "entryPoints": [
         "../packages/dev/src/index.ts",
         "../packages/dev/src/runtime.ts",
+        "../packages/dev/src/hmr-client.ts",
         "../packages/dev/src/assets.d.ts"
     ],
     "tsconfig": "../packages/dev/tsconfig.json",

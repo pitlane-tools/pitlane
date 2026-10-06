@@ -343,7 +343,7 @@ describe("serverDataHmr hotUpdate", () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         let sent = await runHotUpdate(plugin, "ssr", [{ file: "/project/app/document.tsx" }], {});
 
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 
     it("stays quiet when the client graph serves the file as a script", async () => {
@@ -363,14 +363,14 @@ describe("serverDataHmr hotUpdate", () => {
             "/project/app/routes.tsx": [{ type: "asset" }],
         });
 
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 
     it("broadcasts when the changed server file has no invalidated modules", async () => {
         let plugin = serverDataHmr(new Set(["ssr"]));
         let sent = await runHotUpdate(plugin, "ssr", [], {}, "/project/app/actions/projects.tsx");
 
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 
     it("waits 50ms after the last server change before broadcasting", () => {
@@ -399,7 +399,7 @@ describe("serverDataHmr hotUpdate", () => {
                 expect(sent).toEqual([]);
             }
             vi.advanceTimersByTime(1);
-            expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+            expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
         } finally {
             vi.useRealTimers();
         }
@@ -477,7 +477,7 @@ describe("serverDataHmr hotUpdate edge cases", () => {
             },
         );
         await settleServerUpdate();
-        expect(sent).toEqual([{ type: "custom", event: "pitlane:server-update" }]);
+        expect(sent).toEqual([{ type: "custom", event: "server:update" }]);
     });
 });
 
