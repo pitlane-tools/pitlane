@@ -100,7 +100,12 @@ The plugin broadcasts a `pitlane:server-update` event; your browser entry keeps 
 // app/entry.browser.ts
 import { run } from "remix/component";
 
-let app = run({/* your existing options */});
+let app = run({
+    async loadModule(moduleUrl, exportName) {
+        let mod = await import(/* @vite-ignore */ moduleUrl);
+        return mod[exportName];
+    },
+});
 
 if (import.meta.hot) {
     let inFlight = false;
@@ -130,7 +135,7 @@ if (import.meta.hot) {
 }
 ```
 
-Overlapping updates collapse into one follow-up reload. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
+Keep any existing `run()` options when adding the listener. Overlapping updates collapse into one follow-up reload. Reloading the frame produces no history entry and fires no `navigate` event, so apps that intercept navigation themselves work unchanged.
 
 A production build replaces `import.meta.hot` with `undefined` and drops the whole block. Apps with `clientEntry: false` have no browser entry to hold the listener, so server edits do not revalidate there. Version 0.7 and earlier rendered an `<HMR />` component from `pitlane:dev` instead; remove it from your document when you add the listener. See the [HMR guide](https://pitlane.tools/guides/hmr).
 
