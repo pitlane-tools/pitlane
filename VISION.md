@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # Pitlane Vision
@@ -9,7 +9,7 @@ updated: 2026-10-05
 
 ## Overview
 
-Pitlane is a **meta-framework** for Remix 3. It provides the framework-adjacent packages, capability adapters, target templates, and deployment guidance needed to take a Remix application from development to production across Cloudflare, Netlify, Vercel, Railway, Deno Deploy, and plain Node, Bun, or Deno runtimes.
+Pitlane is a **composable toolkit** for Remix 3. It provides build tooling, runtime packages, capability adapters, target templates, and deployment guidance needed to take a Remix application from development to production across Cloudflare, Netlify, Vercel, Railway, Deno Deploy, and plain Node, Bun, or Deno runtimes.
 
 The portable boundary is the application, not a synthesized hosting layer. Controllers, job definitions, and capability usage depend on Remix or Pitlane-owned contracts; the server entry exposes a standard fetch handler. Hosting then composes explicitly around that handler through a provider's Vite plugin, native configuration, CLI, or a small runtime launcher.
 
@@ -23,7 +23,7 @@ The goal is to make Remix 3 production-ready without becoming a deployment platf
 
 ### Development principles
 
-Pitlane follows Remix 3's development principles so the framework and meta-framework remain aligned:
+Pitlane follows Remix 3's development principles so its packages remain aligned with Remix:
 
 1. **Model-First Development.** AI fundamentally shifts the human-computer interaction model for both user experience and developer workflows. Optimize source code, documentation, tooling, and abstractions for LLMs. Additionally, develop abstractions for applications to use models in the product itself, not just as a development tool.
 2. **Build on Web APIs.** Sharing abstractions across the stack greatly reduces context switching for both humans and machines. Build on the foundation of Web APIs and JavaScript because it is the only full-stack ecosystem.
@@ -34,7 +34,7 @@ Pitlane follows Remix 3's development principles so the framework and meta-frame
 
 ## The stack
 
-Pitlane assumes a specific, opinionated stack. Each layer owns a set of concerns; Pitlane itself is the meta-framework layer.
+Pitlane assumes a specific, opinionated stack. Remix supplies the application framework; Pitlane's packages connect it to build tools, hosts, and application capabilities.
 
 ### Tooling
 
@@ -76,7 +76,7 @@ Remix 3 owns every framework-level concern. Pitlane never reimplements these.
 | Test runner       | Remix       |
 | Project CLI       | Remix       |
 
-### Meta-Framework
+### Pitlane toolkit
 
 This is Pitlane. Each capability is either an interface with provider **adapters**, or a Pitlane-native feature (some built on an upstream source such as Gist or OpenAPI Router).
 

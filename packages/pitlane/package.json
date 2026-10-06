@@ -1,7 +1,7 @@
 {
     "name": "pitlane",
     "version": "1.0.0-alpha.1",
-    "description": "A meta-framework for Remix.",
+    "description": "A composable toolkit for Remix: build tooling, runtime packages, and provider integrations.",
     "keywords": [
         "pitlane",
         "remix",

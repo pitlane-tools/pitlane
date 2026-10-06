@@ -1,6 +1,8 @@
 # pitlane
 
-A meta-framework for [Remix](https://remix.run): every Pitlane package in one install.
+A composable toolkit for [Remix](https://remix.run): every Pitlane package in one install.
+
+Build tooling, runtime packages, and provider integrations that you can also adopt independently under their `@pitlane/*` names.
 
 ```sh
 npm install pitlane

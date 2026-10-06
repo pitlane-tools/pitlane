@@ -33,7 +33,7 @@ All eight, every time. A release that stops after the tag is a release that left
 | Where in `VISION.md` | Goes stale when |
 | --- | --- |
 | The `N packages are on npm: …` paragraph | a package publishes its first version |
-| The Meta-Framework capability table | a package adds or takes over a capability |
+| The `Pitlane toolkit` capability table | a package adds or takes over a capability |
 | `Planned package sequence` | a package ships, or a planned one is superseded |
 | The package's own prose section | its API changes shape |
 | `Release status` | a package joins the shipped set |
