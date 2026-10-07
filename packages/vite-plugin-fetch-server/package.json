@@ -1,6 +1,6 @@
 {
     "name": "@pitlane/vite-plugin-fetch-server",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "description": "Vite development server bridge that sends requests to an app's Fetch handler.",
     "keywords": [
         "fetch",

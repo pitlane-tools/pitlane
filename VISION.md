@@ -131,9 +131,9 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 `pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package. The umbrella is released by hand when enough package changes have accumulated, not after every package release. The `1.0.0-alpha.1` release replaces the `0.0.1` placeholder with 15 public subpaths. Bare `pitlane` has no entry point.
 
-The accepted assets cutover expands the unreleased umbrella to 19 public subpaths, including `assets`, `assets/build`, `assets/manifest`, `assets/vite-plugin`, and `vite-plugin-fetch-server`. It renames `dev` and `dev/hmr` to `vite-plugin-remix` and `vite-plugin-remix/hmr`, and `content/vite` to `content/vite-plugin`, without compatibility aliases.
+The prepared `pitlane@1.0.0-alpha.2` expands the umbrella to 19 public subpaths, including `assets`, `assets/build`, `assets/manifest`, `assets/vite-plugin`, and `vite-plugin-fetch-server`. It renames `dev` and `dev/hmr` to `vite-plugin-remix` and `vite-plugin-remix/hmr`, and `content/vite` to `content/vite-plugin`, without compatibility aliases. Publication is pending.
 
-The umbrella is also where an app's agents will find Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)); the package does not ship that documentation yet.
+The prepared `pitlane@1.0.0-alpha.2` also includes Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)): guides, package READMEs, and a generated `INDEX.md` for coding agents. Those files become available to registry consumers when this version is published.
 
 An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/vite-plugin-remix` and its Vite peer reach production installs too after the pending cutover. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/vite-plugin-remix` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
 
@@ -1179,7 +1179,7 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 `@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0. The `pitlane@1.0.0-alpha.1` umbrella combines the five scoped packages through matching subpaths; its changelog lists their exact pinned versions. The remaining packages ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
 
-Proposal 0005 is accepted and awaits release. Its changesets capture the new assets and Fetch-server packages, the Remix plugin rename, the content plugin subpath rename, and the umbrella cutover. No versions have been prepared for this work. The eight-template companion remains on preview dependencies until published packages are available and release-backed CI passes.
+Proposal 0005 is accepted and awaits release. Version preparation consumed its changesets and the pending HMR, installed-documentation, and umbrella-positioning notes. The prepared versions are `@pitlane/assets@0.1.0`, `@pitlane/vite-plugin-fetch-server@0.1.0`, `@pitlane/vite-plugin-remix@0.8.0`, `@pitlane/content@0.4.0`, and `pitlane@1.0.0-alpha.2`; preparation does not publish them. The umbrella also pins the unchanged `@pitlane/crawler@0.3.0`, `@pitlane/data-table-d1@0.3.0`, and `@pitlane/theme@0.5.0`. The eight-template companion remains on preview dependencies until published packages are available and release-backed CI passes.
 
 ### Explicit non-goals
 
