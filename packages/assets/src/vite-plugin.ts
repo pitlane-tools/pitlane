@@ -5,7 +5,8 @@ import type { AssetPluginState } from "./vite/state.ts";
 import { assetBuild } from "./vite/build.ts";
 import { assetStyles } from "./vite/dev-css.ts";
 import { assetDevelopment } from "./vite/dev.ts";
-import { discoverInputs, inputPath, sourceKey } from "./vite/entries.ts";
+import { inputPath, sourceKey } from "./vite/entries.ts";
+import { linkResolverUsage, scanResolverUsage } from "./vite/resolver-usage.ts";
 import { MANIFEST_EXTERNAL, MANIFEST_ID, unservedEnvironmentError } from "./vite/state.ts";
 
 export interface AssetsPluginOptions {
@@ -37,6 +38,7 @@ export function assets(options: AssetsPluginOptions = {}): PluginOption {
     let state: AssetPluginState = {
         serverEnvironments: options.serverEnvironments ?? ["ssr"],
         inputs: new Map(),
+        resolverUsage: new Map(),
         registrations: new Map(),
         assetReferences: new Map(),
         outputs: new Map(),
@@ -121,16 +123,17 @@ export function assets(options: AssetsPluginOptions = {}): PluginOption {
                 return { id: MANIFEST_EXTERNAL, external: true };
             },
         },
-        transform(code, id) {
-            if (
-                this.environment.mode !== "build" ||
-                !state.serverEnvironments.includes(this.environment.name)
-            )
-                return;
-            for (let input of discoverInputs(code, id)) {
-                let file = inputPath(state.config!.root, input.key);
-                state.inputs.set(file, { ...input, key: sourceKey(state.config!.root, file) });
-            }
+        async transform(code, id) {
+            let { mode, name } = this.environment;
+            if (mode !== "build" || !state.serverEnvironments.includes(name)) return;
+            let modules = state.resolverUsage.get(name);
+            if (!modules) state.resolverUsage.set(name, (modules = new Map()));
+            let usage = scanResolverUsage(code, id);
+            if (!usage) return void modules.delete(id);
+            modules.set(
+                id,
+                await linkResolverUsage(usage, specifier => this.resolve(specifier, id)),
+            );
         },
     };
     return [integration, assetBuild(state), assetDevelopment(state), assetStyles()];

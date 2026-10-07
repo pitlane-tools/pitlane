@@ -6,10 +6,12 @@ import { isCSSRequest } from "vite";
 
 import type { AssetEnvironment, DevAssetsManifest } from "../types.ts";
 import type { ModuleEdges } from "./dev-graph.ts";
+import type { ResolverUsage } from "./resolver-usage.ts";
 import type { AssetPluginState } from "./state.ts";
 
 import { servedPath, staticStylesheets, walkGraph } from "./dev-graph.ts";
-import { fileModule, sourceKey } from "./entries.ts";
+import { fileModule, inputPath, sourceKey } from "./entries.ts";
+import { literalInputs } from "./resolver-usage.ts";
 
 /** What the dev plugin learned from transforms, per environment. */
 export interface DevGraph {
@@ -17,8 +19,8 @@ export interface DevGraph {
     roots: Map<string, Set<string>>;
     /** Environment name → module id → resolved edges. */
     edges: Map<string, Map<string, ModuleEdges>>;
-    /** Server environment name → module id → browser inputs its literal resolver calls name. */
-    literals: Map<string, Map<string, string[]>>;
+    /** Server environment name → module id → its literal resolver calls and resolver exports. */
+    resolverUsage: Map<string, Map<string, ResolverUsage>>;
 }
 
 /** One server environment's development manifest and the modules it was computed from. */
@@ -93,10 +95,10 @@ export async function createDevSnapshot(
         ...state.inputs.keys(),
         ...(await configuredInputs(clientEnvironment)),
     ]);
-    let literals = graph.literals.get(name);
+    let usage = graph.resolverUsage.get(name) ?? new Map<string, ResolverUsage>();
     let registrations = state.registrations.get(name);
     for (let id of serverIds) {
-        for (let entry of literals?.get(id) ?? []) entryIds.add(entry);
+        for (let input of literalInputs(usage, id)) entryIds.add(inputPath(root, input.key));
         for (let entry of registrations?.get(id) ?? []) entryIds.add(entry);
     }
 

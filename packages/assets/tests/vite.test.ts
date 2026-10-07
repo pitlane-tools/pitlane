@@ -94,6 +94,17 @@ async function query(server: ViteDevServer) {
     return (await module.default.fetch(new Request("http://example.test/"))).json();
 }
 
+/** The JSON the fixture's server entry answers, from a build or a dev server. */
+async function respond(mode: string, root: string) {
+    if (mode === "dev") return query(await serve(root));
+    let module = await build(root);
+    return (await module.default.fetch(new Request("http://example.test/"))).json();
+}
+
+let resolverModule = `import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
+export let assets = createAssetResolver(manifest);`;
+
 afterEach(async () => {
     await Promise.all(servers.splice(0).map(server => server.close()));
     await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })));
@@ -221,6 +232,93 @@ export default { fetch: () => Response.json({ href }) };`,
                 servers.push(server);
                 await server.listen();
                 expect((await query(server)).href).toBe("/app/logo.svg");
+            }
+        },
+    );
+
+    it.each(["dev", "build"])(
+        "registers no input for a same-named method on a receiver that is not a resolver in %s",
+        async mode => {
+            let root = await fixture({
+                "app/assets.ts": resolverModule,
+                "app/router.ts": "export let router = { getHref: (path: string) => path };",
+                "app/private.ts": 'export const secret = "server-only secret";',
+                "app/entry.ts": `import * as resolvers from "./assets.ts";
+import { assets } from "./assets.ts";
+import { router } from "./router.ts";
+export let lookup = api => [api.getHref("app/private.ts"), api.getScriptEntry("app/private.ts")];
+export let shadowed = assets => assets.getHref("app/private.ts");
+export let namespaced = () => resolvers.assets.getScriptEntry("app/private.ts");
+export let bound = { assets, lookup() { return this.assets.getHref("app/private.ts"); } };
+let about = router.getHref("/about");
+let href = await assets.getHref(["app", "private.ts"].join("/")).catch(() => null);
+export default { fetch: () => Response.json({ about, href }) };`,
+            });
+
+            expect(await respond(mode, root)).toEqual({ about: "/about", href: null });
+            if (mode === "build") {
+                let files = await readdir(join(root, "dist/client"), { recursive: true }).catch(
+                    () => [],
+                );
+                for (let file of files.filter(name => name.endsWith(".js"))) {
+                    expect(await readFile(join(root, "dist/client", file), "utf8")).not.toContain(
+                        "server-only secret",
+                    );
+                }
+            }
+        },
+    );
+
+    it.each(["dev", "build"])(
+        "registers literal calls on a resolver constructed inline, bound, imported, re-exported, or default-exported in %s",
+        async mode => {
+            let root = await fixture({
+                "app/assets.ts": resolverModule,
+                "app/resolvers.ts": 'export { assets } from "./assets.ts";',
+                "app/default-assets.ts": `import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
+export default createAssetResolver(manifest);`,
+                "app/logo.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="logo"></svg>',
+                "app/badge.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="badge"></svg>',
+                "app/icon.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="icon"></svg>',
+                "app/widget.ts": 'document.title = "widget";',
+                "app/entry.ts": `import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
+import { assets } from "./assets.ts";
+import { assets as resolver } from "./assets.ts";
+import { assets as reexported } from "./resolvers.ts";
+import defaultResolver from "./default-assets.ts";
+const local = createAssetResolver(manifest);
+let hrefs = {
+    logo: await assets.getHref("app/logo.svg"),
+    widget: (await resolver.getScriptEntry("app/widget.ts")).href,
+    badge: await reexported.getHref("app/badge.svg"),
+    icon: await defaultResolver.getHref("app/icon.svg"),
+    page: await createAssetResolver(manifest).getHref("app/page.css"),
+    shared: (await local.getScriptEntry("app/shared.ts")).href,
+};
+export default { fetch: () => Response.json(hrefs) };`,
+            });
+
+            let hrefs = await respond(mode, root);
+            if (mode === "dev") {
+                expect(hrefs).toEqual({
+                    logo: "/app/logo.svg",
+                    widget: "/app/widget.ts",
+                    badge: "/app/badge.svg",
+                    icon: "/app/icon.svg",
+                    page: "/app/page.css",
+                    shared: "/app/shared.ts",
+                });
+            } else {
+                expect(hrefs).toEqual({
+                    logo: expect.stringMatching(/^\/assets\/logo-[\w-]+\.svg$/),
+                    widget: expect.stringMatching(/^\/assets\/widget-[\w-]+\.js$/),
+                    badge: expect.stringMatching(/^\/assets\/badge-[\w-]+\.svg$/),
+                    icon: expect.stringMatching(/^\/assets\/icon-[\w-]+\.svg$/),
+                    page: expect.stringMatching(/^\/assets\/page-[\w-]+\.css$/),
+                    shared: expect.stringMatching(/^\/assets\/shared-[\w-]+\.js$/),
+                });
             }
         },
     );

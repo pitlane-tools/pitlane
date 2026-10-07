@@ -8,7 +8,7 @@ import type { AssetPluginState } from "./state.ts";
 import { assetsSpecifier } from "../specifier.ts";
 import { importSpecifiers } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
-import { discoverInputs, inputPath } from "./entries.ts";
+import { linkResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
 import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
 
 /**
@@ -18,7 +18,7 @@ import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
  */
 export function assetDevelopment(state: AssetPluginState): Plugin {
     let server: ViteDevServer | undefined;
-    let graph: DevGraph = { roots: new Map(), edges: new Map(), literals: new Map() };
+    let graph: DevGraph = { roots: new Map(), edges: new Map(), resolverUsage: new Map() };
     let snapshots = new Map<string, DevSnapshot>();
     let building = new Set<string>();
 
@@ -116,12 +116,14 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 });
 
                 if (!state.serverEnvironments.includes(name)) return;
-                let root = this.environment.config.root;
-                let inputs = discoverInputs(code, id).map(input => inputPath(root, input.key));
-                let literals = graph.literals.get(name);
-                if (!literals) graph.literals.set(name, (literals = new Map()));
-                if (inputs.length > 0) literals.set(id, inputs);
-                else literals.delete(id);
+                let modules = graph.resolverUsage.get(name);
+                if (!modules) graph.resolverUsage.set(name, (modules = new Map()));
+                let usage = scanResolverUsage(code, id);
+                if (!usage) return void modules.delete(id);
+                modules.set(
+                    id,
+                    await linkResolverUsage(usage, specifier => this.resolve(specifier, id)),
+                );
             },
         },
         hotUpdate: {
@@ -137,7 +139,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                     }
                     for (let owners of [
                         ...state.registrations.values(),
-                        ...graph.literals.values(),
+                        ...graph.resolverUsage.values(),
                     ]) {
                         for (let owner of owners.keys())
                             if (owner.split("?")[0] === path) owners.delete(owner);

@@ -3,13 +3,17 @@ import type { ResolvedConfig } from "vite";
 import type { ImportMap } from "../types.ts";
 import type { BrowserInput } from "./entries.ts";
 import type { CapturedOutput } from "./output.ts";
+import type { ResolverUsage } from "./resolver-usage.ts";
 
 import { assetsSpecifier, quotedList } from "../specifier.ts";
 
 export interface AssetPluginState {
     config?: ResolvedConfig;
     serverEnvironments: string[];
+    /** Inputs listed in `assets({ include })`. */
     inputs: Map<string, BrowserInput>;
+    /** Server environment name → module id → what its build transform found. */
+    resolverUsage: Map<string, Map<string, ResolverUsage>>;
     registrations: Map<string, Map<string, string[]>>;
     onRegistrationChange?: (environment: string, owner: string) => void;
     assetReferences: Map<string, string>;

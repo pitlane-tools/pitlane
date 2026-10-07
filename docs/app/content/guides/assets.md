@@ -60,6 +60,8 @@ Every method takes a source key: the module's path relative to the project root,
 
 Absolute file URLs are not keys. `file:///Users/me/app/counter.tsx` and `file:/Users/me/app/counter.tsx` throw an error asking for the portable key. A manifest never contains the build machine's checkout path, so a deployed server has nothing to compare an absolute path against.
 
+`#` starts the export fragment, so a source file whose name contains `#` cannot be a key.
+
 ## Resolver methods
 
 | Method | Returns |
@@ -116,10 +118,12 @@ Checks that each key is part of the client graph, then returns the complete clie
 
 Only a browser entry has a script URL. The plugin registers one when:
 
-- a server module calls `getScriptEntry` or `getHref` with a string literal, as `app/assets.ts` does above;
+- a server module calls `getScriptEntry` or `getHref` on a resolver with a string literal, as `app/assets.ts` does above;
 - you list it in `assets({ include: ["app/widgets/chart.ts"] })`, which is how a computed path gets registered;
 - it is already a client input in your Vite config;
 - another plugin declares it, as `remix()` does for each island. See [Declaring entries from another plugin](#declaring-entries-from-another-plugin).
+
+A literal call counts only when its receiver is the result of `createAssetResolver()` or a top-level variable holding it, and that variable still counts when another module imports it by any name, through `export { assets } from "./assets.ts"`, or as a default export. A same-named method on another object registers nothing, and neither does a call through a namespace import (`import * as`), a function parameter, or `this`; list those keys in `include` instead.
 
 `getStylesheets`, `getPreloads`, and `getImportMap` only read graphs the build already has. They register nothing, and routes discovered through `import.meta.glob` need no second list.
 
@@ -324,7 +328,7 @@ Each error names the method, the key, and the environment it looked in.
 | Message begins | Cause | Fix |
 | --- | --- | --- |
 | `assets.getScriptEntry("…") has no asset manifest to read` | The manifest is the published `{ mode: "unavailable" }` | Add `assets()` or `remix()` to your Vite config, or pass a manifest |
-| `… found no browser entry "…" in the "client" environment. The module is in the "ssr" graph but is not registered as a browser entry.` | A server module, or one the build saw, was never registered | Pass the key to `getScriptEntry` as a string literal, or list it in `assets({ include })` |
+| `… found no browser entry "…" in the "client" environment. The module is in the "ssr" graph but is not registered as a browser entry.` | A server module, or one the build saw, was never registered | Pass the key to the resolver's `getScriptEntry` as a string literal, or list it in `assets({ include })` |
 | `… found no browser entry "…" in the "client" environment. No environment's graph contains the module.` | Nothing in the build has that key | Check the spelling, then register it as above |
 | `assets.getHref("…") found no browser entry or asset` | The key is neither a registered entry nor an emitted asset | Register it as above |
 | `… found no module "…" in the "client" environment's graph` | A preload, stylesheet, or import-map lookup for a module the selected graphs do not contain | Check the key and the environment |

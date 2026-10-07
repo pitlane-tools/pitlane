@@ -10,6 +10,7 @@ import type { AssetPluginState } from "./state.ts";
 import { createAssetManifest } from "../build.ts";
 import { inputPath, sourceKey } from "./entries.ts";
 import { captureImportMap, captureOutput, publicFile } from "./output.ts";
+import { literalInputs } from "./resolver-usage.ts";
 import { EMPTY_INPUT, MANIFEST_EXTERNAL, MANIFEST_FILE } from "./state.ts";
 
 async function writeManifests(state: AssetPluginState): Promise<void> {
@@ -94,7 +95,17 @@ export function assetBuild(state: AssetPluginState): Plugin {
                 throw new Error(
                     `[assets] Client built before server environments: ${missing.join(", ")}. Build servers before client.`,
                 );
-            for (let input of state.inputs.values()) {
+            let root = state.config!.root;
+            let inputs = new Map(state.inputs);
+            for (let modules of state.resolverUsage.values()) {
+                for (let owner of modules.keys()) {
+                    for (let input of literalInputs(modules, owner)) {
+                        let file = inputPath(root, input.key);
+                        inputs.set(file, { ...input, key: sourceKey(root, file) });
+                    }
+                }
+            }
+            for (let input of inputs.values()) {
                 let id = inputPath(state.config!.root, input.key);
                 if (
                     input.kind === "asset" &&

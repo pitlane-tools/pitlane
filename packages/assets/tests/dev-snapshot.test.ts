@@ -450,6 +450,30 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             .toBe("unregistered");
     });
 
+    it("registers a literal call through a re-export only while the re-export names a resolver", async () => {
+        let project = await fixture();
+        await project.write("project/app/island.ts", `export const island = () => "island";\n`);
+        await project.write("project/app/resolvers.ts", `export { assets } from "./assets.ts";\n`);
+        await project.edit(
+            "project/app/button.ts",
+            code =>
+                `${code}import { assets } from "./resolvers.ts";\nexport const island = () => assets.getScriptEntry("app/island.ts");\n`,
+        );
+        let server = await serve(project);
+        let state = async () =>
+            (await request(server)).assets.getScriptEntry("app/island.ts").then(
+                () => "registered",
+                () => "unregistered",
+            );
+        expect(await state()).toBe("registered");
+
+        await project.write(
+            "project/app/resolvers.ts",
+            `export const assets = { getScriptEntry: (key: string) => key };\n`,
+        );
+        await expect.poll(state).toBe("unregistered");
+    });
+
     it("treats configured client inputs as browser entries and follows their client graph", async () => {
         let project = await fixture();
         await project.write("project/app/client-added.ts", `export const added = true;\n`);
