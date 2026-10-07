@@ -40,16 +40,24 @@ export interface ResolverUsage {
 }
 
 // A file re-exporting a resolver may mention neither method nor constructor.
-const RELEVANT =
-    /\bget(?:ScriptEntry|Href)\b|\bcreateAssetResolver\b|\bexport\s*(?:[{*]|default\b|(?:const|let|var)\b)/;
+const RELEVANT = /\bget(?:ScriptEntry|Href)\b|\bcreateAssetResolver\b|\bexport\b/;
+
+/** The method a member call names, through `.name` or a string-literal `["name"]`. */
+function memberName(callee: ESTree.MemberExpression): string | undefined {
+    let { property } = callee;
+    if (!callee.computed) return property.type === "Identifier" ? property.name : undefined;
+    return property.type === "Literal" && typeof property.value === "string"
+        ? property.value
+        : undefined;
+}
 
 function literalCall(
     call: ESTree.CallExpression,
     bindings: TopLevelBindings,
 ): LiteralCall | undefined {
     let { callee, arguments: args } = call;
-    if (callee.type !== "MemberExpression" || callee.computed) return;
-    let method = callee.property.type === "Identifier" ? callee.property.name : undefined;
+    if (callee.type !== "MemberExpression") return;
+    let method = memberName(callee);
     let argument = args[0];
     if (method !== "getScriptEntry" && method !== "getHref") return;
     if (argument?.type !== "Literal" || typeof argument.value !== "string") return;

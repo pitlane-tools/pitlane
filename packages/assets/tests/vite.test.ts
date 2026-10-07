@@ -299,6 +299,7 @@ export default { fetch: () => Response.json({ about, href }) };`,
                 "app/assets.ts": resolverModule,
                 "app/resolvers.ts": 'export { assets } from "./assets.ts";',
                 "app/star.ts": 'export * from "./assets.ts";',
+                "app/barrel.js": 'export /* every resolver */ * from "./assets.ts";',
                 "app/default-assets.ts": `import { createAssetResolver } from "@pitlane/assets";
 import manifest from "@pitlane/assets/manifest";
 export default createAssetResolver(manifest);`,
@@ -308,6 +309,8 @@ export default createAssetResolver(manifest);`,
                 "app/star.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="star"></svg>',
                 "app/made.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="made"></svg>',
                 "app/alias.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="alias"></svg>',
+                "app/computed.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="computed"></svg>',
+                "app/barrel.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="barrel"></svg>',
                 "app/widget.ts": 'document.title = "widget";',
                 "app/entry.ts": `import { createAssetResolver } from "@pitlane/assets";
 import manifest from "@pitlane/assets/manifest";
@@ -315,6 +318,7 @@ import { assets } from "./assets.ts";
 import { assets as resolver } from "./assets.ts";
 import { assets as reexported } from "./resolvers.ts";
 import { assets as starred } from "./star.ts";
+import { assets as barrelled } from "./barrel.js";
 import defaultResolver from "./default-assets.ts";
 const local = createAssetResolver(manifest);
 const make = createAssetResolver;
@@ -330,6 +334,8 @@ let hrefs = {
     star: await starred.getHref("app/star.svg"),
     made: await made.getHref("app/made.svg"),
     alias: await alias.getHref("app/alias.svg"),
+    computed: await assets["getHref"]("app/computed.svg"),
+    barrel: await barrelled.getHref("app/barrel.svg"),
 };
 export default { fetch: () => Response.json(hrefs) };`,
             });
@@ -346,6 +352,8 @@ export default { fetch: () => Response.json(hrefs) };`,
                     star: "/app/star.svg",
                     made: "/app/made.svg",
                     alias: "/app/alias.svg",
+                    computed: "/app/computed.svg",
+                    barrel: "/app/barrel.svg",
                 });
             } else {
                 expect(hrefs).toEqual({
@@ -358,6 +366,8 @@ export default { fetch: () => Response.json(hrefs) };`,
                     star: expect.stringMatching(/^\/assets\/star-[\w-]+\.svg$/),
                     made: expect.stringMatching(/^\/assets\/made-[\w-]+\.svg$/),
                     alias: expect.stringMatching(/^\/assets\/alias-[\w-]+\.svg$/),
+                    computed: expect.stringMatching(/^\/assets\/computed-[\w-]+\.svg$/),
+                    barrel: expect.stringMatching(/^\/assets\/barrel-[\w-]+\.svg$/),
                 });
             }
         },
