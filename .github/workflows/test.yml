@@ -101,7 +101,10 @@ jobs:
             # devDependency; the suite and every workspace package it reaches
             # must swap together, or guards such as `isRunnableDevEnvironment`
             # (an `instanceof`) reject the suite's environments. The manifest is
-            # rewritten because `vp add -E vite@8.1.0` still saves `^8.1.0`.
+            # rewritten because `vp add -E vite@8.1.0` still saves `^8.1.0`. The
+            # first install already ran every lifecycle script; rerunning them
+            # here downloads Vale's binary from the GitHub API again, which the
+            # runners' shared, unauthenticated rate limit answers with 403.
             - name: Use upstream Vite 8
               if: matrix.vite
               env:
@@ -118,7 +121,7 @@ jobs:
                       console.log(`${manifest.name}: vite@${process.env.VITE_SPEC}`);
                   }
                   '
-                  vp install --no-frozen-lockfile
+                  vp install --no-frozen-lockfile --ignore-scripts
 
             # A green upstream run proves nothing unless the suite and every
             # workspace package it loads resolved one copy of the requested Vite.
