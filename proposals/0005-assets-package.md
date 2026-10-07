@@ -2,7 +2,7 @@
 id: proposal.0005
 title: Assets Package
 authors: [markmals]
-status: active-review
+status: returned-for-revisions
 pull-request: https://github.com/pitlane-tools/pitlane/pull/58
 issues: [https://github.com/pitlane-tools/pitlane/issues/52]
 supersedes: []
@@ -291,7 +291,7 @@ let counterInDev: ScriptEntry = {
 };
 ```
 
-After `vite build`, `href` is the emitted chunk and `preloads` lists that chunk followed by its static imports. By default, `importMap` remains `{ imports: {} }`. The following example explicitly enables `remix({ assets: { chunkImportMap: true } })`: `importMap` is then the complete map Vite generated for the client build. Each map key is the chunk's filename with a stable identity hash in place of its content hash. Hashes here are illustrative:
+After `vite build`, `href` is the emitted chunk and `preloads` lists that chunk followed by its static imports. `remix()` enables chunk import maps by default, so `importMap` is the complete map Vite generated for the client build; `assets()` used on its own leaves them off. Each map key is the chunk's filename with a stable identity hash in place of its content hash. Hashes here are illustrative:
 
 ```ts
 import type { ScriptEntry } from "@pitlane/assets";
@@ -330,7 +330,7 @@ Remix's renderer hoists the preloads into the head and writes the island's hydra
 
 Islands get preload hints they do not get today, and the serialized `moduleUrl` stays an emitted chunk URL rather than an import-map identifier.
 
-Chunk import maps are opt-in for the client build. With `remix({ assets: { chunkImportMap: true } })`, a dependency's new hash changes its map entry instead of the bytes of every chunk importing it, subject to the caching limits below. The default uses ordinary Vite chunk references and returns `{ imports: {} }`, as development always does. Applications using `experimental.renderBuiltUrl` or targeting browsers without the required map features leave the option disabled.
+Chunk import maps are on by default for Remix apps and off for a bare `assets()`. Under `remix()`, a dependency's new hash changes its map entry instead of the bytes of every chunk importing it, subject to the caching limits below; `remix({ assets: { chunkImportMap: false } })` returns to ordinary Vite chunk references and `{ imports: {} }`, as development always does. Applications using `experimental.renderBuiltUrl` or targeting browsers without the required map features turn the option off.
 
 ### Without Remix
 
@@ -517,7 +517,7 @@ No CLI or intermediate graph-file format is introduced now: bundler plugins alre
 - `getScriptEntry(path)` returns `{ href, preloads, importMap }` for a registered browser entry. Development returns its dev URL, `[]`, and `{ imports: {} }`. A build returns the emitted entry URL, its static preloads, and the complete client map or `{ imports: {} }` when maps are disabled.
 - `getHref(path)` returns the emitted URL of an entry, stylesheet, or other registered asset, or its dev URL. It has no image-transform option.
 - `getPreloads(path | path[])` observes client graph metadata and returns the union in argument order, deduplicated by href. Each script contributes its chunk and static JavaScript dependencies, not their CSS. An explicitly requested stylesheet contributes its own URL, preserving the upstream API's acceptance of stylesheet arguments; callers render those separately as style preloads, never as `modulepreload`. Use `getStylesheets` for transitive stylesheet links. Development returns `[]`.
-- `getStylesheets(path | path[], options?)` observes CSS without emitting browser entries. By default it combines client and current-server metadata. An explicit `{ environment: "client" }` or named server environment selects only that graph. Results are deduplicated in argument order and follow static dependencies, not every lazy route. In dev, server-graph CSS is reported as dev URLs; browser-only CSS remains Vite-injected.
+- `getStylesheets(path | path[])` observes CSS without emitting browser entries. It reads the client graph and the graph of the server environment the manifest was written for, the only two graphs a server's manifest holds, so a key only has to appear in one of them. Results are deduplicated in argument order and follow static dependencies, not every lazy route. In dev, server-graph CSS is reported as dev URLs; browser-only CSS remains Vite-injected. There is no option to narrow the lookup to one graph: the union is what a document needs, and the earlier `{ environment }` option was the one place development and build answers could differ.
 - `getImportMap(path | path[])` validates the requested keys and returns the complete client map, not an entry-filtered subset. An empty array returns `{ imports: {} }`. Development and disabled builds return an empty map.
 - Missing keys throw errors naming the method, source key, and environment. An observed module without an entry is distinct from an unknown module. Only missing browser-entry registration points at `assets({ include })`; a stylesheet lookup never recommends emitting a server module into the client build.
 - `AssetsManifest` remains a discriminated union of `build`, `dev`, and `unavailable`. Build manifests carry environment-indexed source metadata, entry/asset URLs, static JS/CSS dependency lists, environment roles, and one shared import map. They contain JSON-compatible data, not Vite instances or functions. Development manifests carry the serialized metadata described in Development asset access, not merely a root and base.
@@ -551,10 +551,10 @@ The existing CSS-link/injected-style reconciliation and CSS self-accept patches 
 
 ### Chunk import maps and HTML
 
-- Maps are disabled by default. `assets({ chunkImportMap: true })` and `remix({ assets: { chunkImportMap: true } })` opt in for the client build only. An explicit plugin value wins over an explicit native client setting; absent both, the effective value is `false`. A native `true` is an explicit opt-in, and plugin `false` can override it.
+- `assets()` leaves maps off by default; `remix()` turns them on by default and forwards `remix({ assets: { chunkImportMap } })` to `assets()`. An explicit plugin value wins over an explicit native client setting; absent both, the effective value is the plugin's default. A native `true` is an explicit opt-in, and plugin `false` can override it.
 - Vite generates the identifiers, rewrites imports, and emits the map. The adapter captures the actual map asset, including a custom filename, and passes it to the generator. An enabled build with no map artifact fails; a disabled build requires neither that artifact nor a map element.
 - The complete map is returned so lazy modules and later islands resolve. Preloads use actual emitted URLs and remain separate from map membership. The map does not cause every route to preload.
-- An effective `true` conflicts with `experimental.renderBuiltUrl` and produces a configuration error naming both options. `renderBuiltUrl` alone works with the default-disabled setting. There is no silent change to an explicit choice.
+- An effective `true` conflicts with `experimental.renderBuiltUrl` and produces a configuration error naming both options. `renderBuiltUrl` works with maps off, which a Remix app sets explicitly. There is no silent change to an explicit choice.
 - Opted-in documents deliver the map before modulepreload links and module scripts. A Remix document may keep its managed `<ImportMap>` and frame behavior; another renderer uses ordinary import-map HTML. No Remix component, browser map manager, or polyfill is required by the package.
 - Preserve root, non-root, relative, and absolute CDN deployment semantics. Normalize map delivery only where needed to preserve the identity generated imports resolve to. Test nested document routes, not only `/`.
 - The feature requires browser import maps and `import.meta.resolve`. Its caching guarantee excludes changes to exports, tree-shaking, chunk membership, CSS/assets, or compiler output. Vite's opt-in map identifiers can depend on the absolute checkout path; changing checkout location can invalidate importing chunks. Document that limit rather than adding a Pitlane identity rewriter. Chunk grouping stays in Vite configuration, not a second Pitlane grouping API.
@@ -566,7 +566,7 @@ The existing CSS-link/injected-style reconciliation and CSS self-accept patches 
 
 - Return a complete inline `<script type="importmap">...</script>` string. Accept Pitlane-owned import-map data with `imports`, optional `scopes`, and optional `integrity`; preserve their contents without resolving URLs or generating mappings.
 - Serialize JSON, escaping every `<` as a JSON Unicode escape, not an HTML entity. Escape the optional nonce as a quoted HTML attribute. Do not accept arbitrary raw attributes or interpolate unescaped markup.
-- Return `""` when there are no effective mappings in `imports`, `scopes`, or `integrity`, including scopes whose maps are empty. Development and default-disabled builds therefore emit no map element through this helper.
+- Return `""` when there are no effective mappings in `imports`, `scopes`, or `integrity`, including scopes whose maps are empty. Development and maps-off builds therefore emit no map element through this helper.
 - It is a stateless server-HTML serializer. It does not install maps through the DOM, merge multiple calls, track browser resolution, or attach Remix-specific attributes. Raw-HTML insertion follows the consuming framework's server-rendering API; inserting this string through client `innerHTML` is not a supported installation mechanism.
 - The application owns placement before module loading and any CSP header. `nonce` supports an existing nonce policy; the helper neither generates a nonce nor rewrites the application's policy.
 
@@ -608,7 +608,7 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 | standalone `fullstack()` request serving | `fetchServer({ entry: "path/to/server.ts" })` from `@pitlane/vite-plugin-fetch-server`, with the application's actual module path; omitted when a runtime plugin owns requests |
 | `import clientAssets from "./entry.browser.ts?assets=client"` → `.entry` | `(await assets.getScriptEntry("app/entry.browser.ts")).href` |
 | `clientAssets.js` → `modulepreload` links | `.preloads` from the same call, or `assets.getPreloads([...])` |
-| `import serverAssets from "./entry.server.tsx?assets=ssr"` → `.css` | `await assets.getStylesheets("app/entry.server.tsx", { environment: "ssr" })`, without emitting the server entry for browsers |
+| `import serverAssets from "./entry.server.tsx?assets=ssr"` → `.css` | `await assets.getStylesheets("app/entry.server.tsx")`, without emitting the server entry for browsers |
 | `mergeAssets(clientAssets, serverAssets)` | arrays; `getPreloads` and `getStylesheets` deduplicate |
 | `render()` | `render({ assets })` |
 | hand-written `resolveClientEntry` forwarding preloads | delete it |
@@ -617,7 +617,7 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 | — | `@pitlane/assets` in `dependencies`, or `pitlane` when the app imports through the umbrella |
 
 - The Vite peer minimum rises from 7.0 to 8.1. Vite 7 and 8.0 are unsupported even when chunk import maps are disabled; the package READMEs, guides, and changeset state the new minimum.
-- Chunk import maps are disabled by default. Opting in requires delivering the returned map before modulepreload links and module scripts. Applications using only `experimental.renderBuiltUrl` or ordinary module scripts need no map-specific migration. The guide and changesets describe the opt-in and browser requirements.
+- Chunk import maps are on by default under `remix()` and off under a bare `assets()`. A Remix document delivers the returned map before modulepreload links and module scripts, which Remix's `<ImportMap>` already does in the template's document; a Remix app that uses `experimental.renderBuiltUrl` sets `remix({ assets: { chunkImportMap: false } })`. Applications on a bare `assets()` need no map-specific migration. The guide and changesets describe the defaults, the opt-out, the checkout-path caching limit, and the browser requirements.
 - An app that calls `render()` without `assets` fails at its first island render with the upstream error quoted above.
 - The serialized `moduleUrl` in `#rmx-data` remains an emitted chunk URL in build, not a logical import-map identifier, and remains the module's dev URL in development for file-backed islands. Enabling maps can change build output bytes and hashes; identical filenames across the migration are not promised.
 - Every existing `remix()` option keeps its meaning; `assets` is a new option.
@@ -650,8 +650,9 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 - Fetch-server verification: a framework-free app through actual Vite HTTP serving, request URL/method/body, response status/headers/streaming/cancellation, live handler replacement after a source edit, missing/ambiguous entry errors, unsupported environment diagnostics, and runtime-owned serving without the plugin. The package works alone and beside `assets()`.
 - Compatibility matrix: all seven upstream examples, including their own routing/hydration models, CSS behavior, and map opt-ins. Supported-toolchain checks cover Vite 8.1.0, current Vite 8, and Vite+. Isolated strict-peer installs contain no fullstack or direct Pitlane `oxc-parser` dependency.
 - Import-map verification: default-disabled builds need no map artifact or HTML; plugin/native opt-ins and precedence; absent-map errors when enabled; opt-in `renderBuiltUrl` conflict and default compatibility; custom map filenames and deployment bases; real-browser static/dynamic imports, islands, and frame navigation; dependency-only rebuild cache stability. Test the proposed HTML helper's parsed map values, safe script boundary, nonce, empty mappings, and placement without Remix.
-- Integration-author verification: run the complete Rsbuild example against a pinned toolchain, generate from its real compilation output, and consume the result without Vite or Remix installed. Document the adapter's ES-module output assumptions and limits. This validates the public generator contract; it does not introduce a maintained Rsbuild plugin package or compatibility matrix.
-- Guides and READMEs: neutral assets usage, public manifest generation and the Rsbuild example, Fetch-server composition, renamed Remix integration, opt-in maps and proposed HTML helper, vendor grouping, caching limits, and migration. App-facing guides use umbrella specifiers while scoped package READMEs remain standalone. Markdown exports must satisfy decision.0002.
+- Integration-author verification: run the complete Rsbuild example against a pinned toolchain, generate from its real compilation output, and consume the result without Vite or Remix installed. Its server renders with `@remix-run/html-template` and serves through `@remix-run/node-fetch-server`, the same Remix building blocks the Fetch bridge reuses, rather than hand-written HTML strings and `node:http` plumbing. Document the adapter's ES-module output assumptions and limits. This validates the public generator contract; it does not introduce a maintained Rsbuild plugin package or compatibility matrix.
+- Framework examples under `packages/assets/examples/`, each an isolated application with its own lockfile that installs the packed `@pitlane/assets` tarball and never the workspace: React 19 with React Router in SSR mode; Vue with Vapor mode and Vue Router in SSR mode; Solid 2.0 with Solid Router in SSR mode; Preact 11 with islands; and Lit with islands. The three router examples derive route assets the way the compatibility matrix's React Router example does: `import.meta.glob` yields each route module's portable key, and the server passes the matched routes' keys to `getPreloads` and `getStylesheets`; there is no `getGlob()` resolver method, because the manifest already indexes glob-discovered modules and computed keys are accepted by every metadata method. The two island examples serve through `@remix-run/fetch-router`, render with `@remix-run/html-template`, and hydrate each island from a literal `getScriptEntry` call. Vue Vapor and Solid 2.0 are prereleases at the time of writing (`vue@3.6.0-rc.10`, `solid-js@2.0.0-rc.13`, `@solidjs/router@2.0.0-next.35`); the examples pin exact prerelease versions and move to the releases when they ship. Each example has a CI job of its own that installs the tarball, builds, runs a verify script against the output, and loads the page in Chromium. They are exercised examples and documentation, not shipped adapters or a support promise for those frameworks.
+- Guides and READMEs: neutral assets usage, public manifest generation and the Rsbuild example, the framework examples, Fetch-server composition, renamed Remix integration, map defaults and proposed HTML helper, vendor grouping, caching limits, and migration. App-facing guides use umbrella specifiers while scoped package READMEs remain standalone. Markdown exports must satisfy decision.0002. In the docs navigation, the Fetch server guide sits under the Vite plugins section with the Remix plugin guide, and the assets section holds asset resolution and manifest integrations.
 - Migrate the docs app's document and tsconfig; HMR, SPA, umbrella, prerender, and Vite guides; active agent references; all renamed imports; `.typedoc` mappings; and obsolete fullstack advisory configuration. The vendored upstream Remix skill is unchanged.
 - Demos: migrate `demos/content-vite` and `demos/theme`, removing direct fullstack imports, types, and dependencies. The theme demo uses `@pitlane/vite-plugin-remix` instead of its local duplicate plugin. Build and exercise both.
 - Templates: complete the eight-starter companion and preview-to-release cutover above, building on the component-free HMR migration in draft templates PR #12. Update `VISION.md` in phase 5 with the package extractions, Remix rename, public generator boundary, and umbrella subpath count of 19. Pitlane remains a Remix meta-framework with independently useful tooling, not a multi-framework renderer or hosting engine.
@@ -690,6 +691,7 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 ## Future directions
 
 - `getHref` accepting a `transform` option once an image package defines what a transform is under Vite.
+- **Type-directed receiver detection.** Deciding which calls are resolver calls by asking TypeScript for the receiver's type, now that `tsgo` makes a type-checker pass affordable in a build. It would replace the syntactic rule (unique top-level bindings traced through imports) with the compiler's own answer, so namespace imports, destructuring, parameters, and externalized packages would register like any other call. It needs grounding on what a type-checker pass costs per server build and in `vite dev`, and on how a JavaScript-only app without a `tsconfig` would be handled.
 - **Path-typed resolver calls.** Completion and typo errors for the strings an app passes to resolver methods, so `assets.getScriptEntry("app/entry.broswer.ts")` fails in the editor rather than at the first render. It needs its own proposal. An earlier draft of this one (`e01386b`) specified it as an opt-in plugin option that wrote `.pitlane/assets.d.ts` from the files under the Vite root, plus a `pitlane-assets typegen` command for checking without a dev server. Generated declarations change every adopting app's TypeScript setup and checking workflow, and that deserves deliberate design rather than a section of this one.
 
     That proposal also creates `@pitlane/cli`, makes it the umbrella's command-line interface, and gives it the type-generation command. A bin published by `@pitlane/assets` would not work for umbrella apps: package managers link bins only for direct dependencies, so an app depending on `pitlane` alone would have no command to run. Neither the vision nor decision.0003 provides for a Pitlane CLI or for the umbrella re-exporting bins today.
@@ -711,11 +713,12 @@ Breaking for every app that renders a document or an island through `@pitlane/de
 - **Absolute `file:///…` keys** — need no path computation in dev. Rejected: a build-machine path baked into `dist/ssr` makes builds non-reproducible across machines and says nothing the root-relative path does not.
 - **Pitlane's own `render()` middleware** — would expose the full `resolveClientEntry` hook. Rejected: it duplicates upstream's frame resolution and error handling, and the `assets` option is the seam upstream designed for bundlers.
 - **Automatically folding server-graph CSS into script `getPreloads` results** — rejected: script callers must be able to render every returned URL as `modulepreload`. Explicit stylesheet arguments are a separate upstream-compatible use; they do not cause script arguments to acquire CSS results.
-- **Enable chunk import maps by default** — rejected: adopting asset resolution should not impose map-delivery and experimental browser constraints on every document. Plugin or native opt-in keeps that choice explicit.
+- **Enable chunk import maps by default for a bare `assets()`** — rejected: a renderer that adopts asset resolution should not be made to deliver a map and meet the browser requirements just to resolve URLs. `remix()` is different: its document already renders `<ImportMap>`, so the default is on there and off for `assets()` alone.
 - **Keep the Fetch bridge in the Remix plugin, or put it in assets** — rejected: request dispatch is framework-neutral and independent of asset resolution. A standalone package composes with either, while runtime-owned serving replaces only that capability.
 - **Name the runtime package `@pitlane/vite-assets`** — rejected: Vite is one producer of the manifest. The resolver, HTML helper, and public generator do not import Vite; only the adapter lives at `/vite-plugin`. The two plugin-only packages use consistent `vite-plugin-` names.
 - **Document only the final manifest schema** — rejected: external integration authors would have to copy graph traversal and asset collection. The public generator owns that logic and is used by Pitlane's Vite adapter too.
-- **Ship and maintain an Rsbuild adapter** — rejected: demonstrate the translation in an exercised integration-author example without expanding the supported bundler integrations.
+- **Ship and maintain an Rsbuild adapter, or framework adapters for the example apps** — rejected: demonstrate the translation in exercised examples without expanding the supported integrations.
+- **A `getGlob()` resolver method** — rejected: `import.meta.glob` already yields each route's key and the manifest indexes every glob-discovered module, so computed keys to `getPreloads` and `getStylesheets` answer the question without a second API; the React Router example in the compatibility matrix is the proof.
 - **Add a manifest CLI now** — not selected: the concrete integrations already have in-memory output graphs. A CLI would add a serialization protocol without removing the bundler-specific extraction work.
 
 ## Approval decisions
@@ -729,6 +732,13 @@ Implementation was approved on 2026-10-06 with these decisions:
 - Delegate the exact public generator and manifest field layout within the existing graph semantics. The concrete contract is recorded under Bundler-neutral manifest generation.
 - Use project-relative `../` keys for linked modules outside the Vite root, with the normalization and deployment constraints recorded under Portable source identity.
 - Approve the explicit framework-neutral development registration API after implementation confirmed that Vite's `emitFile` is unsupported in serve mode. Prefer module-owned replacement over undocumented resolved-config mutation or treating every observed module as a browser entry.
+
+Phase 4 review on 2026-10-06 revised the proposal before implementation resumed:
+
+- Remove `getStylesheets`'s `{ environment }` option; every server manifest holds the client graph and its own, and the lookup reads both.
+- Chunk import maps default to on under `remix()` and stay off under a bare `assets()`.
+- Add the five framework examples, with pinned prereleases for Vue Vapor and Solid 2.0, and rebuild the Rsbuild example's server on `@remix-run/html-template` and `@remix-run/node-fetch-server`.
+- Move the Fetch server guide under the Vite plugins navigation section.
 
 ## Acknowledgments
 
