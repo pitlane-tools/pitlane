@@ -53,7 +53,11 @@ describe("SPA build", () => {
         let match = html.match(/<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/);
         expect(match).not.toBeNull();
         let map = JSON.parse(match![1]) as { imports?: Record<string, string> };
-        expect(Object.keys(map.imports ?? {}).length).toBeGreaterThan(0);
+        let targets = Object.values(map.imports ?? {});
+        expect(targets.length).toBeGreaterThan(0);
+        for (let target of targets) {
+            expect(existsSync(join(FIXTURE, "dist", target.replace(/^\//, "")))).toBe(true);
+        }
 
         let firstModule = html.search(/<script[^>]*type="module"|<link[^>]*rel="modulepreload"/);
         expect(firstModule).toBeGreaterThan(-1);

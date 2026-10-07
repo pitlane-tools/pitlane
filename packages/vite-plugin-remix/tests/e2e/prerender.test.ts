@@ -94,7 +94,9 @@ describe("prerender", () => {
         let html = read("index.html");
         let match = html.match(/<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/);
         expect(match).not.toBeNull();
-        expect(match!.index!).toBeLessThan(html.search(/<script[^>]*type="module"/));
+        expect(match!.index!).toBeLessThan(
+            html.search(/<script[^>]*type="module"|<link[^>]*rel="modulepreload"/),
+        );
 
         let map = JSON.parse(match![1]) as { imports?: Record<string, string> };
         let targets = Object.values(map.imports ?? {});
