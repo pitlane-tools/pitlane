@@ -1812,17 +1812,19 @@ export let scriptEntry = await assets.getScriptEntry("app/entry.browser.tsx");
 // A standalone stylesheet — resolves to a URL string
 export let stylesheetHref = await assets.getHref("app/index.css");
 
-// CSS that server-rendered modules import
-export let stylesheets = await assets.getStylesheets("app/entry.server.tsx", { environment: "ssr" });
+// CSS that server-rendered modules import, from the client graph and this server's
+export let stylesheets = await assets.getStylesheets("app/entry.server.tsx");
 ```
 
 **Reading it in the document shell:**
 
 ```tsx
+import { ImportMap } from "remix/component/server";
+
 import { scriptEntry, stylesheetHref, stylesheets } from "#/assets.ts";
 
 export function Document() {
-    let { href, preloads } = scriptEntry;
+    let { href, importMap, preloads } = scriptEntry;
 
     return () => (
         <html lang="en">
@@ -1835,13 +1837,16 @@ export function Document() {
                     <link key={stylesheet} href={stylesheet} rel="stylesheet" />
                 ))}
 
-                {/* Client entry script */}
-                <script async src={href} type="module" />
+                {/* The chunk import map, before any module is requested; remix() turns maps on by default */}
+                <ImportMap value={importMap} />
 
                 {/* Preload links for JS dependencies */}
                 {preloads.map(preload => (
                     <link key={preload} href={preload} rel="modulepreload" />
                 ))}
+
+                {/* Client entry script */}
+                <script async src={href} type="module" />
             </head>
             <body>{/* ... */}</body>
         </html>
@@ -1861,7 +1866,8 @@ let router = createRouter({ middleware: [render({ assets })] });
 **Key rules:**
 
 - Paths are project-relative source keys such as `app/entry.browser.tsx`. A literal argument to `getScriptEntry` or `getHref` is what tells the build to emit that file for the browser; a computed path needs `remix({ assets: { include: [...] } })`
-- `getStylesheets` and `getPreloads` only observe what the build produced; they never turn a server module into a browser entry. Results are deduplicated
+- `getStylesheets` and `getPreloads` only observe what the build produced; they never turn a server module into a browser entry. `getStylesheets` reads the client graph and the current server's graph, and results are deduplicated
+- Render `<ImportMap value={scriptEntry.importMap} />` before the preload links and the module script. `remix()` turns chunk import maps on by default; `remix({ assets: { chunkImportMap: false } })` turns them off, which an app using `experimental.renderBuiltUrl` needs
 - Render `scriptEntry.href` as the `<script>` src — never hardcode `/assets/...` paths
 - Pass the same object to `render({ assets })`. The Remix Vite plugin rewrites `import.meta.url` in `clientEntry()` calls to a `file:` id, and `render()` resolves it through `assets.getScriptEntry`, adding `modulepreload` hints for each island. Without `assets`, the first island render fails
 - Through the `pitlane` umbrella, import from `pitlane/assets` and `pitlane/assets/manifest` instead

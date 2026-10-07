@@ -69,7 +69,7 @@ Absolute file URLs are not keys. `file:///Users/me/app/counter.tsx` and `file:/U
 | `getScriptEntry(key)` | `{ href, preloads, importMap }` for a browser entry |
 | `getHref(key)` | The URL of a browser entry, a stylesheet, or another emitted asset |
 | `getPreloads(key \| key[])` | `modulepreload` URLs for scripts |
-| `getStylesheets(key \| key[], options?)` | Stylesheet URLs a module needs |
+| `getStylesheets(key \| key[])` | Stylesheet URLs a module needs, from the client graph and this server's |
 | `getImportMap(key \| key[])` | The client build's import map |
 
 Methods that take an array return one list in argument order, with duplicate URLs removed.
@@ -101,6 +101,8 @@ Every lookup reads the client build's graph and the graph of the server environm
 ```ts
 let stylesheets = await assets.getStylesheets(["app/entry.server.tsx", "app/entry.browser.ts"]);
 ```
+
+When both builds emit a stylesheet with the same contents, the result links it once, as the client build's file. Vite emits one CSS file per chunk. A server chunk that combines a shared stylesheet with its own produces a file unlike the client's, and both are linked. The Remix document queries the server entry alone, with no overlap.
 
 A server's manifest describes those two graphs and no other server environment's, in development and in a build alike. A key that only another server environment imports fails with the missing-module error. There is no option to read one graph alone: a document needs the stylesheets of both. A stylesheet lookup never turns the module into a browser entry, so asking for the CSS of `app/entry.server.tsx` does not compile your server code for the browser.
 
@@ -182,7 +184,7 @@ Browser code cannot import the manifest. It describes your server graph, so a br
 | `serverEnvironments` | `["ssr"]` | The Vite environments that run your server. Each one's server bundle, or dev server graph, receives a manifest naming it, which `getStylesheets` reads by default alongside the client. Importing the manifest from any other server environment is an error naming the environment and this option |
 | `chunkImportMap` | off | Turns on [chunk import maps](#chunk-import-maps) for the client build |
 
-Before building the client, the plugin builds the server environments, because they reveal which modules are browser entries. A platform plugin that orchestrates builds itself, such as Cloudflare's, keeps doing so, and each environment builds once.
+Before building the client, the plugin builds the server environments, because they reveal which modules are browser entries. A platform plugin that orchestrates builds itself, such as Cloudflare's, keeps doing so, and each environment builds once. `vite build --watch` is not supported: its watchers start every environment at once, so the client fails with the build-order error. Use `vite dev` while editing.
 
 The plugin replaces both `pitlane/assets/manifest` and `@pitlane/assets/manifest`, so either specifier works in `app/assets.ts`.
 
