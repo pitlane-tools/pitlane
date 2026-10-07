@@ -30,6 +30,7 @@ export const assets = createAssetResolver(manifest);
 export const script = await assets.getScriptEntry("app/browser.ts");
 export const css = await assets.getHref("app/page.css");
 export const stylesheets = await assets.getStylesheets("app/entry.ts");
+export const graphs = Object.keys(manifest.environments).sort();
 export const serverOnly = readFileSync;
 export default { fetch() { return Response.json({script, css, stylesheets}); } };`,
         "app/browser.ts":
@@ -398,7 +399,8 @@ export const script = await createAssetResolver(manifest).getScriptEntry(widget)
 import manifest from "@pitlane/assets/manifest";
 import "./edge.css";
 export const assets = createAssetResolver(manifest);
-export const serverEnvironment = manifest.serverEnvironment;`,
+export const serverEnvironment = manifest.serverEnvironment;
+export const graphs = Object.keys(manifest.environments).sort();`,
             "app/edge.css": "main { display: grid; }",
         });
         let configured = config(root, { serverEnvironments: ["ssr", "edge"] });
@@ -415,6 +417,8 @@ export const serverEnvironment = manifest.serverEnvironment;`,
         let edge = await import(pathToFileURL(join(root, "dist/edge/index.mjs")).href);
 
         expect(edge.serverEnvironment).toBe("edge");
+        expect(edge.graphs).toEqual(["client", "edge"]);
+        expect(ssr.graphs).toEqual(["client", "ssr"]);
         let [edgeStylesheet] = await edge.assets.getStylesheets("app/edge.ts");
         expect(edgeStylesheet).toMatch(/^\/assets\/[\w-]+\.css$/);
         expect(edgeStylesheet).not.toBe(ssr.stylesheets[0]);
@@ -424,14 +428,8 @@ export const serverEnvironment = manifest.serverEnvironment;`,
         await expect(edge.assets.getStylesheets("app/entry.ts")).rejects.toThrow(
             '"client" or "edge"',
         );
-        await expect(
-            edge.assets.getStylesheets("app/entry.ts", { environment: "ssr" }),
-        ).rejects.toThrow('names environment "ssr", which the manifest does not have');
         expect(await ssr.assets.getStylesheets("app/entry.ts")).toEqual(ssr.stylesheets);
         await expect(ssr.assets.getStylesheets("app/edge.ts")).rejects.toThrow('"client" or "ssr"');
-        await expect(
-            ssr.assets.getStylesheets("app/edge.ts", { environment: "edge" }),
-        ).rejects.toThrow('names environment "edge", which the manifest does not have');
     });
 
     it("fails a build whose unlisted server environment imports the manifest", async () => {

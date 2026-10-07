@@ -10,12 +10,6 @@ import type {
 import { normalizeSourceKey } from "./source-key.ts";
 import { assetsSpecifier, quotedList } from "./specifier.ts";
 
-/** Narrows {@link AssetResolver.getStylesheets} to one environment's graph. */
-export interface StylesheetOptions {
-    /** The environment name, such as `"client"` or `"ssr"`. */
-    environment?: string;
-}
-
 /**
  * Resolves portable source keys, such as `app/entry.browser.ts` or
  * `file:app/counter.tsx#Counter`, to the URLs a build or development server
@@ -31,11 +25,8 @@ export interface AssetResolver {
     getHref(path: string): Promise<string>;
     /** Scripts' chunks and static JavaScript dependencies, and explicitly requested stylesheets. */
     getPreloads(path: string | readonly string[]): Promise<string[]>;
-    /** Stylesheets the modules need, from the client and current server graphs by default. */
-    getStylesheets(
-        path: string | readonly string[],
-        options?: StylesheetOptions,
-    ): Promise<string[]>;
+    /** Stylesheets the modules need, from the client graph and the current server graph. */
+    getStylesheets(path: string | readonly string[]): Promise<string[]>;
     /** The complete client import map, after checking the keys belong to the client graph. */
     getImportMap(path: string | readonly string[]): Promise<ImportMap>;
 }
@@ -71,7 +62,7 @@ function manifestResolver(manifest: BuildAssetsManifest | DevAssetsManifest): As
     let { environments, entries, assets } = manifest;
     let clientName =
         Object.keys(environments).find(name => environments[name]!.role === "client") ?? "client";
-    let defaultStylesheetEnvironments = [
+    let stylesheetEnvironments = [
         ...new Set([clientName, manifest.serverEnvironment ?? clientName]),
     ];
 
@@ -144,21 +135,18 @@ function manifestResolver(manifest: BuildAssetsManifest | DevAssetsManifest): As
             return manifest.mode === "dev" ? [] : [...preloads];
         },
 
-        async getStylesheets(paths, options = {}) {
-            let selected = options.environment
-                ? [requireEnvironment(paths, options.environment)]
-                : defaultStylesheetEnvironments;
+        async getStylesheets(paths) {
             let stylesheets = new Set<string>();
 
             for (let path of asList(paths)) {
                 let key = sourceKey("getStylesheets", path);
-                let found = selected.flatMap(name => {
+                let found = stylesheetEnvironments.flatMap(name => {
                     let graph = own(environments, name);
                     return (graph && own(graph.modules, key)) ?? [];
                 });
                 if (found.length === 0) {
                     throw new Error(
-                        `${call("getStylesheets", path)} found no module "${key}" in the ${quotedList(selected, "disjunction")} environment's graph.`,
+                        `${call("getStylesheets", path)} found no module "${key}" in the ${quotedList(stylesheetEnvironments, "disjunction")} environment's graph.`,
                     );
                 }
                 for (let href of found.flatMap(metadata => metadata.stylesheets)) {
@@ -177,13 +165,6 @@ function manifestResolver(manifest: BuildAssetsManifest | DevAssetsManifest): As
             return copyImportMap(manifest.importMap);
         },
     };
-
-    function requireEnvironment(paths: string | readonly string[], name: string): string {
-        if (Object.hasOwn(environments, name)) return name;
-        throw new Error(
-            `${call("getStylesheets", paths)} names environment "${name}", which the manifest does not have. It has ${quotedList(Object.keys(environments), "conjunction")}.`,
-        );
-    }
 }
 
 /** Reads a source key's record without reaching `Object.prototype` members such as `constructor`. */

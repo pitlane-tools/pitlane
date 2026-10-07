@@ -520,9 +520,6 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         await expect(ssr.assets.getStylesheets("app/edge-only.ts")).rejects.toThrow(
             "app/edge-only.ts",
         );
-        await expect(
-            ssr.assets.getStylesheets("app/edge-only.ts", { environment: "edge" }),
-        ).rejects.toThrow("edge");
 
         let ssrEvaluations = globalThis.__devSnapshotEvaluations?.["app/entry.server.ts"];
         await project.edit(
@@ -543,6 +540,13 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         await expect
             .poll(async () => (await request(server, "edge", "/app/entry.edge.ts")).moduleLevel)
             .toContain(outside(project, "shared/widget-extra.css"));
+
+        let graphsOf = async (environment: string) =>
+            Object.keys(
+                (await request(server, environment, "/app/universal.ts")).default.environments,
+            ).sort();
+        expect(await graphsOf("ssr")).toEqual(["client", "ssr"]);
+        expect(await graphsOf("edge")).toEqual(["client", "edge"]);
     });
 
     it("follows browser entries a transform plugin declares through the plugin API", async () => {
@@ -685,16 +689,12 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             "/node_modules/fixture-styles/theme.css",
             "/node_modules/fixture-widget/widget.css",
         ]);
-        expect(
-            await entry.assets.getStylesheets("node_modules/fixture-styles/theme.css", {
-                environment: "ssr",
-            }),
-        ).toEqual(["/node_modules/fixture-styles/theme.css"]);
-        expect(
-            await entry.assets.getStylesheets("node_modules/fixture-widget/index.js", {
-                environment: "ssr",
-            }),
-        ).toEqual(["/node_modules/fixture-widget/widget.css"]);
+        expect(await entry.assets.getStylesheets("node_modules/fixture-styles/theme.css")).toEqual([
+            "/node_modules/fixture-styles/theme.css",
+        ]);
+        expect(await entry.assets.getStylesheets("node_modules/fixture-widget/index.js")).toEqual([
+            "/node_modules/fixture-widget/widget.css",
+        ]);
         expect(await entry.assets.getImportMap(["node_modules/fixture-widget/index.js"])).toEqual({
             imports: {},
         });

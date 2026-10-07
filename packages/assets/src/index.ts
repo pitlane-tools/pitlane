@@ -8,7 +8,7 @@
  * @module @pitlane/assets
  */
 export { createAssetResolver } from "./resolver.ts";
-export type { AssetResolver, StylesheetOptions } from "./resolver.ts";
+export type { AssetResolver } from "./resolver.ts";
 export { renderImportMap } from "./import-map.ts";
 export type { RenderImportMapOptions } from "./import-map.ts";
 export type {

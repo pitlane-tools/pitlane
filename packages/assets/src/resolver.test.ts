@@ -189,22 +189,16 @@ describe("proposal 0005: createAssetResolver over a build manifest", () => {
         ]);
     });
 
-    it("reads one graph when an environment is named", async () => {
-        expect(await assets.getStylesheets("app/counter.tsx", { environment: "client" })).toEqual([
-            "/assets/counter-e5.css",
-        ]);
-        expect(await assets.getStylesheets("app/entry.server.tsx", { environment: "ssr" })).toEqual(
-            ["/assets/document-g7.css", "/assets/counter-e5.css"],
-        );
-        expect(
-            await assets.getStylesheets("app/entry.worker.ts", { environment: "worker" }),
-        ).toEqual(["/assets/worker-h8.css"]);
-    });
-
     it("leaves unrelated server graphs out of the default stylesheet query", async () => {
         await expect(assets.getStylesheets("app/entry.worker.ts")).rejects.toThrow(
             'assets.getStylesheets("app/entry.worker.ts") found no module "app/entry.worker.ts" in the "client" or "ssr" environment',
         );
+    });
+
+    it("takes only the keys in getStylesheets, with no option narrowing the graphs", () => {
+        expectTypeOf(assets.getStylesheets).parameters.toEqualTypeOf<
+            [path: string | readonly string[]]
+        >();
     });
 
     it("returns the complete client map from getImportMap and an empty map for no paths", async () => {
@@ -275,7 +269,7 @@ describe("proposal 0005: resolver errors", () => {
     it("never recommends emitting a module for a stylesheet or preload lookup", async () => {
         let lookups = [
             () => assets.getStylesheets("app/missing.ts"),
-            () => assets.getStylesheets("app/server-only.ts", { environment: "client" }),
+            () => assets.getStylesheets("app/entry.worker.ts"),
             () => assets.getPreloads("app/server-only.ts"),
             () => assets.getImportMap("app/missing.ts"),
         ];
@@ -289,14 +283,6 @@ describe("proposal 0005: resolver errors", () => {
     it("names the method, key, and environment of a missing preload", async () => {
         await expect(assets.getPreloads(["app/counter.tsx", "app/server-only.ts"])).rejects.toThrow(
             'assets.getPreloads("app/server-only.ts") found no module "app/server-only.ts" in the "client" environment',
-        );
-    });
-
-    it("rejects an environment the manifest does not have", async () => {
-        await expect(
-            assets.getStylesheets("app/counter.tsx", { environment: "edge" }),
-        ).rejects.toThrow(
-            'assets.getStylesheets("app/counter.tsx") names environment "edge", which the manifest does not have. It has "client", "ssr", and "worker".',
         );
     });
 

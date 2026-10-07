@@ -88,9 +88,7 @@ describe("proposal 0005: createAssetManifest", () => {
                         importMap: { imports: {} },
                     });
                     expect(await resolver.getHref(assetKey)).toBe("/style.css");
-                    expect(await resolver.getStylesheets(entryKey, { environment: name })).toEqual([
-                        "/style.css",
-                    ]);
+                    expect(await resolver.getStylesheets(entryKey)).toEqual(["/style.css"]);
                 },
             ),
             {

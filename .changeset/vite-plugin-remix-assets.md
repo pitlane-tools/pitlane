@@ -18,11 +18,13 @@ export let scriptEntry = await assets.getScriptEntry("app/entry.browser.ts");
 
 Then pass it to Remix's renderer with `render({ assets })`. Islands keep `clientEntry(import.meta.url, …)`; the plugin rewrites the id to a portable `file:app/counter.tsx#Counter`, and Remix resolves it through the resolver, so an island now gets `modulepreload` hints. An app that calls `render()` without `assets` fails at its first island with Remix's own error.
 
+`remix()` turns on Vite's chunk import maps for the client build by default. After a build, `scriptEntry.importMap` carries the map, and the document must render it before any `modulepreload` link or module script: add `<ImportMap value={scriptEntry.importMap} />` from `remix/component/server` at the top of `<head>`'s script tags. The browser needs import maps and `import.meta.resolve`. To keep ordinary chunk URLs instead, pass `remix({ assets: { chunkImportMap: false } })`; an app using Vite's `experimental.renderBuiltUrl` must, since the two cannot be combined and the build stops with an error naming both. That option wins over Vite's own `build.chunkImportMap`; with no option, a native setting applies. A bare `assets()` keeps maps off.
+
 | Before | After |
 | --- | --- |
 | `import clientAssets from "./entry.browser.ts?assets=client"`, then `.entry` | `(await assets.getScriptEntry("app/entry.browser.ts")).href` |
 | `clientAssets.js` as `modulepreload` links | `.preloads` from the same call, or `assets.getPreloads([...])` |
-| `import serverAssets from "./entry.server.tsx?assets=ssr"`, then `.css` | `await assets.getStylesheets("app/entry.server.tsx", { environment: "ssr" })` |
+| `import serverAssets from "./entry.server.tsx?assets=ssr"`, then `.css` | `await assets.getStylesheets("app/entry.server.tsx")` |
 | `mergeAssets(...)` from `@pitlane/dev/runtime` | arrays; `getPreloads` and `getStylesheets` deduplicate |
 | a hand-written `resolveClientEntry` forwarding preloads | delete it |
 | `"types": ["@pitlane/dev/assets"]` in `tsconfig.json` | delete it |

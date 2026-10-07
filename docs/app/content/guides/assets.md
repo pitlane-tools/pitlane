@@ -96,15 +96,13 @@ Each script key contributes its chunk and its static JavaScript dependencies, ne
 
 Returns the stylesheets a module needs, following its static imports. A dependency's stylesheets come before the stylesheets of the module importing it. Modules loaded only through `import()`, such as lazy routes, are left out.
 
-By default, the lookup reads two graphs: the client build and the server environment the running server was built as. A key only has to appear in one of them. Name an environment to read only that graph:
+Every lookup reads the client build's graph and the graph of the server environment the running server was built as. A key only has to appear in one of them, and the result combines both:
 
 ```ts
-let all = await assets.getStylesheets("app/entry.server.tsx");
-let serverOnly = await assets.getStylesheets("app/entry.server.tsx", { environment: "ssr" });
-let clientOnly = await assets.getStylesheets("app/entry.browser.ts", { environment: "client" });
+let stylesheets = await assets.getStylesheets(["app/entry.server.tsx", "app/entry.browser.ts"]);
 ```
 
-A server's manifest describes those two graphs and no other server environment's, in development and in a build alike. Naming another server environment is an error listing the environments the manifest has. A stylesheet lookup never turns the module into a browser entry, so asking for the CSS of `app/entry.server.tsx` does not compile your server code for the browser.
+A server's manifest describes those two graphs and no other server environment's, in development and in a build alike. A key that only another server environment imports fails with the missing-module error. There is no option to read one graph alone: a document needs the stylesheets of both. A stylesheet lookup never turns the module into a browser entry, so asking for the CSS of `app/entry.server.tsx` does not compile your server code for the browser.
 
 With Vite's `build.cssCodeSplit: false`, the environment emits one combined stylesheet. Lookups return that stylesheet rather than a route-specific subset. It also contains the lazy-module CSS that Vite combines into it.
 
@@ -270,17 +268,17 @@ Escape URLs before putting them in HTML attributes. A configured base or filenam
 
 ## Chunk import maps
 
-Off by default. With them off, chunks import each other by their final URLs, and a document needs no import map.
+Off by default for `assets()`, and on by default under `remix()`. With them off, chunks import each other by their final URLs, and a document needs no import map.
 
 Turning them on makes Vite give each chunk a stable identifier and rewrite imports to use it, then emit a map from those identifiers to the current hashed files. When only a dependency's code changes, its map target can change while importing chunks keep the same bytes and filenames.
 
 ```ts
 assets({ chunkImportMap: true });
-// or, through the Remix plugin:
-remix({ assets: { chunkImportMap: true } });
+// the Remix plugin has them on; turn them off with:
+remix({ assets: { chunkImportMap: false } });
 ```
 
-Vite's own `build.chunkImportMap` in the client environment's config also turns it on. When both are set, the plugin option wins, so `chunkImportMap: false` overrides a native `true`.
+Vite's own `build.chunkImportMap` in the client environment's config also sets it. When both are set, the plugin option wins, so `chunkImportMap: false` overrides a native `true`. With neither set, the plugin's default applies.
 
 With maps on, `getScriptEntry` and `getImportMap` return the complete map. Every document must deliver it before any `modulepreload` link or module script. Remix's `<ImportMap>` component handles that, and other renderers can use [`renderImportMap`](#rendering-the-import-map).
 
@@ -289,7 +287,7 @@ Preloads keep listing emitted chunk URLs. An island's `moduleUrl` in the page is
 Requirements and limits:
 
 - Browsers need import maps and `import.meta.resolve`.
-- The option cannot be combined with Vite's `experimental.renderBuiltUrl`. The build stops with an error naming both. `renderBuiltUrl` alone works with maps off.
+- The option cannot be combined with Vite's `experimental.renderBuiltUrl`. The build stops with an error naming both. `renderBuiltUrl` alone works with maps off, so a Remix app that uses it passes `remix({ assets: { chunkImportMap: false } })`.
 - Caching holds only for changes to a dependency's content. Changing exports, chunk membership, CSS, assets, or compiler output can still change importing chunks.
 - Vite derives some identifiers from the module's absolute path. Building the same source from a different checkout directory changes every chunk that imports an entry or island chunk.
 - Cache headers and keeping old hashed files available are your deployment's job.
@@ -331,8 +329,7 @@ Each error names the method, the key, and the environment it looked in.
 | `… found no browser entry "…" in the "client" environment. The module is in the "ssr" graph but is not registered as a browser entry.` | A server module, or one the build saw, was never registered | Pass the key to the resolver's `getScriptEntry` as a string literal, or list it in `assets({ include })` |
 | `… found no browser entry "…" in the "client" environment. No environment's graph contains the module.` | Nothing in the build has that key | Check the spelling, then register it as above |
 | `assets.getHref("…") found no browser entry or asset` | The key is neither a registered entry nor an emitted asset | Register it as above |
-| `… found no module "…" in the "client" environment's graph` | A preload, stylesheet, or import-map lookup for a module the selected graphs do not contain | Check the key and the environment |
-| `… names environment "…", which the manifest does not have` | `getStylesheets({ environment })` named an unknown environment | Use a name the error lists |
+| `… found no module "…" in the "client" environment's graph` | A preload, stylesheet, or import-map lookup for a module the graphs it reads do not contain | Check the key and the environment |
 | `… received an absolute file URL` | The key was `file:///…` or `file:/…` | Use the key relative to the project root |
 
 Only a missing browser entry suggests `assets({ include })`. A stylesheet or preload lookup never asks you to emit a server module into the client build.

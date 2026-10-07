@@ -6,6 +6,4 @@ export let assets = createAssetResolver(manifest);
 
 export let stylesheetHref = await assets.getHref("app/index.css");
 /** Stylesheets the server's modules import. */
-export let stylesheets = await assets.getStylesheets("app/entry.server.tsx", {
-    environment: "ssr",
-});
+export let stylesheets = await assets.getStylesheets("app/entry.server.tsx");

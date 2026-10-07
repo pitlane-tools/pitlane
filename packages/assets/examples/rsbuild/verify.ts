@@ -56,18 +56,19 @@ assertPublished(lazy[0]!);
 assert.ok(!entry.preloads.includes(lazy[0]!), "dynamic chunks are not preloaded with the entry");
 await assert.rejects(assets.getScriptEntry("src/lazy.ts"));
 
-let clientStyles = await assets.getStylesheets("src/client.ts", { environment: "web" });
+let clientStyles = await assets.getStylesheets("src/client.ts");
 assert.equal(clientStyles.length, 1);
 clientStyles.forEach(assertPublished);
-let lazyStyles = await assets.getStylesheets("src/lazy.ts", { environment: "web" });
+let lazyStyles = await assets.getStylesheets("src/lazy.ts");
 assert.equal(lazyStyles.length, 1);
 assert.ok(!clientStyles.includes(lazyStyles[0]!), "lazy CSS stays out of the entry's stylesheets");
 
 // Server-imported CSS is observed in the server graph and copied to the public output.
-let serverStyles = await assets.getStylesheets("src/server.ts", { environment: "node" });
+assert.ok(manifest.environments.node?.modules["src/server.ts"], "the server graph has the server");
+assert.ok(!manifest.environments.web?.modules["src/server.ts"], "the client graph does not");
+let serverStyles = await assets.getStylesheets("src/server.ts");
 assert.equal(serverStyles.length, 1);
 serverStyles.forEach(assertPublished);
-assert.deepEqual(await assets.getStylesheets("src/server.ts"), serverStyles);
 
 let logo = await assets.getHref("src/logo.svg");
 assertPublished(logo);

@@ -53,7 +53,7 @@ Keys are paths from the project root. `./app/x.ts`, `/app/x.ts`, `file:app/x.ts`
 | `getScriptEntry(key)` | `{ href, preloads, importMap }` for a browser entry |
 | `getHref(key)` | The URL of a browser entry, stylesheet, or other asset |
 | `getPreloads(key \| key[])` | `modulepreload` URLs for scripts, and the URL of an explicitly requested stylesheet |
-| `getStylesheets(key \| key[], { environment? })` | Stylesheets the modules need, from the client and current server graphs by default |
+| `getStylesheets(key \| key[])` | Stylesheets the modules need, from the client graph and the current server graph |
 | `getImportMap(key \| key[])` | The complete client import map |
 
 Looking up a module's stylesheets never compiles it for the browser, so `getStylesheets("app/entry.server.ts")` is safe for server code.
