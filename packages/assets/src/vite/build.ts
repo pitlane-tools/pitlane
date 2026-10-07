@@ -165,9 +165,14 @@ export function assetBuild(state: AssetPluginState): Plugin {
         generateBundle: {
             order: "post",
             handler(_options, bundle) {
+                // Rolldown 1.1 (Vite 8.1) records a plugin's own `delete` without
+                // removing the key until the next hook, so `in bundle` cannot see it.
+                let removed = new Set<string>();
                 for (let [name, output] of Object.entries(bundle)) {
-                    if (output.type === "chunk" && output.facadeModuleId === EMPTY_INPUT)
+                    if (output.type === "chunk" && output.facadeModuleId === EMPTY_INPUT) {
+                        removed.add(name);
                         delete bundle[name];
+                    }
                 }
                 if (this.environment.name !== "client" || !state.mapsEnabled) return;
                 // Vite's map still names the empty JS placeholder of every CSS-only
@@ -176,8 +181,9 @@ export function assetBuild(state: AssetPluginState): Plugin {
                 let map = captureImportMap(bundle, fileName);
                 let base = this.environment.config.base;
                 for (let [key, href] of Object.entries(map.imports)) {
-                    if (href.startsWith(base) && !(href.slice(base.length) in bundle))
-                        delete map.imports[key];
+                    if (!href.startsWith(base)) continue;
+                    let file = href.slice(base.length);
+                    if (removed.has(file) || !(file in bundle)) delete map.imports[key];
                 }
                 let artifact = bundle[fileName]!;
                 if (artifact.type === "asset") artifact.source = JSON.stringify(map);
