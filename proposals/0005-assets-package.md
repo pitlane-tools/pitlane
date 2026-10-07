@@ -2,7 +2,7 @@
 id: proposal.0005
 title: Assets Package
 authors: [markmals]
-status: accepted
+status: implemented
 pull-request: https://github.com/pitlane-tools/pitlane/pull/58
 issues: [https://github.com/pitlane-tools/pitlane/issues/52]
 supersedes: []

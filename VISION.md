@@ -96,9 +96,9 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 | Email delivery | Cloudflare Email Service • Resend |
 | Font providers | Local • Fontsource • Google Fonts • Adobe Fonts |
 | Content layer | `@pitlane/content`: schema-validated collections with runtime and prebuilt loading |
-| Asset resolution | `@pitlane/assets`: framework-neutral resolver, manifest generator, and Vite adapter (accepted, unreleased) |
-| Vite request serving | `@pitlane/vite-plugin-fetch-server`: explicit Fetch-handler development bridge (accepted, unreleased) |
-| Remix build integration | `@pitlane/vite-plugin-remix`: composes the neutral plugins with Remix transforms and HMR (accepted, unreleased rename of `@pitlane/dev`) |
+| Asset resolution | `@pitlane/assets`: framework-neutral resolver, manifest generator, and Vite adapter |
+| Vite request serving | `@pitlane/vite-plugin-fetch-server`: explicit Fetch-handler development bridge |
+| Remix build integration | `@pitlane/vite-plugin-remix`: composes the neutral plugins with Remix transforms and HMR |
 | Head metadata | Pitlane-native |
 | Localization | Pitlane-native |
 | Type-safe env/secrets | Pitlane-native |
@@ -121,7 +121,7 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 
 Pitlane is a monorepo of small, single-purpose packages. Each scoped package can be installed directly without the `pitlane` umbrella and has standalone documentation. Packages may depend on an explicit Remix or Pitlane capability contract, and provider adapters may depend on their provider SDK; those relationships are part of their documented API.
 
-`pitlane` is the optional umbrella that re-exports the scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/vite-plugin-remix` as `pitlane/vite-plugin-remix` in the accepted, unreleased cutover ([proposal.0005](proposals/0005-assets-package.md)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
+`pitlane` is the optional umbrella that re-exports the scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/vite-plugin-remix` as `pitlane/vite-plugin-remix` ([proposal.0005](proposals/0005-assets-package.md)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
 
 ### Packaging strategy
 
@@ -131,11 +131,11 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 `pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package. The umbrella is released by hand when enough package changes have accumulated, not after every package release. The `1.0.0-alpha.1` release replaces the `0.0.1` placeholder with 15 public subpaths. Bare `pitlane` has no entry point.
 
-The prepared `pitlane@1.0.0-alpha.2` expands the umbrella to 19 public subpaths, including `assets`, `assets/build`, `assets/manifest`, `assets/vite-plugin`, and `vite-plugin-fetch-server`. It renames `dev` and `dev/hmr` to `vite-plugin-remix` and `vite-plugin-remix/hmr`, and `content/vite` to `content/vite-plugin`, without compatibility aliases. Publication is pending.
+`pitlane@1.0.0-alpha.2` expands the umbrella to 19 public subpaths, including `assets`, `assets/build`, `assets/manifest`, `assets/vite-plugin`, and `vite-plugin-fetch-server`. It renames `dev` and `dev/hmr` to `vite-plugin-remix` and `vite-plugin-remix/hmr`, and `content/vite` to `content/vite-plugin`, without compatibility aliases.
 
-The prepared `pitlane@1.0.0-alpha.2` also includes Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)): guides, package READMEs, and a generated `INDEX.md` for coding agents. Those files become available to registry consumers when this version is published.
+`pitlane@1.0.0-alpha.2` also includes Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)): guides, package READMEs, and a generated `INDEX.md` for coding agents.
 
-An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/vite-plugin-remix` and its Vite peer reach production installs too after the pending cutover. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/vite-plugin-remix` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
+An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/vite-plugin-remix` and its Vite peer reach production installs too. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/vite-plugin-remix` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
 
 Code samples in this document import a package that exists as `@pitlane/<name>`, and keep `pitlane/<name>` for a planned one: the subpath it will have in the umbrella.
 
@@ -166,18 +166,18 @@ let db = createD1Database(env.DB);
 
 ### Released baseline
 
-Five scoped packages form the released baseline: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/content`, schema-validated content collections; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. The `pitlane` umbrella brings those five packages together under one namespace. Each scoped package below remains independently sequenced work and ships on its own tag; an umbrella release pins a selected set of those versions.
+Seven scoped packages form the released baseline: `@pitlane/assets`, framework-neutral asset resolution; `@pitlane/vite-plugin-fetch-server`, the Fetch-handler development bridge; `@pitlane/vite-plugin-remix`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/content`, schema-validated content collections; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. The `pitlane` umbrella brings those seven packages together under one namespace. Each scoped package below remains independently sequenced work and ships on its own tag; an umbrella release pins a selected set of those versions.
 
-Proposal 0005 is accepted but unreleased. It replaces `@pitlane/dev` with `@pitlane/vite-plugin-remix` and adds `@pitlane/assets` and `@pitlane/vite-plugin-fetch-server`, bringing the scoped package set to seven when published. The API descriptions below use those accepted names; the released baseline above remains unchanged until publication.
+Proposal 0005 shipped the assets extraction and replaced `@pitlane/dev` with `@pitlane/vite-plugin-remix`, without a forwarding package.
 
 ### Planned package sequence
 
 Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
 
-The accepted tooling extraction in proposal 0005 is pending release alongside this sequence; it does not reorder the capability packages.
+The tooling extraction in proposal 0005 shipped alongside this sequence; it does not reorder the capability packages.
 
 1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
-2. `@pitlane/content` — shipped at 0.3.0.
+2. `@pitlane/content` — shipped at 0.4.0.
 3. `@pitlane/meta`
 4. `@pitlane/sprites`
 5. `@pitlane/image`
@@ -223,7 +223,7 @@ The accepted tooling extraction in proposal 0005 is pending release alongside th
 
 ## `@pitlane/assets` — framework-neutral asset resolution
 
-Accepted in proposal 0005; pending release. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
+Released at 0.1.0 in proposal 0005. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
 
 `@pitlane/assets/vite-plugin` supplies development snapshots and production manifests. It registers browser inputs from supported literal resolver calls, explicit `include` entries, configured client inputs, and development plugin registrations. Stylesheet lookup reads the client graph and the current server graph without turning server modules into browser entries. `@pitlane/assets/build` exposes `createAssetManifest` for other bundlers; the Rsbuild example demonstrates that boundary.
 
@@ -231,11 +231,11 @@ Chunk import maps are off by default under standalone `assets()`. Applications t
 
 ## `@pitlane/vite-plugin-fetch-server` — development request bridge
 
-Accepted in proposal 0005; pending release. `fetchServer({ entry })` connects an explicit, non-empty server entry path to Vite's development server. It discovers no filename convention and can run alone or beside `assets()`. Provider plugins retain ownership of their runtime and request serving.
+Released at 0.1.0 in proposal 0005. `fetchServer({ entry })` connects an explicit, non-empty server entry path to Vite's development server. It discovers no filename convention and can run alone or beside `assets()`. Provider plugins retain ownership of their runtime and request serving.
 
 ## `@pitlane/vite-plugin-remix` — framework Vite plugin
 
-Accepted in proposal 0005; pending release as the replacement for `@pitlane/dev`, with no forwarding package. The provider-agnostic `remix()` plugin composes the neutral assets and Fetch-server plugins with Remix-specific transforms and HMR.
+Released at 0.8.0 in proposal 0005 as the replacement for `@pitlane/dev`, with no forwarding package. The provider-agnostic `remix()` plugin composes the neutral assets and Fetch-server plugins with Remix-specific transforms and HMR.
 
 **1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Asset manifests come from `@pitlane/assets`; `@hiogawa/vite-plugin-fullstack` is removed. Chunk import maps are enabled by default, including SPA builds; `remix({ assets: { chunkImportMap: false } })` opts out.
 
@@ -1179,7 +1179,7 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 `@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0. The `pitlane@1.0.0-alpha.1` umbrella combines the five scoped packages through matching subpaths; its changelog lists their exact pinned versions. The remaining packages ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
 
-Proposal 0005 is accepted and awaits release. Version preparation consumed its changesets and the pending HMR, installed-documentation, and umbrella-positioning notes. The prepared versions are `@pitlane/assets@0.1.0`, `@pitlane/vite-plugin-fetch-server@0.1.0`, `@pitlane/vite-plugin-remix@0.8.0`, `@pitlane/content@0.4.0`, and `pitlane@1.0.0-alpha.2`; preparation does not publish them. The umbrella also pins the unchanged `@pitlane/crawler@0.3.0`, `@pitlane/data-table-d1@0.3.0`, and `@pitlane/theme@0.5.0`. The eight-template companion remains on preview dependencies until published packages are available and release-backed CI passes.
+Proposal 0005 shipped alongside the pending HMR, installed-documentation, and umbrella-positioning changes. The published versions are `@pitlane/assets@0.1.0`, `@pitlane/vite-plugin-fetch-server@0.1.0`, `@pitlane/vite-plugin-remix@0.8.0`, `@pitlane/content@0.4.0`, and `pitlane@1.0.0-alpha.2`. The umbrella also pins the unchanged `@pitlane/crawler@0.3.0`, `@pitlane/data-table-d1@0.3.0`, and `@pitlane/theme@0.5.0`. All five releases were verified with fresh npm installs. The eight-template adoption is tracked in [templates PR #12](https://github.com/pitlane-tools/templates/pull/12).
 
 ### Explicit non-goals
 
