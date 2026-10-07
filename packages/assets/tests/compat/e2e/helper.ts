@@ -48,6 +48,12 @@ export async function expectDocumentAssets(page: Page, f: Fixture, pathname = "/
         let mapIndex = mapTags[0]!.index!;
         let firstModule = html.search(/<link[^>]*rel="modulepreload"|<script[^>]*type="module"/);
         expect(firstModule, "import-map:first").toBeGreaterThan(mapIndex);
+    } else {
+        // With maps off, and in dev, the document maps nothing. Remix's
+        // <ImportMap> still renders an empty map rather than no element.
+        for (let [, json] of mapTags) {
+            expect(JSON.parse(json!), "import-map:absent").toEqual({ imports: {} });
+        }
     }
 
     let preloads = [...html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)].map(m => m[1]!);

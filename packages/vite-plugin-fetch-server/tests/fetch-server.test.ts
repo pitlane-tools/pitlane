@@ -109,6 +109,21 @@ describe("proposal 0005: fetchServer request bridge", () => {
         expect(rest).toBe("second\n");
     });
 
+    it("closes the connection when a response body fails after its headers were sent", async () => {
+        let response = await fetch(`${server.origin}/stream/fails`);
+        let reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
+        expect(response.status).toBe(200);
+        expect((await reader.read()).value).toBe("partial\n");
+
+        let fail = await fetch(`${server.origin}/stream/fail`);
+        expect(fail.status).toBe(204);
+
+        // No error page can follow a 200 that already started: the client sees
+        // the body end abnormally rather than hanging, and Vite logs the error.
+        await expect(reader.read()).rejects.toThrow();
+        await waitFor(async () => server.stderr().includes("Internal server error: stream broke"));
+    });
+
     it("cancels the handler's request signal and response body when the client disconnects", async () => {
         let controller = new AbortController();
         let response = await fetch(`${server.origin}/cancel`, { signal: controller.signal });

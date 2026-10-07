@@ -4,6 +4,7 @@
 
 interface FixtureState {
     releaseStream?: () => void;
+    failStream?: () => void;
     cancellation?: { signalAborted: boolean; bodyCancelled: boolean };
 }
 
@@ -94,6 +95,21 @@ export default {
 
             case "/throws":
                 throw new Error("fixture handler failed");
+
+            case "/stream/fails":
+                return new Response(
+                    new ReadableStream<Uint8Array>({
+                        start(controller) {
+                            controller.enqueue(encoder.encode("partial\n"));
+                            state.failStream = () => controller.error(new Error("stream broke"));
+                        },
+                    }),
+                );
+
+            case "/stream/fail":
+                state.failStream?.();
+                state.failStream = undefined;
+                return new Response(null, { status: 204 });
 
             default:
                 return new Response("not found from fixture", { status: 404 });
