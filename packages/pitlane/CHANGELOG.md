@@ -1,5 +1,37 @@
 # pitlane
 
+## 1.0.0-alpha.2
+
+### Minor Changes
+
+- dd3563d: Ship version-matched guides and package READMEs as plain Markdown with a generated `INDEX.md` for coding agents. Links between guides resolve to the installed copies, so agents can read the app's documentation without fetching the latest website.
+- 3053134: The umbrella follows the asset cutover. `pitlane/dev` and `pitlane/dev/hmr` become `pitlane/vite-plugin-remix` and `pitlane/vite-plugin-remix/hmr`; `pitlane/dev/runtime` and `pitlane/dev/assets` are removed, and `pitlane/content/vite` becomes `pitlane/content/vite-plugin`. None of the old subpaths remains as an alias.
+
+    Five subpaths are new: `pitlane/assets`, `pitlane/assets/manifest`, `pitlane/assets/build`, and `pitlane/assets/vite-plugin` from `@pitlane/assets`, and `pitlane/vite-plugin-fetch-server`. An app using the umbrella `pitlane` package constructs its resolver from `createAssetResolver` in `pitlane/assets` and the manifest in `pitlane/assets/manifest`, and drops `pitlane/dev/assets` from `tsconfig.json`'s `types`. The lifted `vite` peer now requires 8.1 or later. The [umbrella guide](https://pitlane.tools/guides/umbrella#subpaths) lists every subpath.
+
+### Patch Changes
+
+- 49e9224: Describe Pitlane as a composable toolkit for Remix. The umbrella README and package metadata now explain its build tooling, runtime packages, and independently usable provider integrations.
+- Updated dependencies [3053134]
+- Updated dependencies [d79cde6]
+- Updated dependencies [3053134]
+- Updated dependencies [3053134]
+- Updated dependencies [3053134]
+    - @pitlane/assets@0.1.0
+    - @pitlane/vite-plugin-remix@0.8.0
+    - @pitlane/content@0.4.0
+    - @pitlane/vite-plugin-fetch-server@0.1.0
+
+### Pinned packages
+
+- `@pitlane/assets@0.1.0`
+- `@pitlane/content@0.4.0`
+- `@pitlane/crawler@0.3.0`
+- `@pitlane/data-table-d1@0.3.0`
+- `@pitlane/theme@0.5.0`
+- `@pitlane/vite-plugin-fetch-server@0.1.0`
+- `@pitlane/vite-plugin-remix@0.8.0`
+
 ## 1.0.0-alpha.1
 
 ### Major Changes
