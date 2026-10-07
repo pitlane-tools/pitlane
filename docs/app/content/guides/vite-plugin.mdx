@@ -16,7 +16,7 @@ This guide covers living with [`remix()`](/package/vite-plugin-remix/function/re
 
 <InstallGroup alternatives={installation} />
 
-The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets`. It requires `remix@^3.0.0` and `vite@>=8.1` as peer dependencies. The underlying `@pitlane/vite-plugin-remix` package also installs on its own, with the same peers. An app using it directly adds `@pitlane/assets` to `dependencies` for the resolver. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8.1 and later** (Rolldown) and **Vite+ 1.0** (`vp`) with `remix@3.0.0`. Vite 7 and 8.0 are not supported.
+The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets`. It requires `remix@^3.0.0` and `vite@>=8.1` as peer dependencies. The underlying `@pitlane/vite-plugin-remix` package also installs on its own, with the same peers. An app using it directly adds `@pitlane/assets` to `dependencies` for the resolver. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8.1 and later** (Rolldown) and **Vite+ 1.0 and later** (`vp`) with `remix@3.0.0`. Vite 7 and 8.0 are not supported, and neither are the Vite+ 0.x releases built on them.
 
 ### Upgrading from `pitlane/dev`
 
@@ -32,6 +32,7 @@ The plugin was published as `@pitlane/dev` and `pitlane/dev` until this release.
 | `mergeAssets(…)` from `pitlane/dev/runtime` | plain arrays; the resolver deduplicates |
 | `render()` without options, or a hand-written `resolveClientEntry` | `render({ assets })` from `remix/middleware/render` |
 | `"types": ["pitlane/dev/assets"]` in `tsconfig.json` | delete it |
+| `import { HMR } from "pitlane:dev"` and `<HMR />` in the document | delete both; add the `server:update` listener from the [HMR guide](/guides/hmr#setup) to the browser entry |
 
 [Document assets](#document-assets) shows the resulting files.
 
@@ -389,6 +390,17 @@ Each `@pitlane/vite-plugin-remix` release records the exact Remix version it was
     },
 }
 ```
+
+**pnpm reports the `vite >=8.1.0` peer as unmet under that alias**. `@voidzero-dev/vite-plus-core` reports its own version (`1.x`), not the Vite version it bundles, so the peer range cannot match it. Tell pnpm which versions of `vite` satisfy it:
+
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+    allowedVersions:
+        vite: "1"
+```
+
+Bun and npm install without complaint.
 
 **`AssertionError: isRunnableDevEnvironment(environment)` on dev**. The project resolves two different `vite` packages, typically because a dependency installs a plain `vite` beside the alias. Override `vite` with the same alias in your package manager's configuration, such as `overrides` in `pnpm-workspace.yaml`, so the whole project resolves one copy.
 

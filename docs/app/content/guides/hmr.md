@@ -52,7 +52,7 @@ Keep the listener as written, without `async` or `await`. Vite handles HMR messa
 
 No environment guard is needed beyond `import.meta.hot`. A production build replaces it with `undefined`, so the whole block, the event name included, is removed from the client bundle. `import.meta.hot` is typed by `vite/client`, which a Vite project's `vite-env.d.ts` already references.
 
-Component HMR is independent of this listener and runs whether or not you add it. Without it, server-only edits reach the server and the page does not change until you reload.
+Component HMR is independent of this listener and runs whether or not you add it. Without it, server-only edits reach the server and the page does not change until you reload. The same holds on any page that never loads the module holding the listener, so keep `run()` and the listener in the entry every page loads, not in a module that only island pages import.
 
 `@pitlane/dev` 0.7 and earlier provided this listener as an `<HMR />` component imported from `pitlane:dev`. That module is gone: remove the import and the `<HMR />` element from your document, and add the block above to your browser entry. An app that used the helper from `pitlane/dev/hmr` or `@pitlane/dev/hmr` imports the same `revalidate` from `pitlane/vite-plugin-remix/hmr` or `@pitlane/vite-plugin-remix/hmr`.
 

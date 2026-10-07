@@ -436,6 +436,17 @@ Each `@pitlane/vite-plugin-remix` release records the exact Remix version it was
 }
 ```
 
+**pnpm reports the `vite >=8.1.0` peer as unmet under that alias** — `@voidzero-dev/vite-plus-core` reports its own version (`1.x`), not the Vite version it bundles, so the peer range cannot match it. Tell pnpm which versions of `vite` satisfy it:
+
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+    allowedVersions:
+        vite: "1"
+```
+
+Bun and npm install without complaint.
+
 **`AssertionError: isRunnableDevEnvironment(environment)` on dev** — your project resolves two different `vite` packages, typically because a dependency installs a plain `vite` beside the alias. Override `vite` with the same alias in your package manager's configuration, such as `overrides` in `pnpm-workspace.yaml`, so the whole project resolves one copy.
 
 Generic-Vite projects have one vite by construction and are unaffected.
