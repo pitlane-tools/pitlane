@@ -80,7 +80,7 @@ const GUIDE_GROUPS: { title: string; links: { title: string; url: string }[] }[]
         links: [
             guide("Asset Resolution", "assets"),
             guide("Manifest Integrations", "asset-build"),
-            guide("Development Fetch Server", "fetch-server"),
+            guide("Fetch Server", "fetch-server"),
         ],
     },
     {

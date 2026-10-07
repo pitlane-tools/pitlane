@@ -9,11 +9,11 @@ A server-rendered page has to name its browser assets: the script that boots the
 
 `pitlane/assets` answers those questions through an asset resolver you construct from a manifest. The Vite plugin supplies the manifest. The resolver turns source paths such as `app/entry.browser.ts` into the URLs the current dev server or build produced for them. It imports nothing from Remix or any UI library, so the same object serves a Remix document, a React or Vue renderer, or a hand-written HTML string.
 
-The resolver has the same methods as the asset server from `remix/assets`. A Remix document written for that asset server runs unchanged. Only the file that constructs it differs.
+The resolver has the resolution methods of the asset server from `remix/assets`: `getScriptEntry`, `getHref`, `getPreloads`, and `getImportMap`, plus `getStylesheets`. A Remix document written for that asset server runs unchanged. Only the file that constructs it differs.
 
 ## Setup
 
-The Vite adapter needs Vite 8.1 or later. The resolver and [manifest generator](./asset-build.md) do not require Vite. An app that installs the `pitlane` umbrella already has the assets package. Without the umbrella, add `@pitlane/assets` to `dependencies`, since application code imports its runtime.
+The Vite adapter needs Vite 8.1 or later. The resolver and [manifest generator](/guides/asset-build) do not require Vite. An app that installs the `pitlane` umbrella already has the assets package. Without the umbrella, add `@pitlane/assets` to `dependencies`, since application code imports its runtime.
 
 `remix()` from `pitlane/vite-plugin-remix` installs the assets plugin itself. Pass its options as `remix({ assets: { … } })`. Any other Vite app adds `assets()` directly:
 

@@ -42,7 +42,7 @@ Requires `vite@>=8.1.0` as a peer.
 
 - **Development only.** The plugin does nothing during `vite build` or `vite preview` and opens no port of its own.
 - **A fallback.** Files in `public/`, modules the browser requests, and other plugins' middleware come first. The plugin sets `appType: "custom"` unless your config sets one.
-- **Requests and responses as sent.** The URL, including the Vite `base`, plus the method, headers, body, status, headers, and streamed bodies pass through unchanged. A client disconnect aborts `request.signal` and cancels a streaming body. Forwarded headers are not trusted.
+- **Requests and responses as sent.** The URL, including the Vite `base`, plus the method, headers, body, status, repeated headers, and streamed bodies pass through unchanged. A client disconnect aborts `request.signal` and cancels a streaming body. Forwarded headers are not trusted.
 - **Errors go to Vite.** A throwing handler, a module that fails to load, or a default export without `fetch` produces Vite's development error page and an `Internal server error:` log line.
 - **Configuration errors stop startup.** A missing or empty `entry`, an environment that does not exist, and a non-runnable environment, such as Cloudflare's, each fail with a message. Leave the plugin out where a runtime integration serves requests itself.
 

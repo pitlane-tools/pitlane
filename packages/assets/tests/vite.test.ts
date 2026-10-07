@@ -248,6 +248,18 @@ export const script = await createAssetResolver(manifest).getScriptEntry("app/br
         expect(disabled.script.importMap).toEqual({ imports: {} });
     });
 
+    it("refuses chunk import maps combined with renderBuiltUrl", async () => {
+        let root = await fixture();
+        await expect(
+            createBuilder({
+                ...config(root, { chunkImportMap: true }),
+                experimental: { renderBuiltUrl: file => `https://cdn.example.test/${file}` },
+            }),
+        ).rejects.toThrow(
+            "[assets] chunkImportMap: true cannot be combined with experimental.renderBuiltUrl.",
+        );
+    });
+
     // Before vitejs/vite#23184 (8.2.1), `build.chunkImportMap: true` discarded the
     // configured `fileName`, and Vite's own import analysis then crashed looking
     // for the file it had not emitted.
