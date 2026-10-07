@@ -28,10 +28,11 @@ export default function (pi: HookAPI): void {
         // invoke with repo-relative paths from the repo root.
         let files = prose.map(path => relative(ctx.cwd, path).replaceAll("\\", "/"));
 
-        // Vale is a workspace devDependency, which is not on PATH unless the
-        // session was started through the package manager.
+        // Vale is a workspace devDependency whose binary `vp run docs:prose`
+        // downloads; until then the bin shim exists but exits with an error.
         let vale = join(ctx.cwd, "node_modules", ".bin", "vale");
-        if (!existsSync(vale)) return;
+        let binary = join(ctx.cwd, "node_modules", "@vvago", "vale", "native", "vale");
+        if (!existsSync(binary)) return;
 
         let report: string;
         try {

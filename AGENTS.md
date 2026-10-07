@@ -368,7 +368,7 @@ Never edit a file under `docs/app/content/api/`; the next build overwrites it. C
 
 Hand-written user-facing docs are linted with [Vale](https://vale.sh) using the [vale-ai-tells](https://github.com/tbhb/vale-ai-tells) style package. Configuration lives in `.vale.ini`; synced styles land in the gitignored `.vale/` directory.
 
-The oh-my-pi hook at `.omp/hooks/vale-prose.ts` automates this: after every successful `edit`/`write` touching those directories, it appends Vale's findings to the tool result, so the agent sees prose feedback immediately. The hook loads at session start and no-ops until `vp install` has put Vale in `node_modules/.bin`.
+The oh-my-pi hook at `.omp/hooks/vale-prose.ts` automates this: after every successful `edit`/`write` touching those directories, it appends Vale's findings to the tool result, so the agent sees prose feedback immediately. The hook loads at session start and no-ops until `vp run docs:prose` has downloaded the Vale binary.
 
 **When the hook is inactive (or you are a different agent), run Vale manually after every edit to a page under `docs/app/content/guides/`, `docs/app/content/deployment/`, or `docs/app/content/_partials/`, and fix the findings before committing:**
 
@@ -377,6 +377,6 @@ vp exec vale docs/app/content/guides/styling.md   # one page
 vp run docs:prose                                 # sync styles + lint all user-facing docs
 ```
 
-If `vale` is not installed, run `vp install` at the repo root; `vp run docs:prose` syncs the styles.
+If `vale` reports a missing binary, run `vp run docs:prose` at the repo root; it downloads the binary and syncs the styles. `vp install` deliberately skips that download — see `allowBuilds` in `pnpm-workspace.yaml`.
 
 Internal documents (`docs/internal/`, `docs/superpowers/`) are exempt, and so is the record: `VISION.md`, `proposals/`, `policies/`, and `decisions/` are not published, so Vale never sees them.
