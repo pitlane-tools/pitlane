@@ -41,8 +41,8 @@ export function createAssetManifest(build: AssetBuild): BuildAssetsManifest {
 
     let publicUrl = (file: string) => resolvePublicUrl(build.base, file);
     let environments: Record<string, AssetEnvironment> = Object.create(null);
-    let entries: Record<string, string> = Object.create(null);
-    let assets: Record<string, string> = Object.create(null);
+    let entries = new SourceIndex();
+    let assets = new SourceIndex();
 
     for (let [name, environment] of Object.entries(build.environments)) {
         validateEnvironment(name, environment);
@@ -50,11 +50,11 @@ export function createAssetManifest(build: AssetBuild): BuildAssetsManifest {
         let entryChunks = new Map<string, string>();
         for (let [rawKey, chunkId] of Object.entries(environment.entries)) {
             let key = sourceKey(name, rawKey);
-            record(entries, key, publicUrl(environment.chunks[chunkId]!.file), name);
+            entries.record(key, publicUrl(environment.chunks[chunkId]!.file), name);
             entryChunks.set(key, chunkId);
         }
         for (let [rawKey, file] of Object.entries(environment.assets)) {
-            record(assets, sourceKey(name, rawKey), publicUrl(file), name);
+            assets.record(sourceKey(name, rawKey), publicUrl(file), name);
         }
 
         environments[name] = {
@@ -66,8 +66,8 @@ export function createAssetManifest(build: AssetBuild): BuildAssetsManifest {
     return {
         mode: "build",
         environments,
-        entries,
-        assets,
+        entries: entries.urls,
+        assets: assets.urls,
         importMap: build.importMap ?? { imports: {} },
     };
 }
@@ -77,6 +77,9 @@ function validateEnvironment(name: string, environment: AssetBuildEnvironment): 
     let where = (chunkId: string) => `chunk "${chunkId}" in the "${name}" environment`;
 
     for (let [chunkId, chunk] of Object.entries(chunks)) {
+        if (typeof chunk.file !== "string") {
+            throw new Error(`createAssetManifest(): ${where(chunkId)} has no file.`);
+        }
         for (let list of CHUNK_LISTS) {
             if (!Array.isArray(chunk[list])) {
                 throw new Error(`createAssetManifest(): ${where(chunkId)} has no ${list} list.`);
@@ -201,20 +204,21 @@ function sourceKey(environment: string, rawKey: string): string {
     );
 }
 
-/** Records `key → url`, rejecting a second, different URL for the same key. */
-function record(
-    index: Record<string, string>,
-    key: string,
-    url: string,
-    environment: string,
-): void {
-    let existing = Object.hasOwn(index, key) ? index[key] : undefined;
-    if (existing !== undefined && existing !== url) {
-        throw new Error(
-            `createAssetManifest(): source key "${key}" maps to both "${existing}" and "${url}" in the "${environment}" environment.`,
-        );
+/** `key → url` across environments, rejecting a second, different URL for one key. */
+class SourceIndex {
+    urls: Record<string, string> = Object.create(null);
+    #environments: Record<string, string> = Object.create(null);
+
+    record(key: string, url: string, environment: string): void {
+        let existing = Object.hasOwn(this.urls, key) ? this.urls[key] : undefined;
+        if (existing !== undefined && existing !== url) {
+            throw new Error(
+                `createAssetManifest(): source key "${key}" maps to "${existing}" in the "${this.#environments[key]}" environment and "${url}" in the "${environment}" environment.`,
+            );
+        }
+        this.urls[key] = url;
+        this.#environments[key] = environment;
     }
-    index[key] = url;
 }
 
 /** Absolute URLs (`/x`, `//host/x`, `https://…`) stay as they are; relative files join the base. */

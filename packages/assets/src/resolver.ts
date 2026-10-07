@@ -115,7 +115,7 @@ function manifestResolver(manifest: BuildAssetsManifest | DevAssetsManifest): As
             return {
                 href,
                 preloads: [...clientMetadata(key)!.preloads],
-                importMap: manifest.importMap,
+                importMap: copyImportMap(manifest.importMap),
             };
         },
 
@@ -174,7 +174,7 @@ function manifestResolver(manifest: BuildAssetsManifest | DevAssetsManifest): As
                 requireClientMetadata("getImportMap", path, sourceKey("getImportMap", path));
             }
             if (list.length === 0 || manifest.mode === "dev") return { imports: {} };
-            return manifest.importMap;
+            return copyImportMap(manifest.importMap);
         },
     };
 
@@ -189,6 +189,11 @@ function manifestResolver(manifest: BuildAssetsManifest | DevAssetsManifest): As
 /** Reads a source key's record without reaching `Object.prototype` members such as `constructor`. */
 function own<Value>(record: Record<string, Value>, key: string): Value | undefined {
     return Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
+/** Callers merge their own mappings into the returned map; the manifest's stays intact. */
+function copyImportMap(map: ImportMap): ImportMap {
+    return structuredClone(map);
 }
 
 function sourceKey(method: Method, path: string): string {

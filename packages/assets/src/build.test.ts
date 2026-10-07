@@ -398,17 +398,25 @@ describe("proposal 0005: createAssetManifest diagnostics", () => {
         }
     });
 
-    it("rejects one source key mapped to two different URLs", () => {
+    it("rejects a chunk without a file", () => {
+        let build = islandApp();
+        delete (build.environments.client!.chunks.runtime as Partial<AssetBuildChunk>).file;
+        expect(() => createAssetManifest(build)).toThrow(
+            'createAssetManifest(): chunk "runtime" in the "client" environment has no file.',
+        );
+    });
+
+    it("rejects one source key mapped to two different URLs, naming both environments", () => {
         let build = islandApp();
         build.environments.client!.entries["./app/counter.tsx"] = "entry";
         expect(() => createAssetManifest(build)).toThrow(
-            'createAssetManifest(): source key "app/counter.tsx" maps to both "/assets/counter-d4.js" and "/assets/entry.browser-a1.js" in the "client" environment.',
+            'createAssetManifest(): source key "app/counter.tsx" maps to "/assets/counter-d4.js" in the "client" environment and "/assets/entry.browser-a1.js" in the "client" environment.',
         );
 
         build = islandApp();
         build.environments.ssr!.assets = { "app/styles.css": "assets/styles-other.css" };
         expect(() => createAssetManifest(build)).toThrow(
-            'createAssetManifest(): source key "app/styles.css" maps to both "/assets/styles-i9.css" and "/assets/styles-other.css" in the "ssr" environment.',
+            'createAssetManifest(): source key "app/styles.css" maps to "/assets/styles-i9.css" in the "client" environment and "/assets/styles-other.css" in the "ssr" environment.',
         );
     });
 

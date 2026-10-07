@@ -159,8 +159,9 @@ The generator stops at the first problem and names the environment and the chunk
 | `chunk "…" in the "…" environment imports "…", which is not a chunk in that environment.` | An `imports` or `dynamicImports` edge names a missing chunk |
 | `browser entry "…" in the "…" environment names chunk "…", which is not a chunk in that environment.` | An entry points at a missing chunk |
 | `the "…" environment lists browser entries, but only the client environment has them.` | A server environment has `entries` |
+| `chunk "…" in the "…" environment has no file.` | A chunk has no `file` |
 | `chunk "…" in the "…" environment has no imports list.` | A chunk is missing one of its four lists |
-| `source key "…" maps to both "…" and "…" in the "…" environment.` | Two spellings of one key name different entries or assets |
+| `source key "…" maps to "…" in the "…" environment and "…" in the "…" environment.` | Two spellings of one key, or two environments, name different entries or assets for it |
 | `source key "…" in the "…" environment is an absolute file URL.` | A key was not normalized to a project-relative path |
 
 The generator cannot detect a fact your integration omitted. A chunk whose `imports` list is incomplete produces incomplete preloads without an error.

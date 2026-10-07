@@ -46,7 +46,7 @@ export let stylesheets = await assets.getStylesheets("app/entry.server.ts");
 
 `scriptEntry` is `{ href, preloads, importMap }`: the entry's URL, its chunk and static JavaScript dependencies for `modulepreload` links, and the client import map. Under `vite dev`, `href` is the dev URL, `preloads` is empty, and the map is `{ imports: {} }`.
 
-Keys are paths from the project root. `./app/x.ts`, `/app/x.ts`, `file:app/x.ts`, and `app/x.ts#Export` all name `app/x.ts`, and a module outside the root keeps its leading `../`. A string literal passed to `getScriptEntry` or `getHref` in server code registers that module as a browser entry. Computed paths go in `assets({ include: [...] })`.
+Keys are paths from the project root. `./app/x.ts`, `/app/x.ts`, `file:app/x.ts`, and `app/x.ts#Export` all name `app/x.ts`, and a module outside the root keeps its leading `../`. A string literal passed to `getScriptEntry` or `getHref` in server code registers that module as a browser input: a script entry for `getScriptEntry`, an emitted asset for `getHref`. Computed paths go in `assets({ include: [...] })`.
 
 | Method | Returns |
 | --- | --- |
