@@ -5,7 +5,7 @@ import { isCSSRequest, normalizePath } from "vite";
 import type { DevGraph, DevSnapshot } from "./dev-snapshot.ts";
 import type { AssetPluginState } from "./state.ts";
 
-import { assetsSpecifier, quotedList } from "../specifier.ts";
+import { assetsSpecifier } from "../specifier.ts";
 import { importSpecifiers } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
 import { discoverInputs, inputPath } from "./entries.ts";
