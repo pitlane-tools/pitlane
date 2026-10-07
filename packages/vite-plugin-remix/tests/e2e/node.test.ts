@@ -50,6 +50,16 @@ describe("production build", () => {
         // client entry script tag
         expect(html).toMatch(/<script[^>]+src="\/assets\/entry\.browser-[^"']+\.js"/);
 
+        // remix() turns chunk import maps on by default: the document's
+        // <ImportMap> carries the build's mappings ahead of every module
+        // script and modulepreload link.
+        let mapMatch = /<script[^>]*type="importmap"[^>]*>([^<]*)<\/script>/.exec(html);
+        expect(mapMatch).not.toBeNull();
+        let map = JSON.parse(mapMatch![1]) as { imports: Record<string, string> };
+        expect(Object.keys(map.imports).length).toBeGreaterThan(0);
+        let firstModule = html.search(/<script[^>]+type="module"|<link[^>]+rel="modulepreload"/);
+        expect(mapMatch!.index).toBeLessThan(firstModule);
+
         // every referenced stylesheet exists in dist/client
         let cssHrefs = [...html.matchAll(/href="(\/assets\/[^"']+\.css)"/g)].map(match => match[1]);
         expect(cssHrefs.length).toBeGreaterThan(0);

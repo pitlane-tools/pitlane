@@ -80,7 +80,7 @@ remix({
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
     serverHandler: true, // false when a platform plugin serves dev requests
-    assets: {}, // { include, chunkImportMap } for the asset plugin
+    assets: {}, // { include, chunkImportMap } for the asset plugin; maps are on
 });
 ```
 
@@ -92,7 +92,7 @@ remix({
 | `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`, and the module dev requests are served through. |
 | `serverEnvironments` | `string[]` | `["ssr"]` | Environment names treated as "server" by asset collection and hot module replacement. |
 | `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
-| `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the asset plugin: extra browser entries for computed paths, and the [chunk import map](#chunk-import-maps) opt-in. |
+| `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the asset plugin: extra browser entries for computed paths, and the [chunk import map](#chunk-import-maps) switch. `remix()` defaults it to `true`. |
 
 ## SPA mode
 
@@ -199,7 +199,7 @@ if (import.meta.hot) {
 | --- | --- | --- |
 | `scriptEntry.href` | source URL (`/app/entry.browser.ts`) | hashed chunk (`/assets/entry.browser-D3adB33f.js`) |
 | `scriptEntry.preloads` | **always empty** (no chunk graph exists yet) | the entry chunk, then its static imports |
-| `scriptEntry.importMap` | `{ imports: {} }` | `{ imports: {} }` unless chunk import maps are on |
+| `scriptEntry.importMap` | `{ imports: {} }` | the client build's import map, or `{ imports: {} }` with chunk import maps off |
 | `getStylesheets(…)` | dev URLs for the CSS the server graph imports | hashed files in `dist/client` |
 
 The same document works in both modes. Empty hint arrays produce no tags during development. Vite injects browser-only CSS and updates stylesheets in place when their rules change.
@@ -208,7 +208,7 @@ The manifest is server-side data. Import `app/assets.ts` from server-rendered mo
 
 ### Chunk import maps
 
-Off by default. `remix({ assets: { chunkImportMap: true } })` turns on Vite's chunk import map for the client build, so a dependency's new hash changes one map entry instead of every chunk importing it. `scriptEntry.importMap` then carries the complete map, and the document must deliver it before any module script or `modulepreload` link:
+On by default. `remix()` turns on Vite's chunk import map for the client build, so a dependency's new hash changes one map entry instead of every chunk importing it. `scriptEntry.importMap` carries the complete map, and the document must deliver it before any module script or `modulepreload` link:
 
 ```tsx
 import { ImportMap } from "remix/component/server";
@@ -217,7 +217,13 @@ import { ImportMap } from "remix/component/server";
 <ImportMap value={scriptEntry.importMap} />;
 ```
 
-The option requires browsers with import maps and `import.meta.resolve`, and conflicts with Vite's `experimental.renderBuiltUrl`. The [assets guide](/guides/assets#chunk-import-maps) covers the caching limits and renderers other than Remix.
+The option requires browsers with import maps and `import.meta.resolve`, and conflicts with Vite's `experimental.renderBuiltUrl`. An app that uses `renderBuiltUrl`, or targets browsers without those features, turns maps off:
+
+```ts
+remix({ assets: { chunkImportMap: false } });
+```
+
+Chunks then import each other by their final URLs, and `scriptEntry.importMap` stays `{ imports: {} }`. A plugin value wins over Vite's own `build.chunkImportMap` in the client environment. With no plugin value, a native setting applies. The [assets guide](/guides/assets#chunk-import-maps) covers the caching limits and renderers other than Remix.
 
 ## The `clientEntry()` transform
 

@@ -1,3 +1,5 @@
+import { ImportMap } from "remix/component/server";
+
 import { scriptEntry } from "./assets.ts";
 
 /**
@@ -11,6 +13,7 @@ export function Shell() {
             <head>
                 <meta charSet="utf-8" />
                 <title>Client rendered</title>
+                <ImportMap value={scriptEntry.importMap} />
                 <script src={scriptEntry.href} type="module" />
             </head>
             <body>

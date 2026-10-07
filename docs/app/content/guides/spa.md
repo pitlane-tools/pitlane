@@ -34,8 +34,9 @@ Nothing in this mode renders outside a browser, so there is no server-safe rende
 | Component HMR      | yes                              | yes                   |
 | Server-data HMR    | yes                              | no server data exists |
 | Asset resolver     | how HTML names its client assets | Vite injects the tags |
+| Chunk import map   | on; the document renders it      | on; Vite writes it into `index.html` |
 
-Every `server*` option goes with it: `serverEntry`, `serverEnvironments`, and `serverHandler` describe a server that no longer exists. `clientEntry` goes too, because the browser entry is whatever `index.html` loads.
+Every `server*` option goes with it: `serverEntry`, `serverEnvironments`, and `serverHandler` describe a server that no longer exists. `clientEntry` goes too, because the browser entry is whatever `index.html` loads. Of the `assets` options, only `chunkImportMap` still applies. `remix({ server: false, assets: { chunkImportMap: false } })` turns the map off.
 
 ## Why use the plugin at all
 

@@ -1,6 +1,7 @@
 import type { Handle, RemixNode } from "remix/component";
 
 import { css, type ThemedCSSProps, tva } from "@pitlane/theme";
+import { ImportMap } from "remix/component/server";
 
 import { scriptEntry, stylesheets } from "../assets.ts";
 import { type DocumentPage, markdownPath } from "../document.ts";
@@ -261,6 +262,7 @@ export function Document(handle: Handle<DocumentProps>) {
                     {stylesheets.map(href => (
                         <link href={href} key={href} rel="stylesheet" />
                     ))}
+                    <ImportMap value={scriptEntry.importMap} />
                     <script async src={scriptEntry.href} type="module" />
                     {scriptEntry.preloads.map(href => (
                         <link href={href} key={href} rel="modulepreload" />

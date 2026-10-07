@@ -12,7 +12,7 @@
  * @module @pitlane/vite-plugin-remix
  */
 import type { AssetsPluginOptions } from "@pitlane/assets/vite-plugin";
-import type { PluginOption } from "vite";
+import type { Plugin, PluginOption, UserConfig } from "vite";
 
 import { assets } from "@pitlane/assets/vite-plugin";
 import { fetchServer } from "@pitlane/vite-plugin-fetch-server";
@@ -110,8 +110,9 @@ export interface RemixPluginOptions {
     prerender?: PrerenderOption;
     /**
      * Options for the asset plugin `remix()` installs: `include` for browser
-     * entries the server names with computed paths, and `chunkImportMap` to
-     * opt in to Vite's chunk import map. Server environments come from
+     * entries the server names with computed paths, and `chunkImportMap`,
+     * which `remix()` turns on unless this option or Vite's own
+     * `build.chunkImportMap` says otherwise. Server environments come from
      * `serverEnvironments`.
      *
      * Ignored when `server` is `false`.
@@ -192,12 +193,13 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
                     "drop `prerender` to stay a SPA.",
             );
         }
-        return spa();
+        return spa(assetsOptions.chunkImportMap);
     }
 
     let serverEnvironmentSet = new Set(serverEnvironments);
 
     return [
+        assetsOptions.chunkImportMap === undefined && chunkImportMapDefault(),
         assets({ ...assetsOptions, serverEnvironments }),
         serverHandler && fetchServer({ entry: serverEntry, environment: serverEnvironments[0] }),
         build({ clientEntry, serverEntry, prerender }),
@@ -211,17 +213,47 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
 /**
  * SPA mode: the subset of `remix()` that applies when there is no server.
  * Vite already serves `index.html` and builds it to a static site, so the only
- * thing left to wire is component hot module replacement — which a
- * client-rendered app wants just as much as a server-rendered one.
+ * things left to wire are component hot module replacement — which a
+ * client-rendered app wants just as much as a server-rendered one — and the
+ * chunk import map default, which Vite writes into `index.html` itself.
  *
  * Everything server-shaped is absent by construction: no server environment,
  * no `dist/ssr`, no dev fetch handler, no asset manifest, and no server-data
  * HMR (there is no server data to revalidate, so no server update is ever
  * broadcast).
  */
-function spa(): PluginOption {
+function spa(chunkImportMap: boolean | undefined): PluginOption {
     // Every environment is a client one, so no environment name is "server".
     let serverEnvironmentSet = new Set<string>();
 
-    return [componentHmr(serverEnvironmentSet), clientEntryTransform(serverEnvironmentSet)];
+    return [
+        chunkImportMap === undefined
+            ? chunkImportMapDefault()
+            : { name: "pitlane-remix-chunk-import-map", config: () => clientMaps(chunkImportMap) },
+        componentHmr(serverEnvironmentSet),
+        clientEntryTransform(serverEnvironmentSet),
+    ];
+}
+
+function clientMaps(chunkImportMap: boolean): UserConfig {
+    return { environments: { client: { build: { chunkImportMap } } } };
+}
+
+/**
+ * Turns chunk import maps on for the client build when neither
+ * `remix({ assets: { chunkImportMap } })` nor Vite's own `build.chunkImportMap`
+ * chooses. A Remix document renders `<ImportMap>`, so the map has somewhere to
+ * go; `assets()` itself still defaults to off. It runs before the `post`
+ * `assets()` config hook, which then reads the native setting this supplies.
+ */
+function chunkImportMapDefault(): Plugin {
+    return {
+        name: "pitlane-remix-chunk-import-map",
+        config(config) {
+            let native =
+                config.environments?.client?.build?.chunkImportMap ?? config.build?.chunkImportMap;
+            if (native !== undefined) return;
+            return clientMaps(true);
+        },
+    };
 }

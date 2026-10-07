@@ -160,7 +160,7 @@ remix({
 | `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js` and loaded for dev requests. |
 | `serverEnvironments` | `string[]` | `["ssr"]` | Environment names treated as "server" for island discovery, stylesheet collection, and HMR. |
 | `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry with [`@pitlane/vite-plugin-fetch-server`](https://pitlane.tools/guides/fetch-server). Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. Netlify's plugin does not serve SSR, so keep the default there. |
-| `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the `@pitlane/assets` plugin: browser entries named by computed paths, and the chunk import map opt-in. |
+| `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the `@pitlane/assets` plugin: browser entries named by computed paths, and the chunk import map switch, which `remix()` turns on unless you pass `false`. |
 
 ## Prerendering
 
@@ -258,6 +258,8 @@ Server-rendered documents need the URLs of the browser entry, its preloads, and 
 
 ```tsx
 // app/document.tsx
+import { ImportMap } from "remix/component/server";
+
 import { scriptEntry, stylesheets } from "./assets.ts";
 
 export function Document() {
@@ -267,6 +269,7 @@ export function Document() {
                 {stylesheets.map(href => (
                     <link key={href} rel="stylesheet" href={href} />
                 ))}
+                <ImportMap value={scriptEntry.importMap} />
                 {scriptEntry.preloads.map(href => (
                     <link key={href} rel="modulepreload" href={href} />
                 ))}
@@ -278,7 +281,7 @@ export function Document() {
 }
 ```
 
-In dev, URLs point at source modules and `preloads` is empty; in production they point at hashed files in `dist/client`. `scriptEntry.importMap` stays `{ imports: {} }` unless you opt in with `remix({ assets: { chunkImportMap: true } })`, in which case render it before any module script.
+In dev, URLs point at source modules and `preloads` is empty; in production they point at hashed files in `dist/client`. `remix()` turns on Vite's chunk import maps, so in production `scriptEntry.importMap` is the client build's map: render it with Remix's `<ImportMap>` before any module script or `modulepreload` link. `remix({ assets: { chunkImportMap: false } })` turns maps off and leaves `{ imports: {} }`; apps using Vite's `experimental.renderBuiltUrl`, which cannot be combined with maps, need that.
 
 ## `clientEntry()` authoring rules
 

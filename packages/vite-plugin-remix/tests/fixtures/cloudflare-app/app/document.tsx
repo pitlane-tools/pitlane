@@ -1,6 +1,7 @@
 import type { Handle } from "remix/component";
 
 import { Frame } from "remix/component";
+import { ImportMap } from "remix/component/server";
 
 import "./styles.css";
 import { scriptEntry, stylesheets } from "./assets.ts";
@@ -16,6 +17,7 @@ export function Document(handle: Handle<{ hasEnv: boolean; userAgent: string; pa
                 {stylesheets.map(href => (
                     <link href={href} key={href} rel="stylesheet" />
                 ))}
+                <ImportMap value={scriptEntry.importMap} />
                 {scriptEntry.preloads.map(href => (
                     <link href={href} key={href} rel="modulepreload" />
                 ))}

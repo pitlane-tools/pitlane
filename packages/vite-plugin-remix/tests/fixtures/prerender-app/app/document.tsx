@@ -1,5 +1,7 @@
 import type { RemixNode } from "remix/component";
 
+import { ImportMap } from "remix/component/server";
+
 import "./styles.css";
 import { scriptEntry, stylesheets } from "./assets.ts";
 
@@ -17,6 +19,7 @@ export function Document(handle: { props: DocumentProps }) {
                 {stylesheets.map(href => (
                     <link href={href} key={href} rel="stylesheet" />
                 ))}
+                <ImportMap value={scriptEntry.importMap} />
                 <script async src={scriptEntry.href} type="module" />
             </head>
             <body>
