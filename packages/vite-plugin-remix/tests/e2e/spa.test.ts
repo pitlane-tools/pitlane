@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { build, preview } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
+import { remix } from "../../src/index.ts";
+
 const FIXTURE = join(import.meta.dirname, "../fixtures/spa-app");
 const PREVIEW_PORT = 7321;
 
@@ -43,6 +45,35 @@ describe("SPA build", () => {
         for (let script of scripts) {
             expect(script).not.toContain("component-hmr");
             expect(script).not.toContain("registerComponentForHmr");
+        }
+    });
+
+    it("puts a nonempty import map before the first module script or preload", () => {
+        let html = readFileSync(join(FIXTURE, "dist/index.html"), "utf8");
+        let match = html.match(/<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/);
+        expect(match).not.toBeNull();
+        let map = JSON.parse(match![1]) as { imports?: Record<string, string> };
+        expect(Object.keys(map.imports ?? {}).length).toBeGreaterThan(0);
+
+        let firstModule = html.search(/<script[^>]*type="module"|<link[^>]*rel="modulepreload"/);
+        expect(firstModule).toBeGreaterThan(-1);
+        expect(match!.index!).toBeLessThan(firstModule);
+    });
+
+    it("omits the import map when chunkImportMap is false", async () => {
+        let outDir = join(FIXTURE, "dist-no-map");
+        try {
+            await build({
+                root: FIXTURE,
+                configFile: false,
+                logLevel: "error",
+                plugins: [remix({ server: false, assets: { chunkImportMap: false } })],
+                build: { outDir, emptyOutDir: true },
+            });
+            let html = readFileSync(join(outDir, "index.html"), "utf8");
+            expect(html).not.toContain('type="importmap"');
+        } finally {
+            await rm(outDir, { recursive: true, force: true });
         }
     });
 });

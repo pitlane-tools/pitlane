@@ -88,6 +88,22 @@ describe("prerender", () => {
         expect(html).not.toContain("entry.browser.ts");
     });
 
+    it("puts the import map before the module script and maps to emitted files", async () => {
+        await buildFixture(["/"]);
+
+        let html = read("index.html");
+        let match = html.match(/<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/);
+        expect(match).not.toBeNull();
+        expect(match!.index!).toBeLessThan(html.search(/<script[^>]*type="module"/));
+
+        let map = JSON.parse(match![1]) as { imports?: Record<string, string> };
+        let targets = Object.values(map.imports ?? {});
+        expect(targets.length).toBeGreaterThan(0);
+        for (let target of targets) {
+            expect(existsSync(join(OUT, target.replace(/^\//, "")))).toBe(true);
+        }
+    });
+
     it("prerenders every static route path when true", async () => {
         await buildFixture(true);
 
