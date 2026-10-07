@@ -217,6 +217,40 @@ jobs:
                   npm install --no-audit --no-fund
                   npm run check
 
+    assets-framework-examples:
+        name: Assets example (${{ matrix.example }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                example: [react-router, vue-router, solid-router, preact-islands, lit-islands]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
+            - run: vp install --frozen-lockfile
+            - run: vp run --filter @pitlane/assets --filter @pitlane/vite-plugin-fetch-server build
+            - name: Pack the consumer artifacts
+              run: |
+                  (cd packages/assets && pnpm pack --pack-destination "$RUNNER_TEMP/assets-package")
+                  (cd packages/vite-plugin-fetch-server && pnpm pack --pack-destination "$RUNNER_TEMP/fetch-server-package")
+            # Each example installs the packed tarballs the way an app would,
+            # never the workspace, then type-checks, builds, verifies the built
+            # output, and loads the page in Chromium.
+            - name: Build, verify, and smoke the example
+              run: |
+                  cp -R "packages/assets/examples/${{ matrix.example }}" "$RUNNER_TEMP/example"
+                  cd "$RUNNER_TEMP/example"
+                  assets=("$RUNNER_TEMP"/assets-package/*.tgz)
+                  bridge=("$RUNNER_TEMP"/fetch-server-package/*.tgz)
+                  npm pkg set "dependencies.@pitlane/assets=file:${assets[0]}"
+                  npm pkg set "devDependencies.@pitlane/vite-plugin-fetch-server=file:${bridge[0]}"
+                  npm install --no-audit --no-fund
+                  npx playwright install --with-deps chromium
+                  npm run check
+
     leaks:
         name: Dependency APIs must not leak
         runs-on: ubuntu-latest

@@ -266,6 +266,20 @@ let head = [
 
 Escape URLs before putting them in HTML attributes. A configured base or filename can contain a quote or `<`. JSX handles attribute escaping for you. Plain HTML strings need the `attribute` function above. `renderImportMap` escapes its own output.
 
+### Framework examples
+
+Five small apps under [`packages/assets/examples`](https://github.com/pitlane-tools/pitlane/tree/main/packages/assets/examples) show the resolver with a renderer that is not Remix. Each one installs `@pitlane/assets` as an ordinary dependency and serves development requests through [`fetchServer()`](/guides/fetch-server). The document is an `@remix-run/html-template` template. The build has a client and a server environment, with a verify script and a browser check run against the output.
+
+| Example | Shows |
+| --- | --- |
+| `react-router` | React 19 with React Router's data router. Routes come from `import.meta.glob` with a source key each; the matched keys go to `getPreloads` and `getStylesheets` |
+| `vue-router` | Vue Router with pages written in Vue's Vapor mode inside a server-rendered shell |
+| `solid-router` | Solid 2.0 with Solid Router: the pages are lazy routes registered as browser entries, so Solid's own asset resolver gets each page's script URL |
+| `preact-islands` | Preact islands served through `@remix-run/fetch-router`; a transform registers each island with a literal `getScriptEntry` call |
+| `lit-islands` | Lit elements rendered with declarative shadow roots and hydrated in place; a registry module holds the literal `getScriptEntry` calls |
+
+No route-specific API is involved. The manifest indexes every module the glob discovered, so a computed key works in the metadata methods. Vue Vapor and Solid 2.0 are prereleases, pinned exactly in those two examples.
+
 ## Chunk import maps
 
 Off by default for `assets()`, and on by default under `remix()`. With them off, chunks import each other by their final URLs, and a document needs no import map.
