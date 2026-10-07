@@ -243,7 +243,30 @@ export default { fetch: () => Response.json({ href }) };`,
                 "app/assets.ts": resolverModule,
                 "app/router.ts": "export let router = { getHref: (path: string) => path };",
                 "app/private.ts": 'export const secret = "server-only secret";',
+                "app/factory.ts":
+                    "export let createAssetResolver = () => ({ getHref: (key: string) => key });",
+                "app/hoisted.ts": `import { assets } from "./assets.ts";
+export function hoisted() {
+    if (Math.random() > 2) { var assets = { getHref: (key: string) => key }; }
+    return assets.getHref("app/private.ts");
+}`,
+                "app/named.ts": `import { assets } from "./assets.ts";
+export let named = function assets() { return assets.getHref("app/private.ts"); };`,
+                "app/parameter.ts": `import { createAssetResolver } from "@pitlane/assets";
+export let parameter = createAssetResolver => createAssetResolver().getHref("app/private.ts");`,
+                "app/impostor.ts": `import { createAssetResolver } from "./factory.ts";
+export let impostor = () => createAssetResolver().getHref("app/private.ts");`,
+                "app/twice.ts": `import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
+let resolver = createAssetResolver(manifest);
+export let twice = () => resolver.getHref("app/private.ts");
+export function rebind() { let resolver = 1; return resolver; }`,
                 "app/entry.ts": `import * as resolvers from "./assets.ts";
+import "./hoisted.ts";
+import "./named.ts";
+import "./parameter.ts";
+import "./impostor.ts";
+import "./twice.ts";
 import { assets } from "./assets.ts";
 import { router } from "./router.ts";
 export let lookup = api => [api.getHref("app/private.ts"), api.getScriptEntry("app/private.ts")];
@@ -270,25 +293,33 @@ export default { fetch: () => Response.json({ about, href }) };`,
     );
 
     it.each(["dev", "build"])(
-        "registers literal calls on a resolver constructed inline, bound, imported, re-exported, or default-exported in %s",
+        "registers literal calls on a resolver constructed inline, bound, aliased, imported, re-exported, star-exported, or default-exported in %s",
         async mode => {
             let root = await fixture({
                 "app/assets.ts": resolverModule,
                 "app/resolvers.ts": 'export { assets } from "./assets.ts";',
+                "app/star.ts": 'export * from "./assets.ts";',
                 "app/default-assets.ts": `import { createAssetResolver } from "@pitlane/assets";
 import manifest from "@pitlane/assets/manifest";
 export default createAssetResolver(manifest);`,
                 "app/logo.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="logo"></svg>',
                 "app/badge.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="badge"></svg>',
                 "app/icon.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="icon"></svg>',
+                "app/star.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="star"></svg>',
+                "app/made.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="made"></svg>',
+                "app/alias.svg": '<svg xmlns="http://www.w3.org/2000/svg" id="alias"></svg>',
                 "app/widget.ts": 'document.title = "widget";',
                 "app/entry.ts": `import { createAssetResolver } from "@pitlane/assets";
 import manifest from "@pitlane/assets/manifest";
 import { assets } from "./assets.ts";
 import { assets as resolver } from "./assets.ts";
 import { assets as reexported } from "./resolvers.ts";
+import { assets as starred } from "./star.ts";
 import defaultResolver from "./default-assets.ts";
 const local = createAssetResolver(manifest);
+const make = createAssetResolver;
+const made = make(manifest);
+const alias = assets;
 let hrefs = {
     logo: await assets.getHref("app/logo.svg"),
     widget: (await resolver.getScriptEntry("app/widget.ts")).href,
@@ -296,6 +327,9 @@ let hrefs = {
     icon: await defaultResolver.getHref("app/icon.svg"),
     page: await createAssetResolver(manifest).getHref("app/page.css"),
     shared: (await local.getScriptEntry("app/shared.ts")).href,
+    star: await starred.getHref("app/star.svg"),
+    made: await made.getHref("app/made.svg"),
+    alias: await alias.getHref("app/alias.svg"),
 };
 export default { fetch: () => Response.json(hrefs) };`,
             });
@@ -309,6 +343,9 @@ export default { fetch: () => Response.json(hrefs) };`,
                     icon: "/app/icon.svg",
                     page: "/app/page.css",
                     shared: "/app/shared.ts",
+                    star: "/app/star.svg",
+                    made: "/app/made.svg",
+                    alias: "/app/alias.svg",
                 });
             } else {
                 expect(hrefs).toEqual({
@@ -318,6 +355,9 @@ export default { fetch: () => Response.json(hrefs) };`,
                     icon: expect.stringMatching(/^\/assets\/icon-[\w-]+\.svg$/),
                     page: expect.stringMatching(/^\/assets\/page-[\w-]+\.css$/),
                     shared: expect.stringMatching(/^\/assets\/shared-[\w-]+\.js$/),
+                    star: expect.stringMatching(/^\/assets\/star-[\w-]+\.svg$/),
+                    made: expect.stringMatching(/^\/assets\/made-[\w-]+\.svg$/),
+                    alias: expect.stringMatching(/^\/assets\/alias-[\w-]+\.svg$/),
                 });
             }
         },

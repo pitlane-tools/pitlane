@@ -3,8 +3,10 @@ import type { ESTree, Rollup } from "vite";
 import { parseSync } from "vite";
 
 import type { BrowserInput } from "./entries.ts";
+import type { TopLevelBindings } from "./resolver-bindings.ts";
 
-import { declaredNames, scopeNames } from "./scope-names.ts";
+import { declaredNames, forEachNode } from "./binding-names.ts";
+import { moduleExportName, resolverOrigin, topLevelBindings } from "./resolver-bindings.ts";
 
 /**
  * An export of another module. `module` is the import specifier as written
@@ -27,85 +29,23 @@ export interface LiteralCall {
 /** What one module contributes to deciding which literal calls register browser inputs. */
 export interface ResolverUsage {
     calls: LiteralCall[];
-    /** Exported name → where the exported binding's resolver would come from. */
-    resolverExports: Map<string, ResolverOrigin>;
-}
-
-interface TopLevelBindings {
-    /** Local names of `createAssetResolver`, however it was imported. */
-    constructors: Set<string>;
-    /** Top-level variables initialized by a `createAssetResolver()` call. */
-    resolvers: Set<string>;
-    imports: Map<string, ImportedBinding>;
+    /**
+     * Exported name → where the exported binding's resolver would come from,
+     * or `null` for an explicit export that cannot name one. An explicit export
+     * hides any same-named binding of {@link starExports}.
+     */
+    resolverExports: Map<string, ResolverOrigin | null>;
+    /** Modules this one re-exports with `export * from`, as written until linked. */
+    starExports: string[];
 }
 
 // A file re-exporting a resolver may mention neither method nor constructor.
-const RELEVANT = /\bget(?:ScriptEntry|Href)\b|\bcreateAssetResolver\b|\bexport\s*(?:\{|default\b)/;
-
-function moduleExportName(node: ESTree.IdentifierName | ESTree.StringLiteral): string {
-    return node.type === "Literal" ? node.value : node.name;
-}
-
-function constructs(node: ESTree.Node | null | undefined, constructors: Set<string>): boolean {
-    while (node?.type === "AwaitExpression" || node?.type === "ParenthesizedExpression")
-        node = node.type === "AwaitExpression" ? node.argument : node.expression;
-    return (
-        node?.type === "CallExpression" &&
-        node.callee.type === "Identifier" &&
-        constructors.has(node.callee.name)
-    );
-}
-
-function topLevelBindings(program: ESTree.Program): TopLevelBindings {
-    let bindings: TopLevelBindings = {
-        constructors: new Set(),
-        resolvers: new Set(),
-        imports: new Map(),
-    };
-    for (let statement of program.body) {
-        if (statement.type !== "ImportDeclaration") continue;
-        for (let specifier of statement.specifiers) {
-            if (specifier.type === "ImportNamespaceSpecifier") continue;
-            let name =
-                specifier.type === "ImportDefaultSpecifier"
-                    ? "default"
-                    : moduleExportName(specifier.imported);
-            if (name === "createAssetResolver") bindings.constructors.add(specifier.local.name);
-            else
-                bindings.imports.set(specifier.local.name, {
-                    module: statement.source.value,
-                    name,
-                });
-        }
-    }
-    for (let statement of program.body) {
-        let declaration =
-            statement.type === "ExportNamedDeclaration" ? statement.declaration : statement;
-        if (declaration?.type !== "VariableDeclaration") continue;
-        for (let { id, init } of declaration.declarations) {
-            if (id.type === "Identifier" && constructs(init, bindings.constructors))
-                bindings.resolvers.add(id.name);
-        }
-    }
-    return bindings;
-}
-
-/** Where the resolver an expression evaluates to comes from, when the expression can name one. */
-function resolverOrigin(
-    node: ESTree.Node,
-    bindings: TopLevelBindings,
-    shadowed: ReadonlySet<string> = new Set(),
-): ResolverOrigin | undefined {
-    if (constructs(node, bindings.constructors)) return "local";
-    if (node.type !== "Identifier" || shadowed.has(node.name)) return;
-    if (bindings.resolvers.has(node.name)) return "local";
-    return bindings.imports.get(node.name);
-}
+const RELEVANT =
+    /\bget(?:ScriptEntry|Href)\b|\bcreateAssetResolver\b|\bexport\s*(?:[{*]|default\b|(?:const|let|var)\b)/;
 
 function literalCall(
     call: ESTree.CallExpression,
     bindings: TopLevelBindings,
-    shadowed: ReadonlySet<string>,
 ): LiteralCall | undefined {
     let { callee, arguments: args } = call;
     if (callee.type !== "MemberExpression" || callee.computed) return;
@@ -113,7 +53,7 @@ function literalCall(
     let argument = args[0];
     if (method !== "getScriptEntry" && method !== "getHref") return;
     if (argument?.type !== "Literal" || typeof argument.value !== "string") return;
-    let receiver = resolverOrigin(callee.object, bindings, shadowed);
+    let receiver = resolverOrigin(callee.object, bindings);
     if (!receiver) return;
     return {
         input: { key: argument.value, kind: method === "getScriptEntry" ? "script" : "asset" },
@@ -121,49 +61,24 @@ function literalCall(
     };
 }
 
-function literalCalls(program: ESTree.Program, bindings: TopLevelBindings): LiteralCall[] {
-    let calls: LiteralCall[] = [];
-    let pending: [unknown, ReadonlySet<string>][] = [[program.body, new Set()]];
-    while (pending.length) {
-        let [node, shadowed] = pending.pop()!;
-        if (!node || typeof node !== "object") continue;
-        if (Array.isArray(node)) {
-            for (let child of node) pending.push([child, shadowed]);
-            continue;
-        }
-        let current = node as ESTree.Node;
-        let names = scopeNames(current);
-        let scoped = names.length ? new Set([...shadowed, ...names]) : shadowed;
-        if (current.type === "CallExpression") {
-            let call = literalCall(current, bindings, scoped);
-            if (call) calls.push(call);
-        }
-        for (let key in node) {
-            let child = (node as Record<string, unknown>)[key];
-            if (child && typeof child === "object") pending.push([child, scoped]);
-        }
-    }
-    return calls;
-}
-
 function resolverExports(
     program: ESTree.Program,
     bindings: TopLevelBindings,
-): Map<string, ResolverOrigin> {
-    let exported = new Map<string, ResolverOrigin>();
+): Map<string, ResolverOrigin | null> {
+    let exported = new Map<string, ResolverOrigin | null>();
     for (let statement of program.body) {
-        if (statement.type === "ExportDefaultDeclaration") {
-            let found = resolverOrigin(statement.declaration, bindings);
-            if (found) exported.set("default", found);
-        }
+        if (statement.type === "ExportDefaultDeclaration")
+            exported.set("default", resolverOrigin(statement.declaration, bindings) ?? null);
+        if (statement.type === "ExportAllDeclaration" && statement.exported)
+            exported.set(moduleExportName(statement.exported), null);
         if (statement.type !== "ExportNamedDeclaration") continue;
         for (let name of declaredNames(statement.declaration))
-            if (bindings.resolvers.has(name)) exported.set(name, "local");
+            exported.set(name, bindings.resolvers.get(name) ?? null);
         for (let specifier of statement.specifiers) {
             let found = statement.source
                 ? { module: statement.source.value, name: moduleExportName(specifier.local) }
                 : resolverOrigin(specifier.local, bindings);
-            if (found) exported.set(moduleExportName(specifier.exported), found);
+            exported.set(moduleExportName(specifier.exported), found ?? null);
         }
     }
     return exported;
@@ -178,23 +93,33 @@ export function scanResolverUsage(code: string, id: string): ResolverUsage | und
     if (!RELEVANT.test(code)) return;
     let { program } = parseSync(id, code);
     let bindings = topLevelBindings(program);
-    let calls = literalCalls(program, bindings);
+    let calls: LiteralCall[] = [];
+    forEachNode(program, node => {
+        let call = node.type === "CallExpression" ? literalCall(node, bindings) : undefined;
+        if (call) calls.push(call);
+    });
     let exported = resolverExports(program, bindings);
-    if (calls.length === 0 && exported.size === 0) return;
-    return { calls, resolverExports: exported };
+    let starExports = program.body.flatMap(statement =>
+        statement.type === "ExportAllDeclaration" && !statement.exported
+            ? [statement.source.value]
+            : [],
+    );
+    let namesResolver = [...exported.values()].some(origin => origin !== null);
+    if (calls.length === 0 && !namesResolver && starExports.length === 0) return;
+    return { calls, resolverExports: exported, starExports };
 }
 
-/** Replaces import specifiers with module ids, dropping bindings whose module is external or unresolved. */
+/** Replaces import specifiers with module ids, dropping those that are external or unresolved. */
 export async function linkResolverUsage(
     usage: ResolverUsage,
     resolve: (specifier: string) => Promise<Rollup.ResolvedId | null>,
 ): Promise<ResolverUsage> {
-    let specifiers = new Set<string>();
+    let specifiers = new Set<string>(usage.starExports);
     for (let origin of [
         ...usage.calls.map(call => call.receiver),
         ...usage.resolverExports.values(),
     ])
-        if (origin !== "local") specifiers.add(origin.module);
+        if (origin && origin !== "local") specifiers.add(origin.module);
     let resolved = new Map<string, string>();
     await Promise.all(
         [...specifiers].map(async specifier => {
@@ -212,12 +137,11 @@ export async function linkResolverUsage(
         let receiver = link(call.receiver);
         if (receiver) calls.push({ input: call.input, receiver });
     }
-    let exported = new Map<string, ResolverOrigin>();
-    for (let [name, origin] of usage.resolverExports) {
-        let linked = link(origin);
-        if (linked) exported.set(name, linked);
-    }
-    return { calls, resolverExports: exported };
+    let exported = new Map<string, ResolverOrigin | null>();
+    for (let [name, origin] of usage.resolverExports)
+        exported.set(name, origin && (link(origin) ?? null));
+    let starExports = usage.starExports.flatMap(specifier => resolved.get(specifier) ?? []);
+    return { calls, resolverExports: exported, starExports };
 }
 
 function isResolver(
@@ -229,8 +153,15 @@ function isResolver(
     let binding = `${origin.module}\0${origin.name}`;
     if (seen.has(binding)) return false;
     seen.add(binding);
-    let exported = modules.get(origin.module)?.resolverExports.get(origin.name);
-    return exported !== undefined && isResolver(modules, exported, seen);
+    let usage = modules.get(origin.module);
+    let exported = usage?.resolverExports.get(origin.name);
+    if (!usage || exported === null) return false;
+    if (exported) return isResolver(modules, exported, seen);
+    // `export *` never re-exports a default export.
+    return (
+        origin.name !== "default" &&
+        usage.starExports.some(module => isResolver(modules, { module, name: origin.name }, seen))
+    );
 }
 
 /** The browser inputs a module's literal calls register, given its environment's linked usage. */
