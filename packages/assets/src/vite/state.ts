@@ -16,7 +16,9 @@ export interface AssetPluginState {
     resolverUsage: Map<string, Map<string, ResolverUsage>>;
     registrations: Map<string, Map<string, string[]>>;
     onRegistrationChange?: (environment: string, owner: string) => void;
+    /** Source key → `emitFile` reference of each emitted client input, by kind. */
     assetReferences: Map<string, string>;
+    scriptReferences: Map<string, string>;
     outputs: Map<string, CapturedOutput>;
     importMap?: ImportMap;
     mapsEnabled: boolean;

@@ -41,6 +41,7 @@ export function assets(options: AssetsPluginOptions = {}): PluginOption {
         resolverUsage: new Map(),
         registrations: new Map(),
         assetReferences: new Map(),
+        scriptReferences: new Map(),
         outputs: new Map(),
         mapsEnabled: false,
     };

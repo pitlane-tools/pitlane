@@ -96,6 +96,8 @@ export function assetBuild(state: AssetPluginState): Plugin {
                     `[assets] Client built before server environments: ${missing.join(", ")}. Build servers before client.`,
                 );
             let root = state.config!.root;
+            state.assetReferences.clear();
+            state.scriptReferences.clear();
             let inputs = new Map(state.inputs);
             for (let modules of state.resolverUsage.values()) {
                 for (let owner of modules.keys()) {
@@ -118,9 +120,16 @@ export function assetBuild(state: AssetPluginState): Plugin {
                         originalFileName: id,
                         source: await readFile(id),
                     });
-                    state.assetReferences.set(sourceKey(state.config!.root, id), reference);
+                    state.assetReferences.set(sourceKey(root, id), reference);
                 } else {
-                    this.emitFile({ type: "chunk", id, preserveSignature: "exports-only" });
+                    let reference = this.emitFile({
+                        type: "chunk",
+                        id,
+                        preserveSignature: "exports-only",
+                    });
+                    // Another plugin may clear this chunk's isEntry; the reference still names it.
+                    if (!isCSSRequest(id))
+                        state.scriptReferences.set(sourceKey(root, id), reference);
                 }
             }
         },
@@ -155,10 +164,13 @@ export function assetBuild(state: AssetPluginState): Plugin {
                 let name = this.environment.name;
                 if (name !== "client" && !state.serverEnvironments.includes(name)) return;
                 let config = this.environment.config;
-                let references = new Map<string, string>();
+                let assets = new Map<string, string>();
+                let scripts = new Map<string, string>();
                 if (name === "client") {
                     for (let [key, reference] of state.assetReferences)
-                        references.set(key, this.getFileName(reference));
+                        assets.set(key, this.getFileName(reference));
+                    for (let [key, reference] of state.scriptReferences)
+                        scripts.set(key, this.getFileName(reference));
                     state.importMap = state.mapsEnabled
                         ? captureImportMap(bundle, importMapFileName(config))
                         : undefined;
@@ -168,7 +180,8 @@ export function assetBuild(state: AssetPluginState): Plugin {
                         bundle,
                         config,
                         name === "client" ? "client" : "server",
-                        references,
+                        assets,
+                        scripts,
                     ),
                     bundle,
                     outDir: resolve(config.root, config.build.outDir),

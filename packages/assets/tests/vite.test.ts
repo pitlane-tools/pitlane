@@ -237,6 +237,35 @@ export default { fetch: () => Response.json({ href }) };`,
         },
     );
 
+    it("keeps a registered script entry when a later plugin clears its chunk's isEntry", async () => {
+        let root = await fixture({
+            "app/widget.ts": 'export const widget = "registered script";',
+            "app/entry.ts": `import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
+const assets = createAssetResolver(manifest);
+const widget = ["app", "widget.ts"].join("/");
+export const script = await assets.getScriptEntry(widget);
+export const literal = await assets.getScriptEntry("app/browser.ts");
+export default { fetch: () => Response.json({}) };`,
+        });
+        let configured = config(root, { include: ["app/widget.ts"] });
+        configured.plugins!.push({
+            name: "clear-is-entry",
+            generateBundle(_options, bundle) {
+                if (this.environment.name !== "client") return;
+                for (let output of Object.values(bundle)) {
+                    if (output.type === "chunk") output.isEntry = false;
+                }
+            },
+        });
+        let module = await build(root, {}, configured);
+        expect(module.script.href).toMatch(/^\/assets\/widget-[\w-]+\.js$/);
+        expect(module.literal.href).toMatch(/^\/assets\/browser-[\w-]+\.js$/);
+        await expect(
+            readFile(join(root, "dist/client", module.script.href.slice(1)), "utf8"),
+        ).resolves.toContain("registered script");
+    });
+
     it.each(["dev", "build"])(
         "registers no input for a same-named method on a receiver that is not a resolver in %s",
         async mode => {

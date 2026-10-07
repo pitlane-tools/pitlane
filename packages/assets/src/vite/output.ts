@@ -16,7 +16,9 @@ export function captureOutput(
     bundle: Rolldown.OutputBundle,
     config: ResolvedConfig,
     role: "client" | "server",
-    assetReferences: Map<string, string>,
+    assetFiles: Map<string, string>,
+    /** Emitted script inputs by source key; their chunks are entries whatever `isEntry` says. */
+    entryFiles: Map<string, string>,
 ): AssetBuildEnvironment {
     let graph: AssetBuildEnvironment = {
         role,
@@ -65,7 +67,10 @@ export function captureOutput(
             graph.entries[sourceKey(config.root, output.facadeModuleId)] = output.fileName;
         }
     }
-    for (let [key, file] of assetReferences) graph.assets[key] = file;
+    for (let [key, file] of assetFiles) graph.assets[key] = file;
+    for (let [key, file] of entryFiles) {
+        if (bundle[file]?.type === "chunk") graph.entries[key] = file;
+    }
     return graph;
 }
 
