@@ -90,11 +90,11 @@ demos/                # example apps run by hand: content-vite, content-runtime,
 The repo is a pnpm workspace run through [Vite+](https://viteplus.dev). Formatting, linting, and repo-level tasks are declared in the root `vite.config.ts`; per-package tasks run from the package directory. Install Vite+ globally, then:
 
 ```sh
-vp install                  # node from .node-version, pnpm from packageManager, then dependencies, omp, and vale
+vp install                  # node from .node-version, pnpm from packageManager, then dependencies and omp
 
 vp run docs:dev             # docs site (typedoc + vite) on http://localhost:1337
 vp run check                # the full gate: docs build and tests, record validation, vp check, tsc
-vp run docs:prose           # vale over the hand-written docs
+vp run docs:prose           # downloads vale on first run, then lints the hand-written docs
 vp run                      # list every task
 
 cd packages/dev             # per-package tests and build

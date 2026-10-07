@@ -8,6 +8,11 @@ on:
         branches:
             - main
 
+# A newer push to the same ref supersedes the matrix already running for it.
+concurrency:
+    group: test-${{ github.ref }}
+    cancel-in-progress: true
+
 # Package tasks (test, build) are defined per package in `vite.config.ts`;
 # repo-level tasks are defined in the root `vite.config.ts`. Both run through
 # Vite+, with Node from .node-version and pnpm from `packageManager`.

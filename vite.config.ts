@@ -190,6 +190,8 @@ export default defineConfig({
             },
             "docs:prose": {
                 command: [
+                    // The package's own postinstall; exits early once the binary is present.
+                    "node node_modules/@vvago/vale/dist/index.cjs",
                     "vale sync",
                     "vale docs/app/content/_partials docs/app/content/deployment docs/app/content/guides",
                 ],
