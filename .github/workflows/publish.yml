@@ -119,6 +119,19 @@ jobs:
             - name: Build package
               run: vp run build
 
+            - name: Authenticate with npm
+              # See publish-vite-plugin-remix: a token for the first publish,
+              # OIDC once the package exists and Trusted Publishing is set up.
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -n "$NPM_TOKEN" ]; then
+                      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+                      echo "Authenticated with the NPM_TOKEN secret."
+                  else
+                      echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
+                  fi
+
             - name: Pack with pnpm
               run: npx --yes pnpm@11.17.0 pack --pack-destination .
 
@@ -157,6 +170,19 @@ jobs:
 
             - name: Build package
               run: vp run build
+
+            - name: Authenticate with npm
+              # See publish-vite-plugin-remix: a token for the first publish,
+              # OIDC once the package exists and Trusted Publishing is set up.
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -n "$NPM_TOKEN" ]; then
+                      echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+                      echo "Authenticated with the NPM_TOKEN secret."
+                  else
+                      echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
+                  fi
 
             - name: Pack with pnpm
               run: npx --yes pnpm@11.17.0 pack --pack-destination .

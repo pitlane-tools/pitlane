@@ -9,7 +9,7 @@
         "vite",
         "vite-plugin"
     ],
-    "homepage": "https://pitlane.tools/guides/fetch-server/",
+    "homepage": "https://pitlane.tools/package/vite-plugin-fetch-server/",
     "bugs": {
         "url": "https://github.com/pitlane-tools/pitlane/issues"
     },

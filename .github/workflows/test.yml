@@ -242,6 +242,7 @@ jobs:
             - name: Grep the published surface for dependency APIs
               run: |
                   if grep -rn '@hiogawa' \
+                      packages/assets/README.md packages/vite-plugin-fetch-server/README.md \
                       packages/vite-plugin-remix/README.md packages/theme/README.md \
                       docs/app/content/guides docs/app/content/api; then
                       echo "Dependency API leaked into user-facing docs" >&2

@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -55,6 +55,20 @@ describe("production build", () => {
         expect(cssHrefs.length).toBeGreaterThan(0);
         for (let href of cssHrefs) {
             expect(existsSync(join(FIXTURE, "dist/client", href))).toBe(true);
+        }
+    });
+
+    it("leaves the server-update listener out of the client bundle", () => {
+        // The browser entry wires revalidation behind `import.meta.hot`, which a
+        // build replaces with `undefined`, so the branch never ships.
+        let scripts = readdirSync(join(FIXTURE, "dist/client/assets"))
+            .filter(file => file.endsWith(".js"))
+            .map(file => readFileSync(join(FIXTURE, "dist/client/assets", file), "utf8"));
+
+        expect(scripts.length).toBeGreaterThan(0);
+        for (let script of scripts) {
+            expect(script).not.toContain("server:update");
+            expect(script).not.toContain("import.meta.hot");
         }
     });
 });
