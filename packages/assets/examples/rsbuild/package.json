@@ -10,7 +10,9 @@
         "verify": "node verify.ts"
     },
     "dependencies": {
-        "@pitlane/assets": "^0.1.0"
+        "@pitlane/assets": "^0.1.0",
+        "@remix-run/html-template": "^1.0.0",
+        "@remix-run/node-fetch-server": "^1.0.0"
     },
     "devDependencies": {
         "@rsbuild/core": "2.2.12",

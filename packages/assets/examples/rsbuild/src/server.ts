@@ -1,6 +1,8 @@
 import type { BuildAssetsManifest } from "@pitlane/assets";
 
 import { createAssetResolver, renderImportMap } from "@pitlane/assets";
+import { html } from "@remix-run/html-template";
+import { createRequestListener } from "@remix-run/node-fetch-server";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, sep } from "node:path";
@@ -22,67 +24,59 @@ const CONTENT_TYPES: Record<string, string> = {
     ".svg": "image/svg+xml",
 };
 
-// A filename, base, or asset name can contain a quote or `<`; escape URLs before
-// placing them in attributes. `renderImportMap` escapes its own output.
-function attribute(value: string): string {
-    return value
-        .replaceAll("&", "&amp;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
-}
-
-async function renderPage(): Promise<string> {
+async function renderPage(): Promise<Response> {
     let entry = await assets.getScriptEntry("src/client.ts");
     // Without options, this reads the client graph and this server's own graph.
     let stylesheets = await assets.getStylesheets(["src/server.ts", "src/client.ts"]);
     // The client entry inserts this image; the document only hints at it.
     let logo = await assets.getHref("src/logo.svg");
 
-    return `<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <title>Rsbuild with @pitlane/assets</title>
-        ${stylesheets.map(href => `<link rel="stylesheet" href="${attribute(href)}" />`).join("\n        ")}
-        ${renderImportMap({ value: entry.importMap })}
-        ${entry.preloads.map(href => `<link rel="modulepreload" href="${attribute(href)}" />`).join("\n        ")}
-        <link rel="preload" as="image" href="${attribute(logo)}" />
-        <script type="module" src="${attribute(entry.href)}"></script>
-    </head>
-    <body>
-        <main class="page">
-            <button type="button" id="load">Load the lazy module</button>
-            <output id="status">Waiting for the client entry.</output>
-        </main>
-    </body>
-</html>
-`;
+    // `html` escapes every interpolated href. `renderImportMap` escapes its own
+    // output, so it goes in through `html.raw`.
+    let page = html`<!doctype html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8" />
+                <title>Rsbuild with @pitlane/assets</title>
+                ${stylesheets.map(href => html`<link rel="stylesheet" href="${href}" />`)}
+                ${html.raw`${renderImportMap({ value: entry.importMap })}`}
+                ${entry.preloads.map(href => html`<link rel="modulepreload" href="${href}" />`)}
+                <link rel="preload" as="image" href="${logo}" />
+                <script type="module" src="${entry.href}"></script>
+            </head>
+            <body>
+                <main class="page">
+                    <button type="button" id="load">Load the lazy module</button>
+                    <output id="status">Waiting for the client entry.</output>
+                </main>
+            </body>
+        </html> `;
+    return new Response(String(page), {
+        headers: { "content-type": "text/html; charset=utf-8" },
+    });
 }
 
-let server = createServer(async (request, response) => {
-    let { pathname } = new URL(request.url ?? "/", "http://localhost");
-    try {
-        if (pathname === "/") {
-            response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-            response.end(await renderPage());
-            return;
-        }
-        let file = join(publicRoot, decodeURIComponent(pathname));
-        let type = CONTENT_TYPES[extname(file)];
-        if (!file.startsWith(publicRoot + sep) || !type) {
-            response.writeHead(404).end();
-            return;
-        }
-        let body = await readFile(file);
-        response.writeHead(200, { "content-type": type });
-        response.end(body);
-    } catch (error) {
-        let missing = (error as NodeJS.ErrnoException).code === "ENOENT";
-        if (!missing) console.error(error);
-        response.writeHead(missing ? 404 : 500).end();
+async function servePublicFile(pathname: string): Promise<Response> {
+    let file = join(publicRoot, decodeURIComponent(pathname));
+    let type = CONTENT_TYPES[extname(file)];
+    if (!file.startsWith(publicRoot + sep) || !type) {
+        return new Response(null, { status: 404 });
     }
-});
+    try {
+        return new Response(await readFile(file), { headers: { "content-type": type } });
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        return new Response(null, { status: 404 });
+    }
+}
+
+// `createRequestListener` logs anything the handler throws and answers 500.
+let server = createServer(
+    createRequestListener(request => {
+        let { pathname } = new URL(request.url);
+        return pathname === "/" ? renderPage() : servePublicFile(pathname);
+    }),
+);
 
 let port = Number(process.env.PORT ?? 3000);
 server.listen(port, () => console.log(`Listening on http://localhost:${port}/`));
