@@ -102,7 +102,7 @@ let serverOnly = await assets.getStylesheets("app/entry.server.tsx", { environme
 let clientOnly = await assets.getStylesheets("app/entry.browser.ts", { environment: "client" });
 ```
 
-Other server environments are never included by default. A stylesheet lookup never turns the module into a browser entry, so asking for the CSS of `app/entry.server.tsx` does not compile your server code for the browser.
+A server's manifest describes those two graphs and no other server environment's, in development and in a build alike. Naming another server environment is an error listing the environments the manifest has. A stylesheet lookup never turns the module into a browser entry, so asking for the CSS of `app/entry.server.tsx` does not compile your server code for the browser.
 
 With Vite's `build.cssCodeSplit: false`, the environment emits one combined stylesheet. Lookups return that stylesheet rather than a route-specific subset. It also contains the lazy-module CSS that Vite combines into it.
 

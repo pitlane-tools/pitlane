@@ -81,6 +81,11 @@ export function captureImportMap(bundle: Rolldown.OutputBundle, fileName: string
     return JSON.parse(text) as ImportMap;
 }
 
+/**
+ * The public URL `renderBuiltUrl` chooses for a built file. A server document
+ * has no importer to be relative to, so `{ relative: true }` keeps the
+ * base-joined path.
+ */
 export function publicFile(config: ResolvedConfig, file: string): string {
     let render = config.experimental.renderBuiltUrl;
     if (!render) return file;
@@ -91,6 +96,5 @@ export function publicFile(config: ResolvedConfig, file: string): string {
             "[assets] renderBuiltUrl must return a URL for server HTML; runtime JavaScript cannot be serialized in an asset manifest.",
         );
     }
-    if (rendered?.relative) return `./${file}`;
     return file;
 }

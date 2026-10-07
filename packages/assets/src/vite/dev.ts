@@ -9,7 +9,7 @@ import { assetsSpecifier, quotedList } from "../specifier.ts";
 import { importSpecifiers } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
 import { discoverInputs, inputPath } from "./entries.ts";
-import { MANIFEST_ID } from "./state.ts";
+import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
 
 /**
  * Serves `@pitlane/assets/manifest` during `vite dev` as a data snapshot of
@@ -74,10 +74,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 return `throw new Error(${JSON.stringify(message)});\nexport default undefined;\n`;
             }
             if (!state.serverEnvironments.includes(name)) {
-                throw new Error(
-                    `[assets] The "${name}" environment imported ${assetsSpecifier("manifest")}, but assets() serves only ` +
-                        `${quotedList(state.serverEnvironments, "conjunction")}. Add "${name}" to assets({ serverEnvironments }) from ${assetsSpecifier("vite-plugin")}.`,
-                );
+                throw unservedEnvironmentError(name, state.serverEnvironments);
             }
             building.add(name);
             try {

@@ -6,7 +6,7 @@ import { assetBuild } from "./vite/build.ts";
 import { assetStyles } from "./vite/dev-css.ts";
 import { assetDevelopment } from "./vite/dev.ts";
 import { discoverInputs, inputPath, sourceKey } from "./vite/entries.ts";
-import { MANIFEST_EXTERNAL, MANIFEST_ID } from "./vite/state.ts";
+import { MANIFEST_EXTERNAL, MANIFEST_ID, unservedEnvironmentError } from "./vite/state.ts";
 
 export interface AssetsPluginOptions {
     /** Extra source keys to make available as client entries or assets. */
@@ -114,9 +114,11 @@ export function assets(options: AssetsPluginOptions = {}): PluginOption {
                         "[assets] The asset manifest is server-only; keep resolver lookups out of browser modules.",
                     );
                 }
-                return this.environment.mode === "build"
-                    ? { id: MANIFEST_EXTERNAL, external: true }
-                    : MANIFEST_ID;
+                if (this.environment.mode !== "build") return MANIFEST_ID;
+                if (!state.serverEnvironments.includes(this.environment.name)) {
+                    throw unservedEnvironmentError(this.environment.name, state.serverEnvironments);
+                }
+                return { id: MANIFEST_EXTERNAL, external: true };
             },
         },
         transform(code, id) {

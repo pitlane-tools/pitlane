@@ -16,7 +16,7 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
     let config = state.config!;
     let client = state.outputs.get("client");
     if (!client || state.serverEnvironments.some(name => !state.outputs.has(name))) return;
-    let environments: Record<string, AssetBuildEnvironment> = {};
+    let environments: Record<string, AssetBuildEnvironment> = Object.create(null);
     for (let [name, output] of state.outputs) {
         let graph = output.graph;
         environments[name] = {
@@ -36,12 +36,15 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
             ),
         };
     }
-    let manifest = createAssetManifest({
-        base: config.base,
-        environments,
-        importMap: state.importMap,
-    });
     for (let name of state.serverEnvironments) {
+        // Like a dev snapshot, a server's manifest describes the client graph and
+        // its own, so an explicit lookup in another server's graph fails the same
+        // way in both modes.
+        let manifest = createAssetManifest({
+            base: config.base,
+            environments: { client: environments.client!, [name]: environments[name]! },
+            importMap: state.importMap,
+        });
         let output = state.outputs.get(name)!;
         await mkdir(output.outDir, { recursive: true });
         // Object literals reinterpret __proto__; JSON parsing preserves it as a source key.
