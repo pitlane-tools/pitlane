@@ -15,7 +15,7 @@ import { Callout } from "../../components/documentation.tsx";
 
 </Callout>
 
-A client-only app runs [`remix()`](/package/dev/function/remix) in [SPA mode](/guides/spa): [`server: false`](/package/dev/interface/RemixPluginOptions#server) turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), so it is worth keeping in a static build.
+A client-only app runs [`remix()`](/package/vite-plugin-remix/function/remix) in [SPA mode](/guides/spa): [`server: false`](/package/vite-plugin-remix/interface/RemixPluginOptions#server) turns off the server environment, so there is nothing to build to `dist/ssr` and nothing serving requests in dev. The plugin still gives you [component hot module replacement](/guides/hmr#component-hmr), so it is worth keeping in a static build.
 
 ## Setup
 
@@ -66,7 +66,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -74,7 +74,7 @@ export default defineConfig({
 });
 ```
 
-`pitlane/dev` comes from the `pitlane` package. The github-pages template still depends on the scoped `@pitlane/dev` package, so add `pitlane` before switching the import. If only `vite.config.ts` imports it, install it as a dev dependency with `npm add -D pitlane`. The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires and the standalone `@pitlane/dev` alternative.
+`pitlane/vite-plugin-remix` comes from the `pitlane` package. The github-pages template depends on the scoped `@pitlane/vite-plugin-remix` package, so add `pitlane` before switching the import. If only `vite.config.ts` imports it, install it as a dev dependency with `npm add -D pitlane`. The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires and the standalone `@pitlane/vite-plugin-remix` alternative.
 
 ## The two GitHub Pages quirks
 

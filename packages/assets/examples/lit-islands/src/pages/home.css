@@ -1,0 +1,8 @@
+.hero {
+    color: #324fff;
+}
+
+.islands {
+    display: grid;
+    gap: 1rem;
+}

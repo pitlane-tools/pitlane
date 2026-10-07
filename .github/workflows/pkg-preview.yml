@@ -3,7 +3,7 @@ name: 📦 Publish package preview (pkg.pr.new)
 # Publishes an installable preview build of every publishable package for each
 # branch push and PR, so they can be tried in a real project before release:
 #
-#     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/dev@<commit>
+#     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/vite-plugin-remix@<commit>
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/theme@<commit>
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/data-table-d1@<commit>
 #     npm i https://pkg.pr.new/pitlane-tools/pitlane/pitlane@<commit>
@@ -50,13 +50,8 @@ jobs:
             # `vp run build --filter …` reports "Task not found" and exits 0,
             # which would publish an empty dist with the job still green.
             #
-            # Crawler builds first because @pitlane/dev imports it at runtime, so
-            # a preview of one is useless without the other. Naming both in a
-            # single publish is also what makes pkg-pr-new rewrite dev's
-            # `workspace:^` range to a resolvable pkg.pr.new URL: it only
-            # rewrites a dependency whose package is part of the same
-            # invocation. Publishing dev alone ships that specifier verbatim and
-            # every install fails with EUNSUPPORTEDPROTOCOL, job still green.
+            # Publish workspace dependencies together so pkg.pr.new rewrites
+            # workspace ranges to installable preview URLs.
             - name: Build @pitlane/content
               working-directory: packages/content
               run: vp run build
@@ -65,8 +60,16 @@ jobs:
               working-directory: packages/crawler
               run: vp run build
 
-            - name: Build @pitlane/dev
-              working-directory: packages/dev
+            - name: Build @pitlane/assets
+              working-directory: packages/assets
+              run: vp run build
+
+            - name: Build @pitlane/vite-plugin-fetch-server
+              working-directory: packages/vite-plugin-fetch-server
+              run: vp run build
+
+            - name: Build @pitlane/vite-plugin-remix
+              working-directory: packages/vite-plugin-remix
               run: vp run build
 
             - name: Build @pitlane/theme
@@ -82,4 +85,4 @@ jobs:
               run: vp run build
 
             - name: Publish previews to pkg.pr.new
-              run: npx pkg-pr-new publish './packages/content' './packages/crawler' './packages/dev' './packages/theme' './packages/data-table-d1' './packages/pitlane'
+              run: npx pkg-pr-new publish './packages/assets' './packages/content' './packages/crawler' './packages/vite-plugin-fetch-server' './packages/vite-plugin-remix' './packages/theme' './packages/data-table-d1' './packages/pitlane'

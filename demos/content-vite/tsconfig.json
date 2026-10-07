@@ -10,7 +10,7 @@
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "types": ["@types/node", "vite/client", "@hiogawa/vite-plugin-fullstack/types"]
+        "types": ["@types/node", "vite/client"]
     },
     "include": ["**/*.ts", "**/*.tsx"],
     "exclude": ["dist"]

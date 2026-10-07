@@ -1,0 +1,33 @@
+{
+    "name": "pitlane-assets-lit-islands-example",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev",
+        "build": "vite build",
+        "start": "node server.ts",
+        "typecheck": "tsc",
+        "verify": "node verify.ts",
+        "smoke": "node smoke.ts",
+        "check": "npm run typecheck && npm run build && npm run verify && npm run smoke"
+    },
+    "dependencies": {
+        "@lit-labs/ssr": "4.1.0",
+        "@lit-labs/ssr-client": "1.1.8",
+        "@pitlane/assets": "^0.1.0",
+        "@remix-run/fetch-router": "1.0.0",
+        "@remix-run/html-template": "1.0.0",
+        "@remix-run/node-fetch-server": "1.0.0",
+        "lit": "3.3.3"
+    },
+    "devDependencies": {
+        "@pitlane/vite-plugin-fetch-server": "^0.1.0",
+        "@types/node": "^24.10.0",
+        "playwright": "1.63.0",
+        "typescript": "^7.0.2",
+        "vite": "8.3.3"
+    },
+    "engines": {
+        "node": ">=22.18.0"
+    }
+}

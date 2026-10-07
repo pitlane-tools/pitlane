@@ -1,0 +1,24 @@
+{
+    "name": "@pitlane-compat/island",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev",
+        "build": "vite build",
+        "preview": "srvx --prod -s ../client dist/ssr/index.js"
+    },
+    "dependencies": {
+        "@pitlane/assets": "candidate"
+    },
+    "devDependencies": {
+        "@babel/core": "7.29.7",
+        "@pitlane/vite-plugin-fetch-server": "candidate",
+        "@preact/preset-vite": "2.10.6",
+        "@preact/signals": "2.11.3",
+        "magic-string": "0.30.21",
+        "preact": "10.29.8",
+        "preact-render-to-string": "6.8.0",
+        "srvx": "0.10.1",
+        "vite": "8.3.3"
+    }
+}

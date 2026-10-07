@@ -25,7 +25,7 @@ Release order: publish the package, then merge the templates branch.
 
 1. **Convert one template first.** The `app/` code is near-identical across templates, so settle every decision once: what moves to `app/theme.ts`, what stays in `app/styles/preflight.css`, which callsites change.
 2. **Replicate verbatim.** The templates stay as close to identical as they are today. A per-template flourish is a maintenance tax on eight repos.
-3. **Wire the dependency by role.** Runtime code the app imports goes in `dependencies` beside `remix`. A build-time plugin goes in `devDependencies` beside `@pitlane/dev`. Deno templates take `"npm:<name>@^x.y.z"` in the `imports` map of `deno.json`/`deno.jsonc`.
+3. **Wire the dependency by role.** Runtime code the app imports goes in `dependencies` beside `remix`. A build-time plugin goes in `devDependencies` beside `@pitlane/vite-plugin-remix`. Deno templates take `"npm:<name>@^x.y.z"` in the `imports` map of `deno.json`/`deno.jsonc`.
 4. **Verify against a local tarball.** The package is unpublished, so build one:
 
     ```sh

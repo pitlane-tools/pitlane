@@ -1,19 +1,14 @@
-import { mergeAssets } from "@hiogawa/vite-plugin-fullstack/runtime";
 import { css } from "@pitlane/theme";
 import { type Handle, type RemixNode } from "remix/component";
 
+import { stylesheetHref, stylesheets } from "#/assets.ts";
 import { t, Theme } from "#/theme.ts";
-
-import serverAssets from "./entry.server.tsx?assets=ssr";
-import styles from "./index.css?url";
 
 export interface DocumentProps {
     children?: RemixNode;
 }
 
 export function Document(handle: Handle<DocumentProps>) {
-    let assets = mergeAssets(serverAssets);
-
     return () => {
         let { children } = handle.props;
 
@@ -38,9 +33,9 @@ export function Document(handle: Handle<DocumentProps>) {
                     {/* Install the design-token CSS variables once. */}
                     <Theme />
 
-                    <link href={styles} rel="stylesheet" />
-                    {assets.css.map(attrs => (
-                        <link key={attrs.href} {...attrs} rel="stylesheet" />
+                    <link href={stylesheetHref} rel="stylesheet" />
+                    {stylesheets.map(stylesheet => (
+                        <link href={stylesheet} key={stylesheet} rel="stylesheet" />
                     ))}
                 </head>
                 <body>{children}</body>

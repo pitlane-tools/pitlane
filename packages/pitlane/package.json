@@ -26,6 +26,22 @@
     ],
     "type": "module",
     "exports": {
+        "./assets": {
+            "types": "./dist/assets.d.mts",
+            "import": "./dist/assets.mjs"
+        },
+        "./assets/build": {
+            "types": "./dist/assets/build.d.mts",
+            "import": "./dist/assets/build.mjs"
+        },
+        "./assets/manifest": {
+            "types": "./dist/assets/manifest.d.mts",
+            "import": "./dist/assets/manifest.mjs"
+        },
+        "./assets/vite-plugin": {
+            "types": "./dist/assets/vite-plugin.d.mts",
+            "import": "./dist/assets/vite-plugin.mjs"
+        },
         "./content": {
             "types": "./dist/content.d.mts",
             "import": "./dist/content.mjs"
@@ -42,9 +58,9 @@
             "types": "./dist/content/satteri.d.mts",
             "import": "./dist/content/satteri.mjs"
         },
-        "./content/vite": {
-            "types": "./dist/content/vite.d.mts",
-            "import": "./dist/content/vite.mjs"
+        "./content/vite-plugin": {
+            "types": "./dist/content/vite-plugin.d.mts",
+            "import": "./dist/content/vite-plugin.mjs"
         },
         "./crawler": {
             "types": "./dist/crawler.d.mts",
@@ -57,21 +73,6 @@
         "./data-table-d1/migrations": {
             "types": "./dist/data-table-d1/migrations.d.mts",
             "import": "./dist/data-table-d1/migrations.mjs"
-        },
-        "./dev": {
-            "types": "./dist/dev.d.mts",
-            "import": "./dist/dev.mjs"
-        },
-        "./dev/assets": {
-            "types": "./dist/dev/assets.d.ts"
-        },
-        "./dev/hmr": {
-            "types": "./dist/dev/hmr.d.mts",
-            "import": "./dist/dev/hmr.mjs"
-        },
-        "./dev/runtime": {
-            "types": "./dist/dev/runtime.d.mts",
-            "import": "./dist/dev/runtime.mjs"
         },
         "./theme": {
             "types": "./dist/theme.d.mts",
@@ -88,22 +89,35 @@
         "./theme/schema": {
             "types": "./dist/theme/schema.d.mts",
             "import": "./dist/theme/schema.mjs"
+        },
+        "./vite-plugin-fetch-server": {
+            "types": "./dist/vite-plugin-fetch-server.d.mts",
+            "import": "./dist/vite-plugin-fetch-server.mjs"
+        },
+        "./vite-plugin-remix": {
+            "types": "./dist/vite-plugin-remix.d.mts",
+            "import": "./dist/vite-plugin-remix.mjs"
+        },
+        "./vite-plugin-remix/hmr": {
+            "types": "./dist/vite-plugin-remix/hmr.d.mts",
+            "import": "./dist/vite-plugin-remix/hmr.mjs"
         }
     },
     "scripts": {
         "prepublishOnly": "vp run build"
     },
     "dependencies": {
+        "@pitlane/assets": "workspace:*",
         "@pitlane/content": "workspace:*",
         "@pitlane/crawler": "workspace:*",
         "@pitlane/data-table-d1": "workspace:*",
-        "@pitlane/dev": "workspace:*",
-        "@pitlane/theme": "workspace:*"
+        "@pitlane/theme": "workspace:*",
+        "@pitlane/vite-plugin-fetch-server": "workspace:*",
+        "@pitlane/vite-plugin-remix": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "^25.5.0",
         "@types/semver": "^7.7.1",
-        "oxc-parser": "^0.140.0",
         "remix": "3.0.0",
         "satteri": "^0.10.5",
         "semver": "^7.8.5",
@@ -114,7 +128,7 @@
     "peerDependencies": {
         "remix": "^3.0.0",
         "satteri": "^0.10.5",
-        "vite": ">=8.0.0"
+        "vite": ">=8.1.0"
     },
     "peerDependenciesMeta": {
         "satteri": {

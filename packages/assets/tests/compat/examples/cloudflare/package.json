@@ -1,0 +1,23 @@
+{
+    "name": "@pitlane-compat/cloudflare",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@pitlane/assets": "candidate"
+    },
+    "devDependencies": {
+        "@cloudflare/vite-plugin": "1.63.0",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@vitejs/plugin-react-swc": "4.3.3",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
+        "vite": "8.3.3",
+        "wrangler": "4.148.0"
+    }
+}

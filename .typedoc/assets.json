@@ -1,0 +1,13 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "./base.json",
+    "entryPoints": [
+        "../packages/assets/src/index.ts",
+        "../packages/assets/src/manifest.ts",
+        "../packages/assets/src/build.ts",
+        "../packages/assets/src/vite-plugin.ts"
+    ],
+    "tsconfig": "../packages/assets/tsconfig.json",
+    "out": "../docs/app/content/api/assets",
+    "entryModule": "@pitlane/assets"
+}

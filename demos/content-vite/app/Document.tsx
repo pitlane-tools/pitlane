@@ -1,9 +1,6 @@
-import { mergeAssets } from "@hiogawa/vite-plugin-fullstack/runtime";
 import { type Handle, type RemixNode } from "remix/component";
 
-import clientAssets from "./entry.browser.ts?assets=client";
-import serverAssets from "./entry.server.tsx?assets=ssr";
-import styles from "./index.css?url";
+import { scriptEntry, stylesheetHref, stylesheets } from "./assets.ts";
 
 export interface DocumentProps {
     title: string;
@@ -11,10 +8,9 @@ export interface DocumentProps {
 }
 
 export function Document(handle: Handle<DocumentProps>) {
-    let assets = mergeAssets(clientAssets, serverAssets);
-
     return () => {
         let { children, title } = handle.props;
+        let { href, preloads } = scriptEntry;
 
         return (
             <html lang="en">
@@ -22,15 +18,15 @@ export function Document(handle: Handle<DocumentProps>) {
                     <meta charSet="utf-8" />
                     <meta content="width=device-width, initial-scale=1" name="viewport" />
                     <title>{title} · prebuilt by contentLayer()</title>
-                    <link href={styles} rel="stylesheet" />
-                    {assets.css.map(attrs => (
-                        <link key={attrs.href} {...attrs} rel="stylesheet" />
+                    <link href={stylesheetHref} rel="stylesheet" />
+                    {stylesheets.map(stylesheet => (
+                        <link href={stylesheet} key={stylesheet} rel="stylesheet" />
                     ))}
                     {/* Loads the runtime that hydrates every clientEntry component,
                         including the one the MDX post imports. */}
-                    <script async src={clientAssets.entry} type="module" />
-                    {assets.js.map(attrs => (
-                        <link key={attrs.href} {...attrs} rel="modulepreload" />
+                    <script async src={href} type="module" />
+                    {preloads.map(preload => (
+                        <link href={preload} key={preload} rel="modulepreload" />
                     ))}
                 </head>
                 <body>{children}</body>

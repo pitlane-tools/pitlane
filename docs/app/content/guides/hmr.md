@@ -1,6 +1,6 @@
 ---
 title: Hot module replacement
-description: How the pitlane/dev Vite plugin hot-updates a Remix 3 app during vite dev, covering which component edits swap in place, which remount, how server-only edits revalidate through the frame runtime, and the requirements and limits of both halves.
+description: How the pitlane/vite-plugin-remix Vite plugin hot-updates a Remix 3 app during vite dev, covering which component edits swap in place, which remount, how server-only edits revalidate through the frame runtime, and the requirements and limits of both halves.
 ---
 
 # Hot module replacement
@@ -19,16 +19,17 @@ Component HMR needs no configuration. Server-data revalidation needs a few lines
 | A server-only module | The page refetches and reconciles | Every island |
 | A non-component module the browser imports | The importing island updates, output can go stale | Every island (see [limits](#limits)) |
 | CSS | Vite's own CSS handling | Every island |
+| Which stylesheets a server module imports | The page refetches with the new stylesheet links | Every island |
 
 No row in that table is a full page reload.
 
 ## Setup
 
-Keep the runtime that `run()` returns in your browser entry, and pass it to `revalidate` from `@pitlane/dev/hmr` when the plugin reports a server update:
+Keep the runtime that `run()` returns in your browser entry, and pass it to `revalidate` from `pitlane/vite-plugin-remix/hmr` when the plugin reports a server update:
 
 ```ts
 // app/entry.browser.ts
-import { revalidate } from "@pitlane/dev/hmr";
+import { revalidate } from "pitlane/vite-plugin-remix/hmr";
 import { run } from "remix/component";
 
 let app = run({
@@ -51,13 +52,13 @@ Keep the listener as written, without `async` or `await`. Vite handles HMR messa
 
 No environment guard is needed beyond `import.meta.hot`. A production build replaces it with `undefined`, so the whole block, the event name included, is removed from the client bundle. `import.meta.hot` is typed by `vite/client`, which a Vite project's `vite-env.d.ts` already references.
 
-Component HMR is independent of this listener and runs whether or not you add it. Without it, server-only edits reach the server and the page does not change until you reload.
+Component HMR is independent of this listener and runs whether or not you add it. Without it, server-only edits reach the server and the page does not change until you reload. The same holds on any page that never loads the module holding the listener, so keep `run()` and the listener in the entry every page loads, not in a module that only island pages import.
 
-`@pitlane/dev` 0.7 and earlier provided this listener as an `<HMR />` component imported from `pitlane:dev`. That module is gone: remove the import and the `<HMR />` element from your document, and add the block above to your browser entry.
+`@pitlane/dev` 0.7 and earlier provided this listener as an `<HMR />` component imported from `pitlane:dev`. That module is gone: remove the import and the `<HMR />` element from your document, and add the block above to your browser entry. An app that used the helper from `pitlane/dev/hmr` or `@pitlane/dev/hmr` imports the same `revalidate` from `pitlane/vite-plugin-remix/hmr` or `@pitlane/vite-plugin-remix/hmr`.
 
 ## Component HMR
 
-Component edits run through the [`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) transforms. The browser transform runs in the client environment and the server transform in your server environments, and both emit the standard `import.meta.hot.accept()` protocol that Vite's own HMR runtime drives. The `pitlane/dev` plugin supplies the wiring and one transform of its own, described below.
+Component edits run through the [`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) transforms. The browser transform runs in the client environment and the server transform in your server environments, and both emit the standard `import.meta.hot.accept()` protocol that Vite's own HMR runtime drives. The `pitlane/vite-plugin-remix` plugin supplies the wiring and one transform of its own, described below.
 
 ### Which exports are boundaries
 
@@ -83,7 +84,7 @@ export function Panel(handle) {
 }
 ```
 
-`remix/component-hmr` only recognizes a setup function that carries a name. To allow you to define your components using arrow functions, the `pitlane/dev` plugin rewrites qualifying arrow exports before `remix/component-hmr` sees them. `export const Counter = clientEntry(url, handle => …)` becomes `export const Counter = clientEntry(url, function Counter(handle) { … })` in the dev transform only. Setup functions never rely on a lexical `this` or `arguments`, so the rewrite is behavior-identical. If `remix/component-hmr` declines to inject the component with the HMR runtime, the rewrite is discarded, which leaves non-component arrow functions untouched.
+`remix/component-hmr` only recognizes a setup function that carries a name. To allow you to define your components using arrow functions, the `pitlane/vite-plugin-remix` plugin rewrites qualifying arrow exports before `remix/component-hmr` sees them. `export const Counter = clientEntry(url, handle => …)` becomes `export const Counter = clientEntry(url, function Counter(handle) { … })` in the dev transform only. Setup functions never rely on a lexical `this` or `arguments`, so the rewrite is behavior-identical. If `remix/component-hmr` declines to inject the component with the HMR runtime, the rewrite is discarded, which leaves non-component arrow functions untouched.
 
 ### State survives a render edit and resets on a setup edit
 
@@ -150,7 +151,7 @@ A newer update supersedes one still in flight. The frame runtime abandons the ol
 | A client entry file (e.g. `entry.browser.ts`) that the document loads | The listener lives there, next to `run()` | Nothing receives the event and revalidation never runs |
 | `serverEnvironments` matches your config | It selects which environment classifies files as server-only | Neither half can tell client from server |
 
-If a platform plugin renames the server environment, pass the same names to [`remix({ serverEnvironments })`](/package/dev/interface/RemixPluginOptions#serverenvironments). `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option the `clientEntry()` transform uses, so a mismatch shows up as broken hydration too.
+If a platform plugin renames the server environment, pass the same names to [`remix({ serverEnvironments })`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverenvironments). `@cloudflare/vite-plugin` with `viteEnvironment: { name: "ssr" }` matches the default and needs nothing. This is the same option island discovery uses, so a mismatch shows up as broken hydration too.
 
 Nothing here depends on navigation, so an app that installs its own `navigate` listener and stops Remix from seeing navigations still revalidates normally.
 
@@ -162,7 +163,7 @@ To serve no browser JavaScript in production and still revalidate in dev, keep t
 
 ```tsx
 {
-    import.meta.env.DEV && <script async src={clientAssets.entry} type="module" />;
+    import.meta.env.DEV && <script async src={scriptEntry.href} type="module" />;
 }
 ```
 
@@ -184,6 +185,6 @@ This is also the only mode that currently works under Vite's experimental bundle
 
 ## How this maps to Remix's HMR packages
 
-[`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) provides the component transforms plus the browser and server runtimes. The `pitlane/dev` plugin runs those transforms and owns the server-data half. The arrow normalization is its own addition, so that arrow exports qualify for instrumentation.
+[`remix/component-hmr`](https://github.com/remix-run/remix/tree/main/packages/component-hmr) provides the component transforms plus the browser and server runtimes. The `pitlane/vite-plugin-remix` plugin runs those transforms and owns the server-data half. The arrow normalization is its own addition, so that arrow exports qualify for instrumentation.
 
 [`remix/node-hmr`](https://github.com/remix-run/remix/tree/main/packages/node-hmr) is deliberately not used. It supervises a child Node process and provides `import.meta.hot` through Node's module customization hooks, which is the job Vite's module runner already does here. Its fetch-proxy and restart behavior would duplicate the dev server rather than add to it.

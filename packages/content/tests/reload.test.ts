@@ -6,7 +6,7 @@ import satteri from "vite-plugin-satteri";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { headings } from "../src/satteri.ts";
-import { contentLayer } from "../src/vite.ts";
+import { contentLayer } from "../src/vite-plugin.ts";
 
 let fixture = fileURLToPath(new URL("./fixtures/prebuild-app", import.meta.url));
 let open: { server: ViteDevServer; root: string }[] = [];

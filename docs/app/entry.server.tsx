@@ -3,6 +3,7 @@ import { createMiddleware, createRouter, type MiddlewareContext } from "remix/ro
 
 import type { Home } from "../build/exports.ts";
 
+import { assets } from "./assets.ts";
 import controller from "./controller.tsx";
 import { documents } from "./documents.ts";
 import { examples } from "./home/examples.ts";
@@ -10,7 +11,7 @@ import { SECTORS } from "./home/lap-sequence.ts";
 import { description, platforms } from "./home/overview.ts";
 import { routes } from "./routes.ts";
 
-let middleware = createMiddleware(render());
+let middleware = createMiddleware(render({ assets }));
 
 type AppContext = MiddlewareContext<typeof middleware>;
 

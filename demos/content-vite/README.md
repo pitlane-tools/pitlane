@@ -8,7 +8,7 @@ pnpm --filter pitlane-content-vite-demo run build
 pnpm --filter pitlane-content-vite-demo run preview
 ```
 
-The scripts run `vp`, which loads Vite+ core. Every `vite` in this workspace is aliased to that same core, so the dev server and `@pitlane/dev` share one copy of Vite. The build path is the one worth seeing here.
+The scripts run `vp`, which loads Vite+ core. Every `vite` in this workspace is aliased to that same core, so the dev server and `@pitlane/vite-plugin-remix` share one copy of Vite. The build path is the one worth seeing here.
 
 Pair it with [`../content-runtime`](../content-runtime), which serves the same collections with no bundler at all. The two demos exist to be compared:
 

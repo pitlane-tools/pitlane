@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-10-06
+updated: 2026-10-07
 ---
 
 # Pitlane Vision
@@ -96,6 +96,9 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 | Email delivery | Cloudflare Email Service • Resend |
 | Font providers | Local • Fontsource • Google Fonts • Adobe Fonts |
 | Content layer | `@pitlane/content`: schema-validated collections with runtime and prebuilt loading |
+| Asset resolution | `@pitlane/assets`: framework-neutral resolver, manifest generator, and Vite adapter (accepted, unreleased) |
+| Vite request serving | `@pitlane/vite-plugin-fetch-server`: explicit Fetch-handler development bridge (accepted, unreleased) |
+| Remix build integration | `@pitlane/vite-plugin-remix`: composes the neutral plugins with Remix transforms and HMR (accepted, unreleased rename of `@pitlane/dev`) |
 | Head metadata | Pitlane-native |
 | Localization | Pitlane-native |
 | Type-safe env/secrets | Pitlane-native |
@@ -118,7 +121,7 @@ This is Pitlane. Each capability is either an interface with provider **adapters
 
 Pitlane is a monorepo of small, single-purpose packages. Each scoped package can be installed directly without the `pitlane` umbrella and has standalone documentation. Packages may depend on an explicit Remix or Pitlane capability contract, and provider adapters may depend on their provider SDK; those relationships are part of their documented API.
 
-`pitlane` is the optional umbrella that re-exports the scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/dev` as `pitlane/dev` ([The umbrella package](#the-umbrella-package)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
+`pitlane` is the optional umbrella that re-exports the scoped packages under matching subpaths, including the `remix()` framework plugin from `@pitlane/vite-plugin-remix` as `pitlane/vite-plugin-remix` in the accepted, unreleased cutover ([proposal.0005](proposals/0005-assets-package.md)). The remaining scoped `@pitlane/*` packages provide capability interfaces, provider adapters, and framework-adjacent features. Neither the umbrella nor a separate Pitlane package owns provider configuration or deployment.
 
 ### Packaging strategy
 
@@ -128,9 +131,11 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 `pitlane` re-exports every public export of every `@pitlane/*` package as `pitlane/<package>` or `pitlane/<package>/<subpath>`, generated from `packages/pitlane/manifest.json` ([decision.0003](decisions/0003-umbrella-package.md)). Each release pins an exact version of every package. The umbrella is released by hand when enough package changes have accumulated, not after every package release. The `1.0.0-alpha.1` release replaces the `0.0.1` placeholder with 15 public subpaths. Bare `pitlane` has no entry point.
 
+The accepted assets cutover expands the unreleased umbrella to 19 public subpaths, including `assets`, `assets/build`, `assets/manifest`, `assets/vite-plugin`, and `vite-plugin-fetch-server`. It renames `dev` and `dev/hmr` to `vite-plugin-remix` and `vite-plugin-remix/hmr`, and `content/vite` to `content/vite-plugin`, without compatibility aliases.
+
 The umbrella is also where an app's agents will find Pitlane's documentation for the installed version ([decision.0002](decisions/0002-installed-documentation-for-agents.md)); the package does not ship that documentation yet.
 
-An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/dev` and its Vite peer reach production installs too. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/dev` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
+An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/vite-plugin-remix` and its Vite peer reach production installs too after the pending cutover. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/vite-plugin-remix` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
 
 Code samples in this document import a package that exists as `@pitlane/<name>`, and keep `pitlane/<name>` for a planned one: the subpath it will have in the umbrella.
 
@@ -142,7 +147,7 @@ Code samples in this document import a package that exists as `@pitlane/<name>`,
 
 Runtime-first is evaluated per package, not imposed on capabilities whose purpose is build-time integration. Runtime-oriented packages such as `@pitlane/theme`, adapters, and controller middleware must expose a core API that works directly in a JavaScript runtime and whose core tests run without bundling. A later bundler plugin may optimize that API but cannot become a prerequisite for it.
 
-`@pitlane/dev` is the explicit tooling exception: build orchestration and module transforms intrinsically require Vite. It keeps that dependency behind its public plugin API and composes with provider-owned Vite plugins rather than wrapping or replacing them.
+`@pitlane/vite-plugin-remix` and `@pitlane/vite-plugin-fetch-server` are explicit tooling exceptions: build orchestration, module transforms, and development request serving intrinsically require Vite. They compose with provider-owned Vite plugins rather than wrapping or replacing them. `@pitlane/assets` keeps its resolver and manifest generator independent of Vite and Remix; its Vite adapter lives at `/vite-plugin`.
 
 ### The adapter pattern
 
@@ -163,9 +168,13 @@ let db = createD1Database(env.DB);
 
 Five scoped packages form the released baseline: `@pitlane/dev`, the provider-agnostic `remix()` Vite plugin; `@pitlane/theme`, type-safe styling; `@pitlane/content`, schema-validated content collections; `@pitlane/data-table-d1`, the Cloudflare D1 driver; and `@pitlane/crawler`, which walks an app by dispatching requests into its router and is what `remix({ prerender })` runs. The `pitlane` umbrella brings those five packages together under one namespace. Each scoped package below remains independently sequenced work and ships on its own tag; an umbrella release pins a selected set of those versions.
 
+Proposal 0005 is accepted but unreleased. It replaces `@pitlane/dev` with `@pitlane/vite-plugin-remix` and adds `@pitlane/assets` and `@pitlane/vite-plugin-fetch-server`, bringing the scoped package set to seven when published. The API descriptions below use those accepted names; the released baseline above remains unchanged until publication.
+
 ### Planned package sequence
 
 Implementation follows this order. Within a capability family, the neutral package is implemented first, followed immediately by its adapters in the order shown. Shipped packages stay listed so the ordering keeps its shape.
+
+The accepted tooling extraction in proposal 0005 is pending release alongside this sequence; it does not reorder the capability packages.
 
 1. `@pitlane/theme` — shipped. Its authoring format settled at 0.3.0; see below.
 2. `@pitlane/content` — shipped at 0.3.0.
@@ -183,7 +192,7 @@ Implementation follows this order. Within a capability family, the neutral packa
     1. `@pitlane/cache-cloudflare`
     2. `@pitlane/cache-netlify`
     3. `@pitlane/cache-vercel`
-8. `@pitlane/crawler` — shipped at 0.3.0. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, which runs the crawler, so there is no separate `@pitlane/prerender` package.
+8. `@pitlane/crawler` — shipped at 0.3.0. Prerendering itself ships as `remix({ prerender })` in `@pitlane/dev`, renamed to `@pitlane/vite-plugin-remix` in the pending cutover. It runs the crawler, so there is no separate `@pitlane/prerender` package.
 9. Remix capability adapters
     1. `@pitlane/data-table-d1` — shipped at 0.3.0.
     2. `@pitlane/data-table-netlify-database`
@@ -212,26 +221,38 @@ Implementation follows this order. Within a capability family, the neutral packa
     2. `@pitlane/email-resend`
 15. `@pitlane/i18n`
 
-## `@pitlane/dev` — framework Vite plugin
+## `@pitlane/assets` — framework-neutral asset resolution
 
-The `remix()` plugin generalizes the `remix.plugin.ts` that currently lives as hand-rolled application code in every Remix 3 project. It is provider-agnostic. Handles five concerns:
+Accepted in proposal 0005; pending release. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
 
-**1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Wraps `@hiogawa/vite-plugin-fullstack` internally.
+`@pitlane/assets/vite-plugin` supplies development snapshots and production manifests. It registers browser inputs from supported literal resolver calls, explicit `include` entries, configured client inputs, and development plugin registrations. Stylesheet lookup reads the client graph and the current server graph without turning server modules into browser entries. `@pitlane/assets/build` exposes `createAssetManifest` for other bundlers; the Rsbuild example demonstrates that boundary.
 
-`@pitlane/dev` exposes the shared transforms and build hooks that future additional runtime environments can compose. Those environments retain ownership of their runtime policy and registration.
+Chunk import maps are off by default under standalone `assets()`. Applications that enable them deliver the map before module scripts; `renderImportMap` serializes it safely without a framework dependency. This package serves build-based applications; `remix/assets` remains the no-build solution.
 
-**2. Client entry transforms** — Finds `clientEntry(import.meta.url, ...)` calls and rewrites the first argument. On the server, resolves to the client asset URL with a `#ExportName` fragment. On the client, appends the fragment to `import.meta.url`. Uses `oxc-parser` for AST analysis.
+## `@pitlane/vite-plugin-fetch-server` — development request bridge
+
+Accepted in proposal 0005; pending release. `fetchServer({ entry })` connects an explicit, non-empty server entry path to Vite's development server. It discovers no filename convention and can run alone or beside `assets()`. Provider plugins retain ownership of their runtime and request serving.
+
+## `@pitlane/vite-plugin-remix` — framework Vite plugin
+
+Accepted in proposal 0005; pending release as the replacement for `@pitlane/dev`, with no forwarding package. The provider-agnostic `remix()` plugin composes the neutral assets and Fetch-server plugins with Remix-specific transforms and HMR.
+
+**1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Asset manifests come from `@pitlane/assets`; `@hiogawa/vite-plugin-fullstack` is removed. Chunk import maps are enabled by default, including SPA builds; `remix({ assets: { chunkImportMap: false } })` opts out.
+
+`@pitlane/vite-plugin-remix` exposes the shared transforms and build hooks that additional runtime environments can compose. Those environments retain ownership of their runtime policy and registration.
+
+**2. Client entry transforms** — Finds `clientEntry(import.meta.url, ...)` calls and writes portable source identities with a `#ExportName` fragment. On the server, `render({ assets })` resolves those identities through `getScriptEntry`, including preload and import-map metadata. On the client, the transform appends the fragment to `import.meta.url`. AST analysis uses Vite's parser.
 
 **3. Preview server** — Adds a `configurePreviewServer` hook that loads the built SSR entry and wires it up via `remix/node-fetch-server` so `vp preview` works out of the box.
 
-**4. Abort error suppression** — Swallows `"aborted"` errors from client disconnects (search-as-you-type) so they don't trigger Vite's error overlay.
+**4. Development updates** — Preserves component HMR and broadcasts `server:update` for server-only edits. Browser entries import `revalidate` from the browser-safe `@pitlane/vite-plugin-remix/hmr` subpath and register a void-returning listener; Remix owns cancellation and stale-result suppression. There is no `<HMR />` component or `pitlane:dev` virtual module.
 
 **5. Build-time prerendering** — `remix({ prerender })` renders paths to static HTML during `vite build` and writes them into the client output. The recommended frame-navigation workaround uses separate document and frame URLs, prerenders both, and uses Remix's `data-rmx-src` to select the frame response while retaining the document URL. Deploying only the client output preserves fully static navigation without runtime SSR. The app supplies the frame routes and link attributes; the plugin does not generate them automatically. Hybrid rendering remains optional for dynamic content. There is no second rendering path: the build sends a `Request` through the built server entry. `@pitlane/crawler` does the walking.
 
 **API:**
 
 ```ts
-import { remix } from "@pitlane/dev";
+import { remix } from "@pitlane/vite-plugin-remix";
 
 export default defineConfig({
     plugins: [
@@ -251,7 +272,7 @@ export default defineConfig({
 
 Pitlane deliberately has no platform package, target schema, generated `.pitlane/` configuration, deployment CLI, or universal deploy action. Those abstractions would have to flatten provider concepts, lag provider releases, and reimplement authentication, local emulation, resource lifecycle, and deployment behavior that each platform already owns.
 
-The stable contract is the server entry's default-exported `.fetch(Request)` handler. `@pitlane/dev` builds that handler and the client assets; hosting integrations consume the output in their native way:
+The stable contract is the server entry's default-exported `.fetch(Request)` handler. `@pitlane/vite-plugin-remix` builds that handler and the client assets; hosting integrations consume the output in their native way:
 
 | Target | Composition |
 | --- | --- |
@@ -260,13 +281,13 @@ The stable contract is the server entry's default-exported `.fetch(Request)` han
 | Vercel | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI |
 | Railway / container hosts | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile |
 | Deno Deploy | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI |
-| Static hosts / GitHub Pages | a client-only Vite build; `@pitlane/dev` is unnecessary when there is no server or hydration |
+| Static hosts / GitHub Pages | a client-only Vite build; `@pitlane/vite-plugin-remix` is unnecessary when there is no server or hydration |
 
 Provider configuration remains checked in at the paths the provider documents. It is the source of truth for bindings, compatibility flags, asset rules, schedules, redirects, and runtime settings. Provider tools generate their own binding types and manage login, secrets, resource creation, logs, preview, and deployment.
 
 Pitlane owns the seams where shared application code needs stability:
 
-- `@pitlane/dev` produces the Remix server and client environments and composes with another plugin when that plugin owns the target runtime.
+- `@pitlane/vite-plugin-remix` produces the Remix server and client environments and composes with another plugin when that plugin owns the target runtime.
 - Capability adapters translate provider resources into Remix or Pitlane-owned interfaces.
 - Target templates contain the small amount of explicit hosting glue and are exercised as complete applications.
 - Deployment guides document native CLI and GitHub Actions workflows, including which tool builds the artifact and which tool uploads it.
@@ -581,7 +602,7 @@ let author = await content.authors.getEntry(post.data.author);
 
 Rebuilding [pitlane.tools](https://pitlane.tools) on Remix and Pitlane (proposal 0004) was the first complex content site built on these packages, and the first real test of whether Pitlane's layer makes such a site as direct to build as Astro with Starlight does. Astro v7 uses the same Sätteri processor Pitlane does, so the comparison is about what each layer builds on top of it. `@pitlane/content` held up: `contentLayer()` prebuilds MDX into components, `entry.render()` hands back `Content` and `headings`, and `vite-plugin-satteri`'s options configure the processor once for every collection. Four gaps remained, each of which the site filled with its own code under `.docs/build/` and `.docs/app/components/`. They are the next work on the content side, in this order.
 
-**Prerender is a primitive, not a pipeline.** `remix({ prerender })` renders routes and writes HTML, then stops. A static site also needs a `404.html` served with a real 404 status, a `_redirects` file for alternate spellings and moved pages, `sitemap.xml`, and a hook to derive other artifacts from each rendered page: Markdown twins, `llms.txt`, a search index. The docs site reimplemented route enumeration and the render loop in a 185-line Vite plugin to add those. `@pitlane/dev` should own them: a not-found route rendered to `404.html`, declared redirects written in the host's format, a sitemap from the crawled paths, and a per-document hook run after each render. A content site should be able to reach fully static output from the option alone, the way an Astro site does from its default output mode.
+**Prerender is a primitive, not a pipeline.** `remix({ prerender })` renders routes and writes HTML, then stops. A static site also needs a `404.html` served with a real 404 status, a `_redirects` file for alternate spellings and moved pages, `sitemap.xml`, and a hook to derive other artifacts from each rendered page: Markdown twins, `llms.txt`, a search index. The docs site reimplemented route enumeration and the render loop in a 185-line Vite plugin to add those. `@pitlane/vite-plugin-remix` should own them: a not-found route rendered to `404.html`, declared redirects written in the host's format, a sitemap from the crawled paths, and a per-document hook run after each render. A content site should be able to reach fully static output from the option alone, the way an Astro site does from its default output mode.
 
 **Expressive Code has no packaged integration.** Astro adds it in one command. Here a site must construct the engine, expose its stylesheet and script as virtual modules, run its hast plugin inside `satteri()`, escape `<` and `>` in its quoted attributes because Remix scans raw HTML for closing tags, and carry `rawStyles()` so its `<style>` survives `remix/component`'s escaping. About a hundred lines that every site would rewrite. This belongs in a package, most likely a subpath of `@pitlane/content` beside `satteri`, exporting the hast plugin and the Vite plugin together.
 
@@ -1058,7 +1079,7 @@ The provider integration composes beside Pitlane rather than through it:
 ```ts
 // vite.config.ts
 import { cloudflare } from "@cloudflare/vite-plugin";
-import { remix } from "@pitlane/dev";
+import { remix } from "@pitlane/vite-plugin-remix";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
@@ -1158,6 +1179,8 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 `@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0. The `pitlane@1.0.0-alpha.1` umbrella combines the five scoped packages through matching subpaths; its changelog lists their exact pinned versions. The remaining packages ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
 
+Proposal 0005 is accepted and awaits release. Its changesets capture the new assets and Fetch-server packages, the Remix plugin rename, the content plugin subpath rename, and the umbrella cutover. No versions have been prepared for this work. The eight-template companion remains on preview dependencies until published packages are available and release-backed CI passes.
+
 ### Explicit non-goals
 
 - A Pitlane platform Vite plugin or generated provider configuration
@@ -1204,7 +1227,7 @@ Resource, secret, migration, log, and deploy commands remain target-specific and
 
 A target template is a complete, ordinary Remix project rather than the output of a hidden platform model. Its base contains:
 
-- `@pitlane/dev` for server-rendered targets that use `clientEntry()`
+- `@pitlane/vite-plugin-remix` for server-rendered targets that use `clientEntry()` (the accepted template migration is pending package publication)
 - `@pitlane/theme`, with the app's design tokens in `app/theme.ts` and its shared control styles built from them
 - the provider's Vite plugin when one exists, or a small runtime launcher when it does not
 - `app/entry.server.tsx` with the router and target handler export
@@ -1212,7 +1235,7 @@ A target template is a complete, ordinary Remix project rather than the output o
 - provider adapters constructed at the application boundary
 - a native GitHub Actions workflow that builds and deploys the artifact
 
-Client-only templates omit `@pitlane/dev` when there is no server build or hydration transform to perform.
+Client-only templates omit `@pitlane/vite-plugin-remix` when there is no server build or hydration transform to perform.
 
 Capability documentation provides additive recipes for existing projects. A future interactive scaffolder — `create-pitlane`, whose name is reserved — may automate those recipes, but its output must be the same reviewable package imports, application modules, and native provider config a developer would write by hand. It may not introduce a Pitlane target manifest or hidden generated state.
 
@@ -1260,7 +1283,7 @@ my-app/
 | Provider account | Hidden behind Void | Managed directly by the developer |
 | Deploy config | None; fully hidden | Checked-in native provider configuration |
 | Framework | React, Vue, Svelte, Solid, or any Vite-based meta-framework | Remix |
-| Build tool | Vite or Vite+ | Vite or Vite+, through `@pitlane/dev` |
+| Build tool | Vite or Vite+ | Vite or Vite+, through `@pitlane/vite-plugin-remix` (pending rename) |
 | Scaffolding | `void init` | Target templates through `giget` |
 | Dev server | `void dev` | `vp dev`, composed with the provider's runtime plugin |
 | Deploy | `void deploy` | GitHub Actions workflow |

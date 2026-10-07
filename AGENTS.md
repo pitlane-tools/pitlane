@@ -286,7 +286,7 @@ Keep capture, preparation, and publication distinct in commit messages:
 Checking what is actually published beats reasoning about it:
 
 ```sh
-npm view @pitlane/dev versions     # what npm has
+npm view @pitlane/content versions # what npm has
 git ls-remote --tags origin        # what has been tagged
 ```
 
@@ -320,7 +320,7 @@ cd "$(mktemp -d)" && npm init -y >/dev/null
 npm install @pitlane/<name>@<version>
 ```
 
-That is also the gate for releasing a dependent. `pnpm pack` writes the resolved version into the dependent's manifest, so `@pitlane/dev` naming `@pitlane/crawler@^0.2.1` is uninstallable until crawler's own install works.
+That is also the gate for releasing a dependent. `pnpm pack` writes the resolved version into the dependent's manifest, so `@pitlane/vite-plugin-remix` naming `@pitlane/crawler@^0.2.1` is uninstallable until crawler's own install works.
 
 ### A package's first publish is manual, once
 
@@ -350,13 +350,13 @@ A first publish is the slow case: `npm view` itself 404s for several minutes, be
 
 ### Preview builds are not releases
 
-`pkg-preview.yml` publishes an installable build of `@pitlane/content`, `@pitlane/crawler`, `@pitlane/dev`, `@pitlane/theme`, `@pitlane/data-table-d1`, and `pitlane` to [pkg.pr.new](https://pkg.pr.new) on every branch push and pull request. Its job is named `preview` so a green check on a PR cannot be mistaken for a publish; it was called `publish` once, and it was. The npm workflow has no `push` or `pull_request` trigger and cannot run on a PR at all.
+`pkg-preview.yml` publishes an installable build of `@pitlane/assets`, `@pitlane/content`, `@pitlane/crawler`, `@pitlane/data-table-d1`, `@pitlane/theme`, `@pitlane/vite-plugin-fetch-server`, `@pitlane/vite-plugin-remix`, and `pitlane` to [pkg.pr.new](https://pkg.pr.new) on every branch push and pull request. Its job is named `preview` so a green check on a PR cannot be mistaken for a publish; it was called `publish` once, and it was. The npm workflow has no `push` or `pull_request` trigger and cannot run on a PR at all.
 
 Releasing a package that the [templates](https://github.com/pitlane-tools/templates) depend on has one more ordering rule: publish the package first, then merge the companion templates branch. See `.agents/skills/adopting-packages-into-templates/SKILL.md`.
 
 ## Package reference docs are generated
 
-Every page under `docs/app/content/api/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`content.json`, `crawler.json`, `data-table-d1.json`, `dev.json`, `theme.json`), each extending `base.json`, which registers the local theme and router in `plugin.ts`. `vp run docs:api` runs them all through `.typedoc/build.ts`, as one command, because every run merges into the same `docs/.generated/reference*.json` files and a separately cached run would replay a stale copy of them.
+Every page under `docs/app/content/api/` is emitted by TypeDoc from the packages' TSDoc comments and is gitignored. The whole TypeDoc setup lives in `.typedoc/`: one config per documented package (`assets.json`, `content.json`, `crawler.json`, `data-table-d1.json`, `theme.json`, `vite-plugin-fetch-server.json`, `vite-plugin-remix.json`), each extending `base.json`, which registers the local theme and router in `plugin.ts`. `vp run docs:api` runs them all through `.typedoc/build.ts`, as one command, because every run merges into the same `docs/.generated/reference*.json` files and a separately cached run would replay a stale copy of them.
 
 Paths inside those configs resolve relative to the config file, not the repo root, so a package's entry points read `../packages/<name>/src/...` and its output `../docs/app/content/api/<name>`. Adding a documented package means adding a config there plus its name in `CONFIGS` in `.typedoc/build.ts`.
 

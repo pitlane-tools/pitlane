@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": ["esnext", "dom"],
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "strict": true,
+        "noEmit": true,
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true,
+        "types": ["node", "@rsbuild/core/types"]
+    },
+    "include": ["*.ts", "src"]
+}

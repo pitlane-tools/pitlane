@@ -335,7 +335,7 @@ Set them per service in the dashboard (**Variables**) or `railway variable set K
 
 ## Client-only apps
 
-A client-only Remix 3 app runs [`remix()`](/package/dev/function/remix) in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no `server.ts` and no runtime process. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr). `vite build` emits a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
+A client-only Remix 3 app runs [`remix()`](/package/vite-plugin-remix/function/remix) in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no `server.ts` and no runtime process. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr). `vite build` emits a static site; on Railway, a multi-stage Dockerfile builds it and serves it with [Caddy](https://caddyserver.com).
 
 ```html
 <!-- index.html -->
@@ -384,7 +384,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -392,7 +392,7 @@ export default defineConfig({
 });
 ```
 
-`pitlane/dev` comes from the `pitlane` package. The Railway templates still depend on the scoped `@pitlane/dev` package, so add `pitlane` before switching the import. Only `vite.config.ts` imports it, so a dev dependency is enough:
+`pitlane/vite-plugin-remix` comes from the `pitlane` package. The Railway templates depend on the scoped `@pitlane/vite-plugin-remix` package, so add `pitlane` before switching the import. Only `vite.config.ts` imports it, so a dev dependency is enough:
 
 <InstallGroup alternatives={pitlaneInstallation} />
 

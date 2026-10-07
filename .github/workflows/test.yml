@@ -24,27 +24,44 @@ jobs:
             fail-fast: false
             matrix:
                 include:
+                    - package: "@pitlane/assets"
+                      directory: packages/assets
+                    - package: "@pitlane/vite-plugin-fetch-server"
+                      directory: packages/vite-plugin-fetch-server
                     - package: "@pitlane/content"
                       directory: packages/content
                     - package: "@pitlane/crawler"
                       directory: packages/crawler
-                    - package: "@pitlane/dev"
-                      directory: packages/dev
+                    - package: "@pitlane/vite-plugin-remix"
+                      directory: packages/vite-plugin-remix
                     - package: "@pitlane/data-table-d1"
                       directory: packages/data-table-d1
                     - package: "@pitlane/theme"
                       directory: packages/theme
                     - package: "pitlane"
                       directory: packages/pitlane
-                    # The workspace's `vite` is Vite+ core, which `vp pack`
-                    # requires. These two packages run Vite as a peer, so their
-                    # suites also run against upstream Vite 8.
+                    # Exercise the supported minimum as well as current Vite.
+                    - package: "@pitlane/assets (Vite 8.1)"
+                      directory: packages/assets
+                      vite: "8.1.0"
+                    - package: "@pitlane/assets (Vite 8)"
+                      directory: packages/assets
+                      vite: "^8"
+                    - package: "@pitlane/vite-plugin-fetch-server (Vite 8.1)"
+                      directory: packages/vite-plugin-fetch-server
+                      vite: "8.1.0"
+                    - package: "@pitlane/vite-plugin-fetch-server (Vite 8)"
+                      directory: packages/vite-plugin-fetch-server
+                      vite: "^8"
+                    - package: "@pitlane/vite-plugin-remix (Vite 8.1)"
+                      directory: packages/vite-plugin-remix
+                      vite: "8.1.0"
                     - package: "@pitlane/content (Vite 8)"
                       directory: packages/content
-                      vite: upstream
-                    - package: "@pitlane/dev (Vite 8)"
-                      directory: packages/dev
-                      vite: upstream
+                      vite: "^8"
+                    - package: "@pitlane/vite-plugin-remix (Vite 8)"
+                      directory: packages/vite-plugin-remix
+                      vite: "^8"
         defaults:
             run:
                 working-directory: ${{ matrix.directory }}
@@ -52,53 +69,93 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            # The upstream variants' `vp add` re-resolves the workspace's
-            # `latest` specifiers, so they neither restore nor save the shared
-            # cache, keeping its contents matched to the lockfile.
+            # The upstream variants re-resolve the workspace's `latest`
+            # specifiers, so they neither restore nor save the shared cache,
+            # keeping its contents matched to the lockfile.
             - name: Setup Vite+
               uses: voidzero-dev/setup-vp@v1.21.1
               with:
                   node-version-file: .node-version
-                  cache: ${{ matrix.vite != 'upstream' }}
+                  cache: ${{ !matrix.vite }}
 
             - name: Install
               run: vp install --frozen-lockfile
 
-            # The @pitlane/dev browser HMR suite drives Playwright's Chromium;
-            # it self-skips when no browser is present, so install one here.
+            # Browser tests must run rather than silently skip missing Chromium.
             - name: Install Playwright Chromium
-              if: matrix.directory == 'packages/dev'
+              if: matrix.directory == 'packages/vite-plugin-remix' || matrix.directory == 'packages/assets'
               run: npx playwright install --with-deps chromium
 
-            # Dev fixtures resolve @pitlane/crawler through package exports, which point at build output.
-            - name: Build crawler for dev fixtures
-              if: matrix.directory == 'packages/dev'
-              working-directory: packages/crawler
-              run: vp run build
+            - name: Build Remix plugin dependencies
+              if: matrix.directory == 'packages/vite-plugin-remix'
+              working-directory: .
+              run: vp run --filter '@pitlane/vite-plugin-remix^...' build
 
             # The runtime fixture imports content through its published exports.
             - name: Build content for runtime fixtures
               if: matrix.directory == 'packages/content'
               run: vp run build
 
-            # Sibling builds above ran on Vite+ core; only the suite under test
-            # swaps to upstream Vite.
+            # Builds above ran on Vite+ core, which `vp pack` requires. Workspace
+            # packages are symlinked, so each loads `vite` from its own
+            # devDependency; the suite and every workspace package it reaches
+            # must swap together, or guards such as `isRunnableDevEnvironment`
+            # (an `instanceof`) reject the suite's environments. The manifest is
+            # rewritten because `vp add -E vite@8.1.0` still saves `^8.1.0`. The
+            # first install already ran every lifecycle script; rerunning them
+            # here downloads Vale's binary from the GitHub API again, which the
+            # runners' shared, unauthenticated rate limit answers with 403.
             - name: Use upstream Vite 8
-              if: matrix.vite == 'upstream'
-              run: vp add -D vite@^8
-
-            # A green upstream run proves nothing unless the suite really
-            # resolved upstream Vite rather than Vite+ core.
-            - name: Confirm upstream Vite
-              if: matrix.vite == 'upstream'
+              if: matrix.vite
+              env:
+                  VITE_SPEC: ${{ matrix.vite }}
               run: |
-                  node -e '
-                  const vite = require("vite/package.json");
-                  if (vite.name !== "vite" || !vite.version.startsWith("8.")) {
-                      console.error(`Expected upstream Vite 8, found ${vite.name}@${vite.version}`);
+                  pnpm ls --filter "{.}..." --depth -1 --json | node -e '
+                  const fs = require("node:fs");
+                  for (const { path } of JSON.parse(fs.readFileSync(0, "utf8"))) {
+                      const file = `${path}/package.json`;
+                      const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+                      if (!manifest.devDependencies?.vite) continue;
+                      manifest.devDependencies.vite = process.env.VITE_SPEC;
+                      fs.writeFileSync(file, `${JSON.stringify(manifest, null, 4)}\n`);
+                      console.log(`${manifest.name}: vite@${process.env.VITE_SPEC}`);
+                  }
+                  '
+                  vp install --no-frozen-lockfile --ignore-scripts
+
+            # A green upstream run proves nothing unless the suite and every
+            # workspace package it loads resolved one copy of the requested Vite.
+            - name: Confirm upstream Vite
+              if: matrix.vite
+              env:
+                  VITE_SPEC: ${{ matrix.vite }}
+              run: |
+                  pnpm ls --filter "{.}..." --depth -1 --json | node -e '
+                  const fs = require("node:fs");
+                  const { createRequire } = require("node:module");
+                  const spec = process.env.VITE_SPEC;
+                  // "8.1.0" must resolve exactly; "^8" to any 8.x.
+                  const matches = spec.startsWith("^")
+                      ? version => version.split(".")[0] === spec.slice(1)
+                      : version => version === spec;
+                  const copies = new Set();
+                  let failed = false;
+                  const check = (label, from) => {
+                      const file = fs.realpathSync(createRequire(from).resolve("vite/package.json"));
+                      const { name, version } = JSON.parse(fs.readFileSync(file, "utf8"));
+                      copies.add(file);
+                      console.log(`${label}: ${name}@${version} (${file})`);
+                      if (name !== "vite" || !matches(version)) failed = true;
+                  };
+                  check("suite", `${process.cwd()}/package.json`);
+                  for (const { name, path } of JSON.parse(fs.readFileSync(0, "utf8"))) {
+                      const manifest = JSON.parse(fs.readFileSync(`${path}/package.json`, "utf8"));
+                      if (manifest.devDependencies?.vite) check(name, `${path}/package.json`);
+                  }
+                  if (failed || copies.size !== 1) {
+                      console.error(`Expected one copy of vite@${spec}, found ${copies.size}`);
                       process.exit(1);
                   }
-                  console.log(`Testing against vite@${vite.version}`);
                   '
 
             - name: Run tests
@@ -107,8 +164,92 @@ jobs:
             # `vp pack` refuses any `vite` but Vite+ core, so the upstream
             # variants test without building.
             - name: Build package
-              if: matrix.vite != 'upstream'
+              if: ${{ !matrix.vite }}
               run: vp run build
+
+    asset-compatibility:
+        name: Assets examples (${{ matrix.vite }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                vite: ["8.1.0", "^8", "npm:@voidzero-dev/vite-plus-core@1.0.0"]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
+            - run: vp install --frozen-lockfile
+            - run: vp run --filter '@pitlane/vite-plugin-remix...' build
+            - name: Install the isolated examples
+              working-directory: packages/assets/tests/compat
+              env:
+                  PITLANE_COMPAT_VITE: ${{ matrix.vite }}
+              run: pnpm install --no-frozen-lockfile
+            - name: Install Chromium
+              working-directory: packages/assets/tests/compat
+              run: pnpm exec playwright install --with-deps chromium
+            - name: Exercise development and production with maps off and on
+              working-directory: packages/assets/tests/compat
+              run: pnpm test
+
+    assets-without-vite:
+        name: Assets with Rsbuild, without Vite or Remix
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
+            - run: vp install --frozen-lockfile
+            - run: vp run --filter @pitlane/assets build
+            - name: Pack the consumer artifact
+              working-directory: packages/assets
+              run: pnpm pack --pack-destination "$RUNNER_TEMP/assets-package"
+            - name: Build and verify an isolated non-Vite application
+              run: |
+                  cp -R packages/assets/examples/rsbuild "$RUNNER_TEMP/rsbuild"
+                  cd "$RUNNER_TEMP/rsbuild"
+                  tarballs=("$RUNNER_TEMP"/assets-package/*.tgz)
+                  npm pkg set "dependencies.@pitlane/assets=file:${tarballs[0]}"
+                  npm install --no-audit --no-fund
+                  npm run check
+
+    assets-framework-examples:
+        name: Assets example (${{ matrix.example }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                example: [react-router, vue-router, solid-router, preact-islands, lit-islands]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version-file: .node-version
+                  cache: true
+            - run: vp install --frozen-lockfile
+            - run: vp run --filter @pitlane/assets --filter @pitlane/vite-plugin-fetch-server build
+            - name: Pack the consumer artifacts
+              run: |
+                  (cd packages/assets && pnpm pack --pack-destination "$RUNNER_TEMP/assets-package")
+                  (cd packages/vite-plugin-fetch-server && pnpm pack --pack-destination "$RUNNER_TEMP/fetch-server-package")
+            # Each example installs the packed tarballs the way an app would,
+            # never the workspace, then type-checks, builds, verifies the built
+            # output, and loads the page in Chromium.
+            - name: Build, verify, and smoke the example
+              run: |
+                  cp -R "packages/assets/examples/${{ matrix.example }}" "$RUNNER_TEMP/example"
+                  cd "$RUNNER_TEMP/example"
+                  assets=("$RUNNER_TEMP"/assets-package/*.tgz)
+                  bridge=("$RUNNER_TEMP"/fetch-server-package/*.tgz)
+                  npm pkg set "dependencies.@pitlane/assets=file:${assets[0]}"
+                  npm pkg set "devDependencies.@pitlane/vite-plugin-fetch-server=file:${bridge[0]}"
+                  npm install --no-audit --no-fund
+                  npx playwright install --with-deps chromium
+                  npm run check
 
     leaks:
         name: Dependency APIs must not leak
@@ -135,7 +276,8 @@ jobs:
             - name: Grep the published surface for dependency APIs
               run: |
                   if grep -rn '@hiogawa' \
-                      packages/dev/README.md packages/theme/README.md \
+                      packages/assets/README.md packages/vite-plugin-fetch-server/README.md \
+                      packages/vite-plugin-remix/README.md packages/theme/README.md \
                       docs/app/content/guides docs/app/content/api; then
                       echo "Dependency API leaked into user-facing docs" >&2
                       exit 1

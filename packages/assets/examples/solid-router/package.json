@@ -1,0 +1,33 @@
+{
+    "name": "pitlane-assets-solid-router-example",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite dev",
+        "build": "vite build",
+        "start": "node server.ts",
+        "typecheck": "tsc",
+        "verify": "node verify.ts",
+        "smoke": "node smoke.ts",
+        "check": "npm run typecheck && npm run build && npm run verify && npm run smoke"
+    },
+    "dependencies": {
+        "@pitlane/assets": "^0.1.0",
+        "@remix-run/html-template": "^1.0.0",
+        "@remix-run/node-fetch-server": "^1.0.0",
+        "@solidjs/router": "2.0.0-next.35",
+        "@solidjs/web": "2.0.0-rc.13",
+        "solid-js": "2.0.0-rc.13"
+    },
+    "devDependencies": {
+        "@pitlane/vite-plugin-fetch-server": "^0.1.0",
+        "@solidjs/vite-plugin": "3.0.0-next.35",
+        "@types/node": "^25.5.0",
+        "playwright": "1.63.0",
+        "typescript": "^7.0.2",
+        "vite": "8.3.3"
+    },
+    "engines": {
+        "node": ">=22.18.0"
+    }
+}

@@ -8,21 +8,21 @@ import { installAlternatives } from "../../install.ts";
 
 export const installation = await installAlternatives({ packages: ["pitlane"] });
 export const scopedInstallation = await installAlternatives({
-    packages: ["@pitlane/theme", "@pitlane/content"],
-    dev: ["@pitlane/dev"],
+    packages: ["@pitlane/assets", "@pitlane/theme", "@pitlane/content"],
+    dev: ["@pitlane/vite-plugin-remix"],
 });
 
 # Installing Pitlane
 
-`pitlane` is one install for all five Pitlane packages. Each package is published on its own under `@pitlane/*`, and `pitlane` re-exports every one of them through focused subpaths, the way `remix` re-exports the `@remix-run/*` packages:
+`pitlane` is one install for all seven Pitlane packages. Each package is published on its own under `@pitlane/*`, and `pitlane` re-exports every one of them through focused subpaths, the way `remix` re-exports the `@remix-run/*` packages:
 
 ```ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
+import { createAssetResolver } from "pitlane/assets";
 import { createTheme } from "pitlane/theme";
-import { createContent } from "pitlane/content";
 ```
 
-A subpath has the same exports as the package it re-exports, so every API page under [`@pitlane/dev`](/package/dev/), [`@pitlane/theme`](/package/theme/), and the rest applies to the matching `pitlane/*` import unchanged. The scoped packages stay independently usable. An app that wants only one of them can install it alone.
+A subpath has the same exports as the package it re-exports, so every API page under [`@pitlane/vite-plugin-remix`](/package/vite-plugin-remix/), [`@pitlane/assets`](/package/assets/), and the rest applies to the matching `pitlane/*` import unchanged. The scoped packages stay independently usable. An app that wants only one of them can install it alone.
 
 ## Install
 
@@ -33,10 +33,10 @@ A subpath has the same exports as the package it re-exports, so every API page u
 | Peer | Range | Required |
 | --- | --- | --- |
 | `remix` | `^3.0.0` | Yes |
-| `vite` | `>=8.0.0` | Yes |
+| `vite` | `>=8.1.0` | Yes |
 | `satteri` | `^0.10.5` | Only when a content collection holds `.md` or `.mdx` files |
 
-Install `pitlane` as a dependency, not a dev dependency, whenever the app imports a runtime subpath such as `pitlane/theme`, `pitlane/content`, or `pitlane/data-table-d1`. Those imports run in production, so a production install has to include the package that provides them.
+Install `pitlane` as a dependency, not a dev dependency, whenever the app imports a runtime subpath such as `pitlane/assets`, `pitlane/theme`, `pitlane/content`, or `pitlane/data-table-d1`. Those imports run in production, so a production install has to include the package that provides them.
 
 `pitlane` has no command-line interface. To start a new app, copy one of the [starter templates](https://github.com/pitlane-tools/templates).
 
@@ -46,16 +46,20 @@ Bare `pitlane` has no exports, so `import … from "pitlane"` fails. Every impor
 
 | Import | Re-exports | Use it for |
 | --- | --- | --- |
-| `pitlane/dev` | [`@pitlane/dev`](/package/dev/) | The `remix()` Vite plugin |
-| `pitlane/dev/runtime` | [`@pitlane/dev/runtime`](/package/dev/runtime) | Asset helpers such as `mergeAssets()` |
-| `pitlane/dev/assets` | [`@pitlane/dev/assets`](/package/dev/assets) | Types for `?assets=` imports, listed in `tsconfig.json` |
+| `pitlane/vite-plugin-remix` | [`@pitlane/vite-plugin-remix`](/package/vite-plugin-remix/) | The `remix()` Vite plugin |
+| `pitlane/vite-plugin-remix/hmr` | [`@pitlane/vite-plugin-remix/hmr`](/package/vite-plugin-remix/hmr) | `revalidate()`, the browser entry's server-update helper |
+| `pitlane/assets` | [`@pitlane/assets`](/package/assets/) | `createAssetResolver()` and `renderImportMap()` |
+| `pitlane/assets/manifest` | [`@pitlane/assets/manifest`](/package/assets/manifest) | The asset manifest the build supplies, passed to `createAssetResolver()` |
+| `pitlane/assets/build` | [`@pitlane/assets/build`](/package/assets/build) | `createAssetManifest()`, for bundler integration authors |
+| `pitlane/assets/vite-plugin` | [`@pitlane/assets/vite-plugin`](/package/assets/vite-plugin) | The `assets()` Vite plugin, for apps without `remix()` |
+| `pitlane/vite-plugin-fetch-server` | [`@pitlane/vite-plugin-fetch-server`](/package/vite-plugin-fetch-server/) | The `fetchServer()` development request bridge |
 | `pitlane/theme` | [`@pitlane/theme`](/package/theme/) | `createTheme()`, `css()`, and `tva()` |
 | `pitlane/theme/schema` | [`@pitlane/theme/schema`](/package/theme/schema) | Schema factories |
 | `pitlane/theme/default` | [`@pitlane/theme/default`](/package/theme/default) | Tailwind CSS v4's primitives as `DefaultTheme` |
 | `pitlane/theme/dtcg` | [`@pitlane/theme/dtcg`](/package/theme/dtcg) | Conversion to and from Design Tokens Community Group documents |
 | `pitlane/content` | [`@pitlane/content`](/package/content/) | `createContent()` and collections |
 | `pitlane/content/loaders` | [`@pitlane/content/loaders`](/package/content/loaders) | The `glob()` and `file()` loaders |
-| `pitlane/content/vite` | [`@pitlane/content/vite`](/package/content/vite) | The `contentLayer()` Vite plugin |
+| `pitlane/content/vite-plugin` | [`@pitlane/content/vite-plugin`](/package/content/vite-plugin) | The `contentLayer()` Vite plugin |
 | `pitlane/content/hot` | [`@pitlane/content/hot`](/package/content/hot) | Browser reloads for content without a build |
 | `pitlane/content/satteri` | [`@pitlane/content/satteri`](/package/content/satteri) | The `headings()` and `rawStyles()` Satteri plugins |
 | `pitlane/crawler` | [`@pitlane/crawler`](/package/crawler/) | `crawl()` and `staticPaths()` |
@@ -76,27 +80,21 @@ Alpha releases are published to npm's `latest` tag until a stable `1.0.0` exists
 
 ## Production installs
 
-`pitlane` installs every package, `@pitlane/dev` and its Vite peer included. Because an app with runtime imports lists it in `dependencies`, a production install that omits dev dependencies still installs the Vite plugin and Vite itself. `remix` makes the same trade for its CLI and test runner. The cost is install size and time on the production host.
+`pitlane` installs every package, `@pitlane/vite-plugin-remix` and its Vite peer included. Because an app with runtime imports lists it in `dependencies`, a production install that omits dev dependencies still installs the Vite plugins and Vite itself. `remix` makes the same trade for its CLI and test runner. The cost is install size and time on the production host.
 
 ## Scoped packages
 
-The scoped packages are the lean alternative. Put `@pitlane/dev` in dev dependencies and only the runtime packages the app imports in dependencies. For an app that uses the theme and content collections:
+The scoped packages are the lean alternative. Put `@pitlane/vite-plugin-remix` in dev dependencies and only the runtime packages the app imports in dependencies. For an app that resolves its assets and uses the theme and content collections:
 
 <InstallGroup alternatives={scopedInstallation} />
 
-Then import from the scoped names, such as `@pitlane/dev` and `@pitlane/theme/schema`. Choose this when production install size matters, when an app uses a single package, or when it needs a package release newer than the umbrella pins.
+Then import from the scoped names, such as `@pitlane/vite-plugin-remix` and `@pitlane/theme/schema`. Choose this when production install size matters, when an app uses a single package, or when it needs a package release newer than the umbrella pins.
 
 ## Migrate from scoped packages
 
 1. Install `pitlane` as shown in [Install](#install).
-2. Rewrite the public imports listed in [Subpaths](#subpaths) from `@pitlane/<name>` to `pitlane/<name>`, keeping the listed subpath: `@pitlane/content/vite` becomes `pitlane/content/vite`.
-3. Replace `@pitlane/dev/assets` with `pitlane/dev/assets` in `tsconfig.json`:
-
-    ```jsonc
-    { "compilerOptions": { "types": ["pitlane/dev/assets"] } }
-    ```
-
-4. Remove a scoped package from `package.json` only when nothing in the app or its tooling imports it directly.
+2. Rewrite the public imports listed in [Subpaths](#subpaths) from `@pitlane/<name>` to `pitlane/<name>`, keeping the listed subpath: `@pitlane/content/vite-plugin` becomes `pitlane/content/vite-plugin`, and `@pitlane/assets/manifest` becomes `pitlane/assets/manifest`.
+3. Remove a scoped package from `package.json` only when nothing in the app or its tooling imports it directly.
 
 The umbrella excludes `@pitlane/content/internal/*`. Custom bundler integrations using those unstable APIs must keep their scoped imports and a direct `@pitlane/content` dependency. Keep that dependency at the umbrella's pinned content version when both are used, so the plugin and collections share the same content package.
 
@@ -114,9 +112,9 @@ An app can keep a direct `@pitlane/*` dependency next to `pitlane`. Different ve
 | `guides/index.md` | The [guides overview](/guides) |
 | `guides/<slug>.md` | Each guide, such as `guides/vite-plugin.md` |
 | `guides/deploy/<slug>.md` | Each deploy guide, such as `guides/deploy/cloudflare.md` |
-| `dist/<package>/README.md` | Each scoped package's README beside its compiled code, such as `dist/dev/README.md` for `pitlane/dev` and its subpaths |
+| `dist/<package>/README.md` | Each scoped package's README beside its compiled code, such as `dist/vite-plugin-remix/README.md` for `pitlane/vite-plugin-remix` and its subpaths |
 
-These are the same Markdown pages pitlane.tools publishes. A link between two of them leads to the installed copy, so following one never leaves the installed version. Links to the [API reference](/package/dev/) stay on pitlane.tools. The installed type declarations carry the same TSDoc, so an editor or agent can read an export's signature and documentation from the `.d.ts` file instead.
+These are the same Markdown pages pitlane.tools publishes. A link between two of them leads to the installed copy, so following one never leaves the installed version. Links to the [API reference](/package/vite-plugin-remix/) stay on pitlane.tools. The installed type declarations carry the same TSDoc, so an editor or agent can read an export's signature and documentation from the `.d.ts` file instead.
 
 An agent has to know the index exists. Point it there with a line in the app's `AGENTS.md`:
 

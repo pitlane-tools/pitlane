@@ -1,0 +1,8 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": "./base.json",
+    "entryPoints": ["../packages/vite-plugin-fetch-server/src/index.ts"],
+    "tsconfig": "../packages/vite-plugin-fetch-server/tsconfig.json",
+    "out": "../docs/app/content/api/vite-plugin-fetch-server",
+    "entryModule": "@pitlane/vite-plugin-fetch-server"
+}

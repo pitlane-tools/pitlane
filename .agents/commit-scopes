@@ -9,10 +9,12 @@
 # proposals/<NNNN>-<slug>.md filename, used as `0007-export-queue: ...`.
 
 # Implemented packages, packages/<name>
+assets
 content
 crawler
 data-table-d1
-dev
+vite-plugin-fetch-server
+vite-plugin-remix
 theme
 
 # The umbrella, packages/pitlane

@@ -1,6 +1,6 @@
 ---
 title: Deploy to Netlify
-description: "Run a Remix 3 app on Netlify with pitlane/dev: a one-file Netlify Function wraps the built fetch handler, and the Netlify Vite plugin emulates the platform locally."
+description: "Run a Remix 3 app on Netlify with pitlane/vite-plugin-remix: a one-file Netlify Function wraps the built fetch handler, and the Netlify Vite plugin emulates the platform locally."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
@@ -21,7 +21,7 @@ Deploy a Remix 3 app to [Netlify](https://www.netlify.com) by publishing the cli
 
 ## Configuration
 
-The examples import from `pitlane/*` paths, which come from the `pitlane` package. The netlify template still depends on the scoped `@pitlane/dev` and `@pitlane/theme` packages, so add `pitlane` before switching its imports. Put it in `dependencies` when app code imports runtime subpaths such as `pitlane/dev/runtime`:
+The examples import from `pitlane/*` paths, which come from the `pitlane` package. The netlify template depends on scoped packages such as `@pitlane/vite-plugin-remix`, `@pitlane/assets`, and `@pitlane/theme`, so add `pitlane` before switching its imports. Put it in `dependencies` when app code imports runtime subpaths such as `pitlane/assets`:
 
 <InstallGroup alternatives={pitlaneInstallation} />
 
@@ -31,7 +31,7 @@ The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versi
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import netlify from "@netlify/vite-plugin";
 import { defineConfig } from "vite";
 
@@ -42,7 +42,7 @@ export default defineConfig({
 
 <Callout kind="info" title="Who serves what in dev">
 
-Keep [`remix()`](/package/dev/function/remix)'s default [`serverHandler: true`](/package/dev/interface/RemixPluginOptions#serverhandler) here. Netlify's plugin emulates platform primitives around the dev server. SSR itself is still served by your app's fetch handler.
+Keep [`remix()`](/package/vite-plugin-remix/function/remix)'s default [`serverHandler: true`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverhandler) here. Netlify's plugin emulates platform primitives around the dev server. SSR itself is still served by your app's fetch handler.
 
 </Callout>
 
@@ -116,7 +116,7 @@ The Functions variant is the same shape Netlify's TanStack Start integration gen
 ```sh
 vp dev      # dev server + Netlify platform emulation
 vp build    # production build
-vp preview  # serve the production build via the pitlane/dev preview
+vp preview  # serve the production build via the pitlane/vite-plugin-remix preview
 ```
 
 Running under the Netlify CLI instead? `netlify dev` configures the environment itself and the Vite plugin steps aside automatically.
@@ -232,7 +232,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({

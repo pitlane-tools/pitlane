@@ -1,0 +1,10 @@
+.counter {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.counter output {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}

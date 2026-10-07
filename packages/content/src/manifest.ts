@@ -19,7 +19,7 @@ import type { PrebuiltCollections } from "./types.ts";
  * plugin never gets to load.
  *
  * And the symbol is **spelled literally** rather than imported from
- * `symbols.ts`, even though `prebuild.ts` and `vite.ts` share it from there.
+ * `symbols.ts`, even though `prebuild.ts` and `vite-plugin.ts` share it from there.
  * Whatever this module imports gets hoisted into its chunk, and the plugin
  * replaces the whole chunk: importing the constant made a published build fail
  * with `"t" is not exported by manifest.mjs`, because the reader's own import

@@ -7,7 +7,7 @@ export default defineConfig({
                 index: "src/index.ts",
                 loaders: "src/loaders.ts",
                 satteri: "src/satteri.ts",
-                vite: "src/vite.ts",
+                "vite-plugin": "src/vite-plugin.ts",
                 hot: "src/hot.ts",
                 manifest: "src/manifest.ts",
                 prebuild: "src/prebuild.ts",

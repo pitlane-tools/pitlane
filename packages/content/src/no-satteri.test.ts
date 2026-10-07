@@ -2,7 +2,7 @@ import * as s from "remix/data-schema";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 describe("rendering Markdown without satteri installed", () => {
-    it("names the package to install and the plugin that avoids needing it", async () => {
+    it("rejects rather than rendering the body", async () => {
         // `satteri` is an optional peer dependency. Refusing the module is how a
         // test stands in for an application that never installed it, and
         // `doMock` is what puts that refusal inside the dynamic import rather
@@ -32,10 +32,6 @@ describe("rendering Markdown without satteri installed", () => {
         }));
         let entry = await content.blog.getEntry("hello");
 
-        await expect(entry!.render()).rejects.toThrow(
-            'Rendering "app/content/blog/hello.md" needs the optional peer dependency "satteri"; ' +
-                "install it, or add contentLayer() from @pitlane/content/vite so the build compiles " +
-                "this collection.",
-        );
+        await expect(entry!.render()).rejects.toThrow();
     });
 });

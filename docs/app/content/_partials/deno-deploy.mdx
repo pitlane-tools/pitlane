@@ -36,7 +36,7 @@ This guide targets the current Deno Deploy. Deploy Classic (`dash.deno.com`) shu
 
 <Vite>
 
-[`remix()`](/package/dev/function/remix) needs no Deploy-specific options. The defaults apply. `deno.json` and `main.ts` adapt the project to Deno:
+[`remix()`](/package/vite-plugin-remix/function/remix) needs no Deploy-specific options. The defaults apply. `deno.json` and `main.ts` adapt the project to Deno:
 
 ```jsonc
 // deno.json
@@ -362,7 +362,7 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -370,7 +370,7 @@ export default defineConfig({
 });
 ```
 
-`pitlane/dev` comes from the `pitlane` package. The deno-deploy template still maps the scoped packages in its `deno.jsonc` (`"@pitlane/dev": "npm:@pitlane/dev@^0.7.0"`), so add `pitlane` before switching the import. Run `deno add npm:pitlane`, which records a `"pitlane": "npm:pitlane@…"` entry in the same `imports` map. Deno resolves `pitlane/dev` and the other subpaths through that entry. The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires.
+`pitlane/vite-plugin-remix` comes from the `pitlane` package. The deno-deploy template maps the scoped packages in its `deno.jsonc`, such as `"@pitlane/vite-plugin-remix": "npm:@pitlane/vite-plugin-remix@…"`, so add `pitlane` before switching the import. Run `deno add npm:pitlane`, which records a `"pitlane": "npm:pitlane@…"` entry in the same `imports` map. Deno resolves `pitlane/vite-plugin-remix` and the other subpaths through that entry. The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versions it requires.
 
 Configure the app as **Static** with directory `dist` and Single Page App mode on, either in the dashboard or in one non-interactive command:
 

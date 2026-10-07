@@ -11,14 +11,13 @@
         "preview": "vp preview"
     },
     "dependencies": {
-        "@hiogawa/vite-plugin-fullstack": "^0.0.11",
+        "@pitlane/assets": "workspace:*",
         "@pitlane/theme": "workspace:*",
         "remix": "3.0.0"
     },
     "devDependencies": {
+        "@pitlane/vite-plugin-remix": "workspace:*",
         "@types/node": "^25.5.0",
-        "magic-string": "^0.30.21",
-        "oxc-parser": "^0.121.0",
         "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
         "vite-plus": "^1.0.0"
     }

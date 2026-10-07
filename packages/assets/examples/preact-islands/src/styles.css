@@ -1,0 +1,12 @@
+body {
+    margin: 0 auto;
+    max-width: 40rem;
+    padding: 2rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+}
+
+nav {
+    display: flex;
+    gap: 1rem;
+}

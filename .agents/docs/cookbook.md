@@ -8,6 +8,7 @@ A typical Remix 3 & Vite project:
 
 ```
 app/
+  assets.ts              # Asset resolver: createAssetResolver(manifest), the browser entry, stylesheets
   entry.server.tsx       # Server entry: router, middleware stack, route mapping
   entry.browser.tsx      # Client entry: run(), navigation interception, error banner
   routes.ts              # Route definitions (single source of truth for URLs)
@@ -33,7 +34,6 @@ db/
   seed.ts                # Idempotent local seed script
   lib/                   # Shared helpers for the db scripts
 vite.config.ts           # Unified config: build, dev, fmt, lint, typecheck, db tasks
-remix.plugin.ts          # Vite plugin for Remix (build, SSR, client entries)
 remix-test.config.ts     # `remix test` config (glob patterns, playwright projects)
 wrangler.jsonc           # Cloudflare bindings (D1, R2, assets)
 ```
@@ -1602,10 +1602,9 @@ The client handles the state update optimistically and doesn't need a redirect.
 
 ```tsx
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { remix } from "@pitlane/vite-plugin-remix";
 import devtoolsJson from "vite-plugin-devtools-json";
 import { defineConfig } from "vite-plus";
-
-import { remix } from "./remix.plugin.ts";
 
 export default defineConfig({
     plugins: [
@@ -1673,7 +1672,7 @@ export default defineConfig({
 
 **Plugin configuration:**
 
-- `remix({ serverHandler: false })` — Disables the Remix plugin's built-in Node.js server handler since Cloudflare Workers provides its own. Without this flag, the plugin creates a Node.js request listener that isn't compatible with Workers.
+- `remix({ serverHandler: false })` — Disables the development request bridge `remix()` composes from `@pitlane/vite-plugin-fetch-server`, since Cloudflare's plugin serves requests inside workerd. Without this flag, Vite's dev server would also run the server entry through its own Node module runner.
 - `cloudflare({ viteEnvironment: { name: "ssr" } })` — Tells the Cloudflare Vite plugin which build environment contains the server entry. This plugin handles Workers-specific bundling, injects platform bindings (D1, R2, etc.) during dev, and produces a deployable worker bundle.
 
 **Run tasks:** The `run.tasks` config defines orchestrated commands that `vp run <task>` executes. Key patterns:
@@ -1686,9 +1685,9 @@ export default defineConfig({
 
 **What the `remix()` plugin provides:**
 
-- **Build orchestration:** Builds SSR then client environments, with separate output directories (`dist/ssr`, `dist/client`)
+- **Build orchestration:** Builds SSR then client environments, with separate output directories (`dist/ssr`, `dist/client`), and writes the asset manifest `app/assets.ts` imports
 - **Preview server:** Loads the built SSR entry and creates a request listener for `vp preview`
-- **Client entry transforms:** Automatically resolves `import.meta.url` in `clientEntry()` calls to the correct asset URLs for both server and client environments
+- **Client entry transforms:** Rewrites `import.meta.url` in `clientEntry()` calls to a portable `file:app/counter.tsx#Counter` id that `render({ assets })` resolves through the asset resolver
 - **Error suppression:** Prevents abort errors from cancelled requests (e.g., search-as-you-type) from triggering the Vite error overlay
 
 **Commands:**
@@ -1792,54 +1791,62 @@ export function PostDetail(handle: Handle<{ post: Post }>) {
 
 ---
 
-### 23. How do asset imports work in the document shell?
+### 23. How do asset URLs work in the document shell?
 
 **Decision:** How do I wire up scripts, stylesheets, and preload links in my HTML document?
 
-**Heuristic:** Use Vite's asset import specifiers to resolve paths at build time. Never hardcode asset paths in components.
+**Heuristic:** Construct one asset resolver in `app/assets.ts` from the manifest the build supplies, and read every script, stylesheet, and preload URL from it. Never hardcode asset paths in components.
 
-**The three import types:**
+**The resolver module:**
 
 ```tsx
-// Client entry module — resolves hydration script + its dependencies
-import clientAssets from "#/entry.browser.ts?assets=client";
+// app/assets.ts
+import { createAssetResolver } from "@pitlane/assets";
+import manifest from "@pitlane/assets/manifest";
 
-// SSR assets — resolves server-rendered module dependencies (CSS, JS preloads)
-import serverAssets from "#/entry.server.tsx?assets=ssr";
+export let assets = createAssetResolver(manifest);
 
-// Standalone stylesheet — resolves to a URL string
-import styles from "#/index.css?url";
+// The browser entry — its URL, its static JS dependencies, and the import map
+export let scriptEntry = await assets.getScriptEntry("app/entry.browser.tsx");
+
+// A standalone stylesheet — resolves to a URL string
+export let stylesheetHref = await assets.getHref("app/index.css");
+
+// CSS that server-rendered modules import, from the client graph and this server's
+export let stylesheets = await assets.getStylesheets("app/entry.server.tsx");
 ```
 
-**Merging assets in the document shell:**
+**Reading it in the document shell:**
 
 ```tsx
-import { mergeAssets } from "@hiogawa/vite-plugin-fullstack/runtime";
-import clientAssets from "#/entry.browser.ts?assets=client";
-import serverAssets from "#/entry.server.tsx?assets=ssr";
-import styles from "#/index.css?url";
+import { ImportMap } from "remix/component/server";
+
+import { scriptEntry, stylesheetHref, stylesheets } from "#/assets.ts";
 
 export function Document() {
-    let { css, js } = mergeAssets(clientAssets, serverAssets);
+    let { href, importMap, preloads } = scriptEntry;
 
     return () => (
         <html lang="en">
             <head>
-                {/* Standalone CSS file — use ?url import */}
-                <link href={styles} rel="stylesheet" />
+                {/* Standalone CSS file */}
+                <link href={stylesheetHref} rel="stylesheet" />
 
-                {/* Asset-resolved CSS from component modules */}
-                {css.map(attrs => (
-                    <link key={attrs.href} {...attrs} rel="stylesheet" />
+                {/* CSS imported by server-rendered modules */}
+                {stylesheets.map(stylesheet => (
+                    <link key={stylesheet} href={stylesheet} rel="stylesheet" />
+                ))}
+
+                {/* The chunk import map, before any module is requested; remix() turns maps on by default */}
+                <ImportMap value={importMap} />
+
+                {/* Preload links for JS dependencies */}
+                {preloads.map(preload => (
+                    <link key={preload} href={preload} rel="modulepreload" />
                 ))}
 
                 {/* Client entry script */}
-                <script async src={clientAssets.entry} type="module" />
-
-                {/* Preload links for JS dependencies */}
-                {js.map(attrs => (
-                    <link key={attrs.href} {...attrs} rel="modulepreload" />
-                ))}
+                <script async src={href} type="module" />
             </head>
             <body>{/* ... */}</body>
         </html>
@@ -1847,13 +1854,23 @@ export function Document() {
 }
 ```
 
+**Passing it to the renderer:**
+
+```tsx
+// app/entry.server.tsx
+import { assets } from "#/assets.ts";
+
+let router = createRouter({ middleware: [render({ assets })] });
+```
+
 **Key rules:**
 
-- Use `?assets=client` for the client entry module (the one passed to `run()`)
-- Use `?assets=ssr` for server-rendered modules that contribute CSS or JS to the document. Only use this for module assets (`.tsx`, `.ts`), not plain `.css` files
-- Use `?url` for standalone stylesheets — this gives you a plain URL string for a `<link>` tag
-- Render `clientAssets.entry` as the `<script>` src — never hardcode `/remix/assets/...` paths
-- The Remix Vite plugin transforms `import.meta.url` in `clientEntry()` calls into the correct `?assets=client` imports automatically, so you don't need to think about this in component files
+- Paths are project-relative source keys such as `app/entry.browser.tsx`. A literal argument to `getScriptEntry` or `getHref` is what tells the build to emit that file for the browser; a computed path needs `remix({ assets: { include: [...] } })`
+- `getStylesheets` and `getPreloads` only observe what the build produced; they never turn a server module into a browser entry. `getStylesheets` reads the client graph and the current server's graph, and results are deduplicated
+- Render `<ImportMap value={scriptEntry.importMap} />` before the preload links and the module script. `remix()` turns chunk import maps on by default; `remix({ assets: { chunkImportMap: false } })` turns them off, which an app using `experimental.renderBuiltUrl` needs
+- Render `scriptEntry.href` as the `<script>` src — never hardcode `/assets/...` paths
+- Pass the same object to `render({ assets })`. The Remix Vite plugin rewrites `import.meta.url` in `clientEntry()` calls to a `file:` id, and `render()` resolves it through `assets.getScriptEntry`, adding `modulepreload` hints for each island. Without `assets`, the first island render fails
+- Through the `pitlane` umbrella, import from `pitlane/assets` and `pitlane/assets/manifest` instead
 
 ---
 
@@ -1866,10 +1883,10 @@ export function Document() {
 **External CSS (default choice):**
 
 ```tsx
-import styles from "#/index.css?url";
+import { stylesheetHref } from "#/assets.ts";
 
 // In your document shell:
-<link href={styles} rel="stylesheet" />;
+<link href={stylesheetHref} rel="stylesheet" />;
 ```
 
 **The `css()` mixin for component-scoped rules:**

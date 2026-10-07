@@ -8,7 +8,7 @@ import satteri from "vite-plugin-satteri";
 import { expect, it } from "vite-plus/test";
 
 import { headings } from "../src/satteri.ts";
-import { contentLayer } from "../src/vite.ts";
+import { contentLayer } from "../src/vite-plugin.ts";
 
 it("keeps optimized browser dependencies available after prebuilding content", async () => {
     let root = await mkdtemp(fileURLToPath(new URL("./.tmp-optimizer-", import.meta.url)));

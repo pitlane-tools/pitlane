@@ -6,11 +6,11 @@ A page whose content does not change per request does not need a server on the c
 
 <Vite>
 
-[`remix({ prerender })`](/package/dev/interface/RemixPluginOptions#prerender) renders those pages during `vite build` and writes the HTML into the client output.
+[`remix({ prerender })`](/package/vite-plugin-remix/interface/RemixPluginOptions#prerender) renders those pages during `vite build` and writes the HTML into the client output.
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -18,7 +18,7 @@ export default defineConfig({
 });
 ```
 
-`pitlane/dev` comes from the `pitlane` package. The [Pitlane package guide](/guides/umbrella) covers installing it and the standalone `@pitlane/dev` alternative.
+`pitlane/vite-plugin-remix` comes from the `pitlane` package. The [Pitlane package guide](/guides/umbrella) covers installing it and the standalone `@pitlane/vite-plugin-remix` alternative.
 
 </Vite>
 
@@ -96,7 +96,7 @@ remix({
 
 ### A function
 
-When the list needs a database, a CMS, or a filesystem walk, pass a function. It receives [`getStaticPaths()`](/package/dev/interface/PrerenderContext#getstaticpaths), which is the `true` behavior on demand, so the per-slug half is the only part you write:
+When the list needs a database, a CMS, or a filesystem walk, pass a function. It receives [`getStaticPaths()`](/package/vite-plugin-remix/interface/PrerenderContext#getstaticpaths), which is the `true` behavior on demand, so the per-slug half is the only part you write:
 
 ```ts
 remix({
@@ -112,7 +112,7 @@ remix({
 
 ### The object form
 
-`paths` takes any of the three above, and two more options come with it, all documented on [`PrerenderConfig`](/package/dev/interface/PrerenderConfig):
+`paths` takes any of the three above, and two more options come with it, all documented on [`PrerenderConfig`](/package/vite-plugin-remix/interface/PrerenderConfig):
 
 ```ts
 remix({
@@ -213,7 +213,7 @@ The build logs each file as it writes it.
 
 The `assets/` directory beside them is the build's own output. Prerendering never fetches a page's stylesheets or scripts, because Vite already emitted every one of them.
 
-Prerendering runs last, after both environments are built and the assets manifest is written. That ordering is what makes the HTML on disk identical to the HTML the runtime server would produce: the `?assets=` imports resolve to real hashed chunk URLs, not dev paths.
+Prerendering runs last, after both environments are built and the asset manifest is written. The [asset resolver](/guides/vite-plugin#document-assets) supplies the same hashed chunk URLs and island preload links as it does for runtime server responses.
 
 If the app is served from a sub-path, declare the routes under it (the [GitHub Pages guide](/deploy/github-pages) shows the pattern) and set Vite's `base` to match. The rendered files still go to the top of the client output, because the host mounts that whole directory at the base.
 
@@ -388,7 +388,7 @@ That is not a restriction on prerendering, only on how the request gets to the a
 ```ts
 // vite.config.ts
 import { cloudflare } from "@cloudflare/vite-plugin";
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({

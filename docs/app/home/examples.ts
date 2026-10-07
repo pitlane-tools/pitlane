@@ -4,12 +4,12 @@ import { routes } from "../routes.ts";
 let sources = [
     {
         id: "dev",
-        name: "@pitlane/dev",
+        name: "@pitlane/vite-plugin-remix",
         purpose: "Build & develop",
         file: "vite.config.ts",
         guide: "vite-plugin",
         description: "Development, server, and browser builds, all in one Vite plugin.",
-        code: `import { remix } from "pitlane/dev";
+        code: `import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({

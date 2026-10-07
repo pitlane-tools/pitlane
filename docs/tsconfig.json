@@ -12,7 +12,7 @@
         "skipLibCheck": true,
         "strict": true,
         "target": "ES2022",
-        "types": ["node", "vite/client", "@pitlane/dev/assets"]
+        "types": ["node", "vite/client"]
     },
     "include": ["app", "build", "tests", "test.ts", "vite.config.ts"]
 }

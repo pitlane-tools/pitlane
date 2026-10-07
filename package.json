@@ -12,7 +12,6 @@
         "@vvago/vale": "^3.23.0",
         "eslint-plugin-perfectionist": "^5.10.0",
         "eslint-plugin-prefer-let": "^4.2.2",
-        "oxc-parser": "^0.140.0",
         "remix": "3.0.0",
         "typescript": "^7.0.2",
         "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",

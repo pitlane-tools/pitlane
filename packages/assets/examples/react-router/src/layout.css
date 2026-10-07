@@ -1,0 +1,21 @@
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #222;
+}
+
+nav {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #ddd;
+}
+
+nav a.active {
+    font-weight: 600;
+}
+
+main {
+    max-width: 40rem;
+    padding: 1rem 2rem;
+}

@@ -1,4 +1,4 @@
-import { revalidate } from "@pitlane/dev/hmr";
+import { revalidate } from "@pitlane/vite-plugin-remix/hmr";
 import { run } from "remix/component";
 
 /**

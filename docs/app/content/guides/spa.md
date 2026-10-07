@@ -5,11 +5,11 @@ description: "How remix({ server: false }) sets up a client-rendered Remix 3 app
 
 # Single-page apps
 
-Some Remix 3 apps have no server. The router runs in the browser. The build is a folder of static files, and the host is a CDN. [`remix({ server: false })`](/package/dev/interface/RemixPluginOptions#server) is the switch for those apps.
+Some Remix 3 apps have no server. The router runs in the browser. The build is a folder of static files, and the host is a CDN. [`remix({ server: false })`](/package/vite-plugin-remix/interface/RemixPluginOptions#server) is the switch for those apps.
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite"; // or "vite-plus"
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
 });
 ```
 
-The `pitlane` package provides `pitlane/dev`. If only `vite.config.ts` imports it, the app can install `pitlane` as a dev dependency. The [Pitlane package guide](/guides/umbrella) covers its `remix` and `vite` requirements and the standalone `@pitlane/dev` alternative.
+The `pitlane` package provides `pitlane/vite-plugin-remix`. If only `vite.config.ts` imports it, the app can install `pitlane` as a dev dependency. The [Pitlane package guide](/guides/umbrella) covers its `remix` and `vite` requirements and the standalone `@pitlane/vite-plugin-remix` alternative.
 
 If you want browser-only UI in front of server routes that still run per request, that is [the default mode](#client-rendering-with-a-server), not this one.
 
@@ -33,9 +33,10 @@ Nothing in this mode renders outside a browser, so there is no server-safe rende
 | Dev requests       | your fetch handler               | Vite's static server  |
 | Component HMR      | yes                              | yes                   |
 | Server-data HMR    | yes                              | no server data exists |
-| `?assets=` imports | how HTML names its client assets | Vite injects the tags |
+| Asset resolver     | how HTML names its client assets | Vite injects the tags |
+| Chunk import map   | on; the document renders it      | on; Vite writes it into `index.html` |
 
-Every `server*` option goes with it: `serverEntry`, `serverEnvironments`, and `serverHandler` describe a server that no longer exists. `clientEntry` goes too, because the browser entry is whatever `index.html` loads.
+Every `server*` option goes with it: `serverEntry`, `serverEnvironments`, and `serverHandler` describe a server that no longer exists. `clientEntry` goes too, because the browser entry is whatever `index.html` loads. Of the `assets` options, only `chunkImportMap` still applies. `remix({ server: false, assets: { chunkImportMap: false } })` turns the map off.
 
 ## Why use the plugin at all
 
@@ -214,11 +215,21 @@ If you want a browser-rendered UI in front of routes that still run on the serve
 
 ### The shell
 
-The document the server sends for every navigable route, written as a component rather than a template literal, so the markup is typed and the asset URLs come from imports:
+The document the server sends for every navigable route, written as a component rather than a template literal, so the markup is typed and the asset URL comes from the asset resolver:
+
+```ts
+// app/assets.ts
+import { createAssetResolver } from "pitlane/assets";
+import manifest from "pitlane/assets/manifest";
+
+export let assets = createAssetResolver(manifest);
+
+export let scriptEntry = await assets.getScriptEntry("app/entry.browser.tsx");
+```
 
 ```tsx
 // app/shell.tsx
-import clientAssets from "./entry.browser.tsx?assets=client";
+import { scriptEntry } from "./assets.ts";
 
 export function Shell() {
     return () => (
@@ -226,7 +237,7 @@ export function Shell() {
             <head>
                 <meta charSet="utf-8" />
                 <title>My app</title>
-                <script src={clientAssets.entry} type="module" />
+                <script src={scriptEntry.href} type="module" />
             </head>
             <body>
                 <div id="app" />
@@ -236,7 +247,7 @@ export function Shell() {
 }
 ```
 
-`clientAssets.entry` is the URL of `app/entry.browser.tsx`: the dev URL during `vite dev` and the hashed chunk after a build. That one import is the whole reason the shell does not need to know its own build output. The [Vite plugin guide](/guides/vite-plugin#the-asset-runtime) covers the protocol, including `css` and `mergeAssets` for apps with stylesheets.
+`scriptEntry.href` is the URL of `app/entry.browser.tsx`: the dev URL during `vite dev` and the hashed chunk after a build. That one call is the whole reason the shell does not need to know its own build output. The [Vite plugin guide](/guides/vite-plugin#document-assets) covers the resolver, including stylesheets and preloads for apps that need them.
 
 ### The server
 
@@ -270,7 +281,7 @@ export default router;
 
 ### The browser
 
-This is what `clientAssets.entry` pulls in, and it is the same code SPA mode runs. Either shape from [Rendering](#rendering) works here. A `createRoot` tree:
+This is what `scriptEntry.href` loads, and it is the same code SPA mode runs. Either shape from [Rendering](#rendering) works here. A `createRoot` tree:
 
 ```tsx
 // app/entry.browser.tsx

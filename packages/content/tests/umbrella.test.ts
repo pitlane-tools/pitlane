@@ -6,7 +6,7 @@ import satteri from "vite-plugin-satteri";
 import { afterEach, expect, it } from "vite-plus/test";
 
 import { headings } from "../src/satteri.ts";
-import { contentLayer } from "../src/vite.ts";
+import { contentLayer } from "../src/vite-plugin.ts";
 
 let roots: string[] = [];
 

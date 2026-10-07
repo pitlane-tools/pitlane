@@ -114,7 +114,7 @@ test("Markdown and the LLM indexes are served as UTF-8 text, and Markdown names 
     for (let [path, type] of [
         ["/index.md", "text/markdown; charset=utf-8"],
         ["/guides/vite-plugin.md", "text/markdown; charset=utf-8"],
-        ["/package/dev/index.md", "text/markdown; charset=utf-8"],
+        ["/package/vite-plugin-remix/index.md", "text/markdown; charset=utf-8"],
         ["/package/content/loaders/function/glob.md", "text/markdown; charset=utf-8"],
         ["/llms.txt", "text/plain; charset=utf-8"],
         ["/llms-full.txt", "text/plain; charset=utf-8"],

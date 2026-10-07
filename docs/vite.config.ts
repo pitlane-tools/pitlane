@@ -1,4 +1,4 @@
-import { remix } from "@pitlane/dev";
+import { remix } from "@pitlane/vite-plugin-remix";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 

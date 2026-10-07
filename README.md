@@ -8,7 +8,9 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 
 | Package | Status | Description |
 | --- | --- | --- |
-| [`@pitlane/dev`](packages/dev) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fdev?color=blue)](https://www.npmjs.com/package/@pitlane/dev) | `remix()` — the Remix 3 Vite plugin: build orchestration, the `clientEntry()` hydration transform, a dev server with component and server-data HMR, SPA mode, build-time prerendering, and preview. |
+| [`@pitlane/vite-plugin-remix`](packages/vite-plugin-remix) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fvite-plugin-remix?color=blue)](https://www.npmjs.com/package/@pitlane/vite-plugin-remix) | `remix()` — the Remix 3 Vite plugin: build orchestration, the `clientEntry()` hydration transform, a dev server with component and server-data HMR, SPA mode, build-time prerendering, and preview. |
+| [`@pitlane/assets`](packages/assets) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fassets?color=blue)](https://www.npmjs.com/package/@pitlane/assets) | `createAssetResolver()` — the built script, stylesheet, and preload URLs a server-rendered document names, compatible with `render({ assets })`. Its Vite plugin works without Remix. |
+| [`@pitlane/vite-plugin-fetch-server`](packages/vite-plugin-fetch-server) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fvite-plugin-fetch-server?color=blue)](https://www.npmjs.com/package/@pitlane/vite-plugin-fetch-server) | `fetchServer()` — serves a module's `fetch` handler through Vite's dev server. |
 | [`@pitlane/theme`](packages/theme) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Ftheme?color=blue)](https://www.npmjs.com/package/@pitlane/theme) | Type-safe styling. A schema tree and the CSS values it describes compile to a typed token accessor and a `<Theme />` component. |
 | [`@pitlane/content`](packages/content) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fcontent?color=blue)](https://www.npmjs.com/package/@pitlane/content) | `createContent()` — Markdown, MDX, JSON, and YAML read into schema-validated collections a controller queries like a database. A Vite plugin prebuilds them for hosts with no filesystem. |
 | [`@pitlane/crawler`](packages/crawler) | [![npm](https://img.shields.io/npm/v/%40pitlane%2Fcrawler?color=blue)](https://www.npmjs.com/package/@pitlane/crawler) | `crawl()` — walks a Remix router in memory. What `remix({ prerender })` runs, and what a sitemap, link check, or static export builds on. |
@@ -16,7 +18,7 @@ Pitlane sits between Remix and the platforms you deploy to. Your server entry de
 
 Every push to a branch also builds installable package previews, for example: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/content@<sha>`.
 
-[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/dev` and `pitlane/theme/schema`. Each release pins exact package versions and is cut by hand when enough package changes have accumulated, so the newest `@pitlane/*` release can be ahead of it. The first umbrella release, `1.0.0-alpha.1`, pins `@pitlane/dev@0.7.1`, `@pitlane/theme@0.5.0`, `@pitlane/content@0.3.1`, `@pitlane/crawler@0.3.0`, and `@pitlane/data-table-d1@0.3.0`. Every package also installs and is documented on its own. [Installing Pitlane](https://pitlane.tools/guides/umbrella) covers subpaths, versions, and migration.
+[`pitlane`](packages/pitlane) is the umbrella: one install that re-exports every package above as `pitlane/<name>`, such as `pitlane/vite-plugin-remix` and `pitlane/theme/schema`. Each release pins exact package versions and is cut by hand when enough package changes have accumulated, so the newest `@pitlane/*` release can be ahead of it. The first umbrella release, `1.0.0-alpha.1`, pins `@pitlane/dev@0.7.1`, `@pitlane/theme@0.5.0`, `@pitlane/content@0.3.1`, `@pitlane/crawler@0.3.0`, and `@pitlane/data-table-d1@0.3.0`. Every package also installs and is documented on its own. [Installing Pitlane](https://pitlane.tools/guides/umbrella) covers subpaths, versions, and migration.
 
 [`create-pitlane`](packages/create-pitlane) is on npm, but its planned API is not implemented. The CLI will replace the `giget` command below.
 
@@ -26,11 +28,11 @@ Every push to a branch also builds installable package previews, for example: `n
 npm add pitlane
 ```
 
-`pitlane` goes in `dependencies` because app code imports runtime subpaths such as `pitlane/theme` and `pitlane/content`. It needs `remix@^3.0.0` and `vite@>=8` as peers. For a lean production install, add the scoped packages instead (`@pitlane/dev` as a dev dependency, runtime packages as dependencies) and import from `@pitlane/<name>`.
+`pitlane` goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets` and `pitlane/theme`. It needs `remix@^3.0.0` and `vite@>=8.1.0` as peers. For a lean production install, add the scoped packages instead (`@pitlane/vite-plugin-remix` as a dev dependency, runtime packages as dependencies) and import from `@pitlane/<name>`.
 
 ```ts
 // vite.config.ts
-import { remix } from "pitlane/dev";
+import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite"; // or "vite-plus"
 
 export default defineConfig({
@@ -38,15 +40,16 @@ export default defineConfig({
 });
 ```
 
-Everything the plugin does orbits three files you own:
+Everything the plugin does orbits four files you own:
 
 - **`vite.config.ts`** — `plugins: [remix()]`. Defaults cover the rest.
+- **`app/assets.ts`** — constructs the asset resolver with `createAssetResolver(manifest)` from `pitlane/assets` and `pitlane/assets/manifest`. The document reads script and stylesheet URLs from it, and `render({ assets })` resolves islands through it.
 - **`app/entry.server.tsx`** — builds a router and default-exports it. The default export's `.fetch(Request)` is the contract every consumer reads: dev, preview, and whatever runs in production.
-- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML, and in dev passes the runtime to `revalidate` from `@pitlane/dev/hmr` on `server:update`.
+- **`app/entry.browser.ts`** — calls `run()` from `remix/component` to hydrate `clientEntry()` components against server HTML, and in dev passes the runtime to `revalidate` from `pitlane/vite-plugin-remix/hmr` on `server:update`.
 
 `vite dev` serves the app through your router, `vite build` produces `dist/ssr` and `dist/client`, and `vite preview` serves the production build through the same fetch handler production runs. Component [HMR](https://pitlane.tools/guides/hmr) is on in dev, and server-data HMR follows once the browser entry [listens for server updates](https://pitlane.tools/guides/hmr#setup).
 
-Two options change the shape of the build: [`prerender`](https://pitlane.tools/guides/prerendering) renders paths to static HTML during `vite build`, and [`server: false`](https://pitlane.tools/guides/spa) drops the server entirely for a client-rendered app. See the [Vite plugin guide](https://pitlane.tools/guides/vite-plugin) for the asset runtime, the `clientEntry()` transform, and dev/preview semantics.
+Two options change the shape of the build: [`prerender`](https://pitlane.tools/guides/prerendering) renders paths to static HTML during `vite build`, and [`server: false`](https://pitlane.tools/guides/spa) drops the server entirely for a client-rendered app. See the [Vite plugin guide](https://pitlane.tools/guides/vite-plugin) for the `clientEntry()` transform and dev/preview semantics, and [asset resolution](https://pitlane.tools/guides/assets) for the resolver.
 
 ## Templates
 
@@ -62,8 +65,8 @@ Because every template is the same app, diffing any two shows exactly what a pla
 
 [pitlane.tools](https://pitlane.tools) hosts everything:
 
-- Guides: [Introduction](https://pitlane.tools/guides) · [Installation](https://pitlane.tools/guides/umbrella) · [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Theme](https://pitlane.tools/guides/theme) · [Single-page apps](https://pitlane.tools/guides/spa) · [Content](https://pitlane.tools/guides/content) · [Creating a content loader](https://pitlane.tools/guides/content#custom-loaders) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
-- API reference, generated from source, covering the same APIs `pitlane/<name>` re-exports: [`@pitlane/dev`](https://pitlane.tools/package/dev/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/content`](https://pitlane.tools/package/content/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
+- Guides: [Introduction](https://pitlane.tools/guides) · [Installation](https://pitlane.tools/guides/umbrella) · [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Asset resolution](https://pitlane.tools/guides/assets) · [Manifest integrations](https://pitlane.tools/guides/asset-build) · [Development fetch server](https://pitlane.tools/guides/fetch-server) · [Theme](https://pitlane.tools/guides/theme) · [Single-page apps](https://pitlane.tools/guides/spa) · [Content](https://pitlane.tools/guides/content) · [Creating a content loader](https://pitlane.tools/guides/content#custom-loaders) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
+- API reference, generated from source, covering the same APIs `pitlane/<name>` re-exports: [`@pitlane/vite-plugin-remix`](https://pitlane.tools/package/vite-plugin-remix/) · [`@pitlane/assets`](https://pitlane.tools/package/assets/) · [`@pitlane/vite-plugin-fetch-server`](https://pitlane.tools/package/vite-plugin-fetch-server/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/content`](https://pitlane.tools/package/content/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
 - Deploy guides: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare) · [Netlify](https://pitlane.tools/deploy/netlify) · [Vercel](https://pitlane.tools/deploy/vercel) · [Railway](https://pitlane.tools/deploy/railway) · [Deno Deploy](https://pitlane.tools/deploy/deno-deploy) · [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 
 For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).
@@ -74,15 +77,17 @@ For AI agents and other LLM tools, the documentation is also published as Markdo
 
 ```
 packages/
-├── content/          # @pitlane/content — createContent() and the contentLayer() Vite plugin
-├── crawler/          # @pitlane/crawler — crawl() and staticPaths()
-├── create-pitlane/   # create-pitlane — reserved name, the future scaffolder
-├── data-table-d1/    # @pitlane/data-table-d1 — Cloudflare D1 driver
-├── dev/              # @pitlane/dev — the remix() Vite plugin
-├── pitlane/          # pitlane — the umbrella, generated from manifest.json
-└── theme/            # @pitlane/theme — type-safe styling
-docs/                 # pitlane.tools — Remix + TypeDoc, deployed to Cloudflare Workers
-demos/                # example apps run by hand: content-vite, content-runtime, theme, tui
+├── assets/                   # @pitlane/assets — createAssetResolver() and the assets() Vite plugin
+├── content/                  # @pitlane/content — createContent() and the contentLayer() Vite plugin
+├── crawler/                  # @pitlane/crawler — crawl() and staticPaths()
+├── create-pitlane/           # create-pitlane — reserved name, the future scaffolder
+├── data-table-d1/            # @pitlane/data-table-d1 — Cloudflare D1 driver
+├── pitlane/                  # pitlane — the umbrella, generated from manifest.json
+├── theme/                    # @pitlane/theme — type-safe styling
+├── vite-plugin-fetch-server/ # @pitlane/vite-plugin-fetch-server — the fetchServer() dev request bridge
+└── vite-plugin-remix/        # @pitlane/vite-plugin-remix — the remix() Vite plugin
+docs/                         # pitlane.tools — Remix + TypeDoc, deployed to Cloudflare Workers
+demos/                        # example apps run by hand: content-vite, content-runtime, theme, tui
 ```
 
 ### Development
@@ -97,7 +102,7 @@ vp run check                # the full gate: docs build and tests, record valida
 vp run docs:prose           # downloads vale on first run, then lints the hand-written docs
 vp run                      # list every task
 
-cd packages/dev             # per-package tests and build
+cd packages/vite-plugin-remix # per-package tests and build
 vp test
 vp run build
 ```
