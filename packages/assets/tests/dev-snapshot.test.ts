@@ -199,8 +199,10 @@ async function serve(project: Fixture, options: ServeOptions = {}) {
             ...(options.plugins ?? []),
         ],
         environments: {
+            // Vite 8.1's dependency scanner resolves a relative input against
+            // process.cwd() rather than the root; 8.3 resolves it against the root.
             client: options.clientInput
-                ? { build: { rolldownOptions: { input: options.clientInput } } }
+                ? { build: { rolldownOptions: { input: join(project.root, options.clientInput) } } }
                 : {},
             ssr: { build: { rolldownOptions: { input: "app/entry.server.ts" } } },
             ...options.environments,
@@ -700,6 +702,10 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             preloads: [],
             importMap: { imports: {} },
         });
+
+        // Vite 8.1 leaves the prebundled dependency's pending load unresolved
+        // when the server closes mid-crawl, so `server.close()` never settles.
+        await server.environments.client!.waitForRequestsIdle();
     });
 
     it("lets the browser start when a server entry loads before Vite initializes the client", async () => {

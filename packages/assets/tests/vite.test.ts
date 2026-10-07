@@ -3,7 +3,12 @@ import type { InlineConfig, ViteDevServer } from "vite";
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createBuilder, createServer, isRunnableDevEnvironment } from "vite";
+import {
+    createBuilder,
+    createServer,
+    isRunnableDevEnvironment,
+    version as viteVersion,
+} from "vite";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { assets } from "../src/vite-plugin.ts";
@@ -243,31 +248,38 @@ export const script = await createAssetResolver(manifest).getScriptEntry("app/br
         expect(disabled.script.importMap).toEqual({ imports: {} });
     });
 
-    it("reads the configured native map artifact rather than unrelated JSON assets", async () => {
-        let root = await fixture();
-        let configured = config(root, { chunkImportMap: true });
-        configured.environments!.client.build!.rolldownOptions = {
-            experimental: { chunkImportMap: { fileName: "metadata/browser-imports.json" } },
-        };
-        configured.plugins!.push({
-            name: "unrelated-imports-document",
-            generateBundle() {
-                if (this.environment.name !== "client") return;
-                this.emitFile({
-                    type: "asset",
-                    fileName: "application-settings.json",
-                    source: JSON.stringify({ imports: { applicationSetting: "not-a-chunk" } }),
-                });
-            },
-        });
-        let module = await build(root, {}, configured);
-        expect(Object.values(module.script.importMap.imports)).toContain(module.script.href);
-        expect(module.script.importMap.imports).not.toHaveProperty("applicationSetting");
-        let nativeMap = JSON.parse(
-            await readFile(join(root, "dist/client/metadata/browser-imports.json"), "utf8"),
-        );
-        expect(module.script.importMap).toEqual(nativeMap);
-    });
+    // Before vitejs/vite#23184 (8.2.1), `build.chunkImportMap: true` discarded the
+    // configured `fileName`, and Vite's own import analysis then crashed looking
+    // for the file it had not emitted.
+    let customMapFileName = !/^8\.(1\.|2\.0$)/.test(viteVersion);
+    it.skipIf(!customMapFileName)(
+        "reads the configured native map artifact rather than unrelated JSON assets",
+        async () => {
+            let root = await fixture();
+            let configured = config(root, { chunkImportMap: true });
+            configured.environments!.client.build!.rolldownOptions = {
+                experimental: { chunkImportMap: { fileName: "metadata/browser-imports.json" } },
+            };
+            configured.plugins!.push({
+                name: "unrelated-imports-document",
+                generateBundle() {
+                    if (this.environment.name !== "client") return;
+                    this.emitFile({
+                        type: "asset",
+                        fileName: "application-settings.json",
+                        source: JSON.stringify({ imports: { applicationSetting: "not-a-chunk" } }),
+                    });
+                },
+            });
+            let module = await build(root, {}, configured);
+            expect(Object.values(module.script.importMap.imports)).toContain(module.script.href);
+            expect(module.script.importMap.imports).not.toHaveProperty("applicationSetting");
+            let nativeMap = JSON.parse(
+                await readFile(join(root, "dist/client/metadata/browser-imports.json"), "utf8"),
+            );
+            expect(module.script.importMap).toEqual(nativeMap);
+        },
+    );
 
     it("preserves a CDN public base in hrefs, stylesheets, and preload hints", async () => {
         let root = await fixture();
