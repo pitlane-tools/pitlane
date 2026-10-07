@@ -165,17 +165,19 @@ export function assetBuild(state: AssetPluginState): Plugin {
         generateBundle: {
             order: "post",
             handler(_options, bundle) {
-                let removedHref: string | undefined;
                 for (let [name, output] of Object.entries(bundle)) {
-                    if (output.type !== "chunk" || output.facadeModuleId !== EMPTY_INPUT) continue;
-                    removedHref = this.environment.config.base + name;
-                    delete bundle[name];
+                    if (output.type === "chunk" && output.facadeModuleId === EMPTY_INPUT)
+                        delete bundle[name];
                 }
-                if (!removedHref || !state.mapsEnabled) return;
+                if (this.environment.name !== "client" || !state.mapsEnabled) return;
+                // Vite's map still names the empty JS placeholder of every CSS-only
+                // entry after css-post deletes it, and this plugin's own placeholder.
                 let fileName = importMapFileName(this.environment.config);
                 let map = captureImportMap(bundle, fileName);
+                let base = this.environment.config.base;
                 for (let [key, href] of Object.entries(map.imports)) {
-                    if (href === removedHref) delete map.imports[key];
+                    if (href.startsWith(base) && !(href.slice(base.length) in bundle))
+                        delete map.imports[key];
                 }
                 let artifact = bundle[fileName]!;
                 if (artifact.type === "asset") artifact.source = JSON.stringify(map);

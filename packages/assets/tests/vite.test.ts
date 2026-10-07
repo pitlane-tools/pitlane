@@ -565,6 +565,16 @@ export const script = await createAssetResolver(manifest).getScriptEntry("app/br
         expect(Object.values(module.script.importMap.imports)).toContain(module.script.href);
     });
 
+    it("drops map entries for the JS placeholders Vite removes from CSS-only entries", async () => {
+        let root = await fixture();
+        let module = await build(root, { chunkImportMap: true });
+        expect(module.css).toMatch(/^\/assets\/page-[\w-]+\.css$/);
+        let files = await readdir(join(root, "dist/client"), { recursive: true });
+        for (let href of Object.values<string>(module.script.importMap.imports)) {
+            expect(files).toContain(href.slice(1));
+        }
+    });
+
     it("refuses chunk import maps combined with renderBuiltUrl", async () => {
         let root = await fixture();
         await expect(
