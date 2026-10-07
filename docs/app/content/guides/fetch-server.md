@@ -13,15 +13,79 @@ Any app can use the plugin. It needs no router, renderer, or Pitlane runtime, on
 
 Through the umbrella package, which most apps already depend on:
 
-```sh
-npm install pitlane
+::: code-group
+
+```sh [npm]
+npm add pitlane
 ```
+
+```sh [yarn]
+yarn add pitlane
+```
+
+```sh [pnpm]
+pnpm add pitlane
+```
+
+```sh [bun]
+bun add pitlane
+```
+
+```sh [deno]
+deno add npm:pitlane
+```
+
+```sh [vp]
+vp add pitlane
+```
+
+```sh [vlt]
+vlt add pitlane
+```
+
+```sh [nub]
+nub add pitlane
+```
+
+:::
 
 The scoped package also works on its own, with Vite 8.1 or later as its peer dependency:
 
-```sh
-npm install --save-dev @pitlane/vite-plugin-fetch-server
+::: code-group
+
+```sh [npm]
+npm add -D @pitlane/vite-plugin-fetch-server
 ```
+
+```sh [yarn]
+yarn add -D @pitlane/vite-plugin-fetch-server
+```
+
+```sh [pnpm]
+pnpm add -D @pitlane/vite-plugin-fetch-server
+```
+
+```sh [bun]
+bun add -d @pitlane/vite-plugin-fetch-server
+```
+
+```sh [deno]
+deno add --dev npm:@pitlane/vite-plugin-fetch-server
+```
+
+```sh [vp]
+vp add -D @pitlane/vite-plugin-fetch-server
+```
+
+```sh [vlt]
+vlt add -D @pitlane/vite-plugin-fetch-server
+```
+
+```sh [nub]
+nub add -D @pitlane/vite-plugin-fetch-server
+```
+
+:::
 
 Examples on this page import from `pitlane/vite-plugin-fetch-server`. With the scoped package, import the same `fetchServer` from `@pitlane/vite-plugin-fetch-server`.
 

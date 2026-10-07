@@ -11,9 +11,89 @@ A server-rendered page has to name its browser assets: the script that boots the
 
 The resolver has the resolution methods of the asset server from `remix/assets`: `getScriptEntry`, `getHref`, `getPreloads`, and `getImportMap`, plus `getStylesheets`. A Remix document written for that asset server runs unchanged. Only the file that constructs it differs.
 
-## Setup
+## Install
 
-The Vite adapter needs Vite 8.1 or later. The resolver and [manifest generator](/guides/asset-build) do not require Vite. An app that installs the `pitlane` umbrella already has the assets package. Without the umbrella, add `@pitlane/assets` to `dependencies`, since application code imports its runtime.
+Through the umbrella package, which most apps already depend on:
+
+::: code-group
+
+```sh [npm]
+npm add pitlane
+```
+
+```sh [yarn]
+yarn add pitlane
+```
+
+```sh [pnpm]
+pnpm add pitlane
+```
+
+```sh [bun]
+bun add pitlane
+```
+
+```sh [deno]
+deno add npm:pitlane
+```
+
+```sh [vp]
+vp add pitlane
+```
+
+```sh [vlt]
+vlt add pitlane
+```
+
+```sh [nub]
+nub add pitlane
+```
+
+:::
+
+The scoped package also works on its own. Add it to `dependencies`, not `devDependencies`, since application code imports its runtime:
+
+::: code-group
+
+```sh [npm]
+npm add @pitlane/assets
+```
+
+```sh [yarn]
+yarn add @pitlane/assets
+```
+
+```sh [pnpm]
+pnpm add @pitlane/assets
+```
+
+```sh [bun]
+bun add @pitlane/assets
+```
+
+```sh [deno]
+deno add npm:@pitlane/assets
+```
+
+```sh [vp]
+vp add @pitlane/assets
+```
+
+```sh [vlt]
+vlt add @pitlane/assets
+```
+
+```sh [nub]
+nub add @pitlane/assets
+```
+
+:::
+
+Examples on this page import from `pitlane/assets`. With the scoped package, import the same names from `@pitlane/assets`.
+
+The Vite adapter needs Vite 8.1 or later. The resolver and [manifest generator](/guides/asset-build) do not require Vite.
+
+## Setup
 
 `remix()` from `pitlane/vite-plugin-remix` installs the assets plugin itself. Pass its options as `remix({ assets: { … } })`. Any other Vite app adds `assets()` directly:
 
