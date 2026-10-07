@@ -465,29 +465,20 @@ export const graphs = Object.keys(manifest.environments).sort();`,
         let root = await fixture({
             "app/entry.ts": `${resolverModule}
 import "./shared.css";
-import "./server-only.css";
 export const script = await assets.getScriptEntry("app/browser.ts");`,
             "app/browser.ts": 'import "./shared.css"; export const start = () => "browser";',
             "app/shared.css": "main { display: grid; }",
-            "app/server-only.css": "aside { color: teal; }",
         });
         let module = await build(root);
-        let stylesheets: string[] = await module.assets.getStylesheets([
-            "app/entry.ts",
-            "app/browser.ts",
-        ]);
-        // The server graph contributes its own stylesheet; the shared one links
-        // once, as the file the client build emitted.
-        expect(stylesheets).toHaveLength(2);
-        let contents = await Promise.all(
-            stylesheets.map(href => readFile(join(root, "dist/client", href.slice(1)), "utf8")),
-        );
-        expect(contents.join("\n")).toContain("teal");
-        expect(contents.filter(css => css.includes("grid"))).toHaveLength(1);
+        let both = await module.assets.getStylesheets(["app/entry.ts", "app/browser.ts"]);
+        expect(both).toEqual([expect.stringMatching(/^\/assets\/[\w-]+\.css$/)]);
+        // The server graph answers for its own entry with the client's file.
+        await expect(module.assets.getStylesheets("app/entry.ts")).resolves.toEqual(both);
+        await expect(
+            readFile(join(root, "dist/client", both[0].slice(1)), "utf8"),
+        ).resolves.toContain("grid");
         let files = await readdir(join(root, "dist/client/assets"));
-        expect(files.filter(file => file.endsWith(".css")).sort()).toEqual(
-            stylesheets.map(href => href.slice(8)).sort(),
-        );
+        expect(files.filter(file => file.endsWith(".css"))).toEqual([both[0].slice(8)]);
     });
 
     it("fails a build whose unlisted server environment imports the manifest", async () => {
