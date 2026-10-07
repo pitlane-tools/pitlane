@@ -3,6 +3,12 @@ title: Asset resolution
 description: Resolve browser entries, stylesheets, preload hints, and import maps from a Vite build or dev server with pitlane/assets, in a Remix app or any other server-rendered app.
 ---
 
+import { InstallGroup } from "../../components/documentation.tsx";
+import { installAlternatives } from "../../install.ts";
+
+export const installation = await installAlternatives({ packages: ["pitlane"] });
+export const standaloneInstallation = await installAlternatives({ packages: ["@pitlane/assets"] });
+
 # Asset resolution
 
 A server-rendered page has to name its browser assets: the script that boots the page, the stylesheets it needs, `modulepreload` hints for the chunks that script imports, and the chunk of every island it hydrates. Those URLs differ between `vite dev` and a production build, and only the bundler knows them.
@@ -15,79 +21,11 @@ The resolver has the resolution methods of the asset server from `remix/assets`:
 
 Through the umbrella package, which most apps already depend on:
 
-::: code-group
-
-```sh [npm]
-npm add pitlane
-```
-
-```sh [yarn]
-yarn add pitlane
-```
-
-```sh [pnpm]
-pnpm add pitlane
-```
-
-```sh [bun]
-bun add pitlane
-```
-
-```sh [deno]
-deno add npm:pitlane
-```
-
-```sh [vp]
-vp add pitlane
-```
-
-```sh [vlt]
-vlt add pitlane
-```
-
-```sh [nub]
-nub add pitlane
-```
-
-:::
+<InstallGroup alternatives={installation} />
 
 The scoped package also works on its own. Add it to `dependencies`, not `devDependencies`, since application code imports its runtime:
 
-::: code-group
-
-```sh [npm]
-npm add @pitlane/assets
-```
-
-```sh [yarn]
-yarn add @pitlane/assets
-```
-
-```sh [pnpm]
-pnpm add @pitlane/assets
-```
-
-```sh [bun]
-bun add @pitlane/assets
-```
-
-```sh [deno]
-deno add npm:@pitlane/assets
-```
-
-```sh [vp]
-vp add @pitlane/assets
-```
-
-```sh [vlt]
-vlt add @pitlane/assets
-```
-
-```sh [nub]
-nub add @pitlane/assets
-```
-
-:::
+<InstallGroup alternatives={standaloneInstallation} />
 
 Examples on this page import from `pitlane/assets`. With the scoped package, import the same names from `@pitlane/assets`.
 
