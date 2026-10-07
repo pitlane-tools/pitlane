@@ -17,9 +17,27 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
     let config = state.config!;
     let client = state.outputs.get("client");
     if (!client || state.serverEnvironments.some(name => !state.outputs.has(name))) return;
+    // A stylesheet both sides import is emitted by each build under its own name;
+    // a server file byte-identical to a client one links as the client's file.
+    let clientStylesheets = new Map<string, string>();
+    for (let asset of Object.values(client.bundle)) {
+        if (asset.type === "asset" && isCSSRequest(asset.fileName)) {
+            clientStylesheets.set(Buffer.from(asset.source).toString("latin1"), asset.fileName);
+        }
+    }
     let environments: Record<string, AssetBuildEnvironment> = Object.create(null);
+    let twins = new Map<string, Map<string, string>>();
     for (let [name, output] of state.outputs) {
         let graph = output.graph;
+        let twin = new Map<string, string>();
+        if (output !== client) {
+            for (let asset of Object.values(output.bundle)) {
+                if (asset.type !== "asset" || !isCSSRequest(asset.fileName)) continue;
+                let file = clientStylesheets.get(Buffer.from(asset.source).toString("latin1"));
+                if (file) twin.set(asset.fileName, file);
+            }
+        }
+        twins.set(name, twin);
         environments[name] = {
             ...graph,
             chunks: Object.fromEntries(
@@ -28,12 +46,17 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
                     {
                         ...chunk,
                         file: publicFile(config, chunk.file),
-                        stylesheets: chunk.stylesheets.map(file => publicFile(config, file)),
+                        stylesheets: chunk.stylesheets.map(file =>
+                            publicFile(config, twin.get(file) ?? file),
+                        ),
                     },
                 ]),
             ),
             assets: Object.fromEntries(
-                Object.entries(graph.assets).map(([key, file]) => [key, publicFile(config, file)]),
+                Object.entries(graph.assets).map(([key, file]) => [
+                    key,
+                    publicFile(config, twin.get(file) ?? file),
+                ]),
             ),
         };
     }
@@ -54,7 +77,7 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
             `export default JSON.parse(${JSON.stringify(JSON.stringify({ ...manifest, serverEnvironment: name }))});\n`,
         );
         for (let asset of Object.values(output.bundle)) {
-            if (asset.type !== "asset") continue;
+            if (asset.type !== "asset" || twins.get(name)!.has(asset.fileName)) continue;
             let destination = resolve(client.outDir, asset.fileName);
             await mkdir(dirname(destination), { recursive: true });
             await writeFile(destination, asset.source);

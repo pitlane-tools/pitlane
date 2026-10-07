@@ -461,6 +461,24 @@ export const graphs = Object.keys(manifest.environments).sort();`,
         await expect(ssr.assets.getStylesheets("app/edge.ts")).rejects.toThrow('"client" or "ssr"');
     });
 
+    it("links a stylesheet both sides import once, as the client's file", async () => {
+        let root = await fixture({
+            "app/entry.ts": `${resolverModule}
+import "./shared.css";
+export const script = await assets.getScriptEntry("app/browser.ts");`,
+            "app/browser.ts": 'import "./shared.css"; export const start = () => "browser";',
+            "app/shared.css": "main { display: grid; }",
+        });
+        let module = await build(root);
+        let stylesheets = await module.assets.getStylesheets(["app/entry.ts", "app/browser.ts"]);
+        expect(stylesheets).toEqual([expect.stringMatching(/^\/assets\/[\w-]+\.css$/)]);
+        await expect(
+            readFile(join(root, "dist/client", stylesheets[0].slice(1)), "utf8"),
+        ).resolves.toContain("grid");
+        let files = await readdir(join(root, "dist/client/assets"));
+        expect(files.filter(file => file.endsWith(".css"))).toEqual([stylesheets[0].slice(8)]);
+    });
+
     it("fails a build whose unlisted server environment imports the manifest", async () => {
         let root = await fixture();
         let configured = config(root);
