@@ -1,0 +1,21 @@
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: rgb(34, 34, 34);
+}
+
+nav {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid rgb(221, 221, 221);
+}
+
+nav a.router-link-exact-active {
+    font-weight: bold;
+}
+
+main {
+    max-width: 40rem;
+    padding: 2rem;
+}
