@@ -81,7 +81,7 @@ remix({
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
     serverHandler: true, // false when a platform plugin serves dev and preview requests
-    assets: {}, // { include, chunkImportMap } for the asset plugin; maps are on
+    assets: {}, // { include, chunkImportMap, allowFiles, … } for the asset plugin; maps are on
 });
 ```
 
@@ -93,7 +93,7 @@ remix({
 | `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`, and the module dev requests are served through. |
 | `serverEnvironments` | `string[]` | `["ssr"]` | Environment names treated as "server" by asset collection and hot module replacement. |
 | `serverHandler` | `boolean` | `true` | Serve dev and `vite preview` requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns request handling. |
-| `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the asset plugin: extra browser entries for computed paths, and the [chunk import map](#chunk-import-maps) switch. `remix()` defaults it to `true`. |
+| `assets` | `{ include?, chunkImportMap?, allowFiles?, allowPackages?, denyFiles? }` | `{}` | Passed to the asset plugin. `include` lists extra browser entries for computed paths. `chunkImportMap` switches [chunk import maps](#chunk-import-maps), and `remix()` defaults it to `true`. The allow and deny lists set up the [browser boundary](/guides/assets#browser-boundary). |
 
 ## SPA mode
 

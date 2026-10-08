@@ -111,10 +111,11 @@ export interface RemixPluginOptions {
     prerender?: PrerenderOption;
     /**
      * Options for the asset plugin `remix()` installs: `include` for browser
-     * entries the server names with computed paths, and `chunkImportMap`,
-     * which `remix()` turns on unless this option or Vite's own
-     * `build.chunkImportMap` says otherwise. Server environments come from
-     * `serverEnvironments`.
+     * entries the server names with computed paths, `chunkImportMap`, which
+     * `remix()` turns on unless this option or Vite's own
+     * `build.chunkImportMap` says otherwise, and `allowFiles`,
+     * `allowPackages`, and `denyFiles` for the browser boundary. Server
+     * environments come from `serverEnvironments`.
      *
      * Ignored when `server` is `false`.
      *

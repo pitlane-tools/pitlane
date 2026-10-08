@@ -24,7 +24,12 @@ export interface AssetPluginState {
     mapsEnabled: boolean;
 }
 
-export const MANIFEST_FILE = "__pitlane_assets_manifest.js";
+/**
+ * The manifest module a build writes at the root of each server environment's
+ * output directory. The server chunks that read the manifest import this file
+ * by a relative path, so a host that deploys a single module must bundle it in.
+ */
+export const ASSETS_MANIFEST_FILE = "__pitlane_assets_manifest.js";
 export const MANIFEST_ID = "\0pitlane:assets-manifest";
 export const MANIFEST_EXTERNAL = "pitlane:assets-build-manifest";
 export const EMPTY_INPUT = "\0pitlane:assets-empty-input";
