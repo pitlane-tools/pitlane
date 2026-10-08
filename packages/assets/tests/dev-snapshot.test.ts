@@ -719,6 +719,7 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             let dependency = async () =>
                 client.moduleGraph.getModuleByUrl("/app/client-dependency.ts");
             await client.transformRequest("/app/client-dependency.ts");
+            let updatedBefore = (await dependency())!.lastHMRTimestamp;
 
             await project.edit("project/app/client-dependency.ts", code => `${code}// edited\n`);
             await updateHeld.promise;
@@ -728,9 +729,50 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             updateReleased.resolve();
             await expect
                 .poll(async () => (await dependency())?.lastHMRTimestamp)
-                .toBeGreaterThan(0);
+                .toBeGreaterThan(updatedBefore);
             transformReleased.resolve();
             await transformed;
+
+            let { assets } = await request(server);
+            expect(await assets.getPreloads("app/client-leaf.ts")).toEqual([]);
+        });
+
+        it("follows a browser module's imports when Vite retries a request an invalidation interrupted", async () => {
+            let held = Promise.withResolvers<void>();
+            let released = Promise.withResolvers<void>();
+            let holding = false;
+            let holdFirst: Plugin = {
+                name: "test-held-browser-module",
+                async transform(_code, id) {
+                    if (holding || this.environment.name !== "client") return;
+                    if (!id.endsWith("/app/client-dependency.ts")) return;
+                    holding = true;
+                    held.resolve();
+                    await released.promise;
+                },
+            };
+            let project = await fixture();
+            await project.write("project/app/client-leaf.ts", `export const leaf = "leaf";\n`);
+            await project.write(
+                "project/app/client-dependency.ts",
+                `import { leaf } from "./client-leaf.ts";\nexport const dependency = leaf;\n`,
+            );
+            let server = await serve(project, {
+                clientInput: "app/client-input.ts",
+                plugins: [holdFirst],
+            });
+            let client = server.environments.client;
+
+            let superseded = client.transformRequest("/app/client-dependency.ts");
+            await held.promise;
+            let module = await client.moduleGraph.getModuleByUrl("/app/client-dependency.ts");
+            // A second request finds the first in flight, sees the
+            // invalidation, and starts the transform again; Vite caches that one.
+            let retried = client.transformRequest("/app/client-dependency.ts");
+            client.moduleGraph.invalidateModule(module!);
+            await retried;
+            released.resolve();
+            await superseded;
 
             let { assets } = await request(server);
             expect(await assets.getPreloads("app/client-leaf.ts")).toEqual([]);

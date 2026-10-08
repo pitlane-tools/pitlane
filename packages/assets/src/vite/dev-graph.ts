@@ -97,7 +97,9 @@ async function analyze(
             // Vite's middleware and `fetchModule` unwrap `/@id/` before calling
             // `transformRequest`; a virtual or bare id is its own URL there.
             await environment.transformRequest(url.startsWith("/@id/") ? id : url);
-            return;
+            // A cached transform runs no hook, and Vite can cache one the hook
+            // judged superseded, such as a request Vite retried internally.
+            if (edges.has(id)) return;
         }
         await startRequest(() => transformOutsideCache(environment, id, url));
     } catch (error) {

@@ -4,10 +4,12 @@ import { AsyncLocalStorage } from "node:async_hooks";
 // that started before an invalidation of its module may have loaded the code
 // that invalidation superseded. Vite's `transformRequest` makes the same
 // judgment when it decides whether to cache a result, and the timeline counts
-// the same invalidations, so that every transform Vite caches has its edges
-// recorded. That leaves out HMR invalidations: an edit reaches the module
-// graph first as an ordinary invalidation, and its HMR update invalidates the
-// module again after a transform of the edited code may have started.
+// the same invalidations, so the two agree on ordinary requests. That leaves
+// out HMR invalidations: an edit reaches the module graph first as an
+// ordinary invalidation, and its HMR update invalidates the module again after
+// a transform of the edited code may have started. Where they still disagree,
+// as on a request Vite retries internally, discovery transforms the module
+// again.
 let invalidations = 0;
 let requestStart = new AsyncLocalStorage<number>();
 
