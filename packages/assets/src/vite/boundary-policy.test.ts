@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
@@ -11,6 +11,18 @@ let root: string;
 beforeAll(async () => {
     root = await realpath(await mkdtemp(join(tmpdir(), "pitlane-boundary-")));
     await mkdir(join(root, "app/public"), { recursive: true });
+    let packages = {
+        widget: { optionalDependencies: { optional: "1.0.0", absent: "1.0.0" } },
+        optional: { dependencies: { nested: "1.0.0" } },
+        nested: {},
+    };
+    for (let [name, manifest] of Object.entries(packages)) {
+        await mkdir(join(root, "node_modules", name), { recursive: true });
+        await writeFile(
+            join(root, "node_modules", name, "package.json"),
+            JSON.stringify({ name, version: "1.0.0", ...manifest }),
+        );
+    }
 });
 
 afterAll(() => rm(root, { recursive: true, force: true }));
@@ -57,5 +69,29 @@ describe("#75: browser boundary matching", () => {
         expect(inspect(join(root, "app/routes.ts"))).toEqual({ allowed: true });
         expect(inspect(join(root, "app/entry.ts"))).toEqual({ allowed: true });
         expect(inspect(join(root, "app/routes.tsx"))).toEqual({ allowed: false });
+    });
+
+    it("allows installed optional dependencies and their dependencies, and skips absent ones", () => {
+        let inspect = createBrowserBoundary(root, { allowFiles: [], allowPackages: ["widget"] });
+
+        for (let name of ["widget", "optional", "nested"]) {
+            expect(inspect(join(root, "node_modules", name, "index.js"))).toEqual({
+                allowed: true,
+            });
+        }
+    });
+
+    it("lets denyFiles refuse a file an allowed package holds", () => {
+        let inspect = createBrowserBoundary(root, {
+            allowFiles: [],
+            allowPackages: ["widget"],
+            denyFiles: ["node_modules/widget/server/**"],
+        });
+
+        expect(inspect(join(root, "node_modules/widget/server/token.js"))).toEqual({
+            allowed: false,
+            deniedBy: "node_modules/widget/server/**",
+        });
+        expect(inspect(join(root, "node_modules/widget/client.js"))).toEqual({ allowed: true });
     });
 });

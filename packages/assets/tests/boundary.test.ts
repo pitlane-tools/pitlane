@@ -3,7 +3,7 @@ import type { InlineConfig, ViteDevServer } from "vite";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createBuilder, createServer } from "vite";
+import { createBuilder, createServer, isRunnableDevEnvironment } from "vite";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import type { AssetsPluginOptions } from "../src/vite-plugin.ts";
@@ -214,6 +214,32 @@ export default { fetch() { return new Response("ok"); } };`,
         );
     });
 
+    it("fails when an allowed server stylesheet links an asset outside allowFiles", async () => {
+        let root = await fixture({
+            "app/entry.ts": `import "./public/server.css";
+export default { fetch() { return new Response("ok"); } };`,
+            "app/public/server.css": '.page { background: url("../data/secret.svg"); }',
+        });
+
+        expect(await failure(build(root))).toContain(
+            "app/data/secret.svg: not in allowFiles or allowPackages",
+        );
+    });
+
+    it("does not hold an HTML document to the boundary", async () => {
+        let root = await fixture({
+            "index.html": '<script type="module" src="/app/public/label.ts"></script>',
+        });
+        let configured = config(root, boundary);
+        configured.environments!.client!.build!.rolldownOptions = { input: "index.html" };
+        let builder = await createBuilder(configured);
+        await builder.buildApp();
+
+        await expect(readFile(join(root, "dist/client/index.html"), "utf8")).resolves.toContain(
+            "<script",
+        );
+    });
+
     it("fails when the server names a browser entry outside allowFiles", async () => {
         let root = await fixture({
             "app/entry.ts": `import { createAssetResolver } from "@pitlane/assets";
@@ -264,6 +290,19 @@ describe("#75: browser boundary configuration", () => {
         },
     );
 
+    it.each(["fixture-widget/index.js", "../fixture-widget", ""])(
+        "refuses %o in allowPackages, which is not a package name",
+        async name => {
+            let root = await fixture();
+
+            expect(
+                await failure(build(root, { allowFiles: ["app/**"], allowPackages: [name] })),
+            ).toContain(
+                `[assets] allowPackages values must be package names. Received ${JSON.stringify(name)}.`,
+            );
+        },
+    );
+
     it("refuses an allowed package that is not installed", async () => {
         let root = await fixture();
 
@@ -285,6 +324,19 @@ export const render = () => token;`,
 
         await client.transformRequest("/app/public/island.ts");
         expect(await failure(client.transformRequest("/app/data/storefront.ts"))).toContain(
+            "[assets] Outside the browser boundary: app/data/storefront.ts (imported by app/public/island.ts): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails a server request whose manifest walks into a file outside allowFiles", async () => {
+        let root = await fixture({
+            "app/public/island.ts": `import { token } from "../data/storefront.ts";
+export const render = () => token;`,
+        });
+        let ssr = (await serve(root)).environments.ssr!;
+        if (!isRunnableDevEnvironment(ssr)) throw new Error("Expected runnable SSR environment");
+
+        expect(await failure(ssr.runner.import("/app/entry.ts"))).toContain(
             "[assets] Outside the browser boundary: app/data/storefront.ts (imported by app/public/island.ts): not in allowFiles or allowPackages",
         );
     });

@@ -230,7 +230,7 @@ With `remix()`, pass them as `remix({ assets: { allowFiles, allowPackages, denyF
 The options match the way `remix/assets` reads them:
 
 - `allowFiles` and `denyFiles` hold file paths and globs. Relative values resolve from the Vite root. An absolute file path matches that file, and a directory path matches every file below it.
-- `allowPackages` holds exact package names. Each package's `dependencies` and installed `optionalDependencies` are allowed with it, and so are their own dependencies. Peer dependencies are not, so list each peer the browser loads. A name that the project root cannot resolve fails with `Could not resolve allowed package "name".`
+- `allowPackages` holds exact package names, such as `remix` or `@shopify/hydrogen`, never a path inside one. Each package's `dependencies` and installed `optionalDependencies` are allowed with it, and so are their own dependencies. Peer dependencies are not, so list each peer the browser loads. A name that the project root cannot resolve fails with `Could not resolve allowed package "name".`
 - `denyFiles` takes precedence over both lists.
 
 ### What a build checks
@@ -249,7 +249,7 @@ Transforming a module outside the boundary for the browser fails with the same m
 
 Vite prebundles dependencies under `vite dev`, and the boundary checks a prebundled dependency by the package entry it came from. A package that reaches the browser only inside another prebundled package is caught by the build.
 
-Neither mode checks Vite's own client runtime, virtual modules, or files in Vite's `publicDir`, which Vite publishes as they are.
+Neither mode checks HTML documents, Vite's own client runtime, virtual modules, or files in Vite's `publicDir`, which Vite publishes as they are. The modules and assets an HTML document loads are checked like any others.
 
 ## Public URLs and `base`
 

@@ -65,6 +65,9 @@ export function browserBoundary(
     );
 
     function refusal(file: string, importer?: string): Refusal | undefined {
+        // An HTML document is a page, including the inline scripts Vite proxies
+        // from it; what it loads is checked on its own.
+        if (file.endsWith(".html")) return;
         let verdict = inspect(file);
         if (verdict.allowed) return;
         return {
@@ -122,13 +125,16 @@ export function browserBoundary(
                     return next();
                 }
                 if (base !== "/" && path.startsWith(base)) path = `/${path.slice(base.length)}`;
-                // Vite answers its own `/@…` routes, publicDir files, and HTML.
+                // Vite answers its own `/@…` routes and publicDir files.
                 if (path.startsWith("/@") && !path.startsWith("/@fs/")) return next();
-                if (path.endsWith(".html") || (publicDir && existsSync(join(publicDir, path))))
-                    return next();
-                let file = existingFile(
-                    path.startsWith("/@fs/") ? path.slice(4) : join(root, path),
-                );
+                if (publicDir && existsSync(join(publicDir, path))) return next();
+                let requested = join(root, path);
+                if (path.startsWith("/@fs/")) {
+                    // `/@fs/C:/…` on Windows, `/@fs/home/…` elsewhere.
+                    let fsPath = path.slice("/@fs/".length);
+                    requested = /^[A-Za-z]:\//.test(fsPath) ? fsPath : `/${fsPath}`;
+                }
+                let file = existingFile(requested);
                 let refused = file && devRefusal(client, file);
                 if (!refused) return next();
                 next(new Error(`[assets] Outside the browser boundary: ${describe(refused)}`));
@@ -140,7 +146,7 @@ export function browserBoundary(
                 let environment = this.environment;
                 if (environment.mode !== "dev" || environment.name !== "client" || !fileModule(id))
                     return;
-                let refused = devRefusal(environment, filePath(id));
+                let refused = devRefusal(environment, existingFile(id) ?? filePath(id));
                 if (refused)
                     throw new Error(`[assets] Outside the browser boundary: ${describe(refused)}`);
             },

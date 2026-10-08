@@ -51,6 +51,16 @@ function fileMatcher(root: string, pattern: string): FileMatcher {
     return statSync(real).isDirectory() ? file => within(real, file) : file => file === real;
 }
 
+/** Whether `name` is a bare or scoped package name, not a path, as `remix/assets` requires. */
+function isPackageName(name: string): boolean {
+    let scoped = name.startsWith("@");
+    let parts = (scoped ? name.slice(1) : name).split("/");
+    return (
+        parts.length === (scoped ? 2 : 1) &&
+        parts.every(part => /^[\w.~-]+$/.test(part) && part !== "." && part !== "..")
+    );
+}
+
 /**
  * The real directories of each named package and of everything its
  * `dependencies` and installed `optionalDependencies` pull in, transitively.
@@ -59,6 +69,11 @@ function fileMatcher(root: string, pattern: string): FileMatcher {
 function allowedPackageRoots(root: string, names: string[]): string[] {
     let roots = new Set<string>();
     let pending = names.map(name => {
+        if (!isPackageName(name)) {
+            throw new Error(
+                `[assets] allowPackages values must be package names. Received ${JSON.stringify(name)}.`,
+            );
+        }
         let directory = packageDirectory(name, root);
         if (!directory) throw new Error(`[assets] Could not resolve allowed package "${name}".`);
         return directory;
