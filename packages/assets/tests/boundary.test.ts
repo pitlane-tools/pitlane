@@ -198,7 +198,40 @@ export const render = () => secret;`,
         });
 
         expect(await failure(build(root))).toContain(
-            "app/data/secret.svg: not in allowFiles or allowPackages",
+            "app/data/secret.svg (imported by app/public/island.css): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails when a browser stylesheet imports a stylesheet outside allowFiles", async () => {
+        let root = await fixture({
+            "app/public/island.css": '@import "../data/secret.css";\n.island { color: red; }',
+            "app/data/secret.css": ".secret { color: blue; }",
+        });
+
+        expect(await failure(build(root))).toContain(
+            "app/data/secret.css (imported by app/public/island.css): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails when a browser stylesheet inlines a file outside allowFiles", async () => {
+        let root = await fixture({
+            "app/public/island.css": '.island { background: url("../data/secret.svg?inline"); }',
+        });
+
+        expect(await failure(build(root))).toContain(
+            "app/data/secret.svg (imported by app/public/island.css): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails when a browser module imports an HTML file outside allowFiles as text", async () => {
+        let root = await fixture({
+            "app/public/island.ts": `import page from "../data/secret.html?raw";
+export const render = () => page;`,
+            "app/data/secret.html": "<p>server template</p>",
+        });
+
+        expect(await failure(build(root))).toContain(
+            "app/data/secret.html (imported by app/public/island.ts): not in allowFiles or allowPackages",
         );
     });
 
@@ -222,7 +255,20 @@ export default { fetch() { return new Response("ok"); } };`,
         });
 
         expect(await failure(build(root))).toContain(
-            "app/data/secret.svg: not in allowFiles or allowPackages",
+            "app/data/secret.svg (imported by app/public/server.css): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails when an allowed server stylesheet imports a stylesheet outside allowFiles", async () => {
+        let root = await fixture({
+            "app/entry.ts": `import "./public/server.css";
+export default { fetch() { return new Response("ok"); } };`,
+            "app/public/server.css": '@import "../data/secret.css";\n.page { color: red; }',
+            "app/data/secret.css": ".secret { color: blue; }",
+        });
+
+        expect(await failure(build(root))).toContain(
+            "app/data/secret.css (imported by app/public/server.css): not in allowFiles or allowPackages",
         );
     });
 
@@ -338,6 +384,27 @@ export const render = () => token;`,
 
         expect(await failure(ssr.runner.import("/app/entry.ts"))).toContain(
             "[assets] Outside the browser boundary: app/data/storefront.ts (imported by app/public/island.ts): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails the client transform of a stylesheet that imports a stylesheet outside allowFiles", async () => {
+        let root = await fixture({
+            "app/public/island.css": '@import "../data/secret.css";\n.island { color: red; }',
+            "app/data/secret.css": ".secret { color: blue; }",
+        });
+        let client = (await serve(root)).environments.client!;
+
+        expect(await failure(client.transformRequest("/app/public/island.css"))).toContain(
+            "[assets] Outside the browser boundary: app/data/secret.css (imported by app/public/island.css): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("fails the client transform of an HTML file outside allowFiles imported as text", async () => {
+        let root = await fixture({ "app/data/secret.html": "<p>server template</p>" });
+        let client = (await serve(root)).environments.client!;
+
+        expect(await failure(client.transformRequest("/app/data/secret.html?raw"))).toContain(
+            "[assets] Outside the browser boundary: app/data/secret.html: not in allowFiles or allowPackages",
         );
     });
 

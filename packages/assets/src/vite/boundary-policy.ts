@@ -27,8 +27,14 @@ export function createBrowserBoundary(
         pattern,
         matches: fileMatcher(root, pattern),
     }));
-    let packageRoots = allowedPackageRoots(root, options.allowPackages ?? []);
+    let packageRoots = allowedPackageRoots(
+        root,
+        (options.allowPackages ?? []).map(name => name.trim()),
+    );
     return file => {
+        // Compilers inject imports of these helpers into authored code, so
+        // `remix/assets` serves them whatever the options say.
+        if (file.includes("/node_modules/@oxc-project/runtime/")) return { allowed: true };
         let allowed =
             allowMatchers.some(matches => matches(file)) ||
             packageRoots.some(directory => within(directory, file));

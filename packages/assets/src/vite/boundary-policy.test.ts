@@ -94,4 +94,18 @@ describe("#75: browser boundary matching", () => {
         });
         expect(inspect(join(root, "node_modules/widget/client.js"))).toEqual({ allowed: true });
     });
+
+    it("allows the runtime helpers a compiler injects, as remix/assets does", () => {
+        let inspect = createBrowserBoundary(root, { allowFiles: [] });
+
+        expect(
+            inspect(join(root, "node_modules/@oxc-project/runtime/src/helpers/decorate.js")),
+        ).toEqual({ allowed: true });
+    });
+
+    it("trims surrounding whitespace from allowPackages names, as remix/assets does", () => {
+        let inspect = createBrowserBoundary(root, { allowFiles: [], allowPackages: [" widget "] });
+
+        expect(inspect(join(root, "node_modules/widget/index.js"))).toEqual({ allowed: true });
+    });
 });

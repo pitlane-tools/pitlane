@@ -230,12 +230,19 @@ With `remix()`, pass them as `remix({ assets: { allowFiles, allowPackages, denyF
 The options match the way `remix/assets` reads them:
 
 - `allowFiles` and `denyFiles` hold file paths and globs. Relative values resolve from the Vite root. An absolute file path matches that file, and a directory path matches every file below it.
-- `allowPackages` holds exact package names, such as `remix` or `@shopify/hydrogen`, never a path inside one. Each package's `dependencies` and installed `optionalDependencies` are allowed with it, and so are their own dependencies. Peer dependencies are not, so list each peer the browser loads. A name that the project root cannot resolve fails with `Could not resolve allowed package "name".`
+- `allowPackages` holds exact package names, such as `remix` or `@shopify/hydrogen`, never a path inside one. Surrounding whitespace is trimmed. Each package's `dependencies` and installed `optionalDependencies` are allowed with it, and so are their own dependencies. Peer dependencies are not, so list each peer the browser loads. A name that the project root cannot resolve fails with `Could not resolve allowed package "name".`
 - `denyFiles` takes precedence over both lists.
+- `@oxc-project/runtime` is always allowed, because compilers inject imports of its helpers into code you wrote.
 
 ### What a build checks
 
-`vite build` fails when a file outside the boundary would reach the browser. It checks every file in the client module graph, every file the client build emits as an asset, such as a font a stylesheet loads with `url()`, and the stylesheets and assets a server environment links, which the build copies into the client output. A module counts even when tree-shaking drops its code, because the asset server would refuse its import. The error lists every such file, with the module that imports it where there is one:
+`vite build` fails when a file outside the boundary would reach the browser:
+
+- any file in the client module graph, even a module whose code tree-shaking drops, because the asset server would refuse its import;
+- any file a stylesheet reads in, such as an `@import`ed stylesheet, a preprocessor partial, or a `url()` target the build emits or inlines;
+- the stylesheets a server environment links and the assets its code imports, which the build copies into the client output.
+
+The error lists every such file, with the module or stylesheet that imports it where there is one:
 
 ```txt
 [assets] Outside the browser boundary:
@@ -245,11 +252,11 @@ The options match the way `remix/assets` reads them:
 
 ### What `vite dev` checks
 
-Transforming a module outside the boundary for the browser fails with the same message, and Vite shows it in its error overlay. The manifest transforms the client graphs of browser entries too, so a server request that builds the manifest fails with the same error. A file the dev server sends as it is, such as an image a stylesheet references, gets a `500` response carrying that message.
+Transforming a module outside the boundary for the browser fails with the same message, and Vite shows it in its error overlay. So does transforming a stylesheet that reads in such a file. The manifest transforms the client graphs of browser entries too, so a server request that builds the manifest fails with the same error. A file the dev server sends as it is, such as an image a stylesheet references, gets a `500` response carrying that message.
 
 Vite prebundles dependencies under `vite dev`, and the boundary checks a prebundled dependency by the package entry it came from. A package that reaches the browser only inside another prebundled package is caught by the build.
 
-Neither mode checks HTML documents, Vite's own client runtime, virtual modules, or files in Vite's `publicDir`, which Vite publishes as they are. The modules and assets an HTML document loads are checked like any others.
+Neither mode checks HTML documents, Vite's own client runtime, virtual modules, or files in Vite's `publicDir`, which Vite publishes as they are. The modules and assets an HTML document loads are checked like any others, and so is an HTML file a module imports as text with `?raw`.
 
 ## Public URLs and `base`
 

@@ -9,6 +9,7 @@ import type { BoundaryVerdict, BrowserBoundaryOptions } from "./boundary-policy.
 
 import { createBrowserBoundary, within } from "./boundary-policy.ts";
 import { fileModule, sourceKey } from "./entries.ts";
+import { observeStylesheetDependencies } from "./stylesheet-dependencies.ts";
 
 /** A file outside the boundary, by source key, with the module importing it when it is a module. */
 interface Refusal {
@@ -27,6 +28,14 @@ function describe({ file, importer, deniedBy }: Refusal): string {
 /** Query-free path of a module id or emitted file name. */
 function filePath(id: string): string {
     return normalizePath(id.split(/[?#]/, 1)[0]!);
+}
+
+/**
+ * A page, or an inline script Vite proxies out of one: the boundary governs
+ * what a page loads, not the page. An HTML file a module imports is data.
+ */
+function htmlDocument(id: string): boolean {
+    return filePath(id).endsWith(".html") && (!id.includes("?") || /[?&]html-proxy\b/.test(id));
 }
 
 /**
@@ -63,11 +72,10 @@ export function browserBoundary(
     let viteClient = normalizePath(
         dirname(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs"))),
     );
+    /** Build stylesheet id → the files Vite's CSS plugin read into it. */
+    let stylesheetFiles = new Map<string, Set<string>>();
 
     function refusal(file: string, importer?: string): Refusal | undefined {
-        // An HTML document is a page, including the inline scripts Vite proxies
-        // from it; what it loads is checked on its own.
-        if (file.endsWith(".html")) return;
         let verdict = inspect(file);
         if (verdict.allowed) return;
         return {
@@ -97,13 +105,18 @@ export function browserBoundary(
         return dependency?.src && normalizePath(dependency.src);
     }
 
-    function devRefusal(environment: DevEnvironment, file: string): Refusal | undefined {
+    function devRefusal(
+        environment: DevEnvironment,
+        file: string,
+        importer?: string,
+    ): Refusal | undefined {
         let source = servedSource(environment, file);
         if (!source) return;
-        let importer = [...(environment.moduleGraph.getModulesByFile(file) ?? [])]
-            .flatMap(module => [...module.importers])
-            .find(module => module.file)?.file;
-        return refusal(source, importer ?? undefined);
+        importer ??=
+            [...(environment.moduleGraph.getModulesByFile(file) ?? [])]
+                .flatMap(module => [...module.importers])
+                .find(module => module.file)?.file ?? undefined;
+        return refusal(source, importer);
     }
 
     return {
@@ -112,6 +125,18 @@ export function browserBoundary(
         configResolved(config) {
             root = config.root;
             inspect = createBrowserBoundary(normalizePath(realpathSync(root)), options);
+            observeStylesheetDependencies(config, (environment, stylesheet, file) => {
+                if (environment.mode === "build") {
+                    let files = stylesheetFiles.get(stylesheet);
+                    if (!files) stylesheetFiles.set(stylesheet, (files = new Set()));
+                    return void files.add(file);
+                }
+                if (environment.name !== "client" || environment.mode !== "dev") return;
+                let source = existingFile(file);
+                let refused = source && devRefusal(environment, source, stylesheet);
+                if (refused)
+                    throw new Error(`[assets] Outside the browser boundary: ${describe(refused)}`);
+            });
         },
         configureServer(server) {
             let client = server.environments.client!;
@@ -125,9 +150,10 @@ export function browserBoundary(
                     return next();
                 }
                 if (base !== "/" && path.startsWith(base)) path = `/${path.slice(base.length)}`;
-                // Vite answers its own `/@…` routes and publicDir files.
+                // Vite answers its own `/@…` routes, publicDir files, and pages.
                 if (path.startsWith("/@") && !path.startsWith("/@fs/")) return next();
                 if (publicDir && existsSync(join(publicDir, path))) return next();
+                if (htmlDocument(path)) return next();
                 let requested = join(root, path);
                 if (path.startsWith("/@fs/")) {
                     // `/@fs/C:/…` on Windows, `/@fs/home/…` elsewhere.
@@ -146,6 +172,7 @@ export function browserBoundary(
                 let environment = this.environment;
                 if (environment.mode !== "dev" || environment.name !== "client" || !fileModule(id))
                     return;
+                if (htmlDocument(id)) return;
                 let refused = devRefusal(environment, existingFile(id) ?? filePath(id));
                 if (refused)
                     throw new Error(`[assets] Outside the browser boundary: ${describe(refused)}`);
@@ -177,14 +204,26 @@ export function browserBoundary(
                     published.push({ path, importer });
                 }
             }
-            let lines = new Set<string>();
+            let refusals = new Map<string, Refusal>();
             for (let { path, importer } of published) {
-                let file = existingFile(path);
-                let refused = file && refusal(file, importer);
-                if (refused) lines.add(describe(refused));
+                let entries = [
+                    { path, importer },
+                    ...[...(stylesheetFiles.get(path) ?? [])].map(file => ({
+                        path: file,
+                        importer: path,
+                    })),
+                ];
+                for (let entry of entries) {
+                    let file = !htmlDocument(entry.path) && existingFile(entry.path);
+                    let refused = file && refusal(file, entry.importer);
+                    // An emitted asset names no importer; its stylesheet's record does.
+                    if (refused && !refusals.get(refused.file)?.importer)
+                        refusals.set(refused.file, refused);
+                }
             }
-            if (lines.size === 0) return;
-            this.error(`[assets] Outside the browser boundary:\n  ${[...lines].join("\n  ")}`);
+            if (refusals.size === 0) return;
+            let lines = [...refusals.values()].map(describe);
+            this.error(`[assets] Outside the browser boundary:\n  ${lines.join("\n  ")}`);
         },
     };
 }
