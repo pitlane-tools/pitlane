@@ -111,16 +111,24 @@ async function analyze(
     }
 }
 
-/** Loads and transforms a module without reading or populating Vite's transform cache. */
+/**
+ * Loads and transforms a module as `transformRequest` does, handing the load
+ * result's source map and module type to the transform, but without reading
+ * or populating Vite's transform cache.
+ */
 async function transformOutsideCache(environment: DevEnvironment, id: string, url: string) {
     await environment.moduleGraph.ensureEntryFromUrl(url);
     let loaded = await environment.pluginContainer.load(id);
-    let code = loaded == null ? null : typeof loaded === "string" ? loaded : loaded.code;
+    let source = typeof loaded === "string" ? { code: loaded } : loaded;
+    let code = source?.code;
     if (code == null) {
         if (!fileModule(id)) throw new Error("No plugin loaded the module.");
         code = await readFile(id.split("?")[0]!, "utf8");
     }
-    await environment.pluginContainer.transform(code, id);
+    await environment.pluginContainer.transform(code, id, {
+        inMap: source?.map,
+        moduleType: source?.moduleType,
+    });
 }
 
 /**

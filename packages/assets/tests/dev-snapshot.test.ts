@@ -779,6 +779,37 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         });
     });
 
+    it("analyzes a module its plugin loads with a module type of its own", async () => {
+        let id = "\0virtual:styles.txt";
+        let textModule: Plugin = {
+            name: "test-text-module",
+            resolveId: source => (source === "virtual:styles.txt" ? id : undefined),
+            load: loaded =>
+                loaded === id ? { code: "/app/button.css", moduleType: "text" } : undefined,
+            // Like a loader for a non-JavaScript format, it compiles only what was loaded as text.
+            transform(code, transformed, options) {
+                if (transformed !== id || options?.moduleType !== "text") return;
+                return {
+                    code: `import ${JSON.stringify(code)};\nexport default true;\n`,
+                    moduleType: "js",
+                };
+            },
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "virtual:styles.txt";\n${code}`,
+        );
+        let server = await serve(project, { plugins: [textModule] });
+
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/button.css",
+            "/app/routes/home.css",
+        ]);
+        expect(executed()).not.toContain("app/routes/home.ts");
+    });
+
     it("analyzes a virtual module in a browser entry's graph", async () => {
         let generated: Plugin = {
             name: "test-generated",
