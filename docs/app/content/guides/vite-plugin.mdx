@@ -362,6 +362,8 @@ dist/
     └── index.js     # the fetch handler
 ```
 
+`dist` is Vite's `build.outDir`. Set it and both environments move beneath it, to `<outDir>/client` and `<outDir>/ssr`, so point your router's `staticFiles()` middleware at the new client directory. Setting `environments.client.build.outDir` or `environments.ssr.build.outDir` places that environment's output exactly where you name instead.
+
 - **Server environments build first, then the client.** Islands and literal `getScriptEntry` paths are discovered while the server builds, and the client build emits them. The plugin sequences it and writes the asset manifest into `dist/ssr` before anything else reads the build, so don't hand-orchestrate builds around it.
 - **Server-imported stylesheets are copied into `dist/client`**, along with the fonts and images they reference and any file the server code imports, so every URL `getStylesheets` returns is served from the client output. Nothing else from the server output is copied. Server sourcemaps stay private, and so do files a platform plugin writes beside the server bundle, like `.dev.vars` or `wrangler.json`.
 - **Composing with another build orchestrator is coordinated.** When a platform plugin also drives builds (Cloudflare's does), each environment still builds exactly once, and [prerendering](/guides/prerendering) runs after the manifest is complete.

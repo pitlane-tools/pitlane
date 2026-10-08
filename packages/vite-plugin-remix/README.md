@@ -409,6 +409,8 @@ dist/
     └── index.js     # your fetch handler, bundled
 ```
 
+`dist` is Vite's `build.outDir`: set it, and the environments build into `<outDir>/client` and `<outDir>/ssr`, so point `staticFiles()` at the new client directory. Setting `environments.<name>.build.outDir` places that environment's output exactly where you name instead.
+
 `vite build` builds the server environment first, then the client: islands and literal `getScriptEntry` paths are discovered in the server build and emitted by the client build. The asset manifest is written into `dist/ssr` before prerendering or any other orchestrator reads the build. When another plugin also orchestrates builds — Cloudflare's, for example — each environment still builds exactly once.
 
 ## Compatibility
