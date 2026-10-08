@@ -366,6 +366,32 @@ dist/
 - **Server-imported stylesheets are copied into `dist/client`**, so every URL `getStylesheets` returns is served from the client output.
 - **Composing with another build orchestrator is coordinated.** When a platform plugin also drives builds (Cloudflare's does), each environment still builds exactly once, and [prerendering](/guides/prerendering) runs after the manifest is complete.
 
+### Bundling dependencies into the server build
+
+By default, Vite leaves the packages in `node_modules` out of the server build. `dist/ssr/index.js` imports them at run time, so production needs them installed next to it. One setting bundles them instead:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+    plugins: [remix()],
+    environments: { ssr: { resolve: { noExternal: true } } },
+});
+```
+
+With it, the built handler imports nothing but the runtime's own modules, such as `node:sqlite`. Cloudflare's plugin already builds Workers this way, because a Worker has no `node_modules` to import from. On a target that runs a server process, such as [Railway](/deploy/railway) or [Deno Deploy](/deploy/deno-deploy), it is a choice, and both answers have consequences.
+
+Bundling everything means:
+
+- The deployed app needs `dist/` and nothing from `node_modules`, so a production image skips the dependency install and is smaller.
+- Development packages, such as `@pitlane/dev` and Vite, never reach production, whichever `package.json` field lists them.
+- The versions that run are the ones the build resolved, with no second install that could resolve differently.
+
+Leaving packages external means:
+
+- Packages that cannot be bundled keep working. Native addons (`.node` files) are the usual case. So is a package that reads its own files at run time or imports a module by a computed name. `@pitlane/content` renders Markdown at run time through a computed import of `satteri`, a native addon, so a bundled app needs [`contentLayer()`](/guides/content) to prebuild its collections.
+- Builds are smaller and faster, and a stack trace names the package that threw rather than a line in one large file. Source maps narrow that gap for a bundle.
+- Bundling the handler does not change code that runs beside it. A `server.ts` importing `remix/node-fetch-server` still needs `node_modules`, and so does a migration script that imports packages.
+
 ## Compatibility
 
 | Dependency  | Tested against             |

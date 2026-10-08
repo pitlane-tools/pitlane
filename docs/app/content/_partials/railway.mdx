@@ -27,6 +27,8 @@ dist
 .env*
 ```
 
+Each Dockerfile below installs dependencies into the image because the built handler imports them from `node_modules` at run time. A build that [bundles its dependencies](/guides/vite-plugin#bundling-dependencies-into-the-server-build) needs only `dist/` plus whatever runs outside the bundle. The Node `server.ts` below imports `remix/node-fetch-server`, while the Bun and Deno entries import only the built handler. That guide section covers what each choice costs.
+
 </Vite>
 
 <NoBuild>
