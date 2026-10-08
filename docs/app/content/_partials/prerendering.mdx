@@ -392,7 +392,10 @@ import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [remix({ prerender: true }), cloudflare()],
+    plugins: [
+        remix({ serverHandler: false, prerender: true }),
+        cloudflare({ viteEnvironment: { name: "ssr" } }),
+    ],
 });
 ```
 
