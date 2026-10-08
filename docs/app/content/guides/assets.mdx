@@ -243,7 +243,7 @@ The options match the way `remix/assets` reads them:
 - any file a worker bundle contains, for a worker the client starts with `new Worker(new URL(…, import.meta.url))` or imports with `?worker`;
 - the stylesheets a server environment links and the assets its code imports, which the build copies into the client output.
 
-A file a PostCSS plugin only watches, such as a Tailwind content file, is not part of a stylesheet and is not checked. Neither is a file a CSS module names in `composes: … from`, because Vite reports no dependency on it.
+Vite's CSS plugin also reports files that PostCSS plugins watch, such as Tailwind's content files. The boundary takes only stylesheets and the file types Vite treats as assets from those reports, so a watched source file passes. A watched stylesheet counts as read in even when the plugin never inlines it. A file a CSS module names in `composes: … from` is not checked, because Vite reports no dependency on it.
 
 The error lists every such file, with the module or stylesheet that imports it where there is one:
 
@@ -255,7 +255,7 @@ The error lists every such file, with the module or stylesheet that imports it w
 
 ### What `vite dev` checks
 
-Transforming a module outside the boundary for the browser fails with the same message, and Vite shows it in its error overlay. So does transforming a stylesheet that reads in such a file. The manifest transforms the client graphs of browser entries too, so a server request that builds the manifest fails with the same error. A file the dev server sends as it is, such as an image a stylesheet references, gets a `500` response carrying that message.
+Transforming a module outside the boundary for the browser fails with the same message, and Vite shows it in its error overlay. So does transforming a stylesheet that imports a stylesheet, or references an image, font, or other Vite asset type, from outside the boundary. Any other file a stylesheet references fails when the browser requests it. The manifest transforms the client graphs of browser entries too, so a server request that builds the manifest fails with the same error. A file the dev server sends as it is, such as an image a stylesheet references, gets a `500` response carrying that message.
 
 Vite prebundles dependencies under `vite dev`, and the boundary checks a prebundled dependency by the package entry it came from. A package that reaches the browser only inside another prebundled package is caught by the build.
 
