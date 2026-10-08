@@ -147,6 +147,12 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 }
                 let name = this.environment.name;
                 let ids = modules.flatMap(module => (module.id ? [module.id] : []));
+                // The changed file's modules, including glob importers Vite
+                // added, are analyzed again on the next snapshot; everything
+                // else keeps the edges its last transform recorded.
+                let edges = environmentEdges(graph, name);
+                for (let id of ids) edges.delete(id);
+                for (let id of edges.keys()) if (id.split("?")[0] === path) edges.delete(id);
                 for (let [serverName, snapshot] of snapshots) {
                     let tracked =
                         name === serverName

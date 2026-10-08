@@ -418,6 +418,62 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         expect(executed()).not.toContain("app/routes/home.ts");
     });
 
+    it("transforms only the changed module when an edit rebuilds the snapshot", async () => {
+        let transformed: string[] = [];
+        let counter: Plugin = {
+            name: "test-transform-counter",
+            transform(code, id) {
+                if (this.environment.name === "ssr" && !id.startsWith("\0"))
+                    transformed.push(id.slice(id.lastIndexOf("/app/") + 1));
+            },
+        };
+        let project = await fixture();
+        let server = await serve(project, { plugins: [counter] });
+        await request(server);
+        // Discovery reached the lazy route without executing it.
+        expect(transformed).toContain("app/routes/home.ts");
+        expect(executed()).not.toContain("app/routes/home.ts");
+
+        transformed.length = 0;
+        await project.edit("project/app/button.ts", code =>
+            code.replace(`import "./button.css";\n`, ""),
+        );
+        await expect
+            .poll(async () => (await request(server)).moduleLevel)
+            .not.toContain("/app/button.css");
+
+        expect(transformed).toContain("app/button.ts");
+        // Unchanged modules keep their recorded edges, including ones the
+        // runner never executed and so never cached a transform for.
+        expect(transformed).not.toContain("app/routes/home.ts");
+        expect(transformed).not.toContain("app/layout.ts");
+        expect(transformed).not.toContain("app/edge-only.ts");
+    });
+
+    it("leaves browser modules it discovered cached for the browser's first load", async () => {
+        let transformed: string[] = [];
+        let counter: Plugin = {
+            name: "test-transform-counter",
+            transform(code, id) {
+                if (this.environment.name === "client" && !id.startsWith("\0"))
+                    transformed.push(id.slice(id.lastIndexOf("/app/") + 1));
+            },
+        };
+        let project = await fixture();
+        let server = await serve(project, {
+            clientInput: "app/client-input.ts",
+            plugins: [counter],
+        });
+        await request(server);
+        expect(transformed).toEqual(
+            expect.arrayContaining(["app/client-input.ts", "app/client-dependency.ts"]),
+        );
+
+        transformed.length = 0;
+        expect(await browserLoad(server, "/app/client-input.ts")).toEqual([]);
+        expect(transformed).toEqual([]);
+    });
+
     it("registers and unregisters literal browser entries found in server source", async () => {
         let project = await fixture();
         await project.write("project/app/island.ts", `export const island = () => "island";\n`);
