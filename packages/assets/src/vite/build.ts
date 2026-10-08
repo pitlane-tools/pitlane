@@ -5,6 +5,7 @@ import { basename, dirname, posix, resolve } from "node:path";
 import { isCSSRequest } from "vite";
 
 import type { AssetBuildEnvironment } from "../types.ts";
+import type { CapturedOutput } from "./output.ts";
 import type { AssetPluginState } from "./state.ts";
 
 import { createAssetManifest } from "../build.ts";
@@ -76,12 +77,30 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
             resolve(output.outDir, MANIFEST_FILE),
             `export default JSON.parse(${JSON.stringify(JSON.stringify({ ...manifest, serverEnvironment: name }))});\n`,
         );
-        for (let asset of Object.values(output.bundle)) {
-            if (asset.type !== "asset" || twins.get(name)!.has(asset.fileName)) continue;
-            let destination = resolve(client.outDir, asset.fileName);
-            await mkdir(dirname(destination), { recursive: true });
-            await writeFile(destination, asset.source);
-        }
+        await publishLinkedFiles(output, twins.get(name)!, client.outDir);
+    }
+}
+
+/**
+ * Copies the stylesheets and assets a server graph links into the public client
+ * output, so every URL its manifest names is served. A stylesheet with a client
+ * twin already is.
+ */
+async function publishLinkedFiles(
+    output: CapturedOutput,
+    twin: Map<string, string>,
+    publicDir: string,
+): Promise<void> {
+    let linked = new Set([
+        ...Object.values(output.graph.chunks).flatMap(chunk => chunk.stylesheets),
+        ...Object.values(output.graph.assets),
+    ]);
+    for (let file of linked) {
+        let asset = output.bundle[file];
+        if (asset?.type !== "asset" || twin.has(file)) continue;
+        let destination = resolve(publicDir, file);
+        await mkdir(dirname(destination), { recursive: true });
+        await writeFile(destination, asset.source);
     }
 }
 

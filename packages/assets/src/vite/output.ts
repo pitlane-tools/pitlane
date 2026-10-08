@@ -34,8 +34,12 @@ export function captureOutput(
                   ? [output.fileName]
                   : [],
           );
+    // Server output also holds sourcemaps, platform config, and server-only modules;
+    // only the files its chunks link are browser assets.
+    let linked = role === "server" ? linkedFiles(bundle, globalStylesheets) : undefined;
     for (let output of Object.values(bundle)) {
         if (output.type === "asset") {
+            if (linked && !linked.has(output.fileName)) continue;
             let stylesheet = output.names.some(isCSSRequest);
             for (let file of output.originalFileNames) {
                 // Extracted CSS can name its importing JS module, not a source stylesheet.
@@ -72,6 +76,16 @@ export function captureOutput(
         if (bundle[file]?.type === "chunk") graph.entries[key] = file;
     }
     return graph;
+}
+
+function linkedFiles(bundle: Rolldown.OutputBundle, globalStylesheets: string[]): Set<string> {
+    let files = new Set(globalStylesheets);
+    for (let output of Object.values(bundle)) {
+        if (output.type !== "chunk" || !output.viteMetadata) continue;
+        for (let file of output.viteMetadata.importedCss) files.add(file);
+        for (let file of output.viteMetadata.importedAssets) files.add(file);
+    }
+    return files;
 }
 
 export function captureImportMap(bundle: Rolldown.OutputBundle, fileName: string): ImportMap {

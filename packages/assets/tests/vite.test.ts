@@ -481,6 +481,52 @@ export const script = await assets.getScriptEntry("app/browser.ts");`,
         expect(files.filter(file => file.endsWith(".css"))).toEqual([both[0].slice(8)]);
     });
 
+    it("publishes only the server files a page links, not everything the server emits", async () => {
+        let root = await fixture({
+            "app/entry.ts": `${resolverModule}
+import "./server.css";
+import logo from "./logo.svg";
+export { logo };
+export const stylesheets = await assets.getStylesheets("app/entry.ts");`,
+            "app/server.css": '@font-face { font-family: Body; src: url("./body.woff2"); }',
+            "app/body.woff2": "font bytes",
+            "app/logo.svg": '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+        });
+        let configured = config(root);
+        Object.assign(configured.environments!.ssr.build!, {
+            sourcemap: true,
+            assetsInlineLimit: 0,
+        });
+        configured.plugins!.push({
+            name: "emit-server-only-files",
+            generateBundle() {
+                if (this.environment.name !== "ssr") return;
+                this.emitFile({ type: "asset", fileName: ".dev.vars", source: "SECRET=1" });
+                this.emitFile({
+                    type: "asset",
+                    name: "module.wasm",
+                    originalFileName: join(root, "app/module.wasm"),
+                    source: "server module",
+                });
+            },
+        });
+        let module = await build(root, {}, configured);
+
+        let [stylesheet] = module.stylesheets;
+        let css = await readFile(join(root, "dist/client", stylesheet), "utf8");
+        let font = css.match(/url\("?([^")]+)"?\)/)?.[1];
+        expect(font).toMatch(/^\/assets\/body-[\w-]+\.woff2$/);
+        await expect(readFile(join(root, "dist/client", font!), "utf8")).resolves.toBe(
+            "font bytes",
+        );
+        await expect(readFile(join(root, "dist/client", module.logo), "utf8")).resolves.toContain(
+            "<svg",
+        );
+        let files = await readdir(join(root, "dist/client"), { recursive: true });
+        expect(files.filter(file => /\.map$|\.dev\.vars$|\.wasm$/.test(file))).toEqual([]);
+        await expect(module.assets.getHref("app/module.wasm")).rejects.toThrow();
+    });
+
     it("fails a build whose unlisted server environment imports the manifest", async () => {
         let root = await fixture();
         let configured = config(root);
