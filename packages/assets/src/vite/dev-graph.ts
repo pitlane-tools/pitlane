@@ -42,22 +42,25 @@ export function importSpecifiers(code: string): { static: string[]; dynamic: str
  * import, rewrote each specifier to the URL it serves the module at, and
  * recorded the modules it reached on the graph node. Reading those back
  * costs a parse; resolving the specifiers again would cost what Vite just
- * paid. The node does not say which of them are external, and a server
- * environment records a node for an external import too, so an import that
- * is not a file or a virtual module is resolved once more and dropped when
- * it stays external. A URL the node does not list falls back the same way.
+ * paid. The node does not say which of them a resolver marked external —
+ * it records a node for an external file path too — so the caller passes
+ * the ids it saw resolve that way. Only an import the node does not list,
+ * one import analysis left alone, is resolved here.
  */
 export async function moduleEdges(
     environment: DevEnvironment,
     id: string,
     code: string,
+    external: ReadonlySet<string>,
     resolve: (specifier: string) => Promise<Rollup.ResolvedId | null>,
 ): Promise<ModuleEdges> {
     let known = new Map<string, string>();
     for (let node of environment.moduleGraph.getModuleById(id)?.importedModules ?? []) {
         if (node.id) known.set(importedUrl(node.url, ""), node.id);
     }
-    let base = environment.config.base.replace(/\/$/, "");
+    // Import analysis prefixes `base` for the browser only.
+    let base =
+        environment.config.consumer === "client" ? environment.config.base.replace(/\/$/, "") : "";
     let ids = async (urls: string[]) => {
         let resolved = await Promise.all(
             urls.map(async url => {
@@ -65,8 +68,7 @@ export async function moduleEdges(
                 if (url.startsWith("/@vite/")) return;
 
                 let imported = known.get(importedUrl(url, base));
-                if (imported && (fileModule(imported) || imported.startsWith("\0")))
-                    return imported;
+                if (imported) return external.has(imported) ? undefined : imported;
                 let result = await resolve(url);
                 return result && !result.external ? result.id : undefined;
             }),

@@ -526,6 +526,90 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         expect(executed()).not.toContain("app/routes/home.ts");
     });
 
+    it("drops an import a plugin resolved to an external file", async () => {
+        // A file the runtime loads itself is never transformed or walked, and
+        // need not exist where the dev server runs.
+        let external: Plugin = {
+            name: "test-external-file",
+            resolveId: id =>
+                id === "runtime:file"
+                    ? { id: "/runtime-only/missing.js", external: true }
+                    : undefined,
+        };
+        let project = await fixture();
+        await project.edit("project/app/routes/home.ts", code => `import "runtime:file";\n${code}`);
+        let server = await serve(project, { plugins: [external] });
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/routes/home.css",
+        ]);
+    });
+
+    it("drops an import no resolver claims in a server environment", async () => {
+        // Vite's SSR import analysis records a graph node for an unresolved
+        // specifier anyway, under the specifier itself; the runtime it is
+        // meant for resolves it, so the walk must not try to load it.
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "cloudflare:email";\n${code}`,
+        );
+        let server = await serve(project);
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/routes/home.css",
+        ]);
+    });
+
+    it("follows a virtual module whose id has no null byte", async () => {
+        let generated: Plugin = {
+            name: "test-generated",
+            resolveId: id => (id === "virtual:plain-styles" ? id : undefined),
+            load: id =>
+                id === "virtual:plain-styles"
+                    ? `import "/app/button.css";\nexport const generated = true;\n`
+                    : undefined,
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "virtual:plain-styles";\n${code}`,
+        );
+        let server = await serve(project, { plugins: [generated] });
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/button.css",
+            "/app/routes/home.css",
+        ]);
+    });
+
+    it("follows a virtual module registered under its url without the null byte", async () => {
+        // @cloudflare/vite-plugin registers its `\0virtual:` modules from the
+        // plain url, so the graph node Vite later reuses keeps that spelling.
+        let generated: Plugin = {
+            name: "test-generated",
+            resolveId: id => (id === "virtual:lazy-styles" ? "\0virtual:lazy-styles" : undefined),
+            load: id =>
+                id === "\0virtual:lazy-styles"
+                    ? `import "/app/button.css";\nexport const generated = true;\n`
+                    : undefined,
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "virtual:lazy-styles";\n${code}`,
+        );
+        let server = await serve(project, { plugins: [generated] });
+        let node =
+            await server.environments.ssr!.moduleGraph.ensureEntryFromUrl("virtual:lazy-styles");
+        expect([node.url, node.id]).toEqual(["virtual:lazy-styles", "\0virtual:lazy-styles"]);
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/button.css",
+            "/app/routes/home.css",
+        ]);
+    });
+
     it("resolves a module's imports once per transform, through Vite's own import analysis", async () => {
         let resolutions = 0;
         let transforms = 0;

@@ -8,7 +8,7 @@ import type { AssetPluginState } from "./state.ts";
 
 import { assetsSpecifier } from "../specifier.ts";
 import { moduleEdges } from "./dev-graph.ts";
-import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
+import { createDevSnapshot, environmentEdges, environmentExternals } from "./dev-snapshot.ts";
 import { linkResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
 import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
 
@@ -19,7 +19,12 @@ import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
  */
 export function assetDevelopment(state: AssetPluginState): Plugin[] {
     let server: ViteDevServer | undefined;
-    let graph: DevGraph = { roots: new Map(), edges: new Map(), resolverUsage: new Map() };
+    let graph: DevGraph = {
+        roots: new Map(),
+        edges: new Map(),
+        externals: new Map(),
+        resolverUsage: new Map(),
+    };
     let snapshots = new Map<string, DevSnapshot>();
     let building = new Set<string>();
     /** Server environments invalidated while their snapshot was being built. */
@@ -211,6 +216,26 @@ export function assetDevelopment(state: AssetPluginState): Plugin[] {
         name: "pitlane-assets-dev-edges",
         apply: "serve",
         enforce: "post",
+        resolveId: {
+            // First in the chain, so every answer passes back through here.
+            // The graph node import analysis records keeps the id of an
+            // external resolution, or the bare specifier nobody resolved,
+            // without saying so.
+            order: "pre",
+            async handler(source, importer, options) {
+                let resolved = await this.resolve(source, importer, {
+                    kind: options.kind,
+                    custom: options.custom,
+                    isEntry: options.isEntry,
+                    skipSelf: true,
+                });
+                let externals = environmentExternals(graph, this.environment.name);
+                if (!resolved) externals.add(source);
+                else if (resolved.external) externals.add(resolved.id);
+                else externals.delete(resolved.id);
+                return resolved;
+            },
+        },
         transform: {
             // After vite:import-analysis, which resolved every import once
             // already; the edges name the source ids it recorded.
@@ -223,8 +248,12 @@ export function assetDevelopment(state: AssetPluginState): Plugin[] {
                 let name = environment.name;
                 let recorded = environmentEdges(graph, name);
                 let previous = recorded.get(id);
-                let next = await moduleEdges(environment, id, code, specifier =>
-                    this.resolve(specifier, id),
+                let next = await moduleEdges(
+                    environment,
+                    id,
+                    code,
+                    environmentExternals(graph, name),
+                    specifier => this.resolve(specifier, id),
                 );
                 recorded.set(id, next);
                 // A transform that read the file before an invalidation records

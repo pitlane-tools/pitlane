@@ -19,6 +19,11 @@ export interface DevGraph {
     roots: Map<string, Set<string>>;
     /** Environment name → module id → resolved edges. */
     edges: Map<string, Map<string, ModuleEdges>>;
+    /**
+     * Environment name → ids a resolver answered with `external: true`, or no
+     * resolver answered at all. The module graph records a node for either.
+     */
+    externals: Map<string, Set<string>>;
     /** Server environment name → module id → its literal resolver calls and resolver exports. */
     resolverUsage: Map<string, Map<string, ResolverUsage>>;
 }
@@ -34,6 +39,12 @@ export function environmentEdges(graph: DevGraph, name: string): Map<string, Mod
     let edges = graph.edges.get(name);
     if (!edges) graph.edges.set(name, (edges = new Map()));
     return edges;
+}
+
+export function environmentExternals(graph: DevGraph, name: string): Set<string> {
+    let externals = graph.externals.get(name);
+    if (!externals) graph.externals.set(name, (externals = new Set()));
+    return externals;
 }
 
 /**
