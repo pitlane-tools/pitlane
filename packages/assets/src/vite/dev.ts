@@ -4,6 +4,7 @@ import { isCSSRequest, normalizePath } from "vite";
 
 import type { ModuleEdges } from "./dev-graph.ts";
 import type { DevGraph, DevSnapshot } from "./dev-snapshot.ts";
+import type { ResolverUsage } from "./resolver-usage.ts";
 import type { AssetPluginState } from "./state.ts";
 
 import { assetsSpecifier } from "../specifier.ts";
@@ -11,6 +12,7 @@ import { importSpecifiers } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
 import { linkResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
 import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
+import { countInvalidation, requestStarted, startRequest } from "./transform-start.ts";
 
 /**
  * Serves `@pitlane/assets/manifest` during `vite dev` as a data snapshot of
@@ -24,6 +26,8 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
     let building = new Set<string>();
     /** Server environments invalidated while their snapshot was being built. */
     let stale = new Set<string>();
+    /** Environment name → module id → where its last hard invalidation is on the transform timeline. */
+    let invalidations = new Map<string, Map<string, number>>();
 
     /**
      * Invalidates a server environment's manifest and, through Vite, every
@@ -45,10 +49,14 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
         if (environment === "client") return snapshot?.client;
     }
 
-    /** Invalidates every snapshot computed from module `id` of `environment`. */
+    /** Invalidates every snapshot computed, or being computed, from module `id` of `environment`. */
     function invalidateSnapshotsWith(environment: string, id: string, timestamp?: number) {
         for (let serverName of snapshots.keys()) {
             if (tracked(environment, serverName)?.has(id)) invalidate(serverName, timestamp);
+        }
+        // A snapshot being built does not know yet which modules it read.
+        for (let serverName of building) {
+            if (environment === serverName || environment === "client") stale.add(serverName);
         }
     }
 
@@ -59,6 +67,28 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             previous.static.every((edge, index) => edge === next.static[index]) &&
             previous.dynamic.every((edge, index) => edge === next.dynamic[index])
         );
+    }
+
+    /**
+     * Records what a transform of module `id` found: its edges and, in a
+     * server environment, its resolver usage.
+     */
+    function recordTransform(
+        environment: string,
+        id: string,
+        edges: ModuleEdges,
+        usage: ResolverUsage | undefined,
+    ) {
+        let edgeRecords = environmentEdges(graph, environment);
+        let previous = edgeRecords.get(id);
+        edgeRecords.set(id, edges);
+        // A transform no request started cannot tell whether an invalidation
+        // superseded the code it read, so earlier edges can be stale; the
+        // transform Vite runs next tells them apart from the current ones.
+        if (previous && !sameEdges(previous, edges)) invalidateSnapshotsWith(environment, id);
+        let usageRecords = graph.resolverUsage.get(environment);
+        if (usage) usageRecords?.set(id, usage);
+        else usageRecords?.delete(id);
     }
 
     return {
@@ -74,6 +104,8 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 for (let environment of Object.values(devServer.environments)) {
                     let { name, moduleGraph } = environment;
                     let edges = environmentEdges(graph, name);
+                    let invalidated = new Map<string, number>();
+                    invalidations.set(name, invalidated);
                     // A hard invalidation says the module's own transform is
                     // stale, so the edges that transform recorded are too. A
                     // soft one, which a changed import propagates to its
@@ -96,6 +128,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                             !isCSSRequest(mod.id)
                         ) {
                             edges.delete(mod.id);
+                            if (!isHmr) invalidated.set(mod.id, countInvalidation());
                             invalidateSnapshotsWith(name, mod.id, timestamp);
                         }
                         invalidateModule.call(
@@ -107,9 +140,18 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                             softInvalidate,
                         );
                     };
+                    // Each request's start places the transform it runs on the
+                    // timeline. Vite's middleware, module runner, and import
+                    // analysis all transform modules through these two.
+                    let { transformRequest, warmupRequest } = environment;
+                    environment.transformRequest = url =>
+                        startRequest(() => transformRequest.call(environment, url));
+                    environment.warmupRequest = url =>
+                        startRequest(() => warmupRequest.call(environment, url));
                     if (!state.serverEnvironments.includes(name)) continue;
                     let roots = new Set<string>();
                     graph.roots.set(name, roots);
+                    graph.resolverUsage.set(name, new Map());
                     // Runner entries can differ from build inputs; manifest importers are not roots.
                     let fetchModule = environment.fetchModule;
                     environment.fetchModule = async (id, importer, options) => {
@@ -167,11 +209,11 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             async handler(code, id) {
                 if (id === MANIFEST_ID || isCSSRequest(id)) return;
                 let name = this.environment.name;
-                let specifiers = importSpecifiers(code);
+                let invalidated = invalidations.get(name);
+                let started = requestStarted();
+                let resolve = (specifier: string) => this.resolve(specifier, id);
                 let resolveAll = async (list: string[]) => {
-                    let resolved = await Promise.all(
-                        list.map(specifier => this.resolve(specifier, id)),
-                    );
+                    let resolved = await Promise.all(list.map(resolve));
                     return [
                         ...new Set(
                             resolved.flatMap(result =>
@@ -180,27 +222,24 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                         ),
                     ];
                 };
-                let [staticEdges, dynamicEdges] = await Promise.all([
+                let specifiers = importSpecifiers(code);
+                let usage = state.serverEnvironments.includes(name)
+                    ? scanResolverUsage(code, id)
+                    : undefined;
+                let [staticEdges, dynamicEdges, linkedUsage] = await Promise.all([
                     resolveAll(specifiers.static),
                     resolveAll(specifiers.dynamic),
+                    usage && linkResolverUsage(usage, resolve),
                 ]);
-                let edges = environmentEdges(graph, name);
-                let previous = edges.get(id);
-                let next = { static: staticEdges, dynamic: dynamicEdges };
-                edges.set(id, next);
-                // A transform that read the file before an invalidation records
-                // edges that invalidation did not drop; the transform Vite runs
-                // next tells them apart from the current ones.
-                if (previous && !sameEdges(previous, next)) invalidateSnapshotsWith(name, id);
-
-                if (!state.serverEnvironments.includes(name)) return;
-                let modules = graph.resolverUsage.get(name);
-                if (!modules) graph.resolverUsage.set(name, (modules = new Map()));
-                let usage = scanResolverUsage(code, id);
-                if (!usage) return void modules.delete(id);
-                modules.set(
+                // A hard invalidation since this transform's request began
+                // means the code it read may be superseded, and so is
+                // everything found in it.
+                if ((invalidated?.get(id) ?? 0) > started) return;
+                recordTransform(
+                    name,
                     id,
-                    await linkResolverUsage(usage, specifier => this.resolve(specifier, id)),
+                    { static: staticEdges, dynamic: dynamicEdges },
+                    linkedUsage,
                 );
             },
         },

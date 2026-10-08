@@ -6,6 +6,7 @@ import { isCSSRequest, parseSync } from "vite";
 
 import { fileModule, sourceKey } from "./entries.ts";
 import { MANIFEST_ID } from "./state.ts";
+import { startRequest } from "./transform-start.ts";
 
 /** One module's resolved imports, with lazy `import()` edges kept apart from static ones. */
 export interface ModuleEdges {
@@ -71,9 +72,9 @@ function followed(environment: DevEnvironment, id: string): boolean {
 /**
  * A module is analyzed once. Its edge record was written by the transform
  * hook, whether the runner or discovery ran that transform, and stays
- * current until `hotUpdate` reports the module's file changed, which drops
- * the record. Keying this on `transformResult` instead would re-transform
- * every module the runner has not executed on each rebuild.
+ * current until the module is invalidated, which drops the record. Keying
+ * this on `transformResult` instead would re-transform every module the
+ * runner has not executed on each rebuild.
  *
  * Client discovery goes through `transformRequest`, so it shares Vite's
  * in-flight and cached transforms with the import analysis that warms a
@@ -96,16 +97,11 @@ async function analyze(
             // Vite's middleware and `fetchModule` unwrap `/@id/` before calling
             // `transformRequest`; a virtual or bare id is its own URL there.
             await environment.transformRequest(url.startsWith("/@id/") ? id : url);
-            return;
+            // A cached transform runs no hook, and Vite can cache one the hook
+            // judged superseded, such as a request Vite retried internally.
+            if (edges.has(id)) return;
         }
-        await environment.moduleGraph.ensureEntryFromUrl(url);
-        let loaded = await environment.pluginContainer.load(id);
-        let code = loaded == null ? null : typeof loaded === "string" ? loaded : loaded.code;
-        if (code == null) {
-            if (!fileModule(id)) throw new Error("No plugin loaded the module.");
-            code = await readFile(id.split("?")[0]!, "utf8");
-        }
-        await environment.pluginContainer.transform(code, id);
+        await startRequest(() => transformOutsideCache(environment, id, url));
     } catch (error) {
         let name = fileModule(id) ? sourceKey(root, id) : id;
         throw new Error(
@@ -113,6 +109,26 @@ async function analyze(
             { cause: error },
         );
     }
+}
+
+/**
+ * Loads and transforms a module as `transformRequest` does, handing the load
+ * result's source map and module type to the transform, but without reading
+ * or populating Vite's transform cache.
+ */
+async function transformOutsideCache(environment: DevEnvironment, id: string, url: string) {
+    await environment.moduleGraph.ensureEntryFromUrl(url);
+    let loaded = await environment.pluginContainer.load(id);
+    let source = typeof loaded === "string" ? { code: loaded } : loaded;
+    let code = source?.code;
+    if (code == null) {
+        if (!fileModule(id)) throw new Error("No plugin loaded the module.");
+        code = await readFile(id.split("?")[0]!, "utf8");
+    }
+    await environment.pluginContainer.transform(code, id, {
+        inMap: source?.map,
+        moduleType: source?.moduleType,
+    });
 }
 
 /**
