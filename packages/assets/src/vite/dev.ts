@@ -24,6 +24,8 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
     let building = new Set<string>();
     /** Server environments invalidated while their snapshot was being built. */
     let stale = new Set<string>();
+    /** Environment name → module id → how many hard invalidations the module has had. */
+    let invalidations = new Map<string, Map<string, number>>();
 
     /**
      * Invalidates a server environment's manifest and, through Vite, every
@@ -61,6 +63,26 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
         );
     }
 
+    /**
+     * Records the edges a transform of module `id` found and returns whether it
+     * kept them. Two transforms of the same code find the same edges, so
+     * differing ones mean one transform read code an invalidation superseded
+     * before this plugin saw it, and the order they finish in does not say
+     * which. Dropping the record makes the next snapshot transform the module
+     * again.
+     */
+    function recordEdges(environment: string, id: string, next: ModuleEdges): boolean {
+        let edges = environmentEdges(graph, environment);
+        let previous = edges.get(id);
+        if (previous && !sameEdges(previous, next)) {
+            edges.delete(id);
+            invalidateSnapshotsWith(environment, id);
+            return false;
+        }
+        edges.set(id, next);
+        return true;
+    }
+
     return {
         name: "pitlane-assets-dev",
         apply: "serve",
@@ -74,6 +96,8 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 for (let environment of Object.values(devServer.environments)) {
                     let { name, moduleGraph } = environment;
                     let edges = environmentEdges(graph, name);
+                    let invalidated = new Map<string, number>();
+                    invalidations.set(name, invalidated);
                     // A hard invalidation says the module's own transform is
                     // stale, so the edges that transform recorded are too. A
                     // soft one, which a changed import propagates to its
@@ -96,6 +120,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                             !isCSSRequest(mod.id)
                         ) {
                             edges.delete(mod.id);
+                            invalidated.set(mod.id, (invalidated.get(mod.id) ?? 0) + 1);
                             invalidateSnapshotsWith(name, mod.id, timestamp);
                         }
                         invalidateModule.call(
@@ -167,6 +192,11 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             async handler(code, id) {
                 if (id === MANIFEST_ID || isCSSRequest(id)) return;
                 let name = this.environment.name;
+                // A hard invalidation after this point means the code being
+                // transformed is superseded, and so is everything found in it.
+                let invalidated = invalidations.get(name);
+                let invalidationsAtStart = invalidated?.get(id);
+                let superseded = () => invalidated?.get(id) !== invalidationsAtStart;
                 let specifiers = importSpecifiers(code);
                 let resolveAll = async (list: string[]) => {
                     let resolved = await Promise.all(
@@ -184,24 +214,18 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                     resolveAll(specifiers.static),
                     resolveAll(specifiers.dynamic),
                 ]);
-                let edges = environmentEdges(graph, name);
-                let previous = edges.get(id);
-                let next = { static: staticEdges, dynamic: dynamicEdges };
-                edges.set(id, next);
-                // A transform that read the file before an invalidation records
-                // edges that invalidation did not drop; the transform Vite runs
-                // next tells them apart from the current ones.
-                if (previous && !sameEdges(previous, next)) invalidateSnapshotsWith(name, id);
+                if (superseded()) return;
+                if (!recordEdges(name, id, { static: staticEdges, dynamic: dynamicEdges })) return;
 
                 if (!state.serverEnvironments.includes(name)) return;
                 let modules = graph.resolverUsage.get(name);
                 if (!modules) graph.resolverUsage.set(name, (modules = new Map()));
                 let usage = scanResolverUsage(code, id);
                 if (!usage) return void modules.delete(id);
-                modules.set(
-                    id,
-                    await linkResolverUsage(usage, specifier => this.resolve(specifier, id)),
+                let linked = await linkResolverUsage(usage, specifier =>
+                    this.resolve(specifier, id),
                 );
+                if (!superseded()) modules.set(id, linked);
             },
         },
         hotUpdate: {

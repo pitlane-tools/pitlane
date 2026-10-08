@@ -71,9 +71,9 @@ function followed(environment: DevEnvironment, id: string): boolean {
 /**
  * A module is analyzed once. Its edge record was written by the transform
  * hook, whether the runner or discovery ran that transform, and stays
- * current until `hotUpdate` reports the module's file changed, which drops
- * the record. Keying this on `transformResult` instead would re-transform
- * every module the runner has not executed on each rebuild.
+ * current until the module is invalidated, or two transforms of it disagree,
+ * which drops the record. Keying this on `transformResult` instead would
+ * re-transform every module the runner has not executed on each rebuild.
  *
  * Client discovery goes through `transformRequest`, so it shares Vite's
  * in-flight and cached transforms with the import analysis that warms a

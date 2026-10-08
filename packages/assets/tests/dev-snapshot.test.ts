@@ -481,6 +481,68 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             .toEqual(["/app/layout.css", "/app/routes/home.css"]);
     });
 
+    // Discovery and the module runner can transform one module at the same
+    // time, and an invalidation can land between them. Each case holds the
+    // first transform, which read the old code, across an invalidation and
+    // releases it after a transform of the new code finished, or before one ran.
+    it.each([
+        ["held while the assets plugin resolves its imports", "resolve", true],
+        ["held before the assets plugin reads it", "transform", true],
+        ["before any transform of the new code", "resolve", false],
+    ])(
+        "keeps the edges of a module's current code when a superseded transform finishes %s",
+        async (_, holdPoint, transformNewCode) => {
+            let module = "\0virtual:lazy-styles";
+            let stylesheet = "/app/button.css";
+            let armed = true;
+            let held = Promise.withResolvers<void>();
+            let released = Promise.withResolvers<void>();
+            let holdOnce = async () => {
+                if (!armed) return;
+                armed = false;
+                held.resolve();
+                await released.promise;
+            };
+            let generated: Plugin = {
+                name: "test-generated",
+                // Ahead of vite:resolve, which would answer the held resolution itself.
+                enforce: "pre",
+                async resolveId(id, importer) {
+                    if (id === "virtual:lazy-styles") return module;
+                    if (holdPoint === "resolve" && importer === module) await holdOnce();
+                },
+                load: id =>
+                    id === module
+                        ? `import "${stylesheet}";\nexport const generated = true;\n`
+                        : undefined,
+                async transform(_code, id) {
+                    if (holdPoint === "transform" && id === module) await holdOnce();
+                },
+            };
+            let project = await fixture();
+            await project.edit(
+                "project/app/routes/home.ts",
+                code => `import "virtual:lazy-styles";\n${code}`,
+            );
+            let server = await serve(project, { plugins: [generated] });
+            let ssr = server.environments.ssr!;
+
+            let superseded = ssr.transformRequest("virtual:lazy-styles");
+            await held.promise;
+            stylesheet = "/app/layout.css";
+            ssr.moduleGraph.invalidateModule(ssr.moduleGraph.getModuleById(module)!);
+            if (transformNewCode) await ssr.transformRequest("virtual:lazy-styles");
+            released.resolve();
+            await superseded;
+
+            let entry = await request(server);
+            expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+                "/app/layout.css",
+                "/app/routes/home.css",
+            ]);
+        },
+    );
+
     it("analyzes a virtual module in a browser entry's graph", async () => {
         let generated: Plugin = {
             name: "test-generated",
