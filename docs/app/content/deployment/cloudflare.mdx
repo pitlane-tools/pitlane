@@ -29,7 +29,7 @@ The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versi
 
 <InstallGroup alternatives={installation} />
 
-Point Cloudflare's plugin at the `ssr` environment and let it own dev-time request handling with [`serverHandler: false`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverhandler):
+Point Cloudflare's plugin at the `ssr` environment and let it own request handling in dev and preview with [`serverHandler: false`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverhandler):
 
 ```ts
 // vite.config.ts
@@ -81,7 +81,7 @@ let value = await env.MY_KV.get("key");
 
 <Callout kind="tip" title="Tip">
 
-Importing `cloudflare:workers` makes the SSR bundle resolvable only inside workerd. That's expected. The `pitlane/vite-plugin-remix` preview server detects it and steps aside so Cloudflare's Miniflare preview takes over.
+Importing `cloudflare:workers` makes the SSR bundle resolvable only inside workerd. That's expected. With `serverHandler: false`, the `pitlane/vite-plugin-remix` preview server stays out of the way and Cloudflare's Miniflare preview serves the build, whether or not Node could import it.
 
 </Callout>
 

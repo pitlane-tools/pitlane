@@ -2,14 +2,18 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createBuilder } from "vite";
+import { createBuilder, preview, type Plugin } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
+import { remix } from "../../src/index.ts";
 import { serveFixture } from "./harness.ts";
 
 const FIXTURE = join(import.meta.dirname, "../fixtures/node-app");
 const DEV_PORT = 7311;
 const PREVIEW_PORT = 7312;
+// Its own port: fetch keeps sockets to PREVIEW_PORT alive, and reusing one
+// the previous preview server closed fails with ECONNRESET.
+const PLATFORM_PREVIEW_PORT = 7313;
 
 // The fixture's server entry serves static files from "./dist/client", so
 // build and preview run with the fixture as cwd — the same shape as running
@@ -85,7 +89,6 @@ describe("production build", () => {
 
 describe("preview server", () => {
     it("serves the built fetch handler and its assets", async () => {
-        let { preview } = await import("vite");
         let server = await preview({
             root: FIXTURE,
             logLevel: "error",
@@ -110,6 +113,35 @@ describe("preview server", () => {
                 let asset = await fetch(`http://127.0.0.1:${PREVIEW_PORT}${href}`);
                 expect(asset.status).toBe(200);
             }
+        } finally {
+            await server.close();
+        }
+    });
+
+    it("leaves preview to the platform plugin with serverHandler: false", async () => {
+        // The built bundle imports fine in Node, so only the option can tell
+        // remix() that the platform plugin serves it.
+        let platform: Plugin = {
+            name: "test-platform-preview",
+            configurePreviewServer(server) {
+                return () => {
+                    server.middlewares.use((_request, response) => {
+                        response.end("platform runtime");
+                    });
+                };
+            },
+        };
+        let server = await preview({
+            root: FIXTURE,
+            configFile: false,
+            logLevel: "error",
+            plugins: [remix({ serverHandler: false }), platform],
+            preview: { host: "127.0.0.1", port: PLATFORM_PREVIEW_PORT, strictPort: true },
+        });
+
+        try {
+            let response = await fetch(`http://127.0.0.1:${PLATFORM_PREVIEW_PORT}/`);
+            expect(await response.text()).toBe("platform runtime");
         } finally {
             await server.close();
         }
