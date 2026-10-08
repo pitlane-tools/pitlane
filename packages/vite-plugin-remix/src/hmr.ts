@@ -55,9 +55,16 @@ const SERVER_UPDATE_SETTLE_MS = 50;
  * imports.
  */
 export function componentHmr(serverEnvironments: Set<string>): Plugin {
+    let hmr = true;
     return {
         name: "pitlane-remix-component-hmr",
         apply: "serve",
+        configResolved(config) {
+            // Vitest serves with `server.hmr: false`, set from its own plugin's
+            // config hook, so `apply` cannot see it. Instrumenting every component
+            // for updates nobody receives costs a test suite more than its own code.
+            hmr = config.server.hmr !== false;
+        },
         config() {
             // Transform-injected imports must share the initial optimizer generation
             // with the component runtime, or the first hot update uses a second registry.
@@ -81,6 +88,7 @@ export function componentHmr(serverEnvironments: Set<string>): Plugin {
                 },
             },
             handler(code, id) {
+                if (!hmr) return;
                 let source = normalizeArrowComponents(code, id) ?? code;
 
                 let { supported, unsupported } = findComponentExports(source, id);
