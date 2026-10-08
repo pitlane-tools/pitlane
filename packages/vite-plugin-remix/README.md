@@ -147,7 +147,7 @@ remix({
     clientEntry: "app/entry.browser", // default — false builds no browser script
     serverEntry: "app/entry.server", // default
     serverEnvironments: ["ssr"], // default
-    serverHandler: true, // default — false when a platform plugin serves dev requests
+    serverHandler: true, // default — false when a platform plugin serves dev and preview requests
     assets: {}, // default — { include, chunkImportMap } for @pitlane/assets
 });
 ```
@@ -159,7 +159,7 @@ remix({
 | `clientEntry` | `string \| false` | `"app/entry.browser"` | Browser script entry. Pass `false` for fully server-rendered apps with no hydration. |
 | `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js` and loaded for dev requests. |
 | `serverEnvironments` | `string[]` | `["ssr"]` | Environment names treated as "server" for island discovery, stylesheet collection, and HMR. |
-| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry with [`@pitlane/vite-plugin-fetch-server`](https://pitlane.tools/guides/fetch-server). Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. Netlify's plugin does not serve SSR, so keep the default there. |
+| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry with [`@pitlane/vite-plugin-fetch-server`](https://pitlane.tools/guides/fetch-server), and `vite preview` requests through the built one. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns request handling; their preview servers then serve the build. Netlify's plugin does not serve SSR, so keep the default there. |
 | `assets` | `{ include?, chunkImportMap? }` | `{}` | Passed to the `@pitlane/assets` plugin: browser entries named by computed paths, and the chunk import map switch, which `remix()` turns on unless you pass `false`. |
 
 ## Prerendering
@@ -408,6 +408,8 @@ dist/
 └── ssr/
     └── index.js     # your fetch handler, bundled
 ```
+
+`dist` is Vite's `build.outDir`: set it, and the environments build into `<outDir>/client` and `<outDir>/ssr`, so point `staticFiles()` at the new client directory. Setting `environments.<name>.build.outDir` places that environment's output exactly where you name instead.
 
 `vite build` builds the server environment first, then the client: islands and literal `getScriptEntry` paths are discovered in the server build and emitted by the client build. The asset manifest is written into `dist/ssr` before prerendering or any other orchestrator reads the build. When another plugin also orchestrates builds — Cloudflare's, for example — each environment still builds exactly once.
 

@@ -68,6 +68,44 @@ describe("remix() chunk import maps", () => {
     });
 });
 
+async function environmentOutDirs(overrides: InlineConfig = {}) {
+    let config = await resolveConfig(
+        { root: FIXTURE, configFile: false, logLevel: "error", plugins: [remix()], ...overrides },
+        "build",
+    );
+    return {
+        client: config.environments.client?.build.outDir,
+        ssr: config.environments.ssr?.build.outDir,
+    };
+}
+
+describe("remix() output directories", () => {
+    it("builds into dist/client and dist/ssr by default", async () => {
+        expect(await environmentOutDirs()).toEqual({
+            client: join("dist", "client"),
+            ssr: join("dist", "ssr"),
+        });
+    });
+
+    it("nests both environments under the configured build.outDir", async () => {
+        expect(await environmentOutDirs({ build: { outDir: ".tmp/out" } })).toEqual({
+            client: join(".tmp/out", "client"),
+            ssr: join(".tmp/out", "ssr"),
+        });
+    });
+
+    it("lets an environment's own outDir win over build.outDir", async () => {
+        let overrides: InlineConfig = {
+            build: { outDir: ".tmp/out" },
+            environments: { ssr: { build: { outDir: "worker" } } },
+        };
+        expect(await environmentOutDirs(overrides)).toEqual({
+            client: join(".tmp/out", "client"),
+            ssr: "worker",
+        });
+    });
+});
+
 describe("remix()", () => {
     it("refuses prerendering in SPA mode", () => {
         // Prerendering renders through the server entry, which SPA mode does

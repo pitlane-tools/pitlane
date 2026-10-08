@@ -80,7 +80,7 @@ remix({
     clientEntry: "app/entry.browser", // false disables the client build
     serverEntry: "app/entry.server",
     serverEnvironments: ["ssr"],
-    serverHandler: true, // false when a platform plugin serves dev requests
+    serverHandler: true, // false when a platform plugin serves dev and preview requests
     assets: {}, // { include, chunkImportMap, allowFiles, … } for the asset plugin; maps are on
 });
 ```
@@ -92,7 +92,7 @@ remix({
 | `clientEntry` | `string \| false` | `"app/entry.browser"` | Client entry module. Pass `false` for fully server-rendered apps with no hydration. |
 | `serverEntry` | `string` | `"app/entry.server"` | Server entry module, built as `dist/ssr/index.js`, and the module dev requests are served through. |
 | `serverEnvironments` | `string[]` | `["ssr"]` | Environment names treated as "server" by asset collection and hot module replacement. |
-| `serverHandler` | `boolean` | `true` | Serve dev requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns dev-time request handling. |
+| `serverHandler` | `boolean` | `true` | Serve dev and `vite preview` requests through your server entry. Set `false` when `@cloudflare/vite-plugin` or `nitro/vite` owns request handling. |
 | `assets` | `{ include?, chunkImportMap?, allowFiles?, allowPackages?, denyFiles? }` | `{}` | Passed to the asset plugin. `include` lists extra browser entries for computed paths. `chunkImportMap` switches [chunk import maps](#chunk-import-maps), and `remix()` defaults it to `true`. The allow and deny lists set up the [browser boundary](/guides/assets#browser-boundary). |
 
 ## SPA mode
@@ -337,12 +337,12 @@ Component edits swap in place and keep live island state, and edits to server-on
 
 </Callout>
 
-- **Set `serverHandler: false` when a platform plugin owns dev requests.** `@cloudflare/vite-plugin` (workerd) and `nitro/vite` bring their own runtimes. Netlify's plugin does not serve SSR, so keep the default there. Each [deploy guide](#deploying) states the right value.
+- **Set `serverHandler: false` when a platform plugin owns requests.** `@cloudflare/vite-plugin` (workerd) and `nitro/vite` bring their own runtimes, for dev and for preview. Netlify's plugin does not serve SSR, so keep the default there. Each [deploy guide](#deploying) states the right value.
 - **Aborted requests stay quiet.** Search-as-you-type and mid-navigation fetch cancellations end the response without reaching Vite's error overlay, and the next request is served normally. Real errors still surface.
 
 ## Preview and the static-files footgun
 
-`vite preview` imports `dist/ssr/index.js` and serves requests through its default export, the same artifact that production runs. If the import fails because the bundle targets another runtime (a Workers bundle importing `cloudflare:workers`), the plugin steps aside so the platform's preview can take over.
+`vite preview` imports `dist/ssr/index.js` and serves requests through its default export, the same artifact that production runs. With `serverHandler: false`, the plugin installs no preview server at all, and the platform plugin's preview serves the build in the runtime that runs it in production. That holds for a self-contained Worker bundle too, even though Node could load it. With the default `serverHandler: true`, a failed import is the signal instead: a bundle targeting another runtime (a Workers bundle importing `cloudflare:workers`) makes the plugin step aside so the platform's preview can take over.
 
 <Callout kind="warning" title="Footgun Warning">
 
@@ -361,6 +361,8 @@ dist/
 └── ssr/
     └── index.js     # the fetch handler
 ```
+
+`dist` is Vite's `build.outDir`. Set it and both environments move beneath it, to `<outDir>/client` and `<outDir>/ssr`, so point your router's `staticFiles()` middleware at the new client directory. Setting `environments.client.build.outDir` or `environments.ssr.build.outDir` places that environment's output exactly where you name instead.
 
 - **Server environments build first, then the client.** Islands and literal `getScriptEntry` paths are discovered while the server builds, and the client build emits them. The plugin sequences it and writes the asset manifest into `dist/ssr` before anything else reads the build, so don't hand-orchestrate builds around it.
 - **Server-imported stylesheets are copied into `dist/client`**, along with the fonts and images they reference and any file the server code imports, so every URL `getStylesheets` returns is served from the client output. Nothing else from the server output is copied. Server sourcemaps stay private, and so do files a platform plugin writes beside the server bundle, like `.dev.vars` or `wrangler.json`.
