@@ -9,7 +9,7 @@ import type { BoundaryVerdict, BrowserBoundaryOptions } from "./boundary-policy.
 
 import { createBrowserBoundary, within } from "./boundary-policy.ts";
 import { fileModule, sourceKey } from "./entries.ts";
-import { observeStylesheetDependencies } from "./stylesheet-dependencies.ts";
+import { observeFoldedFiles } from "./folded-files.ts";
 
 /** A file outside the boundary, by source key, with the module importing it when it is a module. */
 interface Refusal {
@@ -72,8 +72,8 @@ export function browserBoundary(
     let viteClient = normalizePath(
         dirname(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs"))),
     );
-    /** Build stylesheet id → the files Vite's CSS plugin read into it. */
-    let stylesheetFiles = new Map<string, Set<string>>();
+    /** Build module id → the files a folding plugin read into it. */
+    let foldedFiles = new Map<string, Set<string>>();
 
     function refusal(file: string, importer?: string): Refusal | undefined {
         let verdict = inspect(file);
@@ -125,15 +125,19 @@ export function browserBoundary(
         configResolved(config) {
             root = config.root;
             inspect = createBrowserBoundary(normalizePath(realpathSync(root)), options);
-            observeStylesheetDependencies(config, (environment, stylesheet, file) => {
+            observeFoldedFiles(config, (environment, plugin, module, file) => {
+                // PostCSS plugins report files they only watch, such as Tailwind's
+                // content; a stylesheet contains only stylesheets and assets.
+                if (plugin === "vite:css" && !isCSSRequest(file) && !config.assetsInclude(file))
+                    return;
                 if (environment.mode === "build") {
-                    let files = stylesheetFiles.get(stylesheet);
-                    if (!files) stylesheetFiles.set(stylesheet, (files = new Set()));
+                    let files = foldedFiles.get(module);
+                    if (!files) foldedFiles.set(module, (files = new Set()));
                     return void files.add(file);
                 }
                 if (environment.name !== "client" || environment.mode !== "dev") return;
                 let source = existingFile(file);
-                let refused = source && devRefusal(environment, source, stylesheet);
+                let refused = source && devRefusal(environment, source, module);
                 if (refused)
                     throw new Error(`[assets] Outside the browser boundary: ${describe(refused)}`);
             });
@@ -208,7 +212,7 @@ export function browserBoundary(
             for (let { path, importer } of published) {
                 let entries = [
                     { path, importer },
-                    ...[...(stylesheetFiles.get(path) ?? [])].map(file => ({
+                    ...[...(foldedFiles.get(path) ?? [])].map(file => ({
                         path: file,
                         importer: path,
                     })),

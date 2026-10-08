@@ -235,6 +235,42 @@ export const render = () => page;`,
         );
     });
 
+    it("fails when a browser module bundles a worker from a file outside allowFiles", async () => {
+        let root = await fixture({
+            "app/public/island.ts": `export const start = () => new Worker(new URL("../data/worker.ts", import.meta.url), { type: "module" });`,
+            "app/data/worker.ts": 'self.postMessage("server secret");',
+        });
+
+        expect(await failure(build(root))).toContain(
+            "app/data/worker.ts (imported by app/public/island.ts): not in allowFiles or allowPackages",
+        );
+    });
+
+    it("ignores files a PostCSS plugin only watches, which the stylesheet does not contain", async () => {
+        let root = await fixture({ "app/data/content.ts": 'export const classes = "island";' });
+        let configured = config(root, boundary);
+        configured.css = {
+            postcss: {
+                plugins: [
+                    {
+                        postcssPlugin: "report-content",
+                        Once(_root, { result }) {
+                            result.messages.push({
+                                type: "dependency",
+                                plugin: "report-content",
+                                file: join(root, "app/data/content.ts"),
+                                parent: result.opts.from,
+                            });
+                        },
+                    },
+                ],
+            },
+        };
+        let builder = await createBuilder(configured);
+
+        expect(await failure(builder.buildApp())).toBe("no error");
+    });
+
     it("fails when the server links a stylesheet outside allowFiles into the client output", async () => {
         let root = await fixture({
             "app/entry.ts": `import "./server.css";
