@@ -171,24 +171,22 @@ function islands(): Plugin {
     };
 }
 
-/** Where a {@link heldModule}'s first transform waits relative to the assets plugin's hook. */
+/** Where a {@link heldModule}'s transforms of its first code wait, relative to the assets plugin's hook. */
 type HoldPoint = "resolving its imports in the hook" | "before the hook";
 
 /**
- * `virtual:held`, generated from `code`. Its first transform, and only that
- * one, waits at `holdPoint`, resolving `held` on arrival, until `release()`,
- * so a test can change the module while a transform of its old code is in
- * flight.
+ * `virtual:held`, generated from `code`. Every transform of that first code
+ * waits at `holdPoint` until `release()`, so a test can change the module
+ * while transforms of its old code are in flight. `held(count)` resolves once
+ * `count` of them are waiting.
  */
 function heldModule(holdPoint: HoldPoint, code: string) {
     let id = "\0virtual:held";
-    let armed = true;
-    let held = Promise.withResolvers<void>();
+    let firstCode = code;
+    let waiting = 0;
     let released = Promise.withResolvers<void>();
     let hold = async () => {
-        if (!armed) return;
-        armed = false;
-        held.resolve();
+        waiting++;
         await released.promise;
     };
     let plugin: Plugin = {
@@ -197,16 +195,26 @@ function heldModule(holdPoint: HoldPoint, code: string) {
         enforce: "pre",
         async resolveId(source, importer) {
             if (source === "virtual:held") return id;
-            if (holdPoint === "resolving its imports in the hook" && importer === id) await hold();
+            if (
+                holdPoint === "resolving its imports in the hook" &&
+                importer === id &&
+                firstCode.includes(`"${source}"`)
+            )
+                await hold();
         },
         load: loaded => (loaded === id ? code : undefined),
-        async transform(_code, transformed) {
-            if (holdPoint === "before the hook" && transformed === id) await hold();
+        async transform(transformedCode, transformed) {
+            if (
+                holdPoint === "before the hook" &&
+                transformed === id &&
+                transformedCode === firstCode
+            )
+                await hold();
         },
     };
     return {
         plugin,
-        held: held.promise,
+        held: (count = 1) => expect.poll(() => waiting).toBeGreaterThanOrEqual(count),
         release: () => released.resolve(),
         /** Loads `next` from now on and hard-invalidates the module, as an edit does. */
         change(server: ViteDevServer, next: string) {
@@ -559,7 +567,7 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
                 let ssr = server.environments.ssr!;
 
                 let superseded = ssr.transformRequest("virtual:held");
-                await module.held;
+                await module.held();
                 module.change(server, importing("/app/layout.css"));
                 if (transformCurrent) await ssr.transformRequest("virtual:held");
                 module.release();
@@ -581,7 +589,7 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
 
                 // The first manifest's discovery makes the superseded transform.
                 let requested = request(server);
-                await module.held;
+                await module.held();
                 module.change(server, importing("/app/layout.css"));
                 if (transformCurrent)
                     await server.environments.ssr!.transformRequest("virtual:held");
@@ -592,6 +600,24 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             },
         );
 
+        it("builds the first manifest from the current code when two superseded transforms finish after it", async () => {
+            let module = heldModule("before the hook", importing("/app/button.css"));
+            let server = await serveWithHeldRoute(module.plugin);
+            let ssr = server.environments.ssr!;
+
+            // One is a request like the module runner's, the other the first manifest's discovery.
+            let superseded = ssr.transformRequest("virtual:held");
+            let requested = request(server);
+            await module.held(2);
+            module.change(server, importing("/app/layout.css"));
+            await ssr.transformRequest("virtual:held");
+            module.release();
+            await superseded;
+
+            let entry = await requested;
+            expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual(current);
+        });
+
         it("keeps the current code's browser entries when its imports did not change", async () => {
             let callingWith = (key: string) =>
                 `import { assets } from "/app/assets.ts";\nexport const entry = () => assets.getScriptEntry("${key}");\n`;
@@ -600,7 +626,7 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             let ssr = server.environments.ssr!;
 
             let superseded = ssr.transformRequest("virtual:held");
-            await module.held;
+            await module.held();
             module.change(server, callingWith("app/client-dependency.ts"));
             await ssr.transformRequest("virtual:held");
             module.release();
@@ -613,6 +639,46 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             await expect(assets.getScriptEntry("app/client-input.ts")).rejects.toThrow(
                 "app/client-input.ts",
             );
+        });
+
+        it("follows a browser module's imports when it changes while a module importing it transforms", async () => {
+            let released = Promise.withResolvers<void>();
+            let holding = false;
+            let holdInput: Plugin = {
+                name: "test-held-browser-input",
+                async transform(_code, id) {
+                    if (holding || this.environment.name !== "client") return;
+                    if (!id.endsWith("/app/client-input.ts")) return;
+                    holding = true;
+                    await released.promise;
+                },
+            };
+            let project = await fixture();
+            await project.write("project/app/client-leaf.ts", `export const leaf = "leaf";\n`);
+            await project.write(
+                "project/app/client-dependency.ts",
+                `import { leaf } from "./client-leaf.ts";\nexport const dependency = leaf;\n`,
+            );
+            let server = await serve(project, {
+                clientInput: "app/client-input.ts",
+                plugins: [holdInput],
+            });
+            let client = server.environments.client;
+            let dependency = async () =>
+                client.moduleGraph.getModuleByUrl("/app/client-dependency.ts");
+            await client.transformRequest("/app/client-dependency.ts");
+
+            // The input's import analysis requests its dependency again from
+            // inside the input's own transform, which started before the change.
+            let input = client.transformRequest("/app/client-input.ts");
+            await expect.poll(() => holding).toBe(true);
+            client.moduleGraph.invalidateModule((await dependency())!);
+            released.resolve();
+            await input;
+            await expect.poll(async () => (await dependency())?.transformResult).toBeTruthy();
+
+            let { assets } = await request(server);
+            expect(await assets.getPreloads("app/client-leaf.ts")).toEqual([]);
         });
     });
 

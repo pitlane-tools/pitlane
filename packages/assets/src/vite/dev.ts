@@ -10,8 +10,9 @@ import type { AssetPluginState } from "./state.ts";
 import { assetsSpecifier } from "../specifier.ts";
 import { importSpecifiers } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
-import { linkResolverUsage, sameResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
+import { linkResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
 import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
+import { countInvalidation, requestStarted, startRequest } from "./transform-start.ts";
 
 /**
  * Serves `@pitlane/assets/manifest` during `vite dev` as a data snapshot of
@@ -25,7 +26,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
     let building = new Set<string>();
     /** Server environments invalidated while their snapshot was being built. */
     let stale = new Set<string>();
-    /** Environment name → module id → how many hard invalidations the module has had. */
+    /** Environment name → module id → where its last hard invalidation is on the transform timeline. */
     let invalidations = new Map<string, Map<string, number>>();
 
     /**
@@ -69,12 +70,8 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
     }
 
     /**
-     * Records what a transform of module `id` found: its edges and, in a server
-     * environment, its resolver usage. Two transforms of the same code find the
-     * same, so a difference means one of them read code an invalidation
-     * superseded before this plugin saw it, and the order they finish in does
-     * not say which. Dropping both records makes the next snapshot transform
-     * the module again.
+     * Records what a transform of module `id` found: its edges and, in a
+     * server environment, its resolver usage.
      */
     function recordTransform(
         environment: string,
@@ -83,18 +80,13 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
         usage: ResolverUsage | undefined,
     ) {
         let edgeRecords = environmentEdges(graph, environment);
-        let usageRecords = graph.resolverUsage.get(environment);
         let previous = edgeRecords.get(id);
-        if (
-            previous &&
-            !(sameEdges(previous, edges) && sameResolverUsage(usageRecords?.get(id), usage))
-        ) {
-            edgeRecords.delete(id);
-            usageRecords?.delete(id);
-            invalidateSnapshotsWith(environment, id);
-            return;
-        }
         edgeRecords.set(id, edges);
+        // A transform no request started cannot tell whether an invalidation
+        // superseded the code it read, so earlier edges can be stale; the
+        // transform Vite runs next tells them apart from the current ones.
+        if (previous && !sameEdges(previous, edges)) invalidateSnapshotsWith(environment, id);
+        let usageRecords = graph.resolverUsage.get(environment);
         if (usage) usageRecords?.set(id, usage);
         else usageRecords?.delete(id);
     }
@@ -136,7 +128,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                             !isCSSRequest(mod.id)
                         ) {
                             edges.delete(mod.id);
-                            invalidated.set(mod.id, (invalidated.get(mod.id) ?? 0) + 1);
+                            invalidated.set(mod.id, countInvalidation());
                             invalidateSnapshotsWith(name, mod.id, timestamp);
                         }
                         invalidateModule.call(
@@ -148,6 +140,14 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                             softInvalidate,
                         );
                     };
+                    // Each request's start places the transform it runs on the
+                    // timeline. Vite's middleware, module runner, and import
+                    // analysis all transform modules through these two.
+                    let { transformRequest, warmupRequest } = environment;
+                    environment.transformRequest = url =>
+                        startRequest(() => transformRequest.call(environment, url));
+                    environment.warmupRequest = url =>
+                        startRequest(() => warmupRequest.call(environment, url));
                     if (!state.serverEnvironments.includes(name)) continue;
                     let roots = new Set<string>();
                     graph.roots.set(name, roots);
@@ -210,7 +210,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 if (id === MANIFEST_ID || isCSSRequest(id)) return;
                 let name = this.environment.name;
                 let invalidated = invalidations.get(name);
-                let invalidationsAtStart = invalidated?.get(id);
+                let started = requestStarted();
                 let resolve = (specifier: string) => this.resolve(specifier, id);
                 let resolveAll = async (list: string[]) => {
                     let resolved = await Promise.all(list.map(resolve));
@@ -231,9 +231,10 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                     resolveAll(specifiers.dynamic),
                     usage && linkResolverUsage(usage, resolve),
                 ]);
-                // A hard invalidation since this transform began means the code
-                // it read is superseded, and so is everything found in it.
-                if (invalidated?.get(id) !== invalidationsAtStart) return;
+                // A hard invalidation since this transform's request began
+                // means the code it read may be superseded, and so is
+                // everything found in it.
+                if ((invalidated?.get(id) ?? 0) > started) return;
                 recordTransform(
                     name,
                     id,
