@@ -4,12 +4,13 @@ import { isCSSRequest, normalizePath } from "vite";
 
 import type { ModuleEdges } from "./dev-graph.ts";
 import type { DevGraph, DevSnapshot } from "./dev-snapshot.ts";
+import type { ResolverUsage } from "./resolver-usage.ts";
 import type { AssetPluginState } from "./state.ts";
 
 import { assetsSpecifier } from "../specifier.ts";
 import { importSpecifiers } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
-import { linkResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
+import { linkResolverUsage, sameResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
 import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
 
 /**
@@ -47,10 +48,14 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
         if (environment === "client") return snapshot?.client;
     }
 
-    /** Invalidates every snapshot computed from module `id` of `environment`. */
+    /** Invalidates every snapshot computed, or being computed, from module `id` of `environment`. */
     function invalidateSnapshotsWith(environment: string, id: string, timestamp?: number) {
         for (let serverName of snapshots.keys()) {
             if (tracked(environment, serverName)?.has(id)) invalidate(serverName, timestamp);
+        }
+        // A snapshot being built does not know yet which modules it read.
+        for (let serverName of building) {
+            if (environment === serverName || environment === "client") stale.add(serverName);
         }
     }
 
@@ -64,23 +69,34 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
     }
 
     /**
-     * Records the edges a transform of module `id` found and returns whether it
-     * kept them. Two transforms of the same code find the same edges, so
-     * differing ones mean one transform read code an invalidation superseded
-     * before this plugin saw it, and the order they finish in does not say
-     * which. Dropping the record makes the next snapshot transform the module
-     * again.
+     * Records what a transform of module `id` found: its edges and, in a server
+     * environment, its resolver usage. Two transforms of the same code find the
+     * same, so a difference means one of them read code an invalidation
+     * superseded before this plugin saw it, and the order they finish in does
+     * not say which. Dropping both records makes the next snapshot transform
+     * the module again.
      */
-    function recordEdges(environment: string, id: string, next: ModuleEdges): boolean {
-        let edges = environmentEdges(graph, environment);
-        let previous = edges.get(id);
-        if (previous && !sameEdges(previous, next)) {
-            edges.delete(id);
+    function recordTransform(
+        environment: string,
+        id: string,
+        edges: ModuleEdges,
+        usage: ResolverUsage | undefined,
+    ) {
+        let edgeRecords = environmentEdges(graph, environment);
+        let usageRecords = graph.resolverUsage.get(environment);
+        let previous = edgeRecords.get(id);
+        if (
+            previous &&
+            !(sameEdges(previous, edges) && sameResolverUsage(usageRecords?.get(id), usage))
+        ) {
+            edgeRecords.delete(id);
+            usageRecords?.delete(id);
             invalidateSnapshotsWith(environment, id);
-            return false;
+            return;
         }
-        edges.set(id, next);
-        return true;
+        edgeRecords.set(id, edges);
+        if (usage) usageRecords?.set(id, usage);
+        else usageRecords?.delete(id);
     }
 
     return {
@@ -135,6 +151,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                     if (!state.serverEnvironments.includes(name)) continue;
                     let roots = new Set<string>();
                     graph.roots.set(name, roots);
+                    graph.resolverUsage.set(name, new Map());
                     // Runner entries can differ from build inputs; manifest importers are not roots.
                     let fetchModule = environment.fetchModule;
                     environment.fetchModule = async (id, importer, options) => {
@@ -192,16 +209,11 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             async handler(code, id) {
                 if (id === MANIFEST_ID || isCSSRequest(id)) return;
                 let name = this.environment.name;
-                // A hard invalidation after this point means the code being
-                // transformed is superseded, and so is everything found in it.
                 let invalidated = invalidations.get(name);
                 let invalidationsAtStart = invalidated?.get(id);
-                let superseded = () => invalidated?.get(id) !== invalidationsAtStart;
-                let specifiers = importSpecifiers(code);
+                let resolve = (specifier: string) => this.resolve(specifier, id);
                 let resolveAll = async (list: string[]) => {
-                    let resolved = await Promise.all(
-                        list.map(specifier => this.resolve(specifier, id)),
-                    );
+                    let resolved = await Promise.all(list.map(resolve));
                     return [
                         ...new Set(
                             resolved.flatMap(result =>
@@ -210,22 +222,24 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                         ),
                     ];
                 };
-                let [staticEdges, dynamicEdges] = await Promise.all([
+                let specifiers = importSpecifiers(code);
+                let usage = state.serverEnvironments.includes(name)
+                    ? scanResolverUsage(code, id)
+                    : undefined;
+                let [staticEdges, dynamicEdges, linkedUsage] = await Promise.all([
                     resolveAll(specifiers.static),
                     resolveAll(specifiers.dynamic),
+                    usage && linkResolverUsage(usage, resolve),
                 ]);
-                if (superseded()) return;
-                if (!recordEdges(name, id, { static: staticEdges, dynamic: dynamicEdges })) return;
-
-                if (!state.serverEnvironments.includes(name)) return;
-                let modules = graph.resolverUsage.get(name);
-                if (!modules) graph.resolverUsage.set(name, (modules = new Map()));
-                let usage = scanResolverUsage(code, id);
-                if (!usage) return void modules.delete(id);
-                let linked = await linkResolverUsage(usage, specifier =>
-                    this.resolve(specifier, id),
+                // A hard invalidation since this transform began means the code
+                // it read is superseded, and so is everything found in it.
+                if (invalidated?.get(id) !== invalidationsAtStart) return;
+                recordTransform(
+                    name,
+                    id,
+                    { static: staticEdges, dynamic: dynamicEdges },
+                    linkedUsage,
                 );
-                if (!superseded()) modules.set(id, linked);
             },
         },
         hotUpdate: {

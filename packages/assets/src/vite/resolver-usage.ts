@@ -152,6 +152,16 @@ export async function linkResolverUsage(
     return { calls, resolverExports: exported, starExports };
 }
 
+/** Whether two linked usages are equal, where `undefined` is a module with none. */
+export function sameResolverUsage(
+    previous: ResolverUsage | undefined,
+    next: ResolverUsage | undefined,
+): boolean {
+    let serialize = (usage: ResolverUsage | undefined) =>
+        JSON.stringify(usage ?? null, (_, value) => (value instanceof Map ? [...value] : value));
+    return serialize(previous) === serialize(next);
+}
+
 function isResolver(
     modules: ReadonlyMap<string, ResolverUsage>,
     origin: ResolverOrigin,
