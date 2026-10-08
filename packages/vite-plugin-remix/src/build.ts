@@ -1,5 +1,7 @@
 import type { Plugin } from "vite";
 
+import { join } from "node:path";
+
 import type { PrerenderOption } from "./prerender.ts";
 
 import { prerender } from "./prerender.ts";
@@ -34,14 +36,18 @@ export function build({ clientEntry, serverEntry, prerender: paths }: BuildPlugi
             }
         },
         config(userConfig) {
-            // Never clobber inputs the user configured themselves (plugin
+            // Never clobber what the user configured themselves (plugin
             // config merges over user config): e.g. an index.html client
-            // entry for a fully static SPA shell.
+            // entry for a fully static SPA shell, or an output directory.
             let environments = userConfig.environments as
-                | Record<string, { build?: { rollupOptions?: { input?: unknown } } }>
+                | Record<
+                      string,
+                      { build?: { outDir?: string; rollupOptions?: { input?: unknown } } }
+                  >
                 | undefined;
             let hasUserClientInput = Boolean(environments?.client?.build?.rollupOptions?.input);
             let hasUserServerInput = Boolean(environments?.ssr?.build?.rollupOptions?.input);
+            let rootOutDir = userConfig.build?.outDir ?? "dist";
 
             return {
                 appType: userConfig.appType ?? "custom",
@@ -50,19 +56,20 @@ export function build({ clientEntry, serverEntry, prerender: paths }: BuildPlugi
                 environments: {
                     client: {
                         build: {
-                            outDir: "dist/client",
+                            outDir:
+                                environments?.client?.build?.outDir ?? join(rootOutDir, "client"),
                             rollupOptions: {
                                 // `clientEntry: false` removes the browser
                                 // script, not the client output: stylesheets
                                 // and assets the server registers still land
-                                // in dist/client.
+                                // in the client outDir.
                                 input: hasUserClientInput ? undefined : clientEntry || undefined,
                             },
                         },
                     },
                     ssr: {
                         build: {
-                            outDir: "dist/ssr",
+                            outDir: environments?.ssr?.build?.outDir ?? join(rootOutDir, "ssr"),
                             rollupOptions: {
                                 input: hasUserServerInput ? undefined : { index: serverEntry },
                             },
