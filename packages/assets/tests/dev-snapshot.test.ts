@@ -450,6 +450,37 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         expect(transformed).not.toContain("app/edge-only.ts");
     });
 
+    it("re-analyzes a generated module its plugin invalidates without a file change", async () => {
+        let stylesheet = "/app/button.css";
+        let generated: Plugin = {
+            name: "test-generated",
+            resolveId: id => (id === "virtual:lazy-styles" ? "\0virtual:lazy-styles" : undefined),
+            load: id =>
+                id === "\0virtual:lazy-styles"
+                    ? `import "${stylesheet}";\nexport const generated = true;\n`
+                    : undefined,
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "virtual:lazy-styles";\n${code}`,
+        );
+        let server = await serve(project, { plugins: [generated] });
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/button.css",
+            "/app/routes/home.css",
+        ]);
+        expect(executed()).not.toContain("app/routes/home.ts");
+
+        stylesheet = "/app/layout.css";
+        let graph = server.environments.ssr!.moduleGraph;
+        graph.invalidateModule(graph.getModuleById("\0virtual:lazy-styles")!);
+        await expect
+            .poll(async () => (await request(server)).assets.getStylesheets("app/routes/home.ts"))
+            .toEqual(["/app/layout.css", "/app/routes/home.css"]);
+    });
+
     it("leaves browser modules it discovered cached for the browser's first load", async () => {
         let transformed: string[] = [];
         let counter: Plugin = {

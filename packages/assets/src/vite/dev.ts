@@ -2,6 +2,7 @@ import type { Plugin, ViteDevServer } from "vite";
 
 import { isCSSRequest, normalizePath } from "vite";
 
+import type { ModuleEdges } from "./dev-graph.ts";
 import type { DevGraph, DevSnapshot } from "./dev-snapshot.ts";
 import type { AssetPluginState } from "./state.ts";
 
@@ -21,13 +22,43 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
     let graph: DevGraph = { roots: new Map(), edges: new Map(), resolverUsage: new Map() };
     let snapshots = new Map<string, DevSnapshot>();
     let building = new Set<string>();
+    /** Server environments invalidated while their snapshot was being built. */
+    let stale = new Set<string>();
 
-    /** Invalidates a server environment's manifest and, through Vite, every module importing it. */
+    /**
+     * Invalidates a server environment's manifest and, through Vite, every
+     * module importing it. A manifest being built is marked instead, and
+     * `load` builds it again, since Vite would cache the code `load` returns.
+     */
     function invalidate(name: string, timestamp?: number) {
+        if (building.has(name)) return void stale.add(name);
         let environment = server?.environments[name];
         let manifest = environment?.moduleGraph.getModuleById(MANIFEST_ID);
         if (manifest)
             environment!.moduleGraph.invalidateModule(manifest, new Set(), timestamp, true);
+    }
+
+    /** The modules of `environment` a server environment's snapshot was computed from. */
+    function tracked(environment: string, serverName: string): Set<string> | undefined {
+        let snapshot = snapshots.get(serverName);
+        if (environment === serverName) return snapshot?.server;
+        if (environment === "client") return snapshot?.client;
+    }
+
+    /** Invalidates every snapshot computed from module `id` of `environment`. */
+    function invalidateSnapshotsWith(environment: string, id: string, timestamp?: number) {
+        for (let serverName of snapshots.keys()) {
+            if (tracked(environment, serverName)?.has(id)) invalidate(serverName, timestamp);
+        }
+    }
+
+    function sameEdges(previous: ModuleEdges, next: ModuleEdges): boolean {
+        return (
+            previous.static.length === next.static.length &&
+            previous.dynamic.length === next.dynamic.length &&
+            previous.static.every((edge, index) => edge === next.static[index]) &&
+            previous.dynamic.every((edge, index) => edge === next.dynamic[index])
+        );
     }
 
     return {
@@ -41,7 +72,41 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             handler(devServer) {
                 server = devServer;
                 for (let environment of Object.values(devServer.environments)) {
-                    let { name } = environment;
+                    let { name, moduleGraph } = environment;
+                    let edges = environmentEdges(graph, name);
+                    // A hard invalidation says the module's own transform is
+                    // stale, so the edges that transform recorded are too. A
+                    // soft one, which a changed import propagates to its
+                    // static importers, only renames the URLs they import.
+                    // Vite reports file changes this way, and so does a plugin
+                    // invalidating a module it generates, which `hotUpdate`
+                    // never hears about.
+                    let invalidateModule = moduleGraph.invalidateModule;
+                    moduleGraph.invalidateModule = (
+                        mod,
+                        seen,
+                        timestamp,
+                        isHmr,
+                        softInvalidate,
+                    ) => {
+                        if (
+                            !softInvalidate &&
+                            mod.id &&
+                            mod.id !== MANIFEST_ID &&
+                            !isCSSRequest(mod.id)
+                        ) {
+                            edges.delete(mod.id);
+                            invalidateSnapshotsWith(name, mod.id, timestamp);
+                        }
+                        invalidateModule.call(
+                            moduleGraph,
+                            mod,
+                            seen,
+                            timestamp,
+                            isHmr,
+                            softInvalidate,
+                        );
+                    };
                     if (!state.serverEnvironments.includes(name)) continue;
                     let roots = new Set<string>();
                     graph.roots.set(name, roots);
@@ -78,11 +143,20 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             }
             building.add(name);
             try {
-                let snapshot = await createDevSnapshot(server!, state, graph, name);
+                // An invalidation that lands mid-build marks the environment
+                // stale; one more pass reads what changed. A transform that
+                // invalidated modules on every run would otherwise never settle.
+                let snapshot: DevSnapshot;
+                let passes = 0;
+                do {
+                    stale.delete(name);
+                    snapshot = await createDevSnapshot(server!, state, graph, name);
+                } while (stale.has(name) && ++passes < 3);
                 snapshots.set(name, snapshot);
                 return `export default JSON.parse(${JSON.stringify(JSON.stringify(snapshot.manifest))});\n`;
             } finally {
                 building.delete(name);
+                stale.delete(name);
             }
         },
         transform: {
@@ -110,10 +184,14 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                     resolveAll(specifiers.static),
                     resolveAll(specifiers.dynamic),
                 ]);
-                environmentEdges(graph, name).set(id, {
-                    static: staticEdges,
-                    dynamic: dynamicEdges,
-                });
+                let edges = environmentEdges(graph, name);
+                let previous = edges.get(id);
+                let next = { static: staticEdges, dynamic: dynamicEdges };
+                edges.set(id, next);
+                // A transform that read the file before an invalidation records
+                // edges that invalidation did not drop; the transform Vite runs
+                // next tells them apart from the current ones.
+                if (previous && !sameEdges(previous, next)) invalidateSnapshotsWith(name, id);
 
                 if (!state.serverEnvironments.includes(name)) return;
                 let modules = graph.resolverUsage.get(name);
@@ -147,20 +225,9 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                 }
                 let name = this.environment.name;
                 let ids = modules.flatMap(module => (module.id ? [module.id] : []));
-                // The changed file's modules, including glob importers Vite
-                // added, are analyzed again on the next snapshot; everything
-                // else keeps the edges its last transform recorded.
-                let edges = environmentEdges(graph, name);
-                for (let id of ids) edges.delete(id);
-                for (let id of edges.keys()) if (id.split("?")[0] === path) edges.delete(id);
-                for (let [serverName, snapshot] of snapshots) {
-                    let tracked =
-                        name === serverName
-                            ? snapshot.server
-                            : name === "client"
-                              ? snapshot.client
-                              : undefined;
-                    if (tracked && (tracked.has(path) || ids.some(id => tracked.has(id))))
+                for (let serverName of snapshots.keys()) {
+                    let set = tracked(name, serverName);
+                    if (set && (set.has(path) || ids.some(id => set.has(id))))
                         invalidate(serverName, timestamp);
                 }
             },
