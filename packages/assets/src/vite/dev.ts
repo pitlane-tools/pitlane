@@ -1,4 +1,4 @@
-import type { Plugin, ViteDevServer } from "vite";
+import type { DevEnvironment, Plugin, ViteDevServer } from "vite";
 
 import { isCSSRequest, normalizePath } from "vite";
 
@@ -7,7 +7,7 @@ import type { DevGraph, DevSnapshot } from "./dev-snapshot.ts";
 import type { AssetPluginState } from "./state.ts";
 
 import { assetsSpecifier } from "../specifier.ts";
-import { importSpecifiers } from "./dev-graph.ts";
+import { moduleEdges } from "./dev-graph.ts";
 import { createDevSnapshot, environmentEdges } from "./dev-snapshot.ts";
 import { linkResolverUsage, scanResolverUsage } from "./resolver-usage.ts";
 import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
@@ -17,7 +17,7 @@ import { MANIFEST_ID, unservedEnvironmentError } from "./state.ts";
  * each server environment's module graph, and invalidates it when a change
  * could alter the stylesheets, routes, or browser entries it records.
  */
-export function assetDevelopment(state: AssetPluginState): Plugin {
+export function assetDevelopment(state: AssetPluginState): Plugin[] {
     let server: ViteDevServer | undefined;
     let graph: DevGraph = { roots: new Map(), edges: new Map(), resolverUsage: new Map() };
     let snapshots = new Map<string, DevSnapshot>();
@@ -61,7 +61,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
         );
     }
 
-    return {
+    let manifest: Plugin = {
         name: "pitlane-assets-dev",
         apply: "serve",
         enforce: "post",
@@ -161,38 +161,11 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
         },
         transform: {
             // A normal-order hook of this enforce: "post" plugin runs after other
-            // plugins' transforms but before vite:import-analysis, which rewrites
-            // specifiers into served URLs such as `logo.svg?import` or `?t=`.
-            // Edges must name the modules' source ids, not those request URLs.
+            // plugins' transforms but before vite:import-analysis rewrites
+            // specifiers, so the scan still sees `@pitlane/assets` by name.
             async handler(code, id) {
                 if (id === MANIFEST_ID || isCSSRequest(id)) return;
                 let name = this.environment.name;
-                let specifiers = importSpecifiers(code);
-                let resolveAll = async (list: string[]) => {
-                    let resolved = await Promise.all(
-                        list.map(specifier => this.resolve(specifier, id)),
-                    );
-                    return [
-                        ...new Set(
-                            resolved.flatMap(result =>
-                                result && !result.external ? [result.id] : [],
-                            ),
-                        ),
-                    ];
-                };
-                let [staticEdges, dynamicEdges] = await Promise.all([
-                    resolveAll(specifiers.static),
-                    resolveAll(specifiers.dynamic),
-                ]);
-                let edges = environmentEdges(graph, name);
-                let previous = edges.get(id);
-                let next = { static: staticEdges, dynamic: dynamicEdges };
-                edges.set(id, next);
-                // A transform that read the file before an invalidation records
-                // edges that invalidation did not drop; the transform Vite runs
-                // next tells them apart from the current ones.
-                if (previous && !sameEdges(previous, next)) invalidateSnapshotsWith(name, id);
-
                 if (!state.serverEnvironments.includes(name)) return;
                 let modules = graph.resolverUsage.get(name);
                 if (!modules) graph.resolverUsage.set(name, (modules = new Map()));
@@ -233,4 +206,34 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
             },
         },
     };
+
+    let edges: Plugin = {
+        name: "pitlane-assets-dev-edges",
+        apply: "serve",
+        enforce: "post",
+        transform: {
+            // After vite:import-analysis, which resolved every import once
+            // already; the edges name the source ids it recorded.
+            order: "post",
+            async handler(code, id) {
+                if (id === MANIFEST_ID || isCSSRequest(id)) return;
+                // `apply: "serve"` keeps this plugin out of builds, so the
+                // environment is a dev environment; the context does not say so.
+                let environment = this.environment as DevEnvironment;
+                let name = environment.name;
+                let recorded = environmentEdges(graph, name);
+                let previous = recorded.get(id);
+                let next = await moduleEdges(environment, id, code, specifier =>
+                    this.resolve(specifier, id),
+                );
+                recorded.set(id, next);
+                // A transform that read the file before an invalidation records
+                // edges that invalidation did not drop; the transform Vite runs
+                // next tells them apart from the current ones.
+                if (previous && !sameEdges(previous, next)) invalidateSnapshotsWith(name, id);
+            },
+        },
+    };
+
+    return [manifest, edges];
 }

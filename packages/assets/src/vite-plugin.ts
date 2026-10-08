@@ -137,5 +137,5 @@ export function assets(options: AssetsPluginOptions = {}): PluginOption {
             );
         },
     };
-    return [integration, assetBuild(state), assetDevelopment(state), assetStyles()];
+    return [integration, assetBuild(state), ...assetDevelopment(state), assetStyles()];
 }

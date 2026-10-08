@@ -1,7 +1,7 @@
 import type { InlineConfig, Plugin, ResolvedConfig, ViteDevServer } from "vite";
 
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
     createRunnableDevEnvironment,
@@ -502,6 +502,53 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         expect(await browserLoad(server, "/app/client-input.ts")).toEqual([]);
     });
 
+    it("leaves an external import alone in a server environment that bundles its packages", async () => {
+        // Cloudflare's plugin resolves `.wasm` and friends to external ids that
+        // only its runtime loads, in environments where nothing else is external.
+        let external: Plugin = {
+            name: "test-external",
+            resolveId: id =>
+                id === "runtime:module" ? { id: "__RUNTIME__module__", external: true } : undefined,
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "runtime:module";\n${code}`,
+        );
+        let server = await serve(project, {
+            plugins: [external],
+            environments: { ssr: { resolve: { noExternal: true } } },
+        });
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/routes/home.css",
+        ]);
+        expect(executed()).not.toContain("app/routes/home.ts");
+    });
+
+    it("resolves a module's imports once per transform, through Vite's own import analysis", async () => {
+        let resolutions = 0;
+        let transforms = 0;
+        let counter: Plugin = {
+            name: "test-resolve-counter",
+            // Before `vite:resolve`, which answers first and ends the chain.
+            enforce: "pre",
+            resolveId(source, importer) {
+                if (source === "./button.ts" && importer?.endsWith("/app/page.ts")) resolutions++;
+            },
+            transform(code, id) {
+                if (id.endsWith("/app/page.ts") && this.environment.name === "ssr") transforms++;
+            },
+        };
+        let project = await fixture();
+        let server = await serve(project, { plugins: [counter] });
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/page.ts")).toContain("/app/button.css");
+        // Discovery transforms the module, then the runner does; neither resolves on its own.
+        expect(transforms).toBeGreaterThan(0);
+        expect(resolutions).toBe(transforms);
+    });
+
     it("leaves browser modules it discovered cached for the browser's first load", async () => {
         let transformed: string[] = [];
         let counter: Plugin = {
@@ -585,6 +632,11 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
     it("treats configured client inputs as browser entries and follows their client graph", async () => {
         let project = await fixture();
         await project.write("project/app/client-added.ts", `export const added = true;\n`);
+        // An HMR boundary makes Vite inject its client runtime into the module.
+        await project.edit(
+            "project/app/client-input.ts",
+            code => `${code}if (import.meta.hot) import.meta.hot.accept();\n`,
+        );
         let server = await serve(project, { clientInput: "app/client-input.ts" });
         let entry = await request(server);
 
@@ -599,6 +651,12 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
         await expect(entry.assets.getImportMap(["app/client-added.ts"])).rejects.toThrow(
             "app/client-added.ts",
         );
+        // Vite's HMR runtime reaches every browser module in dev; it is not the app's.
+        let viteClient = relative(
+            project.root,
+            fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs")),
+        );
+        await expect(entry.assets.getImportMap([viteClient])).rejects.toThrow("client.mjs");
 
         await project.edit(
             "project/app/client-input.ts",

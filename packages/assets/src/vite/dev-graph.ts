@@ -1,4 +1,4 @@
-import type { DevEnvironment } from "vite";
+import type { DevEnvironment, Rollup } from "vite";
 
 import { readFile } from "node:fs/promises";
 import { isAbsolute } from "node:path";
@@ -35,6 +35,65 @@ export function importSpecifiers(code: string): { static: string[]; dynamic: str
         if (literal) dynamicSpecifiers.add(literal[2]!);
     }
     return { static: [...staticSpecifiers], dynamic: [...dynamicSpecifiers] };
+}
+
+/**
+ * A module's edges after `vite:import-analysis` ran: it resolved every
+ * import, rewrote each specifier to the URL it serves the module at, and
+ * recorded the modules it reached on the graph node. Reading those back
+ * costs a parse; resolving the specifiers again would cost what Vite just
+ * paid. The node does not say which of them are external, and a server
+ * environment records a node for an external import too, so an import that
+ * is not a file or a virtual module is resolved once more and dropped when
+ * it stays external. A URL the node does not list falls back the same way.
+ */
+export async function moduleEdges(
+    environment: DevEnvironment,
+    id: string,
+    code: string,
+    resolve: (specifier: string) => Promise<Rollup.ResolvedId | null>,
+): Promise<ModuleEdges> {
+    let known = new Map<string, string>();
+    for (let node of environment.moduleGraph.getModuleById(id)?.importedModules ?? []) {
+        if (node.id) known.set(importedUrl(node.url, ""), node.id);
+    }
+    let base = environment.config.base.replace(/\/$/, "");
+    let ids = async (urls: string[]) => {
+        let resolved = await Promise.all(
+            urls.map(async url => {
+                // The HMR runtime import analysis injects is Vite's, not the app's.
+                if (url.startsWith("/@vite/")) return;
+
+                let imported = known.get(importedUrl(url, base));
+                if (imported && (fileModule(imported) || imported.startsWith("\0")))
+                    return imported;
+                let result = await resolve(url);
+                return result && !result.external ? result.id : undefined;
+            }),
+        );
+        return [...new Set(resolved.flatMap(id => (id ? [id] : [])))];
+    };
+    let specifiers = importSpecifiers(code);
+    let [staticEdges, dynamicEdges] = await Promise.all([
+        ids(specifiers.static),
+        ids(specifiers.dynamic),
+    ]);
+    return { static: staticEdges, dynamic: dynamicEdges };
+}
+
+/**
+ * The module-graph URL behind a rewritten import: without `base`, the
+ * `?import` marker import analysis adds to an asset import, and the `?t=`
+ * timestamp of a hot-updated module, with `/@id/` unwrapped as Vite does.
+ * A virtual module's node keeps its URL with or without the leading null
+ * byte depending on who created the node, so the key drops it on both sides.
+ */
+function importedUrl(url: string, base: string): string {
+    if (base && url.startsWith(`${base}/`)) url = url.slice(base.length);
+    url = url.replace(/[?&]import(?=$|&)/, "").replace(/[?&]t=\d+(?=$|&)/, "");
+    url = url.replace(/\?&/, "?").replace(/\?$/, "");
+    if (url.startsWith("/@id/")) url = url.slice("/@id/".length).replace("__x00__", "\0");
+    return url.replace(/^\0/, "");
 }
 
 /** The path Vite's dev server serves a resolved module id at, before `base`. */
