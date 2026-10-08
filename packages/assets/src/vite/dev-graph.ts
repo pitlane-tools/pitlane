@@ -69,19 +69,36 @@ function followed(environment: DevEnvironment, id: string): boolean {
 }
 
 /**
+ * A module is analyzed once. Its edge record was written by the transform
+ * hook, whether the runner or discovery ran that transform, and stays
+ * current until `hotUpdate` reports the module's file changed, which drops
+ * the record. Keying this on `transformResult` instead would re-transform
+ * every module the runner has not executed on each rebuild.
+ *
+ * Client discovery goes through `transformRequest`, so it shares Vite's
+ * in-flight and cached transforms with the import analysis that warms a
+ * browser module's dependencies, and the browser later reads the cache.
  * Server discovery must not populate `transformResult`: the module runner
- * would treat its stale instance as current. Client transforms may warm
- * and cache their dependencies after the optimizer has initialized.
+ * asks whether a module it already evaluated is still current by that
+ * field, so a transform cached between a file change and the runner's next
+ * import would keep its stale instance alive.
  */
 async function analyze(
     environment: DevEnvironment,
     id: string,
     edges: Map<string, ModuleEdges>,
 ): Promise<void> {
-    if (environment.moduleGraph.getModuleById(id)?.transformResult && edges.has(id)) return;
+    if (edges.has(id)) return;
     let { root } = environment.config;
     try {
-        await environment.moduleGraph.ensureEntryFromUrl(servedPath(root, id));
+        let url = servedPath(root, id);
+        if (environment.config.consumer === "client") {
+            // Vite's middleware and `fetchModule` unwrap `/@id/` before calling
+            // `transformRequest`; a virtual or bare id is its own URL there.
+            await environment.transformRequest(url.startsWith("/@id/") ? id : url);
+            return;
+        }
+        await environment.moduleGraph.ensureEntryFromUrl(url);
         let loaded = await environment.pluginContainer.load(id);
         let code = loaded == null ? null : typeof loaded === "string" ? loaded : loaded.code;
         if (code == null) {
