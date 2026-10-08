@@ -2,6 +2,7 @@ import type { Plugin, PluginOption } from "vite";
 
 import type { AssetPluginState } from "./vite/state.ts";
 
+import { browserBoundary } from "./vite/boundary.ts";
 import { assetBuild } from "./vite/build.ts";
 import { assetStyles } from "./vite/dev-css.ts";
 import { assetDevelopment } from "./vite/dev.ts";
@@ -18,6 +19,21 @@ export interface AssetsPluginOptions {
     serverEnvironments?: string[];
     /** Override Vite's native setting. With neither setting present, maps are disabled. */
     chunkImportMap?: boolean;
+    /**
+     * Files and globs, relative to the Vite root, that may reach the browser.
+     * Setting it turns on the browser boundary: a build that would publish any
+     * other file fails, and `vite dev` refuses to serve one. Read as
+     * `remix/assets` reads it; a directory path matches every file below it.
+     */
+    allowFiles?: string[];
+    /**
+     * Packages that may reach the browser, with their `dependencies` and
+     * installed `optionalDependencies`. Peer dependencies are not included.
+     * Requires `allowFiles`.
+     */
+    allowPackages?: string[];
+    /** Files and globs refused even when `allowFiles` or `allowPackages` allows them. Requires `allowFiles`. */
+    denyFiles?: string[];
 }
 
 /** Browser entries declared by one server module's development transform. */
@@ -37,6 +53,12 @@ export interface AssetsPluginApi {
 }
 
 export function assets(options: AssetsPluginOptions = {}): PluginOption {
+    let { allowFiles, allowPackages, denyFiles } = options;
+    if (!allowFiles && (allowPackages || denyFiles)) {
+        throw new Error(
+            "[assets] allowPackages and denyFiles refine allowFiles. Set allowFiles to turn on the browser boundary.",
+        );
+    }
     let state: AssetPluginState = {
         serverEnvironments: options.serverEnvironments ?? ["ssr"],
         inputs: new Map(),
@@ -139,5 +161,12 @@ export function assets(options: AssetsPluginOptions = {}): PluginOption {
             );
         },
     };
-    return [integration, assetBuild(state), assetDevelopment(state), assetStyles()];
+    return [
+        integration,
+        assetBuild(state),
+        assetDevelopment(state),
+        assetStyles(),
+        allowFiles &&
+            browserBoundary({ allowFiles, allowPackages, denyFiles }, state.serverEnvironments),
+    ];
 }
