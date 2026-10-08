@@ -128,7 +128,7 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                             !isCSSRequest(mod.id)
                         ) {
                             edges.delete(mod.id);
-                            invalidated.set(mod.id, countInvalidation());
+                            if (!isHmr) invalidated.set(mod.id, countInvalidation());
                             invalidateSnapshotsWith(name, mod.id, timestamp);
                         }
                         invalidateModule.call(

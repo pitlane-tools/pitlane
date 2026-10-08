@@ -680,6 +680,61 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             let { assets } = await request(server);
             expect(await assets.getPreloads("app/client-leaf.ts")).toEqual([]);
         });
+
+        it("follows a browser module's imports when it transforms between an edit's invalidation and its HMR update", async () => {
+            let edited = false;
+            let updateHeld = Promise.withResolvers<void>();
+            let updateReleased = Promise.withResolvers<void>();
+            let transformHeld = Promise.withResolvers<void>();
+            let transformReleased = Promise.withResolvers<void>();
+            let holdEdit: Plugin = {
+                name: "test-held-edit",
+                // Vite invalidates an edited module before these hooks and
+                // again, as an HMR update, after them.
+                async hotUpdate({ file }) {
+                    if (this.environment.name !== "client") return;
+                    if (!file.endsWith("/app/client-dependency.ts")) return;
+                    edited = true;
+                    updateHeld.resolve();
+                    await updateReleased.promise;
+                },
+                async transform(_code, id) {
+                    if (!edited || this.environment.name !== "client") return;
+                    if (!id.endsWith("/app/client-dependency.ts")) return;
+                    transformHeld.resolve();
+                    await transformReleased.promise;
+                },
+            };
+            let project = await fixture();
+            await project.write("project/app/client-leaf.ts", `export const leaf = "leaf";\n`);
+            await project.write(
+                "project/app/client-dependency.ts",
+                `import { leaf } from "./client-leaf.ts";\nexport const dependency = leaf;\n`,
+            );
+            let server = await serve(project, {
+                clientInput: "app/client-input.ts",
+                plugins: [holdEdit],
+            });
+            let client = server.environments.client;
+            let dependency = async () =>
+                client.moduleGraph.getModuleByUrl("/app/client-dependency.ts");
+            await client.transformRequest("/app/client-dependency.ts");
+
+            await project.edit("project/app/client-dependency.ts", code => `${code}// edited\n`);
+            await updateHeld.promise;
+            // This transform reads the edited code, so Vite caches it.
+            let transformed = client.transformRequest("/app/client-dependency.ts");
+            await transformHeld.promise;
+            updateReleased.resolve();
+            await expect
+                .poll(async () => (await dependency())?.lastHMRTimestamp)
+                .toBeGreaterThan(0);
+            transformReleased.resolve();
+            await transformed;
+
+            let { assets } = await request(server);
+            expect(await assets.getPreloads("app/client-leaf.ts")).toEqual([]);
+        });
     });
 
     it("analyzes a virtual module in a browser entry's graph", async () => {
