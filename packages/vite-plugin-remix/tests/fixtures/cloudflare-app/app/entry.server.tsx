@@ -1,6 +1,6 @@
 // Importing cloudflare:workers makes this bundle resolvable only inside
-// workerd — exactly what production looks like, and what the preview plugin's
-// import-failure → skip contract exists for.
+// workerd — exactly what production looks like, and what sends prerendering
+// through the platform's preview server instead of a direct import.
 import { env } from "cloudflare:workers";
 import { render } from "remix/middleware/render";
 import { createRouter, type MiddlewareContext } from "remix/router";

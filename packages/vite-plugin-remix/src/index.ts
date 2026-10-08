@@ -81,9 +81,10 @@ export interface RemixPluginOptions {
      */
     serverEnvironments?: string[];
     /**
-     * Serve dev-server requests through the server entry's fetch handler.
-     * Set to `false` when another plugin owns dev-time request handling —
-     * `@cloudflare/vite-plugin` (workerd) or `nitro/vite`. Keep the default
+     * Serve dev-server and `vite preview` requests through the server entry's
+     * fetch handler. Set to `false` when another plugin owns request handling
+     * — `@cloudflare/vite-plugin` (workerd) or `nitro/vite` — so its own
+     * preview serves the build, even one Node could import. Keep the default
      * with `@netlify/vite-plugin`, which emulates platform primitives around
      * the dev server but leaves SSR to the app's fetch handler.
      *
@@ -203,7 +204,7 @@ export function remix(options: RemixPluginOptions = {}): PluginOption {
         assets({ ...assetsOptions, serverEnvironments }),
         serverHandler && fetchServer({ entry: serverEntry, environment: serverEnvironments[0] }),
         build({ clientEntry, serverEntry, prerender }),
-        preview(),
+        serverHandler && preview(),
         componentHmr(serverEnvironmentSet),
         clientEntryTransform(serverEnvironmentSet),
         serverDataHmr(serverEnvironmentSet),

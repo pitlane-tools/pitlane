@@ -68,7 +68,7 @@ describe("production build", () => {
 });
 
 describe("preview server (workerd)", () => {
-    it("lets the platform preview take over when the bundle is not Node-importable", async () => {
+    it("serves the build through the platform preview with serverHandler: false", async () => {
         let server = await preview({
             root: FIXTURE,
             logLevel: "error",

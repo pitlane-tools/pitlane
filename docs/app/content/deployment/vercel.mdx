@@ -40,7 +40,7 @@ export default defineConfig({
 });
 ```
 
-[`serverHandler: false`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverhandler) hands dev-time request handling to Nitro's dev server, which runs the same fetch handler Nitro packages for production.
+[`serverHandler: false`](/package/vite-plugin-remix/interface/RemixPluginOptions#serverhandler) hands request handling to Nitro: its dev server in `vp dev`, and its preview of the packaged output in `vp preview`. Both run the same fetch handler Nitro packages for production.
 
 Server routes run as [Vercel Functions](https://vercel.com/docs/functions) on Fluid compute, with standard Web APIs and scale-to-zero. Client assets are served from Vercel's CDN.
 

@@ -22,10 +22,11 @@ function isFetchHandler(value: unknown): value is FetchHandler {
  * Serves the production build through `vite preview` using the same SSR entry
  * that production deploys, adapted with `remix/node-fetch-server`.
  *
- * When the SSR bundle targets a non-Node runtime (e.g. Cloudflare Workers,
- * whose bundle imports `cloudflare:workers`), the dynamic import fails and the
- * plugin skips itself so the platform plugin's preview can take over. That
- * failure → skip contract is documented behavior, not an accident.
+ * Installed only with `serverHandler: true`; with `false` a platform plugin
+ * owns preview, whatever the bundle's imports. When the SSR bundle still
+ * targets a non-Node runtime (e.g. it imports `cloudflare:workers`), the
+ * dynamic import fails and the plugin skips itself so the platform plugin's
+ * preview, if any, can take over.
  */
 export function preview(): Plugin {
     return {
