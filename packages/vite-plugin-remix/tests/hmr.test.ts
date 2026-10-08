@@ -1,4 +1,4 @@
-import type { Plugin } from "vite";
+import type { Plugin, ResolvedConfig } from "vite";
 
 import { describe, expect, it, vi } from "vite-plus/test";
 
@@ -36,6 +36,14 @@ async function runTransform(
         code,
         id,
     );
+}
+
+async function resolveWith(plugin: Plugin, config: { server: { hmr: boolean } }): Promise<void> {
+    let hook = plugin.configResolved;
+    if (!hook || typeof hook !== "function") {
+        throw new Error("expected a function-form configResolved hook");
+    }
+    await hook.call({} as never, config as ResolvedConfig);
 }
 
 // Narrows a transform result to its emitted code, failing the test when the
@@ -135,6 +143,20 @@ describe("componentHmr", () => {
         let plugin = componentHmr(new Set(["ssr"]));
         expect(plugin.name).toBe("pitlane-remix-component-hmr");
         expect(plugin.apply).toBe("serve");
+    });
+
+    it("leaves components untouched when the server has HMR off", async () => {
+        let plugin = componentHmr(new Set(["ssr"]));
+        // Vitest sets `server.hmr: false` from its own plugin's config hook, so
+        // only the resolved config can tell a test runner from a dev server.
+        await resolveWith(plugin, { server: { hmr: false } });
+
+        expect(
+            await runTransform(plugin, "client", FUNCTION_ENTRY, "/project/app/counter.tsx"),
+        ).toBeUndefined();
+        expect(
+            await runTransform(plugin, "ssr", FUNCTION_COMPONENT, "/project/app/card.tsx"),
+        ).toBeUndefined();
     });
 
     it("instruments function-form components in the client environment for browser HMR", async () => {

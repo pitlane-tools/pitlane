@@ -7,7 +7,7 @@ description: How the pitlane/vite-plugin-remix Vite plugin hot-updates a Remix 3
 
 `vite dev` updates a running app in place. Editing a component swaps its new code in without remounting, so hydrated islands keep their open menus, input values, and counters. Editing a server-only module refetches the current page through your fetch handler and reconciles the new HTML into the DOM, which keeps that same island state while the server output changes underneath it.
 
-Component HMR needs no configuration. Server-data revalidation needs a few lines in your browser entry, described under [Setup](#setup). Both are development-only. Component transforms run only during `vite dev`. A production build removes the browser-entry listener guarded by `import.meta.hot`.
+Component HMR needs no configuration. Server-data revalidation needs a few lines in your browser entry, described under [Setup](#setup). Both are development-only. Component transforms run only on a dev server with HMR on. A test runner such as Vitest serves modules with `server.hmr` off, so your components reach your tests untouched. A production build removes the browser-entry listener guarded by `import.meta.hot`.
 
 ## What each kind of edit does
 
