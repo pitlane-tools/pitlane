@@ -9,6 +9,8 @@ import { inputPath, sourceKey } from "./vite/entries.ts";
 import { linkResolverUsage, scanResolverUsage } from "./vite/resolver-usage.ts";
 import { MANIFEST_EXTERNAL, MANIFEST_ID, unservedEnvironmentError } from "./vite/state.ts";
 
+export { ASSETS_MANIFEST_FILE } from "./vite/state.ts";
+
 export interface AssetsPluginOptions {
     /** Extra source keys to make available as client entries or assets. */
     include?: string[];

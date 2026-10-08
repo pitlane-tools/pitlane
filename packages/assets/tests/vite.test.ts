@@ -11,7 +11,7 @@ import {
 } from "vite";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
-import { assets } from "../src/vite-plugin.ts";
+import { ASSETS_MANIFEST_FILE, assets } from "../src/vite-plugin.ts";
 
 let roots: string[] = [];
 let servers: ViteDevServer[] = [];
@@ -459,6 +459,17 @@ export const graphs = Object.keys(manifest.environments).sort();`,
         );
         expect(await ssr.assets.getStylesheets("app/entry.ts")).toEqual(ssr.stylesheets);
         await expect(ssr.assets.getStylesheets("app/edge.ts")).rejects.toThrow('"client" or "ssr"');
+    });
+
+    it("names the manifest module each server bundle imports with the exported constant", async () => {
+        let root = await fixture();
+        await build(root);
+
+        let bundle = await readFile(join(root, "dist/server/index.mjs"), "utf8");
+        expect(bundle).toContain(`from "./${ASSETS_MANIFEST_FILE}"`);
+        await expect(
+            readFile(join(root, "dist/server", ASSETS_MANIFEST_FILE), "utf8"),
+        ).resolves.toMatch(/^export default /);
     });
 
     it("links a stylesheet both sides import once, as the client's file", async () => {

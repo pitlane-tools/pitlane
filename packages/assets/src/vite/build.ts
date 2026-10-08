@@ -12,7 +12,7 @@ import { createAssetManifest } from "../build.ts";
 import { inputPath, sourceKey } from "./entries.ts";
 import { captureImportMap, captureOutput, publicFile } from "./output.ts";
 import { literalInputs } from "./resolver-usage.ts";
-import { EMPTY_INPUT, MANIFEST_EXTERNAL, MANIFEST_FILE } from "./state.ts";
+import { ASSETS_MANIFEST_FILE, EMPTY_INPUT, MANIFEST_EXTERNAL } from "./state.ts";
 
 async function writeManifests(state: AssetPluginState): Promise<void> {
     let config = state.config!;
@@ -74,7 +74,7 @@ async function writeManifests(state: AssetPluginState): Promise<void> {
         await mkdir(output.outDir, { recursive: true });
         // Object literals reinterpret __proto__; JSON parsing preserves it as a source key.
         await writeFile(
-            resolve(output.outDir, MANIFEST_FILE),
+            resolve(output.outDir, ASSETS_MANIFEST_FILE),
             `export default JSON.parse(${JSON.stringify(JSON.stringify({ ...manifest, serverEnvironment: name }))});\n`,
         );
         await publishLinkedFiles(output, twins.get(name)!, client.outDir);
@@ -177,7 +177,7 @@ export function assetBuild(state: AssetPluginState): Plugin {
         },
         renderChunk(code, chunk) {
             if (!code.includes(MANIFEST_EXTERNAL)) return;
-            let file = posix.relative(posix.dirname(chunk.fileName), MANIFEST_FILE);
+            let file = posix.relative(posix.dirname(chunk.fileName), ASSETS_MANIFEST_FILE);
             if (!file.startsWith(".")) file = `./${file}`;
             return { code: code.replaceAll(MANIFEST_EXTERNAL, file), map: null };
         },
