@@ -721,9 +721,10 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             await client.transformRequest("/app/client-dependency.ts");
             let updatedBefore = (await dependency())!.lastHMRTimestamp;
 
-            await project.edit("project/app/client-dependency.ts", code => `${code}// edited\n`);
+            // Vite's own change handler, without waiting on the polling watcher to notice a write.
+            server.watcher.emit("change", join(project.root, "app/client-dependency.ts"));
             await updateHeld.promise;
-            // This transform reads the edited code, so Vite caches it.
+            // This transform starts after the change's first invalidation, so Vite caches it.
             let transformed = client.transformRequest("/app/client-dependency.ts");
             await transformHeld.promise;
             updateReleased.resolve();
