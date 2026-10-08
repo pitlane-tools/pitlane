@@ -481,6 +481,27 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             .toEqual(["/app/layout.css", "/app/routes/home.css"]);
     });
 
+    it("analyzes a virtual module in a browser entry's graph", async () => {
+        let generated: Plugin = {
+            name: "test-generated",
+            resolveId: id => (id === "virtual:client-flag" ? "\0virtual:client-flag" : undefined),
+            load: id =>
+                id === "\0virtual:client-flag" ? "export const flag = true;\n" : undefined,
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/client-input.ts",
+            code => `import { flag } from "virtual:client-flag";\n${code}export { flag };\n`,
+        );
+        let server = await serve(project, {
+            clientInput: "app/client-input.ts",
+            plugins: [generated],
+        });
+        let entry = await request(server);
+        expect(await entry.assets.getPreloads("app/client-input.ts")).toEqual([]);
+        expect(await browserLoad(server, "/app/client-input.ts")).toEqual([]);
+    });
+
     it("leaves browser modules it discovered cached for the browser's first load", async () => {
         let transformed: string[] = [];
         let counter: Plugin = {

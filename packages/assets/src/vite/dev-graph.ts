@@ -93,7 +93,9 @@ async function analyze(
     try {
         let url = servedPath(root, id);
         if (environment.config.consumer === "client") {
-            await environment.transformRequest(url);
+            // Vite's middleware and `fetchModule` unwrap `/@id/` before calling
+            // `transformRequest`; a virtual or bare id is its own URL there.
+            await environment.transformRequest(url.startsWith("/@id/") ? id : url);
             return;
         }
         await environment.moduleGraph.ensureEntryFromUrl(url);
