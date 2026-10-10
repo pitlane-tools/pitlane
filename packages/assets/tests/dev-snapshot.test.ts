@@ -535,6 +535,50 @@ export const moduleLevel = await assets.getStylesheets("app/entry.dev.ts");
             .toEqual(["/app/layout.css", "/app/routes/home.css"]);
     });
 
+    it("builds the manifest again on the next import when every pass of a build was invalidated", async () => {
+        let id = "\0virtual:churn";
+        let stylesheet = "/app/button.css";
+        let transforms = 0;
+        let churn: Plugin = {
+            name: "test-churn",
+            // After the assets plugin's hook, so each transform's edges are
+            // recorded before this invalidation discards them.
+            enforce: "post",
+            resolveId: source => (source === "virtual:churn" ? id : undefined),
+            load: loaded =>
+                loaded === id ? `import "${stylesheet}";\nexport const churn = true;\n` : undefined,
+            transform(_code, transformed) {
+                if (transformed !== id || this.environment.name !== "ssr" || transforms >= 3)
+                    return;
+                // The last invalidation also edits the module, as an edit landing in the final pass would.
+                if (++transforms === 3) stylesheet = "/app/layout.css";
+                let graph = server.environments.ssr!.moduleGraph;
+                graph.invalidateModule(graph.getModuleById(id)!);
+            },
+        };
+        let project = await fixture();
+        await project.edit(
+            "project/app/routes/home.ts",
+            code => `import "virtual:churn";\n${code}`,
+        );
+        let server = await serve(project, { plugins: [churn] });
+
+        await request(server);
+        expect(transforms).toBe(3);
+
+        let entry = await request(server);
+        expect(await entry.assets.getStylesheets("app/routes/home.ts")).toEqual([
+            "/app/layout.css",
+            "/app/routes/home.css",
+        ]);
+
+        // A build that settles is cached again, so the server stops re-executing.
+        let evaluations = globalThis.__devSnapshotEvaluations!;
+        let settled = evaluations["app/entry.server.ts"];
+        expect(await request(server)).toBe(entry);
+        expect(evaluations["app/entry.server.ts"]).toBe(settled);
+    });
+
     // Discovery and the module runner can transform one module at the same
     // time, and an edit can invalidate it while a transform of the old code is
     // in flight. Each case holds that superseded transform across the edit.
