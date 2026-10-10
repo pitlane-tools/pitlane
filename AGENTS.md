@@ -330,7 +330,7 @@ Cut the tag and the GitHub release first, exactly as always. Then, from the rele
 
 ```sh
 git checkout main && git pull --ff-only
-git rev-parse --short HEAD '@pitlane/<name>@<version>^{commit}'   # must match
+test "$(git rev-parse '@pitlane/<name>@<version>^{commit}')" = "$(git rev-parse HEAD)"   # fails unless the tag points at HEAD
 
 cd packages/<name>
 vp test && vp run build          # the gates publish.yml would have run
