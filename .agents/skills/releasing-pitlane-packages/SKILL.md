@@ -108,7 +108,7 @@ With that commit on `main` and explicit human authorization to publish, cut the 
 git checkout main && git pull --ff-only
 node -p "require('./packages/<name>/package.json').version"   # must equal the tag, or publish.yml fails the job
 git tag -a "@pitlane/<name>@<version>" -m "<one line>"
-git rev-parse --short HEAD "@pitlane/<name>@<version>^{commit}"   # both hashes must match
+test "$(git rev-parse "@pitlane/<name>@<version>^{commit}")" = "$(git rev-parse HEAD)"   # fails unless the tag points at HEAD
 git push origin "@pitlane/<name>@<version>"
 gh release create "@pitlane/<name>@<version>" --title "@pitlane/<name>@<version>" --notes-file /tmp/notes.md
 ```
