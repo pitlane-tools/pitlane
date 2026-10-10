@@ -195,6 +195,16 @@ export function assetDevelopment(state: AssetPluginState): Plugin {
                     snapshot = await createDevSnapshot(server!, state, graph, name);
                 } while (stale.has(name) && ++passes < 3);
                 snapshots.set(name, snapshot);
+                // Giving up bounds this load, not the stale snapshot's life. An
+                // ordinary invalidation during the load keeps Vite from caching
+                // the code and reaches its importers, so the next import builds
+                // again; an HMR invalidation would not stop the cache. A
+                // transform request adds the module to the graph only after
+                // loading it, so this may be the first to.
+                if (stale.has(name)) {
+                    let { moduleGraph } = server!.environments[name]!;
+                    moduleGraph.invalidateModule(await moduleGraph.ensureEntryFromUrl(MANIFEST_ID));
+                }
                 return `export default JSON.parse(${JSON.stringify(JSON.stringify(snapshot.manifest))});\n`;
             } finally {
                 building.delete(name);
