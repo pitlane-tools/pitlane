@@ -272,6 +272,10 @@ jobs:
             - name: Check the repository policies
               run: vp run policies
 
+            # Type-aware lint reads docs/.generated/, which docs:api writes.
+            - name: Generate the package reference
+              run: vp run docs:api
+
             # The per-file policies, such as policy.0006, are Oxlint rules.
             - name: Lint the source policies
               run: vp lint
