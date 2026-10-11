@@ -12,6 +12,7 @@ import { MANIFEST_EXTERNAL, MANIFEST_ID, unservedEnvironmentError } from "./vite
 
 export { ASSETS_MANIFEST_FILE } from "./vite/state.ts";
 
+/** Options for {@link assets}. `remix()` from `@pitlane/vite-plugin-remix` accepts them as `remix({ assets })`. */
 export interface AssetsPluginOptions {
     /** Extra source keys to make available as client entries or assets. */
     include?: string[];
@@ -52,6 +53,14 @@ export interface AssetsPluginApi {
     setBrowserEntries(registration: AssetEntryRegistration): void;
 }
 
+/**
+ * The Vite plugins that give `@pitlane/assets` its manifest: they serve
+ * browser entries during `vite dev`, emit them in a build, and replace
+ * `@pitlane/assets/manifest` with the manifest of the current dev server or
+ * build. Setting `allowFiles` also enforces the browser boundary.
+ *
+ * @throws When `allowPackages` or `denyFiles` is set without `allowFiles`.
+ */
 export function assets(options: AssetsPluginOptions = {}): PluginOption {
     let { allowFiles, allowPackages, denyFiles } = options;
     if (!allowFiles && (allowPackages || denyFiles)) {

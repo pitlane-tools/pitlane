@@ -267,7 +267,7 @@ The identity contains no checkout directory, so builds on different machines wri
 
 The transform matches **exactly** this shape, at the top level of a module:
 
-```
+```text
 export let Name = clientEntry(import.meta.url, …at least one more argument)
 ```
 
@@ -354,7 +354,7 @@ In dev, Vite serves every module and stylesheet itself. In preview and productio
 
 `vite build` runs a coordinated multi-environment build:
 
-```
+```text
 dist/
 ├── client/          # hashed static assets
 │   └── assets/*

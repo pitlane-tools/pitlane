@@ -355,6 +355,8 @@ nub add @pitlane/content zod
 
 :::
 
+<!-- policy.0014: scoped package -->
+
 ```ts
 import { createContent } from "@pitlane/content";
 import * as loaders from "@pitlane/content/loaders";
@@ -395,6 +397,8 @@ The published types have a rough edge. `remix/component` is still named by an `i
 | `@pitlane/content/internal/mdx` | reads an MDX document's ESM block, returning each import's specifier and bindings with the block's remainder |
 
 The sequence is the same on any bundler. Open the channel, execute the application's content module however your bundler runs a module, close the channel, then serve the emitted manifest source in place of `@pitlane/content/internal/manifest`.
+
+<!-- policy.0014: scoped package -->
 
 ```ts
 import { manifestModule } from "@pitlane/content/internal/codegen";

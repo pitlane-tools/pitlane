@@ -8,6 +8,7 @@
     "devDependencies": {
         "@changesets/cli": "^3.0.3",
         "@oh-my-pi/pi-coding-agent": "latest",
+        "@oxlint/plugins": "^1.87.0",
         "@types/node": "^25.5.0",
         "@vvago/vale": "^3.23.0",
         "eslint-plugin-perfectionist": "^5.10.0",

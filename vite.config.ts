@@ -68,7 +68,11 @@ export default defineConfig({
             typeAware: true,
             typeCheck: true,
         },
-        jsPlugins: ["eslint-plugin-perfectionist", "eslint-plugin-prefer-let"],
+        jsPlugins: [
+            "eslint-plugin-perfectionist",
+            "eslint-plugin-prefer-let",
+            "./tools/lint/pitlane.ts",
+        ],
         rules: {
             "typescript/no-floating-promises": "allow",
             "typescript/unbound-method": "allow",
@@ -90,6 +94,29 @@ export default defineConfig({
             "eslint/prefer-const": "off",
             "prefer-let/prefer-let": [2, { forceUpperCaseConst: true }],
         },
+        overrides: [
+            {
+                files: ["packages/*/src/**/*.{ts,tsx}"],
+                excludeFiles: [
+                    "packages/vite-plugin-*/**",
+                    "**/*.test.{ts,tsx}",
+                    "**/*.test-d.ts",
+                    "**/fixtures/**",
+                ],
+                rules: {
+                    "pitlane/no-bundler-imports": [
+                        "error",
+                        {
+                            pluginModules: [
+                                "packages/assets/src/vite-plugin.ts",
+                                "packages/assets/src/vite/**",
+                                "packages/content/src/vite-plugin.ts",
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
     },
     run: {
         tasks: {
@@ -101,6 +128,7 @@ export default defineConfig({
                     "docs:api:test",
                     "validate",
                     "tools:test",
+                    "policies",
                 ],
                 command: [
                     "vp check",
@@ -124,7 +152,15 @@ export default defineConfig({
             // The record tooling carries its own `node:test` suites so it stays
             // dependency-free. Package tests run through `vp test` from inside
             // each package, so this task is namespaced instead of claiming `test`.
-            "tools:test": "node --test tools/*.test.ts",
+            "tools:test":
+                "node --test tools/*.test.ts tools/policies/*.test.ts tools/lint/*.test.ts",
+            // Reads built declarations, so the published packages build first.
+            policies: {
+                dependsOn: ["policies:packages"],
+                command: "node tools/policies.ts",
+            },
+            "policies:packages":
+                "vp run --filter '@pitlane/*' --filter '!@pitlane/mdx-checker' build",
 
             // Changesets can only format through a standalone Oxfmt config, so
             // `.changeset/config.json` turns that off and these tasks format the

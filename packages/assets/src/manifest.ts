@@ -12,6 +12,7 @@ import type { AssetsManifest } from "./types.ts";
  *
  * @module @pitlane/assets/manifest
  */
+/** `{ mode: "unavailable" }`, until `assets()` or an alias replaces this module. */
 let manifest: AssetsManifest = { mode: "unavailable" };
 
 export default manifest;

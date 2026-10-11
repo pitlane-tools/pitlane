@@ -226,7 +226,9 @@ export function stroke(): TokenSchema<"strokeStyle"> {
  * ```
  */
 export let font: {
+    /** A `fontFamily` token: a font stack as a string, or an array of names joined with commas. */
     family(): TokenSchema<"fontFamily">;
+    /** A `fontWeight` token: 1 to 1000 or a DTCG weight keyword, emitted as the number. */
     weight(): TokenSchema<"fontWeight">;
 } = {
     family: () => tokenSchema("fontFamily"),

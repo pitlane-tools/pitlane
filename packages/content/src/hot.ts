@@ -34,10 +34,17 @@ export interface BrowserEvent {
  */
 export interface BrowserHmrChannel {
     readonly url: string;
+    /** Shuts the channel down. */
     close(): void;
+    /**
+     * Registers `handler` for batches of changed files. The browser events it
+     * resolves to are sent to connected clients. Returns a function that
+     * unregisters it.
+     */
     onFileEvents(
         handler: (events: readonly FileEvent[]) => Promise<readonly BrowserEvent[]>,
     ): () => void;
+    /** Adds absolute paths to, and removes them from, the set the supervisor watches. */
     updateWatchedFiles(delta: { add: readonly string[]; remove: readonly string[] }): void;
 }
 

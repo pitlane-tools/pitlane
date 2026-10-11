@@ -171,7 +171,7 @@ export let router = createRouter({
 
 `vite build` produces a static site and no server bundle:
 
-```
+```text
 dist/
 ├─ index.html
 └─ assets/

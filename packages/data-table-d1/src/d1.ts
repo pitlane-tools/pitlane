@@ -7,8 +7,11 @@
  * so does a test double.
  */
 export interface D1Binding {
+    /** Compiles one SQL statement with `?` placeholders, without running it. */
     prepare(query: string): D1PreparedStatement;
+    /** Runs the statements in order inside one transaction, resolving to one result each. */
     batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
+    /** Runs raw SQL, which may hold several statements, without binding or returning rows. */
     exec(query: string): Promise<unknown>;
 }
 

@@ -80,6 +80,7 @@ export interface CrawlOptions {
  * bundle's default export, a worker-style `{ fetch }` object, a test double.
  */
 export interface CrawlTarget {
+    /** Answers one request; {@link crawl} sends a `GET` for each queued path. */
     fetch(request: Request): Response | Promise<Response>;
 }
 
