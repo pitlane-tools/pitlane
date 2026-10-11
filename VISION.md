@@ -223,9 +223,9 @@ The tooling extraction in proposal 0005 shipped alongside this sequence; it does
 
 ## `@pitlane/assets` — framework-neutral asset resolution
 
-Released at 0.1.0 in proposal 0005. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
+Released at 0.1.0 in proposal 0005; current release 0.2.0. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
 
-`@pitlane/assets/vite-plugin` supplies development snapshots and production manifests. It registers browser inputs from supported literal resolver calls, explicit `include` entries, configured client inputs, and development plugin registrations. Stylesheet lookup reads the client graph and the current server graph without turning server modules into browser entries. `@pitlane/assets/build` exposes `createAssetManifest` for other bundlers; the Rsbuild example demonstrates that boundary.
+`@pitlane/assets/vite-plugin` supplies development snapshots and production manifests. It registers browser inputs from supported literal resolver calls, explicit `include` entries, configured client inputs, and development plugin registrations. Stylesheet lookup reads the client graph and the current server graph without turning server modules into browser entries. Setting `allowFiles` (with `allowPackages` and `denyFiles`, read as `remix/assets` reads them) turns on a browser boundary that fails builds and dev requests for files outside it. `ASSETS_MANIFEST_FILE` names the manifest module each server build writes, for hosts that fold it into a single-module bundle. `@pitlane/assets/build` exposes `createAssetManifest` for other bundlers; the Rsbuild example demonstrates that boundary.
 
 Chunk import maps are off by default under standalone `assets()`. Applications that enable them deliver the map before module scripts; `renderImportMap` serializes it safely without a framework dependency. This package serves build-based applications; `remix/assets` remains the no-build solution.
 
@@ -235,9 +235,9 @@ Released at 0.1.0 in proposal 0005. `fetchServer({ entry })` connects an explici
 
 ## `@pitlane/vite-plugin-remix` — framework Vite plugin
 
-Released at 0.8.0 in proposal 0005 as the replacement for `@pitlane/dev`, with no forwarding package. The provider-agnostic `remix()` plugin composes the neutral assets and Fetch-server plugins with Remix-specific transforms and HMR.
+Released at 0.8.0 in proposal 0005 as the replacement for `@pitlane/dev`, with no forwarding package; current release 0.9.0. The provider-agnostic `remix()` plugin composes the neutral assets and Fetch-server plugins with Remix-specific transforms and HMR.
 
-**1. Build orchestration** — Configures SSR and client Vite environments, sets output directories (`dist/ssr`, `dist/client`), and sequences the build (SSR first, then client). Asset manifests come from `@pitlane/assets`; `@hiogawa/vite-plugin-fullstack` is removed. Chunk import maps are enabled by default, including SPA builds; `remix({ assets: { chunkImportMap: false } })` opts out.
+**1. Build orchestration** — Configures SSR and client Vite environments, builds into `<build.outDir>/ssr` and `<build.outDir>/client` (`dist/ssr` and `dist/client` by default, with per-environment `outDir` taking precedence), and sequences the build (SSR first, then client). Asset manifests come from `@pitlane/assets`; `@hiogawa/vite-plugin-fullstack` is removed. Chunk import maps are enabled by default, including SPA builds; `remix({ assets: { chunkImportMap: false } })` opts out. With `serverHandler: false`, both dev requests and `vite preview` belong to the platform plugin.
 
 `@pitlane/vite-plugin-remix` exposes the shared transforms and build hooks that additional runtime environments can compose. Those environments retain ownership of their runtime policy and registration.
 
