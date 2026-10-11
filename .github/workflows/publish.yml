@@ -37,6 +37,10 @@ jobs:
             - name: Install
               run: vp install --frozen-lockfile
 
+            # The browser tests fail rather than skip without Chromium.
+            - name: Install Playwright Chromium
+              run: npx playwright install --with-deps chromium
+
             - name: Build Remix plugin dependencies
               working-directory: .
               run: vp run --filter '@pitlane/vite-plugin-remix^...' build
@@ -112,6 +116,10 @@ jobs:
 
             - name: Install
               run: vp install --frozen-lockfile
+
+            # The browser tests fail rather than skip without Chromium.
+            - name: Install Playwright Chromium
+              run: npx playwright install --with-deps chromium
 
             - name: Run tests
               run: vp test
