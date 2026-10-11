@@ -1,5 +1,24 @@
 # @pitlane/vite-plugin-remix
 
+## 0.9.0
+
+### Minor Changes
+
+- c390835: `serverHandler: false` now hands `vite preview` to the platform plugin as well as dev requests. `remix()` used to install its preview server regardless, and stepped aside only when Node failed to import the built server entry, so a self-contained Worker bundle — one with no `cloudflare:*` imports, such as a single-module Oxygen Worker — was answered in Node instead of by the platform's preview. Upgrade if you filtered out the `pitlane-remix-preview-server` plugin to keep `vite preview` on MiniOxygen, Miniflare, or Nitro; that workaround is no longer needed. If you set `serverHandler: false` without a platform plugin that serves preview, `vite preview` now serves only static files; set it back to `true` to keep Pitlane's preview server. With the default `serverHandler: true`, preview is unchanged.
+
+### Patch Changes
+
+- 8806750: Component HMR transforms now run only on a dev server with HMR on. A test runner such as Vitest serves modules with `server.hmr: false`, where the instrumentation it added to every component module cost more than the tests' own transforms: an app whose Node suite took 96 seconds without `remix()` took 150 with it, and now takes 100. Components reach tests untouched, as they do in a production build.
+- a898463: `remix()` now builds into your configured `build.outDir` instead of always writing to `dist/client` and `dist/ssr`. The client and server environments default to `<outDir>/client` and `<outDir>/ssr`, and an explicit `environments.client.build.outDir` or `environments.ssr.build.outDir` wins over both. The asset manifest, prerendered pages, preview, and the `wrangler.json` that `@cloudflare/vite-plugin` writes all follow. Previously the plugin overwrote both settings without warning, so every build landed in the repository-root `dist/`. An app that sets neither option builds exactly where it did before.
+- Updated dependencies
+- Updated dependencies [f14d251]
+- Updated dependencies [d7fcdd4]
+- Updated dependencies [f14d251]
+- Updated dependencies [92ce0a2]
+- Updated dependencies [8e38080]
+- Updated dependencies [d8670f8]
+    - @pitlane/assets@0.2.0
+
 ## 0.8.0
 
 ### Minor Changes
