@@ -13,5 +13,12 @@
     "hidePageHeader": true,
     "hideBreadcrumbs": true,
     "useCodeBlocks": true,
-    "formatWithPrettier": false
+    "formatWithPrettier": false,
+    "validation": {
+        "notExported": true,
+        "notDocumented": true,
+        "invalidLink": true
+    },
+    "requiredToBeDocumented": ["Function", "Class", "Interface", "TypeAlias", "Variable", "Enum"],
+    "treatValidationWarningsAsErrors": true
 }

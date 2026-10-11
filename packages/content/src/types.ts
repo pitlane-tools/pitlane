@@ -110,6 +110,7 @@ export interface Heading {
 
 /** What `entry.render()` resolves to. */
 export interface RenderedEntry {
+    /** The entry's rendered document as a Remix component, to render as `<Content />`. */
     Content: (handle: Handle<Record<string, unknown>>) => () => RemixNode;
     headings: Heading[];
 }
@@ -120,6 +121,11 @@ export interface Entry<Data> {
     collection: string;
     data: Data;
     filePath?: string;
+    /**
+     * Renders the entry's Markdown or MDX body, from the build's compiled
+     * output when `contentLayer()` prebuilt it and from source otherwise.
+     * Rejects for an entry its loader gave no body.
+     */
     render(): Promise<RenderedEntry>;
 }
 
@@ -136,7 +142,15 @@ export type CollectionEntry<C> = C extends Collection<string, infer Data> ? Entr
 
 /** The query surface of one collection. */
 export interface Collection<Name extends string, Data> {
+    /**
+     * Every entry, sorted by id, keeping only those `filter` returns truthy
+     * for when one is given.
+     */
     getCollection(filter?: (entry: Entry<Data>) => unknown): Promise<Entry<Data>[]>;
+    /**
+     * The entry with this id, or the one a {@link Reference} into this
+     * collection points at. Resolves to `undefined` when there is none.
+     */
     getEntry(id: string | Reference<Name>): Promise<Entry<Data> | undefined>;
 }
 
@@ -172,8 +186,16 @@ export interface LoaderContext {
      * from somewhere else.
      */
     root: string;
+    /**
+     * Validates one entry's data against the collection's schema and resolves
+     * to the parsed value; rejects naming the entry when it does not conform.
+     * Pass its result to `store.set`, never the raw data.
+     */
     parseData<D>(input: { id: string; data: unknown; filePath?: string }): Promise<D>;
-    store: { set(entry: LoadedEntry): void };
+    store: {
+        /** Adds one entry to the collection. An id written twice throws rather than merging. */
+        set(entry: LoadedEntry): void;
+    };
 }
 
 /**
@@ -184,7 +206,16 @@ export interface LoaderContext {
  */
 export interface ContentLoader {
     name: string;
+    /**
+     * Reads the whole source and writes every entry through `context.store.set`.
+     * Runs on the collection's first read, or at build time under `contentLayer()`,
+     * and the result is kept for every read after it.
+     */
     load(context: LoaderContext): Promise<void> | void;
+    /**
+     * The files or directories the last `load` read, for a development host to
+     * watch. Omit it, or return nothing, for a source with no local files.
+     */
     watchedPaths?(): string[];
 }
 
@@ -196,7 +227,9 @@ export interface ContentLoader {
  */
 export interface LiveLoader<Data = Record<string, unknown>> {
     name: string;
+    /** Every entry the source holds, unvalidated; called on every `getCollection`. */
     loadCollection(): Promise<LiveEntry<Data>[]>;
+    /** The entry with this id, or `undefined` when the source has none; called on every `getEntry`. */
     loadEntry(id: string): Promise<LiveEntry<Data> | undefined>;
 }
 
@@ -217,10 +250,15 @@ export interface CollectionDefinition<S extends StandardSchemaV1 = StandardSchem
 
 /** The builder `createContent` hands to its callback. */
 export interface ContentBuilder {
+    /** Declares one collection: where its entries come from and the schema each must satisfy. */
     collection<S extends StandardSchemaV1>(input: {
         loader: Loader;
         schema: S;
     }): CollectionDefinition<S>;
+    /**
+     * A schema for a field holding the id of an entry in `collection`, which
+     * parses to a {@link Reference} that collection's `getEntry` accepts.
+     */
     reference<C extends string>(collection: C): ReferenceSchema<C>;
 }
 
