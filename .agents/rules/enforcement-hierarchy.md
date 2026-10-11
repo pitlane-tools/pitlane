@@ -6,7 +6,7 @@ A rule an agent must remember is the weakest kind of rule. Under load, prose get
 
 | Tier | Mechanism | Role |
 | --- | --- | --- |
-| **Tier 0 — Checks** | `vp run validate` (`tools/validate.ts`), the `record` job and the per-package Vite+ suites in `.github/workflows/test.yml`, the `commit-msg` hook in `.agents/hooks/`, and Vale via `.omp/hooks/vale-prose.ts` | Deterministic; runs whether or not the agent remembers. A rule that can live here must. |
+| **Tier 0 — Checks** | `vp run validate` (`tools/validate.ts`), `vp run policies` (`tools/policies/`), the `pitlane` Oxlint plugin (`tools/lint/pitlane.ts`), TypeDoc validation in `vp run docs:api`, the `record` and `policies` jobs and the per-package Vite+ suites in `.github/workflows/test.yml`, the `commit-msg` hook in `.agents/hooks/`, and Vale via `.omp/hooks/vale-prose.ts` | Deterministic; runs whether or not the agent remembers. A rule that can live here must. A check over one source file is an Oxlint rule; see policy.0015. |
 | **Tier 1 — Tasks** | `vp run check` — `docs:build`, `validate`, `tools:test`, then `vp check` and `tsc` — plus `vp fmt`, `vp run docs:prose`, and `vp test` / `vp run build` in `packages/<name>` | Deterministic once invoked, but something must invoke them. |
 | **Tier 2 — Templates** | `.agents/templates/` | Shape the work so the correct thing is the path of least resistance. |
 | **Tier 3 — Prose** | `AGENTS.md`, `SKILL.md` files, and these rules | Necessary for judgment that cannot be mechanized; the tier most likely to be missed. |

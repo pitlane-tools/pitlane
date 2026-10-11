@@ -23,7 +23,7 @@ The goal is to make Remix 3 production-ready without becoming a deployment platf
 
 ### Development principles
 
-Pitlane follows Remix 3's development principles so its packages remain aligned with Remix. Each one is recorded as a policy in [`policies/`](policies/), [policy.0001](policies/0001-model-first-development.md) through [policy.0006](policies/0006-distribute-cohesively.md), which states its rule, its exceptions, and how it is enforced:
+Pitlane follows Remix 3's development principles so its packages remain aligned with Remix. The rules derived from them, each with its exceptions and enforcement, are recorded in [`policies/`](policies/):
 
 1. **Model-First Development.** AI fundamentally shifts the human-computer interaction model for both user experience and developer workflows. Optimize source code, documentation, tooling, and abstractions for LLMs. Additionally, develop abstractions for applications to use models in the product itself, not just as a development tool.
 2. **Build on Web APIs.** Sharing abstractions across the stack greatly reduces context switching for both humans and machines. Build on the foundation of Web APIs and JavaScript because it is the only full-stack ecosystem.

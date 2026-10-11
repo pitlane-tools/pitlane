@@ -144,6 +144,16 @@ If nothing changes, state “No implications on adoption.” explicitly rather t
 
 <Adoption requirements and reversibility — or “No implications on adoption.”>
 
+## Package placement
+
+<!--
+Required when the proposal adds or changes a package's behavior; otherwise state “No package changes.”
+Answer both questions. policy.0007 and policy.0012 explain them; a reviewer checks the answers against the design.
+-->
+
+- Runtime or build-time: <Is the package runtime-oriented, so its core API works without a bundler and any build integration is an optional `/vite-plugin` subpath, or does its stated purpose require build-time integration? Why?>
+- Where it lives: <Why this is a new package, or why it cannot be one and belongs in the existing package it extends. If extending, could splitting that package first keep both single-purpose?>
+
 ## Scope
 
 <!--

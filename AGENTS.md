@@ -226,7 +226,8 @@ vp run check        # docs:build, validate, tools:test, then vp check and tsc
 vp fmt              # format
 vp lint --fix       # apply lint fixes
 vp run validate     # the record: frontmatter, ids, cross-references
-vp run tools:test   # the record tooling's own tests
+vp run policies     # the policy checks in tools/policies/, over built packages and docs
+vp run tools:test   # the record and policy tooling's own tests
 vp run docs:prose   # Vale over the published prose
 ```
 
