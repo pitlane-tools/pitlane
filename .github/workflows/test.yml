@@ -251,8 +251,8 @@ jobs:
                   npx playwright install --with-deps chromium
                   npm run check
 
-    leaks:
-        name: Dependency APIs must not leak
+    policies:
+        name: Policies must hold
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
@@ -267,22 +267,14 @@ jobs:
             - name: Install
               run: vp install --frozen-lockfile
 
-            # The reference pages are generated, so they have to exist before
-            # they can be checked. `src` itself is off-limits to this grep —
-            # the plugin legitimately imports the dependency there.
-            - name: Generate the package reference pages
-              run: vp run docs:api
+            # Builds the published packages first, since some checks read
+            # their built declarations.
+            - name: Check the repository policies
+              run: vp run policies
 
-            - name: Grep the published surface for dependency APIs
-              run: |
-                  if grep -rn '@hiogawa' \
-                      packages/assets/README.md packages/vite-plugin-fetch-server/README.md \
-                      packages/vite-plugin-remix/README.md packages/theme/README.md \
-                      docs/app/content/guides docs/app/content/api; then
-                      echo "Dependency API leaked into user-facing docs" >&2
-                      exit 1
-                  fi
-                  echo "No dependency API leaks."
+            # The per-file policies, such as policy.0006, are Oxlint rules.
+            - name: Lint the source policies
+              run: vp lint
 
     record:
         name: The record must validate

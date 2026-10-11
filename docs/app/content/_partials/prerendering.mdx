@@ -26,6 +26,8 @@ export default defineConfig({
 
 [`crawl()`](/package/crawler/function/crawl) from [`@pitlane/crawler`](/package/crawler/) walks the app from a script and hands back each response with the path it belongs at on disk. The whole job is a `for await` loop and two filesystem calls:
 
+{/* policy.0014: scoped package */}
+
 ```ts
 import { crawl } from "@pitlane/crawler";
 import * as fs from "node:fs/promises";
@@ -136,6 +138,8 @@ crawl(router, { paths: ["/", "/about", "/pricing"], spider: false });
 
 [`staticPaths(routes)`](/package/crawler/function/staticPaths) fills the half of that list the route map already knows. It returns every path the app can serve with no params, which leaves the per-slug half as the only part you write:
 
+{/* policy.0014: scoped package */}
+
 ```ts
 import { crawl, staticPaths } from "@pitlane/crawler";
 
@@ -197,7 +201,7 @@ Each page becomes an `index.html` under its own path, so a static host serves it
 
 Under the client output:
 
-```
+```text
 dist/client/
 ├─ index.html                    ← /
 ├─ blog/
@@ -235,7 +239,7 @@ A redirect is not a page, so nothing is written for one. A route answering `302`
 
 `prerender: true` asks for every static path in the route map, so those routes turn up in the list. The build logs what it skipped and carries on:
 
-```
+```text
 prerendered nyc/index.html
 skipped / (redirects to /nyc)
 ```
@@ -254,7 +258,7 @@ When spidering, a redirect is followed rather than skipped, because following li
 
 Any other failing response is a real failure and stops the walk, naming the path it came from:
 
-```
+```text
 Error: Crawl failed: 404 Not Found (/blog/renamed-post)
 ```
 

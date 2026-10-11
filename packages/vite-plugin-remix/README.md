@@ -401,7 +401,7 @@ export default defineConfig({
 
 ## Build layout
 
-```
+```text
 dist/
 ├── client/          # static assets, hashed — serve as-is
 │   └── assets/*

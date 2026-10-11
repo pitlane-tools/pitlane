@@ -1,0 +1,56 @@
+{
+    "@pitlane/assets": {
+        "magic-string": {
+            "reason": "The Vite plugin's development stylesheet transform edits module code and needs an accurate source map for the edit; Vite bundles its own copy but does not export it, and Remix's asset and HMR packages already install the same ^0.30.21.",
+            "publicTypes": false
+        },
+        "vite": {
+            "reason": "`@pitlane/assets/vite-plugin` is a Vite plugin and has to run inside the application's own Vite, so Vite is an optional peer; the resolver and `/build` work without it.",
+            "publicTypes": true
+        }
+    },
+    "@pitlane/content": {
+        "es-module-lexer": {
+            "reason": "Finds the statement boundaries of an MDX body's ESM blocks at runtime, where there is no Vite parser to borrow. It has no dependencies of its own, is loaded lazily, stays behind Pitlane-owned types, and `remix/assets` already depends on it.",
+            "publicTypes": false
+        },
+        "satteri": {
+            "reason": "Compiles Markdown and MDX bodies; replacing it means writing a Markdown and MDX compiler, so it is an optional peer that prebuilt content never loads. Its types are a temporary exception: the October 2026 dependency audit (§4) recommends replacing `CompileOptions` and the `headings()` and `rawStyles()` return types with Pitlane-owned types, tracked in https://github.com/pitlane-tools/pitlane/issues/88.",
+            "publicTypes": true
+        },
+        "vite": {
+            "reason": "`contentLayer()` at `@pitlane/content/vite-plugin` is a Vite plugin and has to run inside the application's own Vite, so Vite is an optional peer; the content runtime works without it.",
+            "publicTypes": true
+        },
+        "yaml": {
+            "reason": "Parses YAML data files and frontmatter for the `file()` and `glob()` loaders. YAML is hard to parse correctly, nothing built into the platform parses it, and its types stay behind the loaders.",
+            "publicTypes": false
+        }
+    },
+    "@pitlane/theme": {
+        "csstype": {
+            "reason": "Types only, with no runtime code: it supplies the value unions for roughly 300 CSS properties that `ThemedCSSProps` is built from and Remix does not provide. Owning them would mean generating the types from W3C CSS data.",
+            "publicTypes": true
+        }
+    },
+    "@pitlane/vite-plugin-fetch-server": {
+        "@remix-run/node-fetch-server": {
+            "reason": "Translates the dev server's Node requests and responses to and from Fetch `Request` and `Response`, streaming and disconnects included. It is the package `remix/node-fetch-server` re-exports, depended on directly so the plugin works with any framework and needs no `remix` peer.",
+            "publicTypes": false
+        },
+        "vite": {
+            "reason": "The package is a Vite plugin that serves `vite dev` requests, so it runs inside the application's own Vite as a peer.",
+            "publicTypes": true
+        }
+    },
+    "@pitlane/vite-plugin-remix": {
+        "magic-string": {
+            "reason": "The plugin's client-entry and HMR transforms rewrite spans of module code, and the client-entry transform returns a source map for its rewrite; Vite bundles its own copy but does not export it, and Remix's asset and HMR packages already install the same ^0.30.21.",
+            "publicTypes": false
+        },
+        "vite": {
+            "reason": "The package is a Vite plugin, so it runs inside the application's own Vite as a peer.",
+            "publicTypes": true
+        }
+    }
+}

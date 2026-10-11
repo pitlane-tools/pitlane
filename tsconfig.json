@@ -18,7 +18,7 @@
         "vite.config.ts",
         ".omp/hooks/*.ts",
         ".omp/tools/**/*.ts",
-        "tools/*.ts",
+        "tools/**/*.ts",
         "packages/mdx-checker/*.ts"
     ]
 }

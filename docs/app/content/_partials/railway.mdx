@@ -20,7 +20,7 @@ The Dockerfile is **built in your CI, never by Railway**: CI runs `docker build`
 
 Add a `.dockerignore` so builds stay small and reproducible:
 
-```
+```text
 node_modules
 dist
 .git
@@ -43,7 +43,7 @@ The Dockerfile is **built in your CI, never by Railway**. CI runs `docker build`
 
 Add a `.dockerignore`. Leaving out `node_modules` matters more than usual here. The asset server compiles with native addons, and the image needs the binaries for its own platform rather than the ones installed for yours.
 
-```
+```text
 node_modules
 .git
 .env*
@@ -400,7 +400,7 @@ The [Pitlane package guide](/guides/umbrella) lists the `remix` and `vite` versi
 
 The Caddyfile binds Railway's injected port and rewrites deep links to `index.html`:
 
-```
+```text
 # Caddyfile
 :{$PORT}
 root * /srv
