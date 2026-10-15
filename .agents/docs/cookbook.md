@@ -1527,7 +1527,7 @@ The `table()` definition is the source of truth for what the schema looks like _
 **At deploy time**, apply migrations before the worker takes traffic:
 
 ```sh
-vp run db:migrations:deploy && cf deploy
+vp run db:migrations:deploy && vp build && cf deploy --prebuilt --mode production
 ```
 
 The `d1_migrations` journal table tracks which migrations have already been applied, so this is always safe — it only applies new ones.
@@ -1644,7 +1644,7 @@ export default defineConfig({
             },
             check: { command: "vp check --fix", cache: false },
             test: { command: "remix test" },
-            deploy: { command: "cf deploy", cache: false },
+            deploy: { command: "vp build && cf deploy --prebuilt --mode production", cache: false },
         },
     },
     fmt: {
@@ -1683,7 +1683,7 @@ export default defineConfig({
 - `vp check` — format + lint + typecheck in one pass
 - `vp run test` — run the `remix test` suite
 - `vp run db:migrations:deploy` — generate SQL + apply to remote D1
-- `vp run deploy` — deploy to Cloudflare Workers with `cf deploy`
+- `vp run deploy` — build, then upload that build with `cf deploy --prebuilt`
 - `vp run db:reset` — wipe local D1 database
 
 ---
@@ -3076,7 +3076,7 @@ The Cloudflare Vite plugin writes `.cloudflare/types/index.d.ts` during dev and 
 interface Env extends Cloudflare.Env {} // DB: D1Database, FILES: R2Bucket
 ```
 
-It is an ambient declaration file, so `tsconfig.json` has to include it for `Env` to resolve. Type-checking without a build first needs the generator:
+Name it in `tsconfig.json`'s `include` list: it is an ambient declaration file, and a `**/*.ts` pattern skips dot directories, so `Env` goes unresolved without the explicit entry. Type-checking without a build first needs the generator:
 
 ```tsx
 run: {
@@ -3204,7 +3204,7 @@ export class R2FileStorage implements FileStorage {
 4. `vp run db:migrations:apply:local` (chained from `vp dev`) compiles and applies SQL migrations to the local D1
 5. Local state persists in `.cloudflare/state/v3/` — `vp run db:reset` wipes its D1 directory
 6. `vp run db:migrations:deploy` (or `db:migrations:apply:remote`) applies SQL migrations to the remote database — needs `CLOUDFLARE_API_TOKEN`
-7. `vp run deploy` (i.e. `cf deploy`) builds the project and pushes the Worker to Cloudflare
+7. `vp run deploy` builds with Vite+ and uploads the result with `cf deploy --prebuilt --mode production`. `cf` builds by running the project's own build command, which means a `vite` binary; Vite+ ships `vp` instead, so a bare `cf deploy` or `cf build` fails with `Command "vite" not found`. The Cloudflare Vite plugin writes the Build Output during `vp build`, which is what `--prebuilt` uploads.
 
 **Production setup:**
 
