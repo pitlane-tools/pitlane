@@ -124,7 +124,7 @@ Prefer [separate prerendered frame URLs](/guides/prerendering#fully-static-frame
 
 Prerender `/platform/` as a complete document and `/_frames/main/platform/` as frame content. Use `href="/platform/"`, `data-rmx-target="main"`, and `data-rmx-src="/_frames/main/platform/"` on the link. Remix fetches the frame URL while keeping `/platform/` in the address bar. Use the frame URL for the initial `<Frame src>` too.
 
-Keep the server entry for build-time rendering and list both kinds of route in [`prerender`](/package/vite-plugin-remix/interface/RemixPluginOptions#prerender). A portable app can build with `remix({ prerender: [...] })` alone. An app that needs Cloudflare bindings while rendering can keep the Cloudflare Vite plugin for the build. Deploy only the client output by giving the config a second mode that declares no Worker code:
+Keep the server entry for build-time rendering and list both kinds of route in [`prerender`](/package/vite-plugin-remix/interface/RemixPluginOptions#prerender). Deploy only the client output by giving the config a second mode that declares no Worker code:
 
 ```ts
 // cloudflare.config.ts
@@ -159,7 +159,7 @@ vp build --mode static
 vpx cf deploy --prebuilt --mode static
 ```
 
-The build records the mode it ran in, so the deploy has to name the same one. Use this assets-only preview to prove the site works without its SSR entry. `vp preview` can still run the built server and hide missing prerendered files. Check initial loads, frame-targeted links, hydration, and direct document reloads. A missing frame file must return 404, never a document-shell fallback.
+The build records the mode it ran in, so the deploy has to name the same one. The `static` mode has no Worker, so server code that imports `cloudflare:workers` cannot run while it prerenders. Pages that need Cloudflare bindings to render belong in the hybrid recipe below. Use this assets-only preview to prove the site works without its SSR entry. `vp preview` can still run the built server and hide missing prerendered files. Check initial loads, frame-targeted links, hydration, and direct document reloads. A missing frame file must return 404, never a document-shell fallback.
 
 Cloudflare's default [HTML handling](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/) serves directory indexes at trailing-slash URLs. Keep those slashes in both document and frame destinations to avoid redirects. No frame headers are needed.
 
@@ -309,7 +309,7 @@ jobs:
 
 ## Client-only apps
 
-A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `@cloudflare/vite-plugin`: `server: false` builds no server environment, so there is no worker to run. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), so it is worth keeping in a static build.
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no Worker code to run. It keeps `@cloudflare/vite-plugin`, which writes the Build Output that `cf deploy --prebuilt` uploads. `remix()`'s remaining job is [component HMR](/guides/hmr#component-hmr), so it is worth keeping in a static build.
 
 ```html
 <!-- index.html -->
@@ -363,15 +363,16 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
+import { cloudflare } from "@cloudflare/vite-plugin";
 import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [remix({ server: false })],
+    plugins: [remix({ server: false }), cloudflare()],
 });
 ```
 
-`vite build` emits the site into `dist/`. The Worker config becomes assets-only: no `entrypoint`, and a `single-page-application` fallback serves `index.html` on deep links:
+`vp build` writes the site into `.cloudflare/output`. The Worker config is assets-only: no `entrypoint`, and a `single-page-application` fallback serves `index.html` on deep links:
 
 ```ts
 // cloudflare.config.ts
