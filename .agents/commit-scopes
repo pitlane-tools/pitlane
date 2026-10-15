@@ -26,7 +26,7 @@ create-pitlane
 # demos/theme and demos/tui
 demos
 
-# Cloudflare Workers static-asset hosting, wrangler.jsonc
+# Cloudflare Workers static-asset hosting, docs/cloudflare
 worker
 
 # .typedoc/, which generates every page under docs/package/

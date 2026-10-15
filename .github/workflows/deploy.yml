@@ -34,8 +34,10 @@ jobs:
               run: vp run docs:test
 
             - name: ☁️ Deploy Worker
-              # Worker name and custom domain are pinned in wrangler.jsonc so a
-              # repository rename can never redirect deploys to a new worker.
-              run: vp exec wrangler deploy --config wrangler.jsonc
+              # Worker name and account are pinned in docs/cloudflare/cloudflare.config.ts
+              # so a repository rename can never redirect deploys to a new worker.
+              working-directory: docs/cloudflare
+              run: vp exec cf deploy
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CF_SEND_TELEMETRY: "false"

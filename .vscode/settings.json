@@ -55,6 +55,7 @@
     },
     "files.exclude": {
         ".wrangler": true,
+        ".cloudflare": true,
         ".superpowers": true,
         ".vale": true,
         ".typedoc": true,

@@ -217,14 +217,19 @@ export default defineConfig({
                 dependsOn: ["docs:build"],
                 command: "node docs/test.ts",
                 cache: {
-                    // Wrangler's scratch state, which every run rewrites.
-                    input: [{ auto: true }, "!.wrangler/**"],
+                    // Wrangler's and cf's scratch state, which every run rewrites.
+                    input: [
+                        { auto: true },
+                        "!docs/cloudflare/.wrangler/**",
+                        "!docs/cloudflare/.cloudflare/**",
+                    ],
                     output: [],
                 },
             },
             // The last build's published files under Cloudflare's local runtime, as they deploy.
             "docs:serve": {
-                command: "wrangler dev --config wrangler.jsonc --port 1337",
+                cwd: "docs/cloudflare",
+                command: "cf dev --port 1337",
                 cache: false,
             },
             "docs:prose": {
