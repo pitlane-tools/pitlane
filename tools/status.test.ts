@@ -9,14 +9,16 @@ function facts(overrides: Partial<Facts> = {}): Facts {
     return {
         branch: "feature",
         isDefaultBranch: false,
+        defaultBranch: "main",
         hasUpstream: true,
         unpushedCommits: 0,
         pullRequest: {
             number: 1,
             isDraft: true,
+            state: "OPEN",
+            baseRefName: "main",
             url: "https://github.com/owner/repo/pull/1",
             title: "Feature",
-            isMerged: false,
         },
         pullRequestState: "known",
         proposal: null,
@@ -124,19 +126,88 @@ test("derives completion for an accepted proposal", () => {
     });
 });
 
-test("derives done for an implemented merged pull request", () => {
-    assertPhase(
+test("confirms the accepted record before readying a draft PR", () => {
+    let status = deriveStatus(facts({ proposal: proposal("accepted") }));
+
+    assert.equal(status.phase, "5");
+    assert.match(status.next, /record.*confirm.*pull request.*mark.*ready/i);
+});
+
+test("inspects the merged revision before reconciling a locally accepted proposal", () => {
+    let input = facts({
+        proposal: proposal("accepted"),
+        pullRequest: { ...facts().pullRequest!, isDraft: false, state: "MERGED" },
+    });
+    let status = deriveStatus(input);
+
+    assert.equal(status.phase, "5");
+    assert.match(status.next, /confirm.*merged.*if absent.*reconcil/i);
+    assert.doesNotMatch(status.next, /perform.*merge|record.*in this feature pull request/i);
+    assert.match(formatStatus(input, status), /PR #1 \(merged\)/);
+});
+
+test("keeps a merged implementation in completion while release remains separate", () => {
+    let input = facts({
+        proposal: proposal("implemented"),
+        pullRequest: { ...facts().pullRequest!, isDraft: false, state: "MERGED" },
+    });
+    let status = assertPhase(input, {
+        phase: "5",
+        title: "Implementation merged",
+        actor: "agent",
+        skill: ".agents/skills/completing-a-feature/",
+    });
+
+    assert.match(status.next, /required release|pending release/i);
+    assert.match(formatStatus(input, status), /PR #1 \(merged\)/);
+});
+
+test("does not claim default-branch integration after a merge into staging", () => {
+    let status = deriveStatus(
         facts({
             proposal: proposal("implemented"),
-            pullRequest: { isMerged: true } as Facts["pullRequest"],
+            pullRequest: {
+                ...facts().pullRequest!,
+                isDraft: false,
+                state: "MERGED",
+                baseRefName: "staging",
+            },
         }),
-        {
-            phase: "done",
-            title: "Done",
-            actor: "you",
-            skill: null,
-        },
     );
+
+    assert.equal(status.phase, "5");
+    assert.equal(status.actor, "you");
+    assert.match(status.next, /staging.*main/i);
+    assert.doesNotMatch(status.next, /this work is not integrated/i);
+    assert.match(status.next, /check|confirm|determine/i);
+    assert.match(status.next, /implemented record.*merged revision/i);
+});
+
+test("blocks an open PR targeting staging before recommending merge into main", () => {
+    let status = deriveStatus(
+        facts({
+            proposal: proposal("implemented"),
+            pullRequest: { ...facts().pullRequest!, isDraft: false, baseRefName: "staging" },
+        }),
+    );
+
+    assert.equal(status.phase, "5");
+    assert.equal(status.actor, "you");
+    assert.match(status.next, /staging.*main/i);
+});
+
+test("does not assume a merge reached the default branch when its name is unknown", () => {
+    let status = deriveStatus(
+        facts({
+            defaultBranch: null,
+            proposal: proposal("implemented"),
+            pullRequest: { ...facts().pullRequest!, isDraft: false, state: "MERGED" },
+        }),
+    );
+
+    assert.equal(status.phase, "5");
+    assert.match(status.next, /default branch/i);
+    assert.notEqual(status.title, "Implementation merged");
 });
 
 test("derives a closed state for a rejected proposal", () => {
@@ -172,16 +243,44 @@ test("derives a closed state with its successor for a superseded proposal", () =
     assert.match(formatStatus(input, status), /proposal\.0002/);
 });
 
-test("names an implemented proposal with an unmerged pull request as inconsistent", () => {
+test("routes an implemented draft PR to completion instead of treating it as inconsistent", () => {
     let status = assertPhase(facts({ proposal: proposal("implemented") }), {
-        phase: "3 → 4",
-        title: "Inconsistent record",
-        actor: "you",
-        skill: null,
+        phase: "5",
+        title: "Completion",
+        actor: "agent",
+        skill: ".agents/skills/completing-a-feature/",
     });
 
-    assert.deepEqual(status.notices, [{ kind: "implemented-unmerged" }]);
+    assert.deepEqual(status.notices, []);
+    assert.match(status.next, /confirm.*implemented record.*pull request.*mark.*ready/i);
 });
+
+test("requires record verification before merging an implemented open PR", () => {
+    let status = deriveStatus(
+        facts({
+            proposal: proposal("implemented"),
+            pullRequest: { ...facts().pullRequest!, isDraft: false },
+        }),
+    );
+
+    assert.equal(status.phase, "5");
+    assert.match(status.next, /confirm.*implemented record.*pull request.*before.*merge/i);
+});
+
+for (let proposalStatus of ["accepted", "implemented"]) {
+    test(`stops for a human decision when a ${proposalStatus} PR closes without merging`, () => {
+        let input = facts({
+            proposal: proposal(proposalStatus),
+            pullRequest: { ...facts().pullRequest!, isDraft: false, state: "CLOSED" },
+        });
+        let status = deriveStatus(input);
+
+        assert.equal(status.phase, "5");
+        assert.equal(status.actor, "you");
+        assert.match(status.next, /reopen|withdraw/);
+        assert.match(formatStatus(input, status), /PR #1 \(closed\)/);
+    });
+}
 
 test("flags a draft pull request when the proposal is in active review", () => {
     let status = deriveStatus(facts({ proposal: proposal("active-review") }));
@@ -211,6 +310,8 @@ test("surfaces a heuristic proposal selection and its other candidates", () => {
 const CURRENT_PULL_REQUEST = {
     number: 29,
     isDraft: true,
+    state: "OPEN" as const,
+    baseRefName: "main",
     url: "https://github.com/owner/repo/pull/29",
     title: "Changesets",
 };
