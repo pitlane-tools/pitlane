@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-10-10
+updated: 2026-10-15
 ---
 
 # Pitlane Vision
@@ -1275,17 +1275,36 @@ my-app/
 
 ## How this compares to Void
 
+[Void](https://void.cloud) (VoidZero, launched October 2026) is a full-stack Vite framework and deployment CLI for Cloudflare Workers, with an open-source platform a team can host itself. Its docs were checked on 2026-10-15.
+
 | Concern | Void | Pitlane |
 | --- | --- | --- |
-| Platform primitives | Magic global imports (e.g. `void/db`) | Explicit adapters and controllers |
-| Provider model | Single hidden platform | Multi-provider capability adapters |
-| Resource provisioning | Automatic during deployment | Automated via CI/CD |
-| Provider account | Hidden behind Void | Managed directly by the developer |
-| Deploy config | None; fully hidden | Checked-in native provider configuration |
-| Framework | React, Vue, Svelte, Solid, or any Vite-based meta-framework | Remix |
-| Build tool | Vite or Vite+ | Vite or Vite+, through `@pitlane/vite-plugin-remix` (pending rename) |
-| Scaffolding | `void init` | Target templates through `giget` |
-| Dev server | `void dev` | `vp dev`, composed with the provider's runtime plugin |
+| Platform primitives | Scoped imports (`void/db`, `void/kv`) whose presence, or a read of `env.DB`, makes Void provision the binding | Explicit adapters constructed from raw bindings |
+| Provider model | Cloudflare: your own account or a self-hosted Void platform. Node, Bun, and Deno targets build a standalone server without Cloudflare capabilities | Multi-provider capability adapters |
+| Resource provisioning | Inferred from source and created by `void deploy` | Declared in native provider config and created with the provider's CLI |
+| Provider account | Your Cloudflare account, or a platform account your team administers | Managed directly by the developer |
+| Deploy config | Checked-in `void.config.ts`, whose `cloudflare` block passes through to a generated Wrangler config, and a committed `void.lock.json` of resource IDs and migrations | Checked-in native provider configuration |
+| Framework | Native apps on React, Vue, Svelte, or Solid; framework mode beside React Router, TanStack Start, SvelteKit, Nuxt, Analog, or Astro, where the framework owns routing and rendering | Remix |
+| Build tool | Vite or Vite+ | Vite or Vite+, through `@pitlane/vite-plugin-remix` |
+| Scaffolding | `void init`, which also adds Void to an existing app and prints config edits it cannot make safely | Target templates through `giget` |
+| Dev server | `vite dev` with `voidPlugin()` | `vp dev`, composed with the provider's runtime plugin |
 | Deploy | `void deploy` | GitHub Actions workflow |
-| Model interface | Built-in MCP | CLI, source code, documentation, templates, and maintained skills |
-| Philosophy | Platform SDK that hides the platform | Composable hosting around a portable runtime contract |
+| Model interface | Generated `AGENTS.md`, Markdown docs bundled in the package, and skills linked into the app | Installed documentation, an `AGENTS.md` line, and a maintained skill ([decision.0002](decisions/0002-installed-documentation-for-agents.md)) |
+| Philosophy | Infer infrastructure from application code | Composable hosting around a portable runtime contract |
+
+The difference is inference, not visibility. Because Void derives resource identity from file paths and code, it carries the bookkeeping that inference requires: a committed lock file, `void info` to print the code that keeps a resource's identity when its file moves, `inference.bindings` overrides, and an `inference.scanDirs` list that replaces rather than extends the defaults. Pitlane's resources are named in checked-in provider config, so renaming a module cannot orphan one.
+
+Void's framework mode is the closest analogue to Pitlane: "The framework owns routing and SSR. Void handles binding inference, typed DB queries, migrations, and deployment." It does not support Remix 3.
+
+### Prior art for planned packages
+
+These notes record what Void does in areas Pitlane has not built yet. They are inputs to each package's grounding, not decisions; verify them against Void's docs when the package starts.
+
+- **`@pitlane/env`** ([env vars](https://void.cloud/guide/env-vars)). Schema-first `env.ts` with Standard Schema support. One root `.env`. Builds ignore client (`VITE_`) values from `.env`, so a developer's local value cannot become production configuration; client values come from the build shell or a schema default. Deploys never upload `.env`. Invalid values are redacted in diagnostics unless explicitly unmasked. Reading a server secret in a route module that also contains browser components fails at compile time.
+- **`@pitlane/typed-routes`** ([typed fetch](https://void.cloud/guide/typed-fetch), [type safety](https://void.cloud/guide/type-safety)). Void infers loader-to-props types and generates a `RouteMap` only for its typed `fetch`, because its routes come from the filesystem. Remix's `route()` map is a runtime value, which may allow inference with no generation step. During SSR, Void's `fetch` dispatches into the app without an HTTP round trip and forwards the incoming `cookie` and `authorization` headers; `@pitlane/crawler` already dispatches the same way.
+- **`@pitlane/cache`** ([revalidation](https://void.cloud/guide/edge/revalidation)). Precedence from most to least specific: an `x-revalidate` response header, a per-route export, a configured path pattern, a global default. Stale-while-revalidate. Requests carrying `Cookie` or `Authorization` bypass the cache, and an entry is evicted when its response turns `private`, `no-store`, or sets a cookie. Query strings share one entry unless allowlisted. `revalidate({ paths })` or `{ all: true }` purges on demand, for example after a write.
+- **`@pitlane/meta`** ([head](https://void.cloud/guide/pages-routing/head)). Per-field merge rules: the page title wins and passes through a configured title template; `meta` dedupes by `name` or `property` with the page winning; `link` and `script` concatenate in config, middleware, page order; `htmlAttrs` and `bodyAttrs` shallow-merge with the page winning.
+- **`@pitlane/job`** ([jobs](https://void.cloud/guide/jobs), [queues](https://void.cloud/guide/queues)). Local development has no cron clock, so a dev-only route triggers scheduled jobs, guarded by a token printed when the dev server starts. When a provider triggers cron over HTTP, the route requires a secret header and returns 401 without it, which bears on the Netlify and Vercel schedulers. Void states that its queues configure no dead-letter queue, so exhausted messages are deleted; Pitlane's adapters should say the equivalent per provider.
+- **Realtime** ([live](https://void.cloud/guide/live), [SSE](https://void.cloud/guide/sse)). Two primitives: a stream owned by one request, and a pub/sub channel that other requests publish to. Delivery is ordered per topic and at-most-once with no replay; resumption uses the client's last event ID and app-owned storage. Who may modify a connection's subscriptions is separate from who may read a topic, and every limit is published.
+- **`create-pitlane`** ([quickstart](https://void.cloud/guide/quickstart), [agents](https://void.cloud/integrations/agents)). `void init` adds itself to an existing app, prints the config edit when it cannot make one safely, and merges its section into an existing `AGENTS.md` without touching the rest. Pitlane's `AGENTS.md` line and skill currently reach apps only through templates.
+- **D1 read replication** ([D1](https://void.cloud/guide/database/d1)). `void/db` opens one D1 session per request for read-your-writes consistency. `@pitlane/data-table-d1` cannot wrap a session yet ([#89](https://github.com/pitlane-tools/pitlane/issues/89)).
