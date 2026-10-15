@@ -16,8 +16,7 @@
         "remix": "3.0.0",
         "typescript": "^7.0.2",
         "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
-        "vite-plus": "^1.0.0",
-        "wrangler": "^4.111.0"
+        "vite-plus": "^1.0.0"
     },
     "packageManager": "pnpm@12.6.0"
 }
