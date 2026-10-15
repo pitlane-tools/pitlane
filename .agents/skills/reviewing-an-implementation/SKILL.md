@@ -167,6 +167,10 @@ When the human declined a proposal for this work, the transition is two actions 
 
 Do not leave the proposal, report, and pull-request state disagreeing. Ready means the work is human-reviewable, not correct or accepted. Never set `accepted`; only the human may do so in Phase 4, which starts Phase 5 completion.
 
+### Recover an already accepted draft pull request
+
+The coupled `active-review` transition above is the normal end of Phase 3, not a status to replay after the human has accepted the work. If an accepted PR remains draft, preserve its `accepted` or `implemented` proposal status. In Phase 5, confirm the readiness report, preview, acceptance evidence, and latest integration checks; repair missing or stale review evidence before continuing. Set `implemented` in the original feature PR if it has a proposal and that status has not yet been recorded, push it, and confirm the PR revision contains it before marking the PR ready. Do not invent a proposal when the human declined one. Readiness recovery never grants merge authority; if the record cannot be reconciled, ask the human rather than merging.
+
 ## Red flags
 
 - You reviewed code quality instead of comparing representations.

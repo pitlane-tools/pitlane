@@ -9,7 +9,7 @@ description: Use when a human asks for a Pitlane package release — pending cha
 
 `AGENTS.md` owns the mechanics: a release is a git tag plus a GitHub release on `main`, that release event is the only route to npm, and a first publish is manual once. Read it. This skill owns the **order** around that tag — what a version is prepared from before it, and the things still in their pre-release state once it exists.
 
-A release is finished when nothing upstream still describes the world before it and nothing downstream still points at a preview.
+A release is delivered when the version and required dependent updates are complete. Keep unauthorized branch or preview teardown visible as separate cleanup rather than deleting them to make a checklist pass.
 
 Feature work captures package changes in `.changeset/` notes. Prepare versions and changelogs only when the human requests it. Publishing through a GitHub Release requires explicit authorization; merging a feature or preparing its version does not grant it.
 
@@ -24,7 +24,7 @@ All eight, every time. A release that stops after the tag is a release that left
 - [ ] `npm view` shows the version, checked rather than assumed
 - [ ] Every dependent PR installs the published range, with no preview URL, tarball path, or override anywhere in its tree
 - [ ] Every dependent PR that was drafted for an unpublished package is out of draft and green
-- [ ] No branch for this work survives, local or remote, in any repo
+- [ ] Any separately authorized branch cleanup is done, or an outstanding cleanup plan is visible to the human
 
 ## 1. Bring VISION onto this PR — before the merge
 
@@ -68,14 +68,14 @@ The branch is about to be pruned. Decide where its reasoning goes **before** it 
 Reading the precedent takes one command, so read it rather than guess: `git show --no-patch --format=%p <commit>` prints one hash for a squash and two for a merge. `a4f462e` has one; `c97d28a` has two.
 
 ```sh
-gh pr merge <N> --merge --subject "<scope>: <what> (#<N>)" --body-file /tmp/merge-body.md --delete-branch
+gh pr merge <N> --merge --subject "<scope>: <what> (#<N>)" --body-file /tmp/merge-body.md
 ```
 
 The subject takes the scope of what changed, never `release:` — that scope is reserved for version-only commits, and a subject claiming a release nobody performed costs a reviewer the time it takes to disprove. The body says what landed, what is breaking, and where the design record lives.
 
 Three places hold the intent afterward, and a release should leave all three readable: the merge or squash commit body, the PR page (which keeps every commit even after the branch is deleted), and the proposal that designed the work.
 
-The proposal is `proposals/<NNNN>-<slug>.md`, and the edit it needs is `status: implemented` — set after the release, never before, because an unshipped proposal marked implemented misrepresents the record. [`completing-a-feature`](../completing-a-feature/SKILL.md) owns that step; this skill only has to not leave it undone. Work the human declined a proposal for has no such file and gets no invented one: the pull request and the merge commit are its record, and there is no status to set.
+When this work has a proposal, its `status: implemented` record belongs in the original feature pull request **before its merge**, after the human accepts the implementation. [`completing-a-feature`](../completing-a-feature/SKILL.md) owns that step. Confirm the merged revision carries the record; a release does not set the proposal status or justify a status-only follow-up PR. Keep the pending changeset and authorized release visible separately until publication is complete. Work the human declined a proposal for has no such file and gets no invented one: the pull request and merge commit are its record, and there is no status to set.
 
 Work that predates the record has its design in `docs/internal/designs/` instead, in a different shape: a prose `Status:` line rather than frontmatter. `285287b` is the template for updating one of those.
 
@@ -160,19 +160,21 @@ A `DIRTY` merge state plus code written against an API two breaking versions bac
 
 ## 5. Take the drafts to ready
 
+Obtain explicit human confirmation before merging the dependent PR. Merging it does not authorize deleting its branch.
+
 A companion PR is a draft because it could not build against a package that did not exist. That condition is now cleared, so clear the draft — but only after CI has been green against the published package, not against the preview it used to install:
 
 ```sh
 gh pr ready <N> --repo pitlane-tools/templates
 gh pr checks <N> --repo pitlane-tools/templates --watch
-gh pr merge <N> --repo pitlane-tools/templates --squash --delete-branch
+gh pr merge <N> --repo pitlane-tools/templates --squash
 ```
 
 Templates PRs squash; their titles are already written as squash subjects.
 
 ## 6. Prune the branches
 
-`gh pr merge --delete-branch` removes the remote branch and the local one in the clone where you ran it. Everything else is manual, in both repos:
+Branch deletion is separate from merge and requires explicit human confirmation for each affected branch. Run these commands only after that authorization; otherwise leave the branch in place and report the outstanding cleanup. In both repositories:
 
 ```sh
 git log --branches --not --remotes --oneline    # FIRST: anything here is unpushed work, not garbage
