@@ -29,19 +29,25 @@ let recent = await db.query(Post).orderBy({ createdAt: "desc" }).limit(10).all()
 
 ## Setup
 
-Declare the binding in `wrangler.jsonc`:
+Declare the binding in `cloudflare.config.ts`:
 
-```jsonc
-{
-    "d1_databases": [
-        {
-            "binding": "DB",
-            "database_name": "my-app",
-            "database_id": "…",
+```ts
+import { bindings, defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-app",
+        entrypoint: "app/entry.server.tsx",
+        compatibilityDate: "2026-04-02",
+        compatibilityFlags: ["nodejs_compat"],
+        env: {
+            DB: bindings.d1({ name: "my-app", id: "…" }),
         },
-    ],
-}
+    },
+});
 ```
+
+`id` is what `cf d1 create --name my-app` prints. `cf` is in beta: pin it with `cf@1.0.0-beta.17`, alongside `@cloudflare/vite-plugin@beta`.
 
 Install `pitlane` as a dependency, since the app imports the driver at run time. The same install provides the Vite plugin from `pitlane/vite-plugin-remix`:
 
@@ -53,7 +59,7 @@ Nothing else is required. Now you can start using the D1 database in your Cloudf
 
 ## Migrations
 
-Author migrations as `data-table` migrations, compile them to `.sql`, and let Wrangler apply them. The same generated files go to the local and the deployed database, so production runs what you tested.
+Author migrations as `data-table` migrations, compile them to `.sql`, and let `cf` apply them. The same generated files go to the local and the deployed database, so production runs what you tested.
 
 [`generateD1Migrations`](/package/data-table-d1/migrations/function/generateD1Migrations) does the compiling:
 
@@ -68,32 +74,24 @@ let migrations = await generateD1Migrations({
 console.log(`Generated ${migrations.length} migration(s).`);
 ```
 
-It reads `db/migrations` by default and writes one `<id>_<name>.sql` per migration into `to`, which is the directory Wrangler reads:
-
-```jsonc
-{
-    "d1_databases": [
-        {
-            "binding": "DB",
-            "database_name": "my-app",
-            "database_id": "…",
-            "migrations_dir": "db/d1-migrations",
-        },
-    ],
-}
-```
+It reads `db/migrations` by default and writes one `<id>_<name>.sql` per migration into `to`. That directory is what you pass to the migration runner as `--dir`. Wrangler's `migrations_dir` has no equivalent in `cloudflare.config.ts`.
 
 Then the loop is three commands:
 
 ```sh
-node db/generate-migrations.ts             # TypeScript migrations -> .sql
-wrangler d1 migrations apply DB --local    # dev
-wrangler d1 migrations apply DB --remote   # production
+node db/generate-migrations.ts                      # TypeScript migrations -> .sql
+vpx cf d1 migrations apply $ID --dir db/d1-migrations \
+    --local --persist-to .cloudflare/state          # dev
+vpx cf d1 migrations apply $ID --dir db/d1-migrations   # production
 ```
 
-Wrangler records what it has applied in a `d1_migrations` table, so re-running is a no-op and `--remote` picks up only what production has not seen.
+`$ID` is the database id that `cf d1 create --name my-app` printed, the same one the binding carries. Nothing else works there, because the command rejects a binding name or a database name. Reading the id out of `cloudflare.config.ts` in a small script keeps one copy of it.
 
-Two details worth knowing about the generated directory. Files are written verbatim, so a semicolon inside a trigger body or a string literal survives. Splitting the SQL into statements is Wrangler's job, not the generator's. And the directory is a pure function of the source. A generated `.sql` file whose migration you deleted is removed on the next run, while anything that is not a generated file, such as a `README.md`, is left alone.
+`--local` on its own works against a simulation in your home directory, which is not the database the dev server reads. `--persist-to .cloudflare/state` points it at the dev server's own state, under the directory the Cloudflare Vite plugin keeps it in.
+
+Cloudflare's runner records what it has applied in a `d1_migrations` table, so re-running is a no-op and production picks up only what it has not seen. `cf d1 migrations apply` is wire-compatible with `wrangler d1 migrations apply`, using the same table, the same recorded names, and the same order, so a database part-way through the Wrangler loop carries on from where it is.
+
+Two details worth knowing about the generated directory. Files are written verbatim, so a semicolon inside a trigger body or a string literal survives. Splitting the SQL into statements is the runner's job, not the generator's. And the directory is a pure function of the source. A generated `.sql` file whose migration you deleted is removed on the next run, while anything that is not a generated file, such as a `README.md`, is left alone.
 
 `generateD1Migrations` reads the filesystem, so it is build tooling and imports from a separate entry point. It never enters your Worker bundle.
 
