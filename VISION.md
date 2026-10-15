@@ -276,7 +276,7 @@ The stable contract is the server entry's default-exported `.fetch(Request)` han
 
 | Target | Composition |
 | --- | --- |
-| Cloudflare Workers | `@cloudflare/vite-plugin`, checked-in `wrangler.jsonc`, workerd/Miniflare, and Wrangler |
+| Cloudflare Workers | `@cloudflare/vite-plugin`, checked-in `cloudflare.config.ts`, workerd, and the `cf` CLI |
 | Netlify | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function |
 | Vercel | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI |
 | Railway / container hosts | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile |
@@ -292,7 +292,7 @@ Pitlane owns the seams where shared application code needs stability:
 - Target templates contain the small amount of explicit hosting glue and are exercised as complete applications.
 - Deployment guides document native CLI and GitHub Actions workflows, including which tool builds the artifact and which tool uploads it.
 
-Portability therefore does not mean that `wrangler.jsonc`, `netlify.toml`, a Nitro plugin, and a Dockerfile become interchangeable data structures. It means those target-specific edges stay thin and visible while controllers, schemas, commands, and components remain unchanged. A platform swap normally changes the provider plugin or launcher, native config, and adapter construction—not the application.
+Portability therefore does not mean that `cloudflare.config.ts`, `netlify.toml`, a Nitro plugin, and a Dockerfile become interchangeable data structures. It means those target-specific edges stay thin and visible while controllers, schemas, commands, and components remain unchanged. A platform swap normally changes the provider plugin or launcher, native config, and adapter construction—not the application.
 
 ## Runtime — adapters and controllers
 
@@ -1087,40 +1087,42 @@ export default defineConfig({
 });
 ```
 
-Cloudflare's checked-in config owns the runtime and resource declarations:
+Cloudflare's checked-in config owns the runtime and resource declarations. Assets need no entry: they are the Vite client build.
 
-```jsonc
-// wrangler.jsonc
-{
-    "name": "contacts",
-    "main": "app/entry.server.tsx",
-    "assets": { "directory": "dist/client" },
-    "compatibility_date": "2026-04-08",
-    "compatibility_flags": ["nodejs_compat"],
-    "d1_databases": [
-        {
-            "binding": "DB",
-            "database_name": "contacts",
-            "database_id": "<database-id>",
+```ts
+// cloudflare.config.ts
+import { bindings, defineConfig, triggers } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "contacts",
+        entrypoint: "app/entry.server.tsx",
+        compatibilityDate: "2026-04-08",
+        compatibilityFlags: ["nodejs_compat"],
+        env: {
+            DB: bindings.d1({ name: "contacts", id: "<database-id>" }),
+            SESSIONS: bindings.kv({ id: "<namespace-id>" }),
+            FILES: bindings.r2({ name: "contacts-files" }),
+            TASKS: bindings.queue({ name: "task-queue" }),
+            SESSION_SECRET: bindings.secret(),
         },
-    ],
-    "kv_namespaces": [{ "binding": "SESSIONS", "id": "<namespace-id>" }],
-    "r2_buckets": [{ "binding": "FILES", "bucket_name": "contacts-files" }],
-    "queues": {
-        "producers": [{ "binding": "TASKS", "queue": "task-queue" }],
-        "consumers": [{ "queue": "task-queue" }],
+        triggers: [
+            triggers.queue({ name: "task-queue" }),
+            triggers.scheduled({ schedule: "0 * * * *" }),
+        ],
     },
-    "triggers": { "crons": ["0 * * * *"] },
-}
+});
 ```
 
-That file is edited directly, reviewed with the application, and read by Wrangler in development, preview, CI, and production. Cloudflare generates binding types and manages resources and secrets:
+That file is edited directly, reviewed with the application, and read by the Cloudflare Vite plugin in development and builds and by `cf` in CI and production. It is TypeScript, so a language server checks it as it is edited. Cloudflare generates binding types and manages resources and secrets:
 
 ```sh
-vpx wrangler types
-vpx wrangler d1 migrations apply DB --remote
-vpx wrangler secret put SESSION_SECRET
+vpx cf workers types
+vpx cf d1 migrations apply <database-id> --dir db/migrations
+vpx cf workers secrets update SESSION_SECRET --worker contacts --type secret_text --text "$SESSION_SECRET"
 ```
+
+`cf` is in beta, so templates pin an exact version. Its `cf build` runs `vite build`, and a Vite+ project has no `vite` binary, so Pitlane's templates build with `vp build`, which writes Cloudflare's Build Output, and deploy that output with `cf deploy --prebuilt`.
 
 Pitlane does not mirror those operations. Netlify, Vercel, Railway, and Deno keep their equivalent native config and commands.
 
@@ -1130,7 +1132,7 @@ The build happens in the developer's shell or CI, under application control. The
 
 | Target       | Production path                                                               |
 | ------------ | ----------------------------------------------------------------------------- |
-| Cloudflare   | `vp build && vpx wrangler deploy`                                             |
+| Cloudflare   | `vp build && vpx cf deploy --prebuilt --mode production`                      |
 | Netlify      | `vp build && vpx netlify-cli deploy --no-build --prod`                        |
 | Vercel       | `vpx vercel build --prod && vpx vercel deploy --prebuilt --prod`              |
 | Railway      | build and push the Docker image, then `vpx railway redeploy --service <name>` |
@@ -1166,9 +1168,10 @@ jobs:
 
             - run: vp install --frozen-lockfile
             - run: vp build
-            - run: vpx wrangler deploy
+            - run: vpx cf deploy --prebuilt --mode production
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 ```
 
 ### Model-first interface
@@ -1208,9 +1211,9 @@ The template repository carries the same guest-book application across Cloudflar
 The template's deployment guide uses the provider's native authentication and prebuilt deployment path. For Cloudflare:
 
 ```sh
-vpx wrangler login
+vpx cf auth login
 vp build
-vpx wrangler deploy
+vpx cf deploy --prebuilt --mode production
 ```
 
 ### Day-to-day development
@@ -1241,10 +1244,10 @@ Capability documentation provides additive recipes for existing projects. A futu
 
 For a Cloudflare application:
 
-- **Database** installs `@pitlane/data-table-d1`, adds the D1 declaration to `wrangler.jsonc`, constructs `createD1Database(env.DB)`, and adds schema, migration, and seed modules.
-- **File storage** installs `@pitlane/file-storage-cloudflare-r2`, adds the R2 bucket declaration to `wrangler.jsonc`, and constructs `new R2FileStorage(env.FILES)`.
-- **Session storage** installs `@pitlane/session-storage-cloudflare-kv`, adds the KV declaration to `wrangler.jsonc`, and scaffolds `createKVSessionStorage` plus the `session()` controller middleware.
-- **Background and scheduled jobs** install `@pitlane/job` and `@pitlane/job-scheduler-cloudflare`, add queue and cron declarations to `wrangler.jsonc`, scaffold the job registry, and compose `queue` and `scheduled` handlers with the server entry.
+- **Database** installs `@pitlane/data-table-d1`, adds a `bindings.d1` entry to `cloudflare.config.ts`, constructs `createD1Database(env.DB)`, and adds schema, migration, and seed modules.
+- **File storage** installs `@pitlane/file-storage-cloudflare-r2`, adds a `bindings.r2` entry to `cloudflare.config.ts`, and constructs `new R2FileStorage(env.FILES)`.
+- **Session storage** installs `@pitlane/session-storage-cloudflare-kv`, adds a `bindings.kv` entry to `cloudflare.config.ts`, and scaffolds `createKVSessionStorage` plus the `session()` controller middleware.
+- **Background and scheduled jobs** install `@pitlane/job` and `@pitlane/job-scheduler-cloudflare`, add queue bindings and queue and cron `triggers` to `cloudflare.config.ts`, scaffold the job registry, and compose `queue` and `scheduled` handlers with the server entry.
 - **Other provider-backed capabilities** install their neutral package and matching adapter, then make the provider-native config change required by that resource.
 
 Project-only recipes do not mutate deployment config unless the feature actually requires a target resource:
@@ -1259,7 +1262,7 @@ An illustrative Cloudflare project remains explicit at every target seam:
 
 ```text
 my-app/
-├── .github/workflows/deploy.yml    # Wrangler deployment
+├── .github/workflows/deploy.yml    # vp build, then cf deploy --prebuilt
 ├── app/
 │   ├── entry.server.tsx            # router, adapters, queue + cron handlers
 │   ├── home.tsx                    # createController
@@ -1267,10 +1270,10 @@ my-app/
 │   ├── root.tsx
 │   ├── routes.ts
 │   └── schema.ts                   # database schema
+├── cloudflare.config.ts            # bindings, queues, and cron
 ├── package.json
 ├── tsconfig.json
-├── vite.config.ts                  # remix() + cloudflare()
-└── wrangler.jsonc                  # bindings, assets, queues, and cron
+└── vite.config.ts                  # remix() + cloudflare()
 ```
 
 ## How this compares to Void
