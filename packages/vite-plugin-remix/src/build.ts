@@ -21,19 +21,26 @@ export interface BuildPluginOptions {
 export function build({ clientEntry, serverEntry, prerender: paths }: BuildPluginOptions): Plugin {
     return {
         name: "pitlane-remix-build",
-        async buildApp(builder) {
-            if (paths === undefined) return;
+        // Last of all buildApp hooks: @cloudflare/vite-plugin 2 writes the
+        // Build Output its preview server reads in a post-ordered buildApp
+        // hook, so prerendering through that preview has to wait for it.
+        enforce: "post",
+        buildApp: {
+            order: "post",
+            async handler(builder) {
+                if (paths === undefined) return;
 
-            let { written, redirected } = await prerender(builder, paths, serverEntry);
-            for (let file of written) this.info(`prerendered ${file}`);
+                let { written, redirected } = await prerender(builder, paths, serverEntry);
+                for (let file of written) this.info(`prerendered ${file}`);
 
-            // Silence here would read as a path that prerendered fine, and
-            // the file it should have produced is the one nobody finds
-            // missing until the host 404s on it.
-            for (let { pathname, location } of redirected) {
-                let target = location ?? "an unnamed location";
-                this.info(`skipped ${pathname} (redirects to ${target})`);
-            }
+                // Silence here would read as a path that prerendered fine, and
+                // the file it should have produced is the one nobody finds
+                // missing until the host 404s on it.
+                for (let { pathname, location } of redirected) {
+                    let target = location ?? "an unnamed location";
+                    this.info(`skipped ${pathname} (redirects to ${target})`);
+                }
+            },
         },
         config(userConfig) {
             // Never clobber what the user configured themselves (plugin
