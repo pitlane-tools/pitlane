@@ -42,35 +42,36 @@ jobs:
             - name: Build and verify documentation
               run: vp run docs:test
 
-            # `wrangler versions upload` routes zero production traffic to the
-            # new version; the preview URL is what reviewers open.
-            - name: ☁️ Upload preview version
+            # A Worker Preview routes no production traffic; its URL is what
+            # reviewers open. cf prints the result as JSON.
+            - name: ☁️ Deploy preview
               id: upload
               shell: bash
+              working-directory: docs/cloudflare
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CF_SEND_TELEMETRY: "false"
               run: |
-                  vp exec wrangler versions upload \
-                      --config wrangler.jsonc \
-                      --message "Preview: $GITHUB_REF_NAME @ ${GITHUB_SHA::7}" \
-                      2>&1 | tee upload.log
+                  vp exec cf previews deploy > preview.json
+                  cat preview.json
 
-                  preview_url="$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' upload.log | head -1)"
-                  version_id="$(sed -n 's/^Worker Version ID: //p' upload.log | tr -d '[:space:]')"
+                  # preview_urls follows the branch; deployment_urls pins this commit.
+                  preview_url="$(jq -r '.preview_urls[0] // empty' preview.json)"
+                  deployment_url="$(jq -r '.deployment_urls[0] // empty' preview.json)"
 
-                  if [ -z "$preview_url" ]; then
-                      echo "::error::wrangler output did not contain a preview URL"
+                  if [ -z "$preview_url" ] || [ -z "$deployment_url" ]; then
+                      echo "::error::cf previews deploy did not report preview and deployment URLs"
                       exit 1
                   fi
 
                   echo "preview-url=$preview_url" >> "$GITHUB_OUTPUT"
-                  echo "version-id=$version_id" >> "$GITHUB_OUTPUT"
+                  echo "deployment-url=$deployment_url" >> "$GITHUB_OUTPUT"
 
             - name: 📝 Report preview URL
               env:
                   GH_TOKEN: ${{ github.token }}
                   PREVIEW_URL: ${{ steps.upload.outputs.preview-url }}
-                  VERSION_ID: ${{ steps.upload.outputs.version-id }}
+                  DEPLOYMENT_URL: ${{ steps.upload.outputs.deployment-url }}
               run: |
                   {
                       echo "### 🔭 Docs preview deployed"
@@ -78,14 +79,14 @@ jobs:
                       echo "| | |"
                       echo "| --- | --- |"
                       echo "| **URL** | $PREVIEW_URL |"
-                      echo "| **Version** | \`$VERSION_ID\` |"
+                      echo "| **This commit** | $DEPLOYMENT_URL |"
                       echo "| **Commit** | \`${GITHUB_SHA::7}\` |"
                   } >> "$GITHUB_STEP_SUMMARY"
 
                   # backticks in the printf format string are literal markdown
                   # shellcheck disable=SC2016
-                  body="$(printf '🔭 **Docs preview deployed:** %s\n\nVersion: `%s` · Commit: `%s`\n\n_No production traffic is routed to this version; merging the PR is what publishes._' \
-                      "$PREVIEW_URL" "$VERSION_ID" "${GITHUB_SHA::7}")"
+                  body="$(printf '🔭 **Docs preview deployed:** %s\n\nThis commit: %s · Commit: `%s`\n\n_A Worker Preview receives no production traffic; merging the PR is what publishes._' \
+                      "$PREVIEW_URL" "$DEPLOYMENT_URL" "${GITHUB_SHA::7}")"
 
                   # Comment on the branch's PR if one exists; edit our previous
                   # comment instead of stacking a new one per push.

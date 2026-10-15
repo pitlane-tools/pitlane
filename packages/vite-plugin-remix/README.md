@@ -366,18 +366,23 @@ export default defineConfig({
 });
 ```
 
-```jsonc
-// wrangler.jsonc
-{
-    "name": "my-remix-app",
-    "main": "app/entry.server.tsx",
-    "assets": { "directory": "dist/client" },
-    "compatibility_date": "2026-04-02",
-    "compatibility_flags": ["nodejs_compat"],
-}
+```ts
+// cloudflare.config.ts
+import { defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-remix-app",
+        entrypoint: "app/entry.server.tsx",
+        compatibilityDate: "2026-04-02",
+        compatibilityFlags: ["nodejs_compat"],
+    },
+});
 ```
 
-`vite dev` runs your server code inside workerd with your real bindings, `vite preview` serves the production build through Miniflare, and `wrangler deploy` ships it.
+`vite dev` runs your server code inside workerd with your real bindings, `vite preview` serves the production build through Miniflare, and `cf deploy` ships it. Static assets come from the Vite client build, so the Worker config names no assets directory.
+
+Cloudflare's `cf` CLI and the Vite plugin it uses are both in beta, so pin them: `cf@1.0.0-beta.17` and `@cloudflare/vite-plugin@2.0.0-beta.v.0`.
 
 ### Netlify
 

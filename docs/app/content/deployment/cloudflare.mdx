@@ -1,17 +1,19 @@
 ---
 title: Deploy to Cloudflare Workers
-description: "Run a Remix 3 app on Cloudflare Workers with pitlane/vite-plugin-remix and the Cloudflare Vite plugin, with workerd in dev, Miniflare preview, and wrangler deploy."
+description: "Run a Remix 3 app on Cloudflare Workers with pitlane/vite-plugin-remix and the Cloudflare Vite plugin, with workerd in dev, Miniflare preview, and deployment through Cloudflare's cf CLI."
 ---
 
 import { Callout, InstallGroup } from "../../components/documentation.tsx";
 import { installAlternatives } from "../../install.ts";
 
-export const installation = await installAlternatives({ dev: ["@cloudflare/vite-plugin", "wrangler"] });
+export const installation = await installAlternatives({ dev: ["@cloudflare/vite-plugin@2.0.0-beta.v.0", "cf@1.0.0-beta.17"] });
 export const pitlaneInstallation = await installAlternatives({ packages: ["pitlane"] });
 
 # Cloudflare Workers
 
-Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/workers/) by composing [`remix()`](/package/vite-plugin-remix/function/remix) with [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/). Cloudflare's plugin owns the runtime story end to end: dev requests run inside [workerd](https://github.com/cloudflare/workerd) (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and `wrangler deploy` publishes it.
+Deploy a Remix 3 app to [Cloudflare Workers](https://developers.cloudflare.com/workers/) by composing [`remix()`](/package/vite-plugin-remix/function/remix) with [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/). Cloudflare's plugin owns the runtime story end to end: dev requests run inside [workerd](https://github.com/cloudflare/workerd) (real bindings, real runtime), `vite preview` serves the production build through Miniflare, and [`cf`](https://developers.cloudflare.com/cf/), Cloudflare's CLI, deploys it from a `cloudflare.config.ts` written in TypeScript.
+
+`cf` is in open beta, and so is the 2.0 release of the Vite plugin that it builds with, so this guide pins both exactly. Wrangler still works and Cloudflare maintains it for eighteen months after the beta ends. `cf migrate` converts an existing `wrangler.jsonc` or `wrangler.toml` to `cloudflare.config.ts`.
 
 <Callout kind="tip" title="Start from the template">
 
@@ -42,17 +44,20 @@ export default defineConfig({
 });
 ```
 
-`wrangler.jsonc` points at your server entry and the client build output:
+`cloudflare.config.ts` names the Worker and points at its entry module. Build settings stay in `vite.config.ts`, so nothing here names an assets directory. The client build is the assets:
 
-```jsonc
-// wrangler.jsonc
-{
-    "name": "my-remix-app",
-    "main": "app/entry.server.tsx",
-    "assets": { "directory": "dist/client" },
-    "compatibility_date": "2026-04-02",
-    "compatibility_flags": ["nodejs_compat"],
-}
+```ts
+// cloudflare.config.ts
+import { defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-remix-app",
+        entrypoint: "app/entry.server.tsx",
+        compatibilityDate: "2026-04-02",
+        compatibilityFlags: ["nodejs_compat"],
+    },
+});
 ```
 
 Your server entry is already a Workers module: the default-exported router is the `fetch` handler. Extra worker events compose around it:
@@ -71,13 +76,35 @@ export default {
 
 ## Bindings
 
-Read bindings through the `cloudflare:workers` module. In dev they come from workerd's local emulation, in production from the deployed worker:
+Declare each binding under `worker.env`, then read it through the `cloudflare:workers` module. In dev the values come from workerd's local emulation, in production from the deployed worker:
+
+```ts
+// cloudflare.config.ts
+import { bindings, defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-remix-app",
+        entrypoint: "app/entry.server.tsx",
+        compatibilityDate: "2026-04-02",
+        compatibilityFlags: ["nodejs_compat"],
+        env: {
+            MY_KV: bindings.kv({ id: "…" }),
+            FILES: bindings.r2({ name: "my-app-files" }),
+            API_TOKEN: bindings.secret(),
+            GREETING: bindings.text("hello"),
+        },
+    },
+});
+```
 
 ```ts
 import { env } from "cloudflare:workers";
 
 let value = await env.MY_KV.get("key");
 ```
+
+`cf workers types` generates `.cloudflare/types/index.d.ts` from that config, and the Cloudflare plugin rewrites the same file during dev and build, so `env` is typed from the file that deploys. Name `.cloudflare/types/index.d.ts` in your `tsconfig.json` `include` list: a `**/*.ts` pattern skips dot directories. `cf deploy` will provision a resource for a binding whose id you leave out, but it never writes the id back.
 
 <Callout kind="tip" title="Tip">
 
@@ -97,30 +124,42 @@ Prefer [separate prerendered frame URLs](/guides/prerendering#fully-static-frame
 
 Prerender `/platform/` as a complete document and `/_frames/main/platform/` as frame content. Use `href="/platform/"`, `data-rmx-target="main"`, and `data-rmx-src="/_frames/main/platform/"` on the link. Remix fetches the frame URL while keeping `/platform/` in the address bar. Use the frame URL for the initial `<Frame src>` too.
 
-Keep the server entry for build-time rendering and list both kinds of route in [`prerender`](/package/vite-plugin-remix/interface/RemixPluginOptions#prerender). A portable app can build with `remix({ prerender: [...] })` alone. An app that needs Cloudflare bindings while rendering can keep the Cloudflare Vite plugin for the build. Deploy only `dist/client` with a separate assets-only configuration:
+Keep the server entry for build-time rendering and list both kinds of route in [`prerender`](/package/vite-plugin-remix/interface/RemixPluginOptions#prerender). Deploy only the client output by giving the config a second mode that declares no Worker code:
 
-```jsonc
-// wrangler.static.jsonc
-{
-    "name": "my-static-remix-app",
-    "assets": {
-        "directory": "dist/client",
-        "not_found_handling": "none",
-    },
-    "compatibility_date": "2026-04-02",
-}
+```ts
+// cloudflare.config.ts
+import { defineConfig } from "cf/config";
+
+export default defineConfig(({ mode }) =>
+    mode === "static"
+        ? {
+              worker: {
+                  name: "my-static-remix-app",
+                  compatibilityDate: "2026-04-02",
+                  assets: { notFoundHandling: "none" },
+              },
+          }
+        : {
+              worker: {
+                  name: "my-remix-app",
+                  entrypoint: "app/entry.server.tsx",
+                  compatibilityDate: "2026-04-02",
+                  compatibilityFlags: ["nodejs_compat"],
+              },
+          },
+);
 ```
 
-This configuration has no `main`, `ASSETS` binding, or `run_worker_first`. Select it explicitly for both preview and deployment:
+A mode returns a whole configuration rather than overriding parts of the default one, and a different `name` makes it a separate Worker. This one declares static assets and nothing else. Ask for it by name in preview and deployment:
 
 ```sh
-vp build
-vpx wrangler dev --config wrangler.static.jsonc
+vp dev --mode static
 # After checking the static preview:
-vpx wrangler deploy --config wrangler.static.jsonc
+vp build --mode static
+vpx cf deploy --prebuilt --mode static
 ```
 
-Use this assets-only preview to prove the site works without its SSR entry. `vp preview` can still run the built server and hide missing prerendered files. Check initial loads, frame-targeted links, hydration, and direct document reloads. A missing frame file must return 404, never a document-shell fallback.
+The build records the mode it ran in, so the deploy has to name the same one. The `static` mode has no Worker, so server code that imports `cloudflare:workers` cannot run while it prerenders. Pages that need Cloudflare bindings to render belong in the hybrid recipe below. Use this assets-only preview to prove the site works without its SSR entry. `vp preview` can still run the built server and hide missing prerendered files. Check initial loads, frame-targeted links, hydration, and direct document reloads. A missing frame file must return 404, never a document-shell fallback.
 
 Cloudflare's default [HTML handling](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/) serves directory indexes at trailing-slash URLs. Keep those slashes in both document and frame destinations to avoid redirects. No frame headers are needed.
 
@@ -135,7 +174,7 @@ Choose the Worker-first recipe below only when frame content must render at requ
 | JavaScript, CSS, or another existing asset | Static file           |
 | Non-prerendered route or mutation          | Runtime app           |
 
-With `run_worker_first: true`, every request invokes the Worker, including requests that return static HTML or assets. Those static responses do not require SSR, but they still incur Worker invocations.
+With `runWorkerFirst: true`, every request invokes the Worker, including requests that return static HTML or assets. Those static responses do not require SSR, but they still incur Worker invocations.
 
 This recipe tells frame requests apart by their `x-remix-frame` and `x-remix-target` headers, and assumes your controller recognizes them too. Remix's default frame resolver sends `x-remix-frame: true` on every frame request, plus `x-remix-target` when the frame is named, so an app that calls `run()` without a `resolveFrame` needs no change.
 
@@ -150,19 +189,20 @@ Set `x-remix-frame` even when no target is named. Keep the resolver's method, fo
 
 Run the Worker first and give it an asset binding:
 
-```jsonc
-// wrangler.jsonc
-{
-    "name": "my-remix-app",
-    "main": "app/entry.server.tsx",
-    "assets": {
-        "directory": "dist/client",
-        "binding": "ASSETS",
-        "run_worker_first": true,
+```ts
+// cloudflare.config.ts
+import { bindings, defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-remix-app",
+        entrypoint: "app/entry.server.tsx",
+        compatibilityDate: "2026-04-02",
+        compatibilityFlags: ["nodejs_compat"],
+        assets: { runWorkerFirst: true },
+        env: { ASSETS: bindings.assets() },
     },
-    "compatibility_date": "2026-04-02",
-    "compatibility_flags": ["nodejs_compat"],
-}
+});
 ```
 
 Wrap the router at the server entry. Keep any `routes` export needed by `prerender: true`:
@@ -189,13 +229,13 @@ export default {
 };
 ```
 
-Generate binding types with `vpx wrangler types` after adding `ASSETS`. Frame requests and mutations go straight to the router. Ordinary GET/HEAD requests can use the prerendered document or another static asset. A missing asset falls through to the router. The controller still decides which content belongs in each frame.
+The Cloudflare plugin writes `.cloudflare/types/index.d.ts` on every dev and build run, so `ASSETS` is typed as soon as you add it. `vpx cf workers types` writes the same file without a build. Frame requests and mutations go straight to the router. Ordinary GET/HEAD requests can use the prerendered document or another static asset. A missing asset falls through to the router. The controller still decides which content belongs in each frame.
 
-Keep `assets.not_found_handling` unset (its default is `"none"`). A `"single-page-application"` fallback answers missing assets with a 200 shell, preventing the 404 fallthrough to the router.
+Keep `assets.notFoundHandling` unset (its default is `"none"`). A `"single-page-application"` fallback answers missing assets with a 200 shell, preventing the 404 fallthrough to the router.
 
-Both changes are required. `run_worker_first` without the wrapper stops serving assets, and the wrapper without `run_worker_first` never sees a request that matches an asset. Cloudflare supports [selective Worker-first paths](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/#run-worker-first-for-selective-paths), but every frame-resolved prerendered path must be included, with and without its trailing slash. Excluding it restores the asset-first behavior that causes this bug.
+Both changes are required. `runWorkerFirst` without the wrapper stops serving assets, and the wrapper without `runWorkerFirst` never sees a request that matches an asset. `runWorkerFirst` also takes a list of [selective Worker-first paths](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/#run-worker-first-for-selective-paths), but every frame-resolved prerendered path must be included, with and without its trailing slash. Excluding it restores the asset-first behavior that causes this bug.
 
-Keep the Vite plugins composed as above, with `prerender` added to `remix({ serverHandler: false, prerender: true })`. The `pitlane/vite-plugin-remix` plugin does not change your Wrangler routing settings.
+Keep the Vite plugins composed as above, with `prerender` added to `remix({ serverHandler: false, prerender: true })`. The `pitlane/vite-plugin-remix` plugin does not change your Cloudflare routing settings.
 
 Check the production build with `vp preview`. A request to a frame-resolved route carrying the frame headers must return frame content without an asset redirect or a document shell. The wrapper forwards the URL unchanged, so the controller must handle the trailing-slash forms used by your links and frame sources. Register both `/page` and `/page/` with the same action if both are reachable. An ordinary document request should still serve the prerendered HTML. Click between frame-targeted links and confirm that the page retains one header and footer.
 
@@ -207,20 +247,26 @@ vp build    # production build
 vp preview  # serve the production build through Miniflare
 ```
 
-For local secrets during `vp dev`, use a gitignored [`.dev.vars`](https://developers.cloudflare.com/workers/configuration/secrets/#local-development-with-secrets) file next to `wrangler.jsonc`. Non-secret values can live in `wrangler.jsonc` under `"vars"`.
+For local secrets during `vp dev`, use a gitignored [`.dev.vars`](https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/) file beside `cloudflare.config.ts`. It fills in every binding declared with `bindings.secret()`. Non-secret values belong in the config itself, as `bindings.text("…")`. Local D1, KV, and R2 data lives under `.cloudflare/state/`, so add `.cloudflare` to `.gitignore`.
 
 ## Deploy with the CLI
 
 ```sh
-vpx wrangler login
+vpx cf auth login
 vp build
-vpx wrangler deploy
+vpx cf deploy --prebuilt --mode production
 ```
 
-Production secrets are write-only through Wrangler:
+Cloudflare's Vite plugin writes the Build Output that `cf deploy` uploads, so `vp build` is a complete build: `.cloudflare/output/v0/` ends up holding the bundle, the assets, and the resolved Worker configuration. `--prebuilt` takes that directory as it stands, and `vpx cf deploy --prebuilt --mode production --dry-run` validates it without credentials.
+
+Build last. Loading the Vite configuration empties `.cloudflare/output`, so a `vp check`, `vp lint`, or `vp fmt` run between the build and the deploy leaves nothing to upload, and `cf deploy --prebuilt` stops with `no root config found at .cloudflare/output/v0/config.json`.
+
+Build with Vite+, not with `cf`. Left to themselves, `cf build` and a bare `cf deploy` run the project's own build command, which means a `vite` binary. Vite+ installs `vp` instead, and the build stops with `Command "vite" not found`. A Vite build always records the mode it ran in, and `vp build` records `production`, so the deploy has to name that mode.
+
+Production secrets are write-only:
 
 ```sh
-vpx wrangler secret put MY_SECRET
+vpx cf workers secrets update MY_SECRET --worker my-remix-app --text "$VALUE"
 ```
 
 ## Deploy with GitHub Actions
@@ -253,16 +299,17 @@ jobs:
 
             - run: vp build
 
-            - run: vpx wrangler deploy
+            - run: vpx cf deploy --prebuilt --mode production
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CF_SEND_TELEMETRY: "false"
 ```
 
-`wrangler deploy` reads `wrangler.jsonc`, so the workflow needs no name, paths, or account flags. The config is the single source of truth locally and in CI.
+`cf deploy` reads `cloudflare.config.ts`, so the workflow needs no name, paths, or account flags. The config is the single source of truth locally and in CI. Set `CLOUDFLARE_ACCOUNT_ID` as well if the config omits `accountId` and the token can reach more than one account.
 
 ## Client-only apps
 
-A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa) and drops `@cloudflare/vite-plugin`: `server: false` builds no server environment, so there is no worker to run. The plugin's remaining job is [component HMR](/guides/hmr#component-hmr), so it is worth keeping in a static build.
+A client-only Remix 3 app runs `remix()` in [SPA mode](/guides/spa): `server: false` builds no server environment, so there is no Worker code to run. It keeps `@cloudflare/vite-plugin`, which writes the Build Output that `cf deploy --prebuilt` uploads. `remix()`'s remaining job is [component HMR](/guides/hmr#component-hmr), so it is worth keeping in a static build.
 
 ```html
 <!-- index.html -->
@@ -316,26 +363,30 @@ createRoot(document.getElementById("app")!).render(<App />);
 
 ```ts
 // vite.config.ts
+import { cloudflare } from "@cloudflare/vite-plugin";
 import { remix } from "pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-    plugins: [remix({ server: false })],
+    plugins: [remix({ server: false }), cloudflare()],
 });
 ```
 
-`vite build` emits the site into `dist/`. The Worker config becomes assets-only: no `main`, and `single-page-application` fallback serves `index.html` on deep links:
+`vp build` writes the site into `.cloudflare/output`. The Worker config is assets-only: no `entrypoint`, and a `single-page-application` fallback serves `index.html` on deep links:
 
-```jsonc
-// wrangler.jsonc
-{
-    "name": "my-remix-spa",
-    "compatibility_date": "2026-04-02",
-    "assets": {
-        "directory": "./dist",
-        "not_found_handling": "single-page-application",
+```ts
+// cloudflare.config.ts
+import { defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-remix-spa",
+        compatibilityDate: "2026-04-02",
+        assets: {
+            notFoundHandling: "single-page-application",
+        },
     },
-}
+});
 ```
 
-Deploys are unchanged: `vpx wrangler deploy` from the CLI, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
+Deploys are unchanged: `vp build` then `vpx cf deploy --prebuilt --mode production`, or the same [GitHub Actions workflow](#deploy-with-github-actions) above.
