@@ -1500,7 +1500,7 @@ run: {
 },
 ```
 
-This makes `vp dev` (which `dependsOn: ["db:seed"]`) idempotently regenerate SQL, apply migrations locally, and seed demo rows before starting the server.
+This makes `vp run dev` (the `dev` task, which `dependsOn: ["db:seed"]`) idempotently regenerate SQL, apply migrations locally, and seed demo rows before starting the server. Plain `vp dev` starts Vite without running the task's dependencies.
 
 **`cloudflare.config.ts` setup:** the D1 binding carries the ID the apply command needs. The migrations directory is not a config key at all — it is the `--dir` flag:
 
@@ -1677,7 +1677,7 @@ export default defineConfig({
 
 **Commands:**
 
-- `vp dev` — start dev server with HMR (runs migrations + seed first)
+- `vp run dev` — start dev server with HMR (runs migrations + seed first)
 - `vp build` — production build
 - `vp preview` — preview production build locally
 - `vp check` — format + lint + typecheck in one pass
@@ -3201,7 +3201,7 @@ export class R2FileStorage implements FileStorage {
 1. `cloudflare.config.ts` declares your D1 + R2 bindings; the generated SQL lives in `db/d1-migrations/`, which `cf d1 migrations apply --dir` points at
 2. The Cloudflare Vite plugin writes `.cloudflare/types/index.d.ts` during `vp dev` and `vp build`, so `Env` follows the config (see Recipe 20)
 3. The same plugin runs the Worker in workerd with local D1/R2 simulations during `vp dev`
-4. `vp run db:migrations:apply:local` (chained from `vp dev`) compiles and applies SQL migrations to the local D1
+4. `vp run db:migrations:apply:local` (chained from `vp run dev`) compiles and applies SQL migrations to the local D1
 5. Local state persists in `.cloudflare/state/v3/` — `vp run db:reset` wipes its D1 directory
 6. `vp run db:migrations:deploy` (or `db:migrations:apply:remote`) applies SQL migrations to the remote database — needs `CLOUDFLARE_API_TOKEN`
 7. `vp run deploy` builds with Vite+ and uploads the result with `cf deploy --prebuilt --mode production`. `cf` builds by running the project's own build command, which means a `vite` binary; Vite+ ships `vp` instead, so a bare `cf deploy` or `cf build` fails with `Command "vite" not found`. The Cloudflare Vite plugin writes the Build Output during `vp build`, which is what `--prebuilt` uploads.
