@@ -27,6 +27,11 @@
         "typescript": "^7.0.2",
         "vite": "8.3.3"
     },
+    "overrides": {
+        "@solidjs/babel-plugin": "2.0.0-rc.13",
+        "@solidjs/compiler": "2.0.0-rc.13",
+        "@solidjs/signals": "2.0.0-rc.13"
+    },
     "engines": {
         "node": ">=22.18.0"
     }

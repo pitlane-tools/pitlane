@@ -28,10 +28,13 @@ A Solid 2 app rendered on the server and hydrated in the browser, routed by Soli
 | `solid-js`, `@solidjs/web` | 2.0.0-rc.13 | Solid 2 release candidate. `@solidjs/web`'s `latest` tag still names rc.0, so the version is pinned |
 | `@solidjs/router` | 2.0.0-next.35 | The Solid 2 router; its peers require rc.13 |
 | `@solidjs/vite-plugin` | 3.0.0-next.35 | Replaces `vite-plugin-solid` for Solid 2 |
+| `@solidjs/babel-plugin`, `@solidjs/compiler`, `@solidjs/signals` | 2.0.0-rc.13, through `overrides` | The compiler and the reactive core release in step with `solid-js` and `@solidjs/web` |
 | `vite` | 8.3.3 | `@pitlane/assets` needs Vite 8.1 or later |
 | `@remix-run/html-template`, `@remix-run/node-fetch-server` | `^1.0.0` | Document shell and production server |
 | `playwright` | 1.63.0 | Drives the smoke test |
 
 Prereleases are pinned exactly because each release candidate can change the API. Every peer range names a matching prerelease, so plain `npm install` works without `--legacy-peer-deps`.
+
+`overrides` pins the rest of Solid's release train. `@solidjs/vite-plugin` takes the compiler as `^2.0.0-rc.3`, and `solid-js` takes `@solidjs/signals` as `^2.0.0-rc.13`, so without the overrides npm installs the newest release candidate of each. The compiler's output imports helpers from `@solidjs/web` by name, so a compiler ahead of the runtime emits imports the runtime cannot satisfy: from rc.15 on, compiled server code imports `ssrLinkClaim`, which rc.13 does not export, and the built server entry fails to load. Move all five packages to the same release candidate together.
 
 The example installs `@pitlane/assets` and `@pitlane/vite-plugin-fetch-server` from npm. To try unreleased builds, point both at packed tarballs with `npm pkg set` before installing.
