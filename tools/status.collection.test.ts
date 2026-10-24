@@ -215,7 +215,7 @@ let mergedPullRequest = {
     url: "https://github.com/owner/repo/pull/1",
 };
 
-test("follows a merged PR this branch continued, naming the commits it never received", context => {
+test("does not call a merged PR implemented when the branch holds commits it never received", context => {
     let report = statusWithPullRequests([mergedPullRequest], context, {
         history: git => {
             let merged = git("rev-parse", "HEAD");
@@ -225,7 +225,8 @@ test("follows a merged PR this branch continued, naming the commits it never rec
     });
 
     assert.match(report, /PR #1 \(merged\)/);
-    assert.match(report, /Phase 5 — Implementation merged/);
+    assert.match(report, /Phase 5 — Merged ahead of the record/);
+    assert.doesNotMatch(report, /Implementation merged/);
     assert.match(report, /Warning: .*1 commit.*merged pull request does not contain/);
 });
 

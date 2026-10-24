@@ -214,6 +214,14 @@ const STEPS: Record<string, Step> = {
         "agent",
         SKILLS.completion,
     ),
+    implementedAfterMerge: step(
+        "5",
+        "Merged ahead of the record",
+        "The pull request merged without commits this checkout made afterward, so the implemented status it reads may be absent from the merged revision.",
+        "Confirm whether the merged revision already records the implemented status; if absent, ask the human how to reconcile it, and never amend the merged pull request or open a status-only pull request.",
+        "agent",
+        SKILLS.completion,
+    ),
     implementedMerged: step(
         "5",
         "Implementation merged",
@@ -300,11 +308,13 @@ function supersededStep(successor: ProposalSummary | null | undefined): Step {
     );
 }
 
-// A recorded implementation may still be in a draft or unmerged pull request.
+// A recorded implementation may still be in a draft or unmerged pull request, and a
+// merged one may lack a record this checkout committed after the merge.
 function completionStep(
     pullRequest: PullRequest,
     defaultBranch: string | null,
     proposalStatus: "accepted" | "implemented",
+    commitsAfter: number,
 ): Step {
     let { state, baseRefName, isDraft } = pullRequest;
     if (state === "CLOSED") {
@@ -319,7 +329,8 @@ function completionStep(
     if (state === "MERGED") {
         if (!defaultBranch) return STEPS.mergeTargetUnknown;
         if (baseRefName === defaultBranch) {
-            return proposalStatus === "accepted" ? STEPS.acceptedMerged : STEPS.implementedMerged;
+            if (proposalStatus === "accepted") return STEPS.acceptedMerged;
+            return commitsAfter > 0 ? STEPS.implementedAfterMerge : STEPS.implementedMerged;
         }
         return step(
             "5",
@@ -707,7 +718,15 @@ export function deriveStatus(facts: Facts): DerivedStatus {
     if (!facts.proposal) return result(facts, STEPS.noProposal);
     let { status } = facts.proposal;
     if (status === "accepted" || status === "implemented")
-        return result(facts, completionStep(facts.pullRequest, facts.defaultBranch, status));
+        return result(
+            facts,
+            completionStep(
+                facts.pullRequest,
+                facts.defaultBranch,
+                status,
+                facts.commitsAfterPullRequest ?? 0,
+            ),
+        );
     if (status === "superseded") return result(facts, supersededStep(facts.proposalSuccessor));
     return result(facts, STEPS[status as string] ?? STEPS.unknown);
 }
