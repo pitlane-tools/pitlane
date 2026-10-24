@@ -141,8 +141,7 @@ export interface RemixPluginOptions {
  *
  * Platform-agnostic by design: deploy targets compose alongside it in the
  * plugin array (`@cloudflare/vite-plugin`, `@netlify/vite-plugin`,
- * `nitro/vite`), or the built fetch handler runs directly on Node, Bun, and
- * Deno.
+ * `nitro/vite`), or the built fetch handler runs directly on Node and Bun.
  *
  * @param options - Entry modules, SPA mode, prerendering, assets, and dev serving; see {@link RemixPluginOptions}
  * @returns The plugins, passed to Vite as one entry of `plugins`
