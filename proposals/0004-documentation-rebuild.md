@@ -2,7 +2,7 @@
 id: proposal.0004
 title: Documentation Rebuild
 authors: [Mark Malstrom]
-status: accepted
+status: implemented
 pull-request: https://github.com/pitlane-tools/pitlane/pull/32
 issues: []
 supersedes: []
