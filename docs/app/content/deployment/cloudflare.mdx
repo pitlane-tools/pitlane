@@ -167,6 +167,23 @@ Cloudflare's default [HTML handling](https://developers.cloudflare.com/workers/s
 
 Choose the Worker-first recipe below only when frame content must render at request time. Document responses stay prerendered, but frame navigation depends on a running SSR app. This alternative gives up fully static deployment.
 
+<Callout kind="warning" title="Not in the current release">
+
+This recipe's server entry imports `cloudflare:workers`, so the build prerenders through Cloudflare's preview server. The current release, `pitlane@1.0.0-alpha.2`, starts that preview before the 2.0 Cloudflare plugin has written the Build Output it reads, and the build stops with `Build Output Specification: no root config found`. Until a release with the fix is published, build this recipe with `@cloudflare/vite-plugin` 1.x and Wrangler. Declare the Worker in a `wrangler.jsonc` in place of `cloudflare.config.ts`, generate its types with `wrangler types`, and deploy with `wrangler deploy`:
+
+```jsonc
+// wrangler.jsonc
+{
+    "name": "my-remix-app",
+    "main": "app/entry.server.tsx",
+    "assets": { "directory": "dist/client", "binding": "ASSETS", "run_worker_first": true },
+    "compatibility_date": "2026-04-02",
+    "compatibility_flags": ["nodejs_compat"],
+}
+```
+
+</Callout>
+
 | Request                                    | Response source       |
 | ------------------------------------------ | --------------------- |
 | Document request for a prerendered path    | Static HTML           |
