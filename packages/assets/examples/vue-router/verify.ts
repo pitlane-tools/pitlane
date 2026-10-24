@@ -97,15 +97,18 @@ for (let [path, href] of Object.entries(pages)) {
 }
 
 // The unminified server build keeps the compiler's own mode marker,
-// `__vapor: true`, in the `//#region <source>` Rolldown writes for each SFC.
+// `__vapor: true`, in the code Rolldown emits for each SFC. Rolldown opens each
+// module with a `// <source>` line, or with `//#region <source>` before 1.2.15;
+// Vite 8.3.3 accepts Rolldown releases that write either.
+let moduleStart = /^\/\/(?:#region)? /m;
 let serverRoot = join(root, "dist/ssr");
 let vapor: Record<string, boolean> = {};
 for (let file of readdirSync(serverRoot, { recursive: true, encoding: "utf8" })) {
     if (!file.endsWith(".js")) continue;
-    for (let region of readFileSync(join(serverRoot, file), "utf8").split("//#region ").slice(1)) {
-        let source = region.slice(0, region.search(/[?\n]/));
+    for (let code of readFileSync(join(serverRoot, file), "utf8").split(moduleStart).slice(1)) {
+        let source = code.slice(0, code.search(/[?\n]/));
         if (!source.endsWith(".vue")) continue;
-        vapor[source] = (vapor[source] ?? false) || region.includes("__vapor: true");
+        vapor[source] = (vapor[source] ?? false) || code.includes("__vapor: true");
     }
 }
 assert.deepEqual(vapor, {
