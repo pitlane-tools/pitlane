@@ -21,7 +21,7 @@ export function BrandIcon(handle: Handle<{ name: Brand }>) {
                 maskSize: "contain",
                 maskPosition: "center",
                 maskRepeat: "no-repeat",
-                ...(handle.props.name === "bun" || handle.props.name === "deno"
+                ...(handle.props.name === "bun"
                     ? {
                           "@media (prefers-color-scheme: dark)": {
                               maskImage: `url("/icons/${handle.props.name}-dark.svg")`,

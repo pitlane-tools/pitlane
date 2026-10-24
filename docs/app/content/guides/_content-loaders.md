@@ -337,10 +337,6 @@ pnpm add @pitlane/content zod
 bun add @pitlane/content zod
 ```
 
-```sh [deno]
-deno add npm:@pitlane/content npm:zod
-```
-
 ```sh [vp]
 vp add @pitlane/content zod
 ```

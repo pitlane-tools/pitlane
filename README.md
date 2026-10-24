@@ -2,7 +2,7 @@
 
 Portable platform integration for [Remix 3](https://remix.run).
 
-Pitlane sits between Remix and the platforms you deploy to. Your server entry default-exports a standard fetch handler and hosting composes around it — platform plugins in the same Vite plugin array, or plain runtimes (Node, Bun, Deno) running the built output directly. Swap the deploy target; the app doesn't change. Composable hosting, not a hosting engine.
+Pitlane sits between Remix and the platforms you deploy to. Your server entry default-exports a standard fetch handler and hosting composes around it — platform plugins in the same Vite plugin array, or plain runtimes (Node, Bun) running the built output directly. Swap the deploy target; the app doesn't change. Composable hosting, not a hosting engine.
 
 ## Packages
 
@@ -53,7 +53,7 @@ Two options change the shape of the build: [`prerender`](https://pitlane.tools/g
 
 ## Templates
 
-The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo ships the same Remix 3 guest book wired for eight deploy targets — Cloudflare (D1), Netlify (Netlify Database), Vercel (Neon Postgres), Railway on Node, Bun, or Deno, Deno Deploy (managed Postgres), and GitHub Pages (in-browser with IndexedDB). Scaffold one with [giget](https://github.com/unjs/giget):
+The [`pitlane-tools/templates`](https://github.com/pitlane-tools/templates) monorepo ships the same Remix 3 guest book wired for six deploy targets — Cloudflare (D1), Netlify (Netlify Database), Vercel (Neon Postgres), Railway on Node or Bun, and GitHub Pages (in-browser with IndexedDB). Scaffold one with [giget](https://github.com/unjs/giget):
 
 ```sh
 npx giget github:pitlane-tools/templates/<template> my-app
@@ -67,7 +67,7 @@ Because every template is the same app, diffing any two shows exactly what a pla
 
 - Guides: [Introduction](https://pitlane.tools/guides) · [Installation](https://pitlane.tools/guides/umbrella) · [Vite plugin](https://pitlane.tools/guides/vite-plugin) · [Asset resolution](https://pitlane.tools/guides/assets) · [Manifest integrations](https://pitlane.tools/guides/asset-build) · [Development fetch server](https://pitlane.tools/guides/fetch-server) · [Theme](https://pitlane.tools/guides/theme) · [Single-page apps](https://pitlane.tools/guides/spa) · [Content](https://pitlane.tools/guides/content) · [Creating a content loader](https://pitlane.tools/guides/content#custom-loaders) · [Prerendering](https://pitlane.tools/guides/prerendering) · [Crawling](https://pitlane.tools/guides/crawler) · [HMR](https://pitlane.tools/guides/hmr) · [Cloudflare D1](https://pitlane.tools/guides/cloudflare-d1)
 - API reference, generated from source, covering the same APIs `pitlane/<name>` re-exports: [`@pitlane/vite-plugin-remix`](https://pitlane.tools/package/vite-plugin-remix/) · [`@pitlane/assets`](https://pitlane.tools/package/assets/) · [`@pitlane/vite-plugin-fetch-server`](https://pitlane.tools/package/vite-plugin-fetch-server/) · [`@pitlane/theme`](https://pitlane.tools/package/theme/) · [`@pitlane/content`](https://pitlane.tools/package/content/) · [`@pitlane/crawler`](https://pitlane.tools/package/crawler/) · [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/)
-- Deploy guides: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare) · [Netlify](https://pitlane.tools/deploy/netlify) · [Vercel](https://pitlane.tools/deploy/vercel) · [Railway](https://pitlane.tools/deploy/railway) · [Deno Deploy](https://pitlane.tools/deploy/deno-deploy) · [GitHub Pages](https://pitlane.tools/deploy/github-pages)
+- Deploy guides: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare) · [Netlify](https://pitlane.tools/deploy/netlify) · [Vercel](https://pitlane.tools/deploy/vercel) · [Railway](https://pitlane.tools/deploy/railway) · [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 
 For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).
 

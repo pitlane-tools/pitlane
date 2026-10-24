@@ -24,15 +24,15 @@ Release order: publish the package, then merge the templates branch.
 ## Procedure
 
 1. **Convert one template first.** The `app/` code is near-identical across templates, so settle every decision once: what moves to `app/theme.ts`, what stays in `app/styles/preflight.css`, which callsites change.
-2. **Replicate verbatim.** The templates stay as close to identical as they are today. A per-template flourish is a maintenance tax on eight repos.
-3. **Wire the dependency by role.** Runtime code the app imports goes in `dependencies` beside `remix`. A build-time plugin goes in `devDependencies` beside `@pitlane/vite-plugin-remix`. Deno templates take `"npm:<name>@^x.y.z"` in the `imports` map of `deno.json`/`deno.jsonc`.
+2. **Replicate verbatim.** The templates stay as close to identical as they are today. A per-template flourish is a maintenance tax on six templates.
+3. **Wire the dependency by role.** Runtime code the app imports goes in `dependencies` beside `remix`. A build-time plugin goes in `devDependencies` beside `@pitlane/vite-plugin-remix`.
 4. **Verify against a local tarball.** The package is unpublished, so build one:
 
     ```sh
     cd packages/<name> && vp run build && pnpm pack --pack-destination /tmp
     ```
 
-    Add an override to the templates' ROOT `pnpm-workspace.yaml`, install, and build every pnpm template:
+    Add an override to the templates' ROOT `pnpm-workspace.yaml`, install, and build every template:
 
     ```yaml
     overrides:
@@ -62,7 +62,7 @@ A concrete miss: three `mix={[...]}` arrays failed to typecheck, the branded `cs
 
 ## Know what CI actually gates
 
-`ci.yml` runs `vp build` for the node templates and `deno task build` plus `deno task check` for the Deno ones. **The node templates are never typechecked**, so latent type errors accumulate there invisibly. Do not treat a `tsc` delta as an acceptance gate, and do not fix unrelated pre-existing type errors inside the adoption commits. Report them.
+`ci.yml` runs `vp build` for every template. **The templates are never typechecked**, so latent type errors accumulate there invisibly. Do not treat a `tsc` delta as an acceptance gate, and do not fix unrelated pre-existing type errors inside the adoption commits. Report them.
 
 ## Common mistakes
 

@@ -87,7 +87,6 @@ const GUIDE_GROUPS: { title: string; links: { title: string; url: string }[] }[]
             deploy("Netlify", "netlify"),
             deploy("Vercel", "vercel"),
             deploy("Railway", "railway"),
-            deploy("Deno Deploy", "deno-deploy"),
             deploy("GitHub Pages", "github-pages"),
         ],
     },

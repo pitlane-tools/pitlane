@@ -76,9 +76,10 @@ async function fromSource(
     // `arguments[0]`, so the JSX runtime still arrives the way it expects. It
     // reads `unsafeHTML` off the same object for the import `rawStyles` adds.
     //
-    // `new Function` is what makes runtime `.mdx` Node, Bun, and Deno only, and
-    // it is unavoidable on this path: a compiled MDX body is a function body by
-    // construction. A host that forbids it prebuilds the collection instead.
+    // `new Function` is what limits runtime `.mdx` to hosts that allow it, such
+    // as Node and Bun, and it is unavoidable on this path: a compiled MDX body
+    // is a function body by construction. A host that forbids it prebuilds the
+    // collection instead.
     // oxlint-disable-next-line typescript/no-implied-eval
     let evaluate = compile(names, compiled.code, entry.filePath ?? entry.id);
     let module = evaluate(
@@ -286,8 +287,8 @@ interface NodeResolution {
  *
  * A static import would put them in the chain `index.ts` pulls in, and the
  * package documents itself as safe to import on any host. Only a runtime
- * `.mdx` render reaches here, and that path is already Node, Bun, and Deno
- * only because it needs `new Function`.
+ * `.mdx` render reaches here, and that path already needs a host that allows
+ * `new Function`, such as Node or Bun.
  */
 async function nodeResolution(): Promise<NodeResolution> {
     let [{ createRequire }, { pathToFileURL }] = await Promise.all([

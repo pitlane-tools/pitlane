@@ -2,7 +2,7 @@
 
 A Vite plugin for [Remix](https://remix.run). It builds client and server bundles with an asset manifest for [`@pitlane/assets`](https://pitlane.tools/guides/assets), gives `clientEntry()` islands portable identities that Remix's `render({ assets })` resolves, serves development requests through your app's fetch handler, and previews the production build. It works with Vite and [Vite+](https://viteplus.dev).
 
-Your server entry exports a standard fetch handler. Use platform plugins such as `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` in the same Vite config, or run the built application on Node, Bun, or Deno.
+Your server entry exports a standard fetch handler. Use platform plugins such as `@cloudflare/vite-plugin`, `@netlify/vite-plugin`, or `nitro/vite` in the same Vite config, or run the built application on Node or Bun.
 
 ## Install
 
@@ -239,7 +239,7 @@ Every consumer speaks that same shape:
 
 - **Dev** imports the entry through Vite's module runner and calls `default.fetch`, through [`@pitlane/vite-plugin-fetch-server`](https://pitlane.tools/guides/fetch-server).
 - **Preview** imports `dist/ssr/index.js` and calls `default.fetch`.
-- **Production** is whatever your target does with a fetch handler: `export default { fetch: router.fetch }` on Workers, `Bun.serve({ fetch: router.fetch })`, `deno serve dist/ssr/index.js`, or Node via `remix/node-fetch-server`.
+- **Production** is whatever your target does with a fetch handler: `export default { fetch: router.fetch }` on Workers, `Bun.serve({ fetch: router.fetch })`, or Node via `remix/node-fetch-server`.
 
 Need extra worker exports? Wrap it:
 
@@ -343,14 +343,6 @@ Bun.serve({
     port: 3000,
     fetch: request => router.fetch(request),
 });
-```
-
-### Deno
-
-The built entry already satisfies `deno serve`'s default-export contract:
-
-```sh
-deno serve --allow-read --allow-net dist/ssr/index.js
 ```
 
 ### Cloudflare Workers
@@ -464,7 +456,7 @@ Generic-Vite projects have one vite by construction and are unaffected.
 - [Hot module replacement](https://pitlane.tools/guides/hmr)
 - [Single-page apps](https://pitlane.tools/guides/spa)
 - [Prerendering](https://pitlane.tools/guides/prerendering)
-- Deployment: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare), [Netlify](https://pitlane.tools/deploy/netlify), [Vercel](https://pitlane.tools/deploy/vercel), [Railway](https://pitlane.tools/deploy/railway), [Deno Deploy](https://pitlane.tools/deploy/deno-deploy), [GitHub Pages](https://pitlane.tools/deploy/github-pages)
+- Deployment: [Cloudflare Workers](https://pitlane.tools/deploy/cloudflare), [Netlify](https://pitlane.tools/deploy/netlify), [Vercel](https://pitlane.tools/deploy/vercel), [Railway](https://pitlane.tools/deploy/railway), [GitHub Pages](https://pitlane.tools/deploy/github-pages)
 - [API reference](https://pitlane.tools/package/vite-plugin-remix/)
 
 For AI agents and other LLM tools, the documentation is also published as Markdown. [`llms.txt`](https://pitlane.tools/llms.txt) indexes every page, [`llms-full.txt`](https://pitlane.tools/llms-full.txt) holds them all in one file, and every page has a Markdown twin at its URL plus `.md`, or plus `index.md` when the URL ends in `/`, such as [`https://pitlane.tools/guides/vite-plugin.md`](https://pitlane.tools/guides/vite-plugin.md).

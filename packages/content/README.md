@@ -45,7 +45,7 @@ if (post) {
 
 `createContent()` returns synchronously without loading entries. Import the returned object wherever you need it; reads and rendering stay asynchronous.
 
-The loaders are ordinary runtime code, which covers Node, Bun, Deno, and container hosts. For a host with no filesystem, add `contentLayer()` from `@pitlane/content/vite-plugin` and the build resolves the collections ahead of time, inlining entry data and compiling Markdown bodies into the bundle. The collection declarations do not change.
+The loaders are ordinary runtime code, which covers Node, Bun, and container hosts. For a host with no filesystem, add `contentLayer()` from `@pitlane/content/vite-plugin` and the build resolves the collections ahead of time, inlining entry data and compiling Markdown bodies into the bundle. The collection declarations do not change.
 
 ## Configuring Vite
 
