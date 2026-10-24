@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-10-15
+updated: 2026-10-24
 ---
 
 # Pitlane Vision
@@ -9,7 +9,7 @@ updated: 2026-10-15
 
 ## Overview
 
-Pitlane is a **composable toolkit** for Remix 3. It provides build tooling, runtime packages, capability adapters, target templates, and deployment guidance needed to take a Remix application from development to production across Cloudflare, Netlify, Vercel, Railway, Deno Deploy, and plain Node, Bun, or Deno runtimes.
+Pitlane is a **composable toolkit** for Remix 3. It provides build tooling, runtime packages, capability adapters, target templates, and deployment guidance needed to take a Remix application from development to production across Cloudflare, Netlify, Vercel, Railway, and plain Node or Bun runtimes.
 
 The portable boundary is the application, not a synthesized hosting layer. Controllers, job definitions, and capability usage depend on Remix or Pitlane-owned contracts; the server entry exposes a standard fetch handler. Hosting then composes explicitly around that handler through a provider's Vite plugin, native configuration, CLI, or a small runtime launcher.
 
@@ -277,10 +277,9 @@ The stable contract is the server entry's default-exported `.fetch(Request)` han
 | Target | Composition |
 | --- | --- |
 | Cloudflare Workers | `@cloudflare/vite-plugin`, checked-in `cloudflare.config.ts`, workerd, and the `cf` CLI |
-| Netlify | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Function or Edge Function |
+| Netlify | `@netlify/vite-plugin`, checked-in `netlify.toml`, and a thin Netlify Function |
 | Vercel | `nitro/vite`, Vercel's Build Output API, and prebuilt deployments through the Vercel CLI |
-| Railway / container hosts | `dist/ssr/index.js`, a small Node/Bun/Deno launcher, and a checked-in Dockerfile |
-| Deno Deploy | the built fetch handler behind a small Deno entrypoint and the `deno deploy` CLI |
+| Railway / container hosts | `dist/ssr/index.js`, a small Node or Bun launcher, and a checked-in Dockerfile |
 | Static hosts / GitHub Pages | a client-only Vite build; `@pitlane/vite-plugin-remix` is unnecessary when there is no server or hydration |
 
 Provider configuration remains checked in at the paths the provider documents. It is the source of truth for bindings, compatibility flags, asset rules, schedules, redirects, and runtime settings. Provider tools generate their own binding types and manage login, secrets, resource creation, logs, preview, and deployment.
@@ -1124,7 +1123,7 @@ vpx cf workers secrets update SESSION_SECRET --worker contacts --type secret_tex
 
 `cf` is in beta, so templates pin an exact version. Its `cf build` runs `vite build`, and a Vite+ project has no `vite` binary, so Pitlane's templates build with `vp build`, which writes Cloudflare's Build Output, and deploy that output with `cf deploy --prebuilt`.
 
-Pitlane does not mirror those operations. Netlify, Vercel, Railway, and Deno keep their equivalent native config and commands.
+Pitlane does not mirror those operations. Netlify, Vercel, and Railway keep their equivalent native config and commands.
 
 ## Deployment workflows
 
@@ -1136,10 +1135,9 @@ The build happens in the developer's shell or CI, under application control. The
 | Netlify      | `vp build && vpx netlify-cli deploy --no-build --prod`                        |
 | Vercel       | `vpx vercel build --prod && vpx vercel deploy --prebuilt --prod`              |
 | Railway      | build and push the Docker image, then `vpx railway redeploy --service <name>` |
-| Deno Deploy  | `vp build && deno deploy --app <name> --prod`                                 |
 | GitHub Pages | upload `dist/` and deploy it with the official GitHub Pages actions           |
 
-Railway and Deno Deploy also have No Build paths, for an app that runs from source with `remix/assets` compiling browser modules on request. Railway's image only installs dependencies before `railway redeploy`; Deno Deploy runs `deno install` on its builders and `deno deploy --app <name> --prod` uploads the source. The other targets bundle server code themselves or have no runtime, so they have no No Build path.
+Railway also has a No Build path, for an app that runs from source with `remix/assets` compiling browser modules on request: its image only installs dependencies before `railway redeploy`. The other targets bundle server code themselves or have no runtime, so they have no No Build path.
 
 Migration execution is an explicit application step rather than an implicit side effect of every deploy. A workflow that needs migrations runs the adapter or provider's migration command before uploading the new artifact and aborts on failure.
 
@@ -1204,7 +1202,7 @@ vp install
 vp dev
 ```
 
-The template repository carries the same guest-book application across Cloudflare, Netlify, Vercel, Railway on Node/Bun/Deno, Deno Deploy, and GitHub Pages. Diffing two templates shows the portability boundary directly.
+The template repository carries the same guest-book application across Cloudflare, Netlify, Vercel, Railway on Node or Bun, and GitHub Pages. Diffing two templates shows the portability boundary directly.
 
 ### First deploy
 
