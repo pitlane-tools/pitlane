@@ -2,25 +2,17 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { readdir } from "node:fs/promises";
 import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 
 // The published files under Cloudflare's local runtime, configured exactly as
-// they deploy: static assets only, with no Worker code for any request.
-let server = spawn(
-    "./node_modules/.bin/wrangler",
-    [
-        "dev",
-        "--config",
-        "wrangler.jsonc",
-        "--ip",
-        "127.0.0.1",
-        "--port",
-        "0",
-        "--inspector-port",
-        "0",
-    ],
-    { stdio: ["ignore", "pipe", "pipe"] },
-);
+// they deploy: static assets only, with no Worker code for any request. The
+// listening address and inspector port come from docs/cloudflare/wrangler.config.ts.
+let worker = fileURLToPath(new URL("cloudflare/", import.meta.url));
+let server = spawn(`${worker}node_modules/.bin/cf`, ["dev", "--port", "0"], {
+    cwd: worker,
+    stdio: ["ignore", "pipe", "pipe"],
+});
 let timer: NodeJS.Timeout | undefined;
 try {
     let origin = await new Promise<string>((resolve, reject) => {

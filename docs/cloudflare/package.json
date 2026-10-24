@@ -1,0 +1,9 @@
+{
+    "name": "pitlane-docs-worker",
+    "private": true,
+    "type": "module",
+    "devDependencies": {
+        "cf": "1.0.0-beta.17",
+        "wrangler": "^4.151.0"
+    }
+}

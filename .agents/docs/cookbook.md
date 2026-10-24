@@ -28,14 +28,15 @@ app/
     metadata/            # `<Head>` component + streaming metadata manager
 db/
   migrations/            # Authored migrations — one directory per migration with up.sql / down.sql
-  d1-migrations/         # Generated Wrangler-format .sql files (committed)
-  apply-d1-migrations.ts # Applies SQL via `wrangler d1 migrations apply`
+  d1-migrations/         # Generated flat .sql files for the D1 migration runner (committed)
+  apply-d1-migrations.ts # Applies SQL via `cf d1 migrations apply`
   generate-d1-migrations.ts # Compiles db/migrations/ → db/d1-migrations/
-  seed.ts                # Idempotent local seed script
+  seed.sql               # Idempotent demo rows
+  seed.ts                # Feeds seed.sql to the local database with `cf d1 raw`
   lib/                   # Shared helpers for the db scripts
 vite.config.ts           # Unified config: build, dev, fmt, lint, typecheck, db tasks
 remix-test.config.ts     # `remix test` config (glob patterns, playwright projects)
-wrangler.jsonc           # Cloudflare bindings (D1, R2, assets)
+cloudflare.config.ts     # The Worker, its bindings (D1, R2), and its triggers
 ```
 
 **Key principle:** Everything runs through `vite.config.ts`. There are no separate config files for linting, formatting, or building. The CLI is `vp` (Vite+).
@@ -1243,7 +1244,7 @@ export type Post = TableRow<typeof Posts>;
 let post = await db.create(Posts, { title: "Hello", body: "World" }, { returnRow: true });
 ```
 
-**Migrations:** When deploying to Cloudflare D1, author migrations as TypeScript under `db/migrations/` using `remix/data-table/migrations`, then compile them to deterministic `.sql` files in `db/d1-migrations/` (committed to git). Cloudflare's own `wrangler d1 migrations apply` consumes the generated SQL — both `--local` and `--remote` use the same files, so there is no TypeScript-only path against the dev database.
+**Migrations:** When deploying to Cloudflare D1, author migrations as TypeScript under `db/migrations/` using `remix/data-table/migrations`, then compile them to deterministic `.sql` files in `db/d1-migrations/` (committed to git). Cloudflare's own `cf d1 migrations apply` consumes the generated SQL — the local simulation and the deployed database get the same files, so there is no TypeScript-only path against the dev database.
 
 ```tsx
 // db/migrations/20260213161402_create_posts.ts
@@ -1292,36 +1293,35 @@ for (let migration of migrations) {
 
 `schema.createTable()` reads column definitions directly from the `table()` call, so you never write raw SQL for table creation. `schema.createIndex()` takes the table and an array of column names. Use `{ ifNotExists: true }` / `{ ifExists: true }` for idempotent migrations.
 
-**Seed data** lives in a separate standalone script (`db/seed.ts`), not a migration. It connects to D1 via Wrangler's `getPlatformProxy` and inserts rows directly:
+**Seed data** lives in a separate standalone script (`db/seed.ts`), not a migration. There is no Node-side binding proxy in the `cf` toolchain — bindings exist inside workerd — so the script feeds SQL to the local database through `cf d1 raw`:
 
 ```tsx
 // db/seed.ts
-import { D1DatabaseAdapter } from "#/data/adapters/d1-data-table.ts";
-import { Posts } from "#/data/posts.ts";
-import { Database } from "remix/data-table";
-import { getPlatformProxy } from "wrangler";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import config from "../cloudflare.config.ts";
 
-let proxy = await getPlatformProxy<Env>({ configPath: "./wrangler.jsonc", persist: true });
+let { id } = config.worker.env.DB;
 
-try {
-    let db = new Database(new D1DatabaseAdapter(proxy.env.DB));
-
-    let count = await db.count(Posts);
-    if (count > 0) {
-        console.log(`Seed skipped: ${count} row(s) already present.`);
-        process.exit(0);
-    }
-
-    for (let post of SEED_POSTS) {
-        await db.create(Posts, post);
-    }
-} finally {
-    await proxy.dispose();
-    process.exit(0);
-}
+// `--persist-to` aims this at the dev server's own state, and the SQL uses
+// `on conflict do nothing` so re-running it changes nothing.
+execFileSync(
+    "cf",
+    [
+        "d1",
+        "raw",
+        id,
+        "--local",
+        "--persist-to",
+        ".cloudflare/state",
+        "--sql",
+        readFileSync("db/seed.sql", "utf8"),
+    ],
+    { stdio: "inherit" },
+);
 ```
 
-The seed runs only against local D1 (via `getPlatformProxy`) — production starts empty.
+`--sql` takes several statements separated by semicolons and runs them as one batch. The seed runs only against the local simulation — production starts empty.
 
 **Query functions** access the database through context:
 
@@ -1340,7 +1340,7 @@ export async function getPosts(): Promise<Post[]> {
 
 **Decision:** My app is already running in production and I need to add a column, rename a table, or make another schema change. How do I manage this?
 
-**Heuristic:** Use migration files — one per schema change, timestamped and ordered. Each migration has an `up` (apply) and `down` (revert) function. On Cloudflare D1, compile them to `.sql` and let Wrangler's `d1 migrations apply` track which have run via its built-in `d1_migrations` journal table.
+**Heuristic:** Use migration files — one per schema change, timestamped and ordered. Each migration has an `up` (apply) and `down` (revert) function. On Cloudflare D1, compile them to `.sql` and let `cf d1 migrations apply` track which have run via its `d1_migrations` journal table.
 
 **Project structure:**
 
@@ -1355,7 +1355,7 @@ db/
     20260315140000_add_published_at.sql
     20260320100000_add_tags.sql
   generate-d1-migrations.ts                  # TS → SQL compiler
-  apply-d1-migrations.ts                     # Shells out to `wrangler d1 migrations apply`
+  apply-d1-migrations.ts                     # Shells out to `cf d1 migrations apply`
   seed.ts                                    # Standalone seed script
   lib/                                       # Shared helpers
 ```
@@ -1437,15 +1437,15 @@ async up({ schema }) {
 **The two-step Cloudflare D1 workflow:**
 
 1. **Generate** — `vp run db:migrations:generate` runs each TS migration through the data-table runner in `dryRun: true` mode and writes one deterministic `.sql` file per source migration into `db/d1-migrations/`. These files are committed to git.
-2. **Apply** — `vp run db:migrations:apply:local` (or `:remote`) shells out to `wrangler d1 migrations apply DB --local` (or `--remote`), which reads `db/d1-migrations/` and uses Wrangler's own `d1_migrations` journal table on the target database.
+2. **Apply** — `vp run db:migrations:apply:local` (or `:remote`) shells out to `cf d1 migrations apply`, which reads `db/d1-migrations/` and records what it applied in a `d1_migrations` journal table on the target database. It is wire-compatible with `wrangler d1 migrations apply` — same table, same recorded file names, same order — so a database part-way through the Wrangler workflow carries over untouched.
 
-The apply helper is a thin wrapper around `wrangler`:
+The apply helper is a thin wrapper around `cf`:
 
 ```tsx
 // db/apply-d1-migrations.ts (simplified)
+import { execFileSync } from "node:child_process";
 import { parseArgs } from "node:util";
-import { buildApplyCommand, runApplyCommand } from "./lib/wrangler-cli.ts";
-import { parseWranglerConfig } from "./lib/wrangler-config.ts";
+import config from "../cloudflare.config.ts";
 
 let { values } = parseArgs({
     options: {
@@ -1453,21 +1453,18 @@ let { values } = parseArgs({
         remote: { type: "boolean", default: false },
     },
 });
-let target: "local" | "remote" = values.local ? "local" : "remote";
 
-let config = parseWranglerConfig();
-let cmd = buildApplyCommand({
-    d1Binding: config.d1.binding,
-    target,
-    configPath: config.configPath,
+// The command takes a database ID, never a binding or database name, so read
+// it from the one file that already holds it.
+let { id } = config.worker.env.DB;
+let target = values.local ? ["--local", "--persist-to", ".cloudflare/state"] : [];
+
+execFileSync("cf", ["d1", "migrations", "apply", id, "--dir", "db/d1-migrations", ...target], {
+    stdio: "inherit",
 });
-
-let { stdout, stderr } = await runApplyCommand(cmd);
-process.stdout.write(stdout);
-process.stderr.write(stderr);
 ```
 
-The `--remote` target needs `CLOUDFLARE_API_TOKEN` (or `CLOUDFLARE_API_KEY`) in the environment.
+`--local` on its own writes to a machine-wide simulation inside the `cf` configuration directory, which is **not** the database `vp dev` serves. `--persist-to .cloudflare/state` aims it at the Vite plugin's own dev state, which is what makes the migration visible to the dev server. The remote target needs `CLOUDFLARE_API_TOKEN` in the environment, plus `CLOUDFLARE_ACCOUNT_ID` unless `accountId` is set in `cloudflare.config.ts`.
 
 **Wiring it into Vite+ tasks** (`vite.config.ts`):
 
@@ -1497,27 +1494,25 @@ run: {
             command: "node db/seed.ts",
         },
         "db:reset": {
-            command: "rm -rf .wrangler/state/v3/d1",
+            command: "rm -rf .cloudflare/state/v3/d1",
         },
     },
 },
 ```
 
-This makes `vp dev` (which `dependsOn: ["typegen", "db:seed"]`) idempotently regenerate SQL, apply migrations locally, and seed demo rows before starting the server.
+This makes `vp run dev` (the `dev` task, which `dependsOn: ["db:seed"]`) idempotently regenerate SQL, apply migrations locally, and seed demo rows before starting the server. Plain `vp dev` starts Vite without running the task's dependencies.
 
-**`wrangler.jsonc` setup:** Point `migrations_dir` at `db/d1-migrations/` (relative to the wrangler config file):
+**`cloudflare.config.ts` setup:** the D1 binding carries the ID the apply command needs. The migrations directory is not a config key at all — it is the `--dir` flag:
 
-```jsonc
-"d1_databases": [
-    {
-        "binding": "DB",
-        "database_name": "my-db",
-        "database_id": "local",
-        // Generated by `vp db:migrations:generate` from db/migrations/*.ts.
-        "migrations_dir": "./db/d1-migrations"
-    }
-]
+```tsx
+env: {
+    // Generated by `vp run db:migrations:generate` from db/migrations/*.ts and
+    // applied with `cf d1 migrations apply <id> --dir db/d1-migrations`.
+    DB: bindings.d1({ name: "my-db", id: "<DATABASE_ID>" }),
+},
 ```
+
+`cf migrate` leaves Wrangler's `migrations_dir`, `migrations_pattern`, and `migrations_table` behind for the same reason; they become `--dir`, `--pattern`, and `--table` on the apply command.
 
 **The development workflow:**
 
@@ -1527,15 +1522,15 @@ When you need to change your schema, you update three things together in the sam
 2. **Write a TS migration** in `db/migrations/` that transitions the database (e.g., `schema.alterTable` with `table.addColumn`).
 3. **Regenerate `db/d1-migrations/`** by running `vp run db:migrations:generate` and commit the resulting `.sql` file alongside the source.
 
-The `table()` definition is the source of truth for what the schema looks like _now_. The TS migration describes _how to get there_. The committed `.sql` is the artifact Wrangler actually applies — keeping it under source control means CI/CD doesn't need to compile TS at deploy time, and `--local` and `--remote` are guaranteed to apply byte-identical SQL.
+The `table()` definition is the source of truth for what the schema looks like _now_. The TS migration describes _how to get there_. The committed `.sql` is the artifact the D1 migration runner actually applies — keeping it under source control means CI/CD doesn't need to compile TS at deploy time, and local and remote are guaranteed to apply byte-identical SQL.
 
 **At deploy time**, apply migrations before the worker takes traffic:
 
 ```sh
-vp run db:migrations:deploy && wrangler deploy
+vp run db:migrations:deploy && vp build && cf deploy --prebuilt --mode production
 ```
 
-Wrangler's `d1_migrations` journal table tracks which migrations have already been applied, so this is always safe — it only applies new ones.
+The `d1_migrations` journal table tracks which migrations have already been applied, so this is always safe — it only applies new ones.
 
 **Key principles:**
 
@@ -1598,7 +1593,7 @@ The client handles the state update optimistically and doesn't need a redirect.
 
 **Decision:** What does my `vite.config.ts` need?
 
-**Heuristic:** Keep it minimal. The Remix plugin handles most of the build configuration. When deploying to Cloudflare Workers, add the `@cloudflare/vite-plugin` to handle Workers-specific bundling and binding injection.
+**Heuristic:** Keep it minimal. The Remix plugin handles most of the build configuration. When deploying to Cloudflare Workers, add the `@cloudflare/vite-plugin` to handle Workers-specific bundling and binding injection; the Worker itself is declared in `cloudflare.config.ts` (Recipe 37).
 
 ```tsx
 import { cloudflare } from "@cloudflare/vite-plugin";
@@ -1617,14 +1612,14 @@ export default defineConfig({
     run: {
         tasks: {
             dev: {
-                dependsOn: ["typegen", "db:seed"],
+                dependsOn: ["db:seed"],
                 command: "vp dev --host",
             },
             "db:seed": {
                 dependsOn: ["db:migrations:apply:local"],
                 command: "node db/seed.ts",
             },
-            "db:reset": { command: "rm -rf .wrangler/state/v3/d1" },
+            "db:reset": { command: "rm -rf .cloudflare/state/v3/d1" },
             "db:migrations:generate": {
                 command: "node db/generate-d1-migrations.ts",
                 cache: false,
@@ -1643,22 +1638,13 @@ export default defineConfig({
                 command: "node db/apply-d1-migrations.ts --remote",
                 cache: false,
             },
-            typegen: {
-                input: ["wrangler.jsonc"],
-                command: "wrangler types",
-            },
             typecheck: {
-                dependsOn: ["typegen"],
-                command: "tsc --noEmit",
+                command: "cf workers types && tsc --noEmit",
                 cache: false,
             },
-            check: {
-                dependsOn: ["typegen"],
-                command: "vp check --fix",
-                cache: false,
-            },
+            check: { command: "vp check --fix", cache: false },
             test: { command: "remix test" },
-            deploy: { command: "wrangler deploy", cache: false },
+            deploy: { command: "vp build && cf deploy --prebuilt --mode production", cache: false },
         },
     },
     fmt: {
@@ -1673,14 +1659,13 @@ export default defineConfig({
 **Plugin configuration:**
 
 - `remix({ serverHandler: false })` — Disables the development request bridge `remix()` composes from `@pitlane/vite-plugin-fetch-server`, since Cloudflare's plugin serves requests inside workerd. Without this flag, Vite's dev server would also run the server entry through its own Node module runner.
-- `cloudflare({ viteEnvironment: { name: "ssr" } })` — Tells the Cloudflare Vite plugin which build environment contains the server entry. This plugin handles Workers-specific bundling, injects platform bindings (D1, R2, etc.) during dev, and produces a deployable worker bundle.
+- `cloudflare({ viteEnvironment: { name: "ssr" } })` — Tells the Cloudflare Vite plugin which build environment contains the server entry. This plugin handles Workers-specific bundling, injects platform bindings (D1, R2, etc.) during dev, writes `.cloudflare/types/index.d.ts`, and produces the Build Output `cf deploy` uploads.
 
 **Run tasks:** The `run.tasks` config defines orchestrated commands that `vp run <task>` executes. Key patterns:
 
-- **`dependsOn`:** Ensures prerequisites run first. `dev` chains `typegen` (generates `Env` types from `wrangler.jsonc`) and `db:seed` (which itself chains `db:migrations:apply:local` → `db:migrations:generate`).
-- **`input`:** File-based cache invalidation. `typegen` only reruns when `wrangler.jsonc` changes.
+- **`dependsOn`:** Ensures prerequisites run first. `dev` chains `db:seed`, which itself chains `db:migrations:apply:local` → `db:migrations:generate`. Binding types need no task: the Cloudflare plugin writes them on every dev and build run.
 - **`cache: false`:** Disables caching for tasks that should always run (typecheck, deploy, migrations).
-- **`db:reset`:** Deletes local D1 state for a clean slate during development.
+- **`db:reset`:** Deletes the local D1 simulation under `.cloudflare/state/v3/d1` for a clean slate during development.
 - **`test`:** Runs the in-tree `remix test` runner (see Recipe 32) against `remix-test.config.ts`.
 
 **What the `remix()` plugin provides:**
@@ -1692,13 +1677,13 @@ export default defineConfig({
 
 **Commands:**
 
-- `vp dev` — start dev server with HMR (runs typegen + migrations + seed first)
+- `vp run dev` — start dev server with HMR (runs migrations + seed first)
 - `vp build` — production build
 - `vp preview` — preview production build locally
 - `vp check` — format + lint + typecheck in one pass
 - `vp run test` — run the `remix test` suite
 - `vp run db:migrations:deploy` — generate SQL + apply to remote D1
-- `vp run deploy` — deploy to Cloudflare Workers
+- `vp run deploy` — build, then upload that build with `cf deploy --prebuilt`
 - `vp run db:reset` — wipe local D1 database
 
 ---
@@ -3052,60 +3037,53 @@ The `#` prefix is the only one that works everywhere without configuration beyon
 
 **Decision:** How do I configure my Remix app to run on Cloudflare Workers with D1 (database) and R2 (file storage)?
 
-**Heuristic:** Use `wrangler.jsonc` to declare your bindings, the `@cloudflare/vite-plugin` for dev/build integration, and platform-specific adapters for D1 and R2. Access bindings through `cloudflare:workers` at the top level and through request context in middleware.
+**Heuristic:** Declare the Worker and its bindings in `cloudflare.config.ts`, use the `@cloudflare/vite-plugin` for dev/build integration, and platform-specific adapters for D1 and R2. Access bindings through `cloudflare:workers` at the top level and through request context in middleware.
 
-**Wrangler configuration** (`wrangler.jsonc`):
+**Cloudflare configuration** (`cloudflare.config.ts`):
 
-```jsonc
-{
-    "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "my-app",
-    "main": "./app/entry.server.tsx",
-    "assets": { "directory": "dist/client" },
-    "compatibility_date": "2026-04-02",
-    "compatibility_flags": ["nodejs_compat"],
-    "d1_databases": [
-        {
-            "binding": "DB",
-            "database_name": "my-db",
-            "database_id": "local",
-            // Generated by `vp db:migrations:generate` from db/migrations/*.ts.
-            // `migrations_dir` is resolved relative to this wrangler config file.
-            "migrations_dir": "./db/d1-migrations",
+```tsx
+import { bindings, defineConfig } from "cf/config";
+
+export default defineConfig({
+    worker: {
+        name: "my-app",
+        entrypoint: "./app/entry.server.tsx",
+        compatibilityDate: "2026-04-02",
+        compatibilityFlags: ["nodejs_compat"],
+        env: {
+            // `id` is what `cf d1 create` printed. The migration commands take
+            // that id — never the binding name or the database name.
+            DB: bindings.d1({ name: "my-db", id: "<DATABASE_ID>" }),
+            FILES: bindings.r2({ name: "my-files" }),
         },
-    ],
-    "r2_buckets": [{ "binding": "FILES", "bucket_name": "my-files" }],
-}
+    },
+});
 ```
 
 **Key fields:**
 
-- `main` — Your server entry point. Cloudflare Workers loads this as the request handler.
-- `assets.directory` — Points to the client build output. Workers serves these as static assets before hitting your server code.
-- `compatibility_flags: ["nodejs_compat"]` — Enables Node.js API compatibility (required for `node:` imports like `node:path`, `node:timers/promises`).
-- `d1_databases` — Declares D1 database bindings. Use `"database_id": "local"` for development; replace with the real ID for production. The `migrations_dir` points Wrangler at the generated SQL files (see Recipe 18).
-- `r2_buckets` — Declares R2 object storage bindings.
+- `entrypoint` — Your server entry point. Cloudflare Workers loads this as the request handler.
+- `compatibilityFlags: ["nodejs_compat"]` — Enables Node.js API compatibility (required for `node:` imports like `node:path`, `node:timers/promises`).
+- `env` — Every binding the Worker sees, built with `bindings.d1()`, `bindings.r2()`, `bindings.kv()`, `bindings.text()`, and `bindings.secret()`. `cf deploy` provisions a resource for a binding that omits its id, but does not write the id back.
+- No assets directory. Build settings do not live in this file: with the Vite bundler the client build is the asset source, and `worker.assets` carries only routing options such as `htmlHandling` and `notFoundHandling`.
 
 **Generating types from bindings:**
 
-Run `wrangler types` to generate a `worker-configuration.d.ts` file with the `Env` interface. This gives TypeScript knowledge of your bindings:
+The Cloudflare Vite plugin writes `.cloudflare/types/index.d.ts` during dev and build, and `cf workers types` writes the same file on demand. It derives `Env` from `cloudflare.config.ts`, so there is no second declaration of your bindings to keep in step:
 
 ```tsx
-// Auto-generated by `wrangler types`
-interface Env {
-    DB: D1Database;
-    FILES: R2Bucket;
-}
+// .cloudflare/types/index.d.ts, generated from cloudflare.config.ts
+interface Env extends Cloudflare.Env {} // DB: D1Database, FILES: R2Bucket
 ```
 
-Wire this into your `vite.config.ts` as a run task so types are regenerated when `wrangler.jsonc` changes:
+Name it in `tsconfig.json`'s `include` list: it is an ambient declaration file, and a `**/*.ts` pattern skips dot directories, so `Env` goes unresolved without the explicit entry. Type-checking without a build first needs the generator:
 
 ```tsx
 run: {
     tasks: {
-        typegen: {
-            input: ["wrangler.jsonc"],
-            command: "wrangler types",
+        typecheck: {
+            command: "cf workers types && tsc --noEmit",
+            cache: false,
         },
     },
 },
@@ -3220,21 +3198,21 @@ export class R2FileStorage implements FileStorage {
 
 **The development workflow:**
 
-1. `wrangler.jsonc` declares your D1 + R2 bindings and points `migrations_dir` at `./db/d1-migrations`
-2. `wrangler types` generates the `Env` interface (wired into Vite+ via the `typegen` task — see Recipe 20)
-3. The Cloudflare Vite plugin (`@cloudflare/vite-plugin`) injects local proxies for D1/R2 during `vp dev`
-4. `vp run db:migrations:apply:local` (chained from `vp dev`) compiles and applies SQL migrations to the local D1
-5. Local D1 state persists in `.wrangler/state/v3/d1/` — `vp run db:reset` wipes it
+1. `cloudflare.config.ts` declares your D1 + R2 bindings; the generated SQL lives in `db/d1-migrations/`, which `cf d1 migrations apply --dir` points at
+2. The Cloudflare Vite plugin writes `.cloudflare/types/index.d.ts` during `vp dev` and `vp build`, so `Env` follows the config (see Recipe 20)
+3. The same plugin runs the Worker in workerd with local D1/R2 simulations during `vp dev`
+4. `vp run db:migrations:apply:local` (chained from `vp run dev`) compiles and applies SQL migrations to the local D1
+5. Local state persists in `.cloudflare/state/v3/` — `vp run db:reset` wipes its D1 directory
 6. `vp run db:migrations:deploy` (or `db:migrations:apply:remote`) applies SQL migrations to the remote database — needs `CLOUDFLARE_API_TOKEN`
-7. `vp run deploy` (i.e. `wrangler deploy`) pushes your built worker to Cloudflare
+7. `vp run deploy` builds with Vite+ and uploads the result with `cf deploy --prebuilt --mode production`. `cf` builds by running the project's own build command, which means a `vite` binary; Vite+ ships `vp` instead, so a bare `cf deploy` or `cf build` fails with `Command "vite" not found`. The Cloudflare Vite plugin writes the Build Output during `vp build`, which is what `--prebuilt` uploads.
 
 **Production setup:**
 
-Before deploying, create the D1 database and R2 bucket on Cloudflare, then update `wrangler.jsonc` with the real `database_id`:
+Create the D1 database and R2 bucket before the first deploy, then put the real database ID in `cloudflare.config.ts`:
 
 ```sh
-wrangler d1 create my-db
-wrangler r2 bucket create my-files
+cf d1 create --name my-db
+cf r2 buckets create --name my-files
 ```
 
-Replace `"database_id": "local"` with the ID returned by `wrangler d1 create`. Then run `vp run db:migrations:deploy` once to seed the schema on the remote DB.
+`cf deploy` will provision a resource for a binding whose id you leave out, but it never writes the id back into your config, and `cf d1 migrations apply` accepts nothing but a database ID. Paste the one `cf d1 create` prints into `bindings.d1({ … })` — the local loop needs it too. Then run `vp run db:migrations:deploy` once to create the schema on the remote database.

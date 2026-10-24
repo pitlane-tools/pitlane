@@ -1,5 +1,5 @@
 /**
- * Compiles `data-table` migrations into the flat `.sql` files Wrangler's D1
+ * Compiles `data-table` migrations into the flat `.sql` files Cloudflare's D1
  * migration runner reads.
  *
  * Node-only build tooling. Nothing here belongs in a Worker bundle, which is
@@ -26,8 +26,8 @@ export interface GenerateD1MigrationsOptions {
     from?: string;
 
     /**
-     * Where the generated `.sql` files land. Point this at the same directory
-     * as `migrations_dir` in your Wrangler config.
+     * Where the generated `.sql` files land. Point
+     * `cf d1 migrations apply --dir` at the same directory.
      */
     to: string;
 }
@@ -46,7 +46,8 @@ export interface GeneratedD1Migration {
 
 /**
  * A generated file, as opposed to a `.gitkeep` or a `README.md` that happens to
- * sit in the same directory. Matches Wrangler's own migration filename shape.
+ * sit in the same directory. Matches the numbered `<id>_<name>.sql` shape D1's
+ * migration runner discovers and orders.
  */
 const GENERATED = /^\d{4,14}_.+\.sql$/;
 

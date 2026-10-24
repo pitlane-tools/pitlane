@@ -10,6 +10,7 @@ packages/pitlane/INDEX.md
 .vale/
 dist
 .wrangler
+.cloudflare
 docs/app/content/api
 docs/.generated
 docs/.index
