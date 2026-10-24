@@ -7,7 +7,6 @@ export let platforms = [
     { name: "Cloudflare", slug: "cloudflare", detail: "workerd" },
     { name: "Netlify", slug: "netlify", detail: "Node.js" },
     { name: "Vercel", slug: "vercel", detail: "Node.js" },
-    { name: "Railway", slug: "railway", detail: "Node.js, Bun, or Deno" },
-    { name: "Deno Deploy", slug: "deno-deploy", detail: "Deno" },
+    { name: "Railway", slug: "railway", detail: "Node.js or Bun" },
     { name: "GitHub Pages", slug: "github-pages", detail: "Browser" },
 ];
