@@ -18,7 +18,7 @@ Build public APIs on Web-standard types, such as `Request`, `Response`, `Headers
 
 ## Why this exists
 
-Web APIs are the one set of abstractions every Pitlane target shares: Cloudflare, Netlify, Vercel, Deno Deploy, plain Node, Bun, and Deno, plus the browser and service workers. An API that takes a Node `IncomingMessage` or a provider's request object works on one of them and has to be wrapped for the rest. A reader who knows `fetch` already knows how a server entry, a controller, and `@pitlane/vite-plugin-fetch-server` exchange requests and responses.
+Web APIs are the one set of abstractions every Pitlane target shares: Cloudflare, Netlify, Vercel, plain Node and Bun, plus the browser and service workers. An API that takes a Node `IncomingMessage` or a provider's request object works on one of them and has to be wrapped for the rest. A reader who knows `fetch` already knows how a server entry, a controller, and `@pitlane/vite-plugin-fetch-server` exchange requests and responses.
 
 ## What it applies to
 
@@ -39,6 +39,7 @@ Web APIs are the one set of abstractions every Pitlane target shares: Cloudflare
 
 ## Revision history
 
-| Date       | Change                   | Proposal        |
-| ---------- | ------------------------ | --------------- |
+| Date | Change | Proposal |
+| --- | --- | --- |
 | 2026-10-10 | Established this policy. | pull-request.87 |
+| 2026-10-24 | Removed Deno and Deno Deploy from the targets the rationale names. | pull-request.100 |
