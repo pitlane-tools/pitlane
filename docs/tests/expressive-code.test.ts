@@ -190,7 +190,6 @@ test("proposal.0004: an install group offers every package manager's command, ea
         ["yarn", "yarn add @pitlane/content\nyarn add -D satteri vite-plugin-satteri"],
         ["pnpm", "pnpm add @pitlane/content\npnpm add -D satteri vite-plugin-satteri"],
         ["bun", "bun add @pitlane/content\nbun add -D satteri vite-plugin-satteri"],
-        ["deno", "deno add npm:@pitlane/content\ndeno add -D npm:satteri npm:vite-plugin-satteri"],
         ["vp", "vp add @pitlane/content\nvp add -D satteri vite-plugin-satteri"],
         ["vlt", "vlt add @pitlane/content\nvlt add -D satteri vite-plugin-satteri"],
         ["nub", "nub add @pitlane/content\nnub add -D satteri vite-plugin-satteri"],

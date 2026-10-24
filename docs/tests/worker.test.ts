@@ -57,7 +57,7 @@ test("proposal.0004: every install alternative is reachable through a named nati
     let response = await request("/guides/vite-plugin");
     let root = htmlToHast(await response.text());
     let article = elements(root, "article")[0];
-    for (let manager of ["npm", "yarn", "pnpm", "bun", "deno", "vp", "vlt", "nub"]) {
+    for (let manager of ["npm", "yarn", "pnpm", "bun", "vp", "vlt", "nub"]) {
         let disclosure = elements(article, "details").find(details =>
             elements(details, "summary").some(summary => text(summary).trim() === manager),
         );

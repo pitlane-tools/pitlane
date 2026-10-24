@@ -30,7 +30,7 @@ export interface DocumentPage {
 }
 
 export const PREFERENCE_CHOICES = {
-    packageManager: ["npm", "yarn", "pnpm", "bun", "deno", "vp", "vlt", "nub"],
+    packageManager: ["npm", "yarn", "pnpm", "bun", "vp", "vlt", "nub"],
     buildMode: ["vite", "no-build"],
 } as const;
 

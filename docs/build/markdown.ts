@@ -3,7 +3,6 @@ import type { HastNode } from "satteri";
 import { htmlToHast } from "satteri";
 
 import { DEFAULT_PREFERENCES, type PackageManager } from "../app/document.ts";
-import { packageSpecifier } from "../app/install.ts";
 
 type Element = Extract<HastNode, { type: "element" }>;
 type Content = Element["children"][number];
@@ -231,28 +230,12 @@ function installGroup(node: Element): string {
     return [fence(example!), otherManagers(shown, others)].filter(Boolean).join("\n\n");
 }
 
-/**
- * The other managers' commands, said in terms of the one shown: each runs it
- * under its own name, and one that spells packages differently, as Deno spells
- * `npm:<package>`, says so.
- */
+/** The other managers' commands, said in terms of the one shown: each runs it under its own name. */
 function otherManagers(shown: PackageManager, others: PackageManager[]): string {
-    let spelled = (manager: PackageManager) => packageSpecifier(manager, "<package>");
-    let alike = others.filter(manager => spelled(manager) === spelled(shown));
-    let sentences = others
-        .filter(manager => !alike.includes(manager))
-        .map(
-            manager =>
-                `With ${manager}, put its name in place of \`${shown}\` and write each package as \`${spelled(manager)}\`.`,
-        );
-    if (alike.length) {
-        let names =
-            alike.length === 1 ? alike[0] : `${alike.slice(0, -1).join(", ")}, or ${alike.at(-1)}`;
-        sentences.unshift(
-            `With ${names}, run the same command with the manager's name in place of \`${shown}\`.`,
-        );
-    }
-    return sentences.join(" ");
+    if (others.length === 0) return "";
+    let names =
+        others.length === 1 ? others[0] : `${others.slice(0, -1).join(", ")}, or ${others.at(-1)}`;
+    return `With ${names}, run the same command with the manager's name in place of \`${shown}\`.`;
 }
 
 /** A callout as a GitHub alert: its kind, its title in bold, then its body. */
