@@ -12,7 +12,7 @@ Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process
 
 <Callout kind="tip" title="Start from a template">
 
-`npx giget github:pitlane-tools/templates/railway-node my-app` (or `railway-bun`, `railway-deno`) scaffolds a working guest book app wired for this guide. See [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
+`npx giget github:pitlane-tools/templates/railway-node my-app` (or `railway-bun`) scaffolds a working guest book app wired for this guide. See [pitlane-tools/templates](https://github.com/pitlane-tools/templates).
 
 </Callout>
 
@@ -35,7 +35,7 @@ Deploy a Remix 3 app to [Railway](https://railway.com) as a plain server process
 
 <Callout kind="tip" title="Start from the Remix starter">
 
-`npx remix@next new my-app` scaffolds an app with no build step. This guide deploys it with one change to its asset server, under Node, Bun, or Deno.
+`npx remix@next new my-app` scaffolds an app with no build step. This guide deploys it with one change to its asset server, under Node or Bun.
 
 </Callout>
 
@@ -187,55 +187,6 @@ CMD ["bun", "server.ts"]
 Run `bun install` once to create the `bun.lock` this Dockerfile installs from.
 
 Bun does not resolve [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) that start with `#/`. The starter uses relative imports and is unaffected. If your app maps `"#/*"` in `package.json`, give the pattern a name, such as `"#app/*"`.
-
-</NoBuild>
-
-## Deno
-
-<Vite>
-
-The built entry matches `deno serve`'s default-export contract exactly. One flag matters: `deno serve` does not read `$PORT` itself, so pass it explicitly, and use the **shell-form `CMD`**, because exec-form (`CMD ["deno", …]`) never expands environment variables:
-
-```dockerfile
-# Dockerfile
-FROM denoland/deno:alpine
-WORKDIR /app
-
-COPY . .
-RUN deno install --allow-scripts
-RUN deno task build
-
-# Shell form so Railway's injected $PORT expands.
-CMD deno serve -A --port=$PORT dist/ssr/index.js
-```
-
-(`-A` grants the runtime permissions the server code needs. Tighten to specific `--allow-*` flags once you know your app's surface.)
-
-</Vite>
-
-<NoBuild>
-
-Deno runs TypeScript and JSX natively and installs from `package.json`. It reads the JSX settings from `tsconfig.json`, so it too runs the starter's `server.ts` as it is:
-
-```dockerfile
-# Dockerfile
-FROM denoland/deno:debian
-WORKDIR /app
-
-COPY package.json deno.lock ./
-RUN deno install --frozen
-
-COPY . .
-
-ENV NODE_ENV=production
-CMD ["deno", "run", "-A", "server.ts"]
-```
-
-Run `deno install` once to create the `deno.lock` this Dockerfile installs from.
-
-Use the Debian image. On `denoland/deno:alpine` the install picks the musl build of the asset server's native addons, and Deno cannot load that build there, so the server exits before it starts listening.
-
-The exec-form `CMD` is fine here because `server.ts` reads `process.env.PORT` itself. (`-A` grants the runtime permissions the server code needs. Tighten to specific `--allow-*` flags once you know your app's surface.)
 
 </NoBuild>
 
