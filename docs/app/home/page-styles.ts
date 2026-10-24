@@ -119,6 +119,7 @@ export let home = css<HTMLDivElement>({
     "& [data-deployment] li": { minWidth: 0 },
     "& [data-deployment] li:nth-child(2n)": { borderLeft: `1px solid ${t.color.border}` },
     "& [data-deployment] li:nth-child(n+3)": { borderTop: `1px solid ${t.color.border}` },
+    "& [data-deployment] li:last-child:nth-child(odd)": { gridColumn: "1 / -1" },
     "& [data-deployment] li a": {
         display: "grid",
         gridTemplateColumns: "1fr auto",
