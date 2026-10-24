@@ -15,22 +15,22 @@
         "@pitlane/assets": "^0.1.0",
         "@remix-run/html-template": "^1.0.0",
         "@remix-run/node-fetch-server": "^1.0.0",
-        "@solidjs/router": "2.0.0-next.35",
-        "@solidjs/web": "2.0.0-rc.13",
-        "solid-js": "2.0.0-rc.13"
+        "@solidjs/router": "2.0.0-next.42",
+        "@solidjs/web": "2.0.0-rc.18",
+        "solid-js": "2.0.0-rc.18"
     },
     "devDependencies": {
         "@pitlane/vite-plugin-fetch-server": "^0.1.0",
-        "@solidjs/vite-plugin": "3.0.0-next.35",
+        "@solidjs/vite-plugin": "3.0.0-next.51",
         "@types/node": "^25.5.0",
         "playwright": "1.63.0",
         "typescript": "^7.0.2",
         "vite": "8.3.3"
     },
     "overrides": {
-        "@solidjs/babel-plugin": "2.0.0-rc.13",
-        "@solidjs/compiler": "2.0.0-rc.13",
-        "@solidjs/signals": "2.0.0-rc.13"
+        "@solidjs/babel-plugin": "2.0.0-rc.18",
+        "@solidjs/compiler": "2.0.0-rc.18",
+        "@solidjs/signals": "2.0.0-rc.18"
     },
     "engines": {
         "node": ">=22.18.0"
