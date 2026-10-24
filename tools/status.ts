@@ -506,18 +506,20 @@ function identifyPullRequest(
  * such as a status record committed after the pull request merged. The revision
  * must sit on HEAD's first-parent line: a reused branch name started from a default
  * branch that merged the old pull request reaches it only through a merge commit's
- * second parent. Null when HEAD does not build on the revision that way.
+ * second parent. Walking first parents back from HEAD stops at the revision's own
+ * history, so stepping back by that count lands on the revision only when it is on
+ * the line. Null when HEAD does not build on the revision that way.
  */
 function commitsContinuing(root: string, revision: string): number | null {
-    let walk = commandOutput(
+    let counted = commandOutput(
         "git",
-        ["rev-list", "--first-parent", "--parents", `${revision}..HEAD`],
+        ["rev-list", "--first-parent", "--count", `${revision}..HEAD`],
         root,
     );
-    if (!walk) return null;
-    let commits = walk.split("\n");
-    let [, firstParent] = commits.at(-1)!.split(" ");
-    return firstParent === revision ? commits.length : null;
+    let count = Number(counted);
+    if (counted === null || !Number.isSafeInteger(count) || count === 0) return null;
+    let reached = commandOutput("git", ["rev-parse", "--verify", "--quiet", `HEAD~${count}`], root);
+    return reached === revision ? count : null;
 }
 
 function collectPullRequest(
