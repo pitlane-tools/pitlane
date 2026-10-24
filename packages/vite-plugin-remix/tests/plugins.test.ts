@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { resolveConfig, type InlineConfig } from "vite";
+import { resolveConfig, type InlineConfig, type Plugin } from "vite";
 import { describe, expect, it } from "vite-plus/test";
 
 import { remix, type RemixPluginOptions } from "../src/index.ts";
@@ -103,6 +103,28 @@ describe("remix() output directories", () => {
             client: join(".tmp/out", "client"),
             ssr: "worker",
         });
+    });
+});
+
+describe("remix() environment defaults", () => {
+    it("are in place when a plugin listed after remix() reads the config", async () => {
+        // Platform plugins go after remix() in every documented composition,
+        // and their config hooks read or extend these entries.
+        let seen: unknown;
+        let probe: Plugin = {
+            name: "probe",
+            config(config) {
+                seen = {
+                    client: config.environments?.client?.build?.rollupOptions?.input,
+                    ssr: config.environments?.ssr?.build?.rollupOptions?.input,
+                };
+            },
+        };
+        await resolveConfig(
+            { root: FIXTURE, configFile: false, logLevel: "error", plugins: [remix(), probe] },
+            "build",
+        );
+        expect(seen).toEqual({ client: "app/entry.browser", ssr: { index: "app/entry.server" } });
     });
 });
 
