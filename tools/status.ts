@@ -39,6 +39,8 @@ interface PullRequestFacts {
     pullRequest: PullRequest | null;
     state: "known" | "unknown";
     reason: string | null;
+    // Commits this branch added after a merged or closed pull request's final revision.
+    commitsAfter?: number;
 }
 
 interface Repository {
@@ -75,6 +77,7 @@ export interface Facts {
     pullRequest: PullRequest | null;
     pullRequestState: PullRequestFacts["state"];
     pullRequestReason?: string | null;
+    commitsAfterPullRequest?: number;
     proposal: Proposal | null;
     proposalSuccessor?: ProposalSummary | null;
     proposalSelection?: ProposalSelection;
@@ -84,6 +87,7 @@ type Notice =
     | { kind: "clarifications"; count: number }
     | { kind: "unpushed-commits"; count: number }
     | { kind: "draft-active-review" }
+    | { kind: "commits-after-pull-request"; count: number; state: string }
     | {
           kind: "ambiguous-proposal-selection";
           selected: string | undefined;
@@ -447,8 +451,9 @@ function parsePullRequest(entry: unknown): CandidatePullRequest | null {
  * Matches the single pull request listed for this branch name against this
  * checkout, because gh matches `--head` by name alone, which a fork or a later
  * reuse of the name satisfies too. Without this checkout's own repository there
- * is nothing to match against. Only an open pull request may sit off this
- * revision, since local commits need not be pushed yet.
+ * is nothing to match against. An open pull request may sit off this revision,
+ * since local commits need not be pushed yet; a merged or closed one must be
+ * this revision or one this branch continues.
  */
 function identifyPullRequest(
     root: string,
@@ -475,12 +480,33 @@ function identifyPullRequest(
             `this checkout's revision is unknown, so the ${state} pull request for branch ${branch} cannot be matched to it`,
         );
     }
-    if (head !== headRefOid) {
+    if (head === headRefOid) return { pullRequest, state: "known", reason: null };
+    let commitsAfter = commitsContinuing(root, headRefOid);
+    if (commitsAfter === null) {
         return unknownPullRequest(
-            `the ${state} pull request for branch ${branch} left revision ${headRefOid.slice(0, 7)}, not this checkout's ${head.slice(0, 7)}, so the branch name was reused`,
+            `the ${state} pull request for branch ${branch} left revision ${headRefOid.slice(0, 7)}, which this checkout's ${head.slice(0, 7)} does not build on, so it cannot be attributed to this work`,
         );
     }
-    return { pullRequest, state: "known", reason: null };
+    return { pullRequest, state: "known", reason: null, commitsAfter };
+}
+
+/**
+ * Counts the commits HEAD adds to `revision` when this branch carried on from it,
+ * such as a status record committed after the pull request merged. The revision
+ * must sit on HEAD's first-parent line: a reused branch name started from a default
+ * branch that merged the old pull request reaches it only through a merge commit's
+ * second parent. Null when HEAD does not build on the revision that way.
+ */
+function commitsContinuing(root: string, revision: string): number | null {
+    let walk = commandOutput(
+        "git",
+        ["rev-list", "--first-parent", "--parents", `${revision}..HEAD`],
+        root,
+    );
+    if (!walk) return null;
+    let commits = walk.split("\n");
+    let [, firstParent] = commits.at(-1)!.split(" ");
+    return firstParent === revision ? commits.length : null;
 }
 
 function collectPullRequest(
@@ -630,6 +656,7 @@ export function gatherFacts(root = process.cwd()): Facts {
         pullRequest: pullRequestFacts.pullRequest,
         pullRequestState: pullRequestFacts.state,
         pullRequestReason: pullRequestFacts.reason,
+        commitsAfterPullRequest: pullRequestFacts.commitsAfter,
         proposal: selection.proposal,
         proposalSuccessor,
         proposalSelection: {
@@ -646,6 +673,13 @@ function noticesFor(facts: Facts): Notice[] {
         notices.push({ kind: "unpushed-commits", count: facts.unpushedCommits });
     if (facts.proposal?.status === "active-review" && facts.pullRequest?.isDraft)
         notices.push({ kind: "draft-active-review" });
+    if (facts.pullRequest && facts.commitsAfterPullRequest) {
+        notices.push({
+            kind: "commits-after-pull-request",
+            count: facts.commitsAfterPullRequest,
+            state: facts.pullRequest.state.toLowerCase(),
+        });
+    }
     if (facts.proposal && (facts.proposalSelection?.otherCandidates?.length ?? 0) > 0) {
         notices.push({
             kind: "ambiguous-proposal-selection",
@@ -683,6 +717,10 @@ function noticeLine(notice: Notice): string {
     if (notice.kind === "unpushed-commits") return `Unpushed commits: ${notice.count}`;
     if (notice.kind === "draft-active-review")
         return "Warning: proposal is active-review, but the pull request remains draft.";
+    if (notice.kind === "commits-after-pull-request") {
+        let commits = notice.count === 1 ? "1 commit" : `${notice.count} commits`;
+        return `Warning: this checkout has ${commits} the ${notice.state} pull request does not contain.`;
+    }
     let candidates = notice.otherCandidates.map(({ id, title }) => `${id} (${title})`).join(", ");
     return `Warning: heuristic selected ${notice.selected}. Other candidates: ${candidates}.`;
 }

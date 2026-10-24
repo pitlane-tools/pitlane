@@ -7,37 +7,44 @@ import test, { type TestContext } from "node:test";
 
 let statusScript = new URL("./status.ts", import.meta.url).pathname;
 
+type Git = (...arguments_: string[]) => string;
+
 function statusWithPullRequests(
     pullRequests: object[],
     context: TestContext,
-    options: { defaultBranch?: string; originHead?: string; repoUnavailable?: boolean } = {},
+    options: {
+        defaultBranch?: string;
+        originHead?: string;
+        repoUnavailable?: boolean;
+        // Builds history on top of the fixture commit and returns the pull request's head revision.
+        history?: (git: Git) => string;
+    } = {},
 ): string {
     let root = mkdtempSync(path.join(tmpdir(), "pitlane-status-"));
     context.after(() => rmSync(root, { force: true, recursive: true }));
+    let git: Git = (...arguments_) =>
+        execFileSync(
+            "git",
+            [
+                "-C",
+                root,
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.com",
+                ...arguments_,
+            ],
+            { encoding: "utf8" },
+        ).trim();
     execFileSync("git", ["init", "-q", "-b", "feature", root]);
-    execFileSync("git", [
-        "-C",
-        root,
-        "-c",
-        "user.name=Test",
-        "-c",
-        "user.email=test@example.com",
-        "commit",
-        "--allow-empty",
-        "-qm",
-        "fixture",
-    ]);
+    git("commit", "--allow-empty", "-qm", "fixture");
     if (options.originHead)
-        execFileSync("git", [
-            "-C",
-            root,
+        git(
             "symbolic-ref",
             "refs/remotes/origin/HEAD",
             `refs/remotes/origin/${options.originHead}`,
-        ]);
-    let headRefOid = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], {
-        encoding: "utf8",
-    }).trim();
+        );
+    let headRefOid = options.history ? options.history(git) : git("rev-parse", "HEAD");
     let bin = path.join(root, "bin");
     mkdirSync(bin);
     let gh = path.join(bin, "gh");
@@ -194,6 +201,46 @@ test("does not use a sole historical PR after the branch has been reused", conte
         ],
         context,
     );
+
+    assert.match(report, /PR — unknown/);
+    assert.doesNotMatch(report, /Implementation merged/);
+});
+
+let mergedPullRequest = {
+    number: 1,
+    state: "MERGED",
+    baseRefName: "main",
+    isDraft: false,
+    title: "Feature",
+    url: "https://github.com/owner/repo/pull/1",
+};
+
+test("follows a merged PR this branch continued, naming the commits it never received", context => {
+    let report = statusWithPullRequests([mergedPullRequest], context, {
+        history: git => {
+            let merged = git("rev-parse", "HEAD");
+            git("commit", "--allow-empty", "-qm", "record implemented, never pushed");
+            return merged;
+        },
+    });
+
+    assert.match(report, /PR #1 \(merged\)/);
+    assert.match(report, /Phase 5 — Implementation merged/);
+    assert.match(report, /Warning: .*1 commit.*merged pull request does not contain/);
+});
+
+test("does not attribute a merged PR reached only through the default branch's merge commit", context => {
+    let report = statusWithPullRequests([mergedPullRequest], context, {
+        history: git => {
+            git("checkout", "-qb", "earlier");
+            git("commit", "--allow-empty", "-qm", "earlier work");
+            let merged = git("rev-parse", "HEAD");
+            git("checkout", "-q", "feature");
+            git("merge", "--no-ff", "-qm", "merge the earlier pull request", "earlier");
+            git("commit", "--allow-empty", "-qm", "new work on a reused branch name");
+            return merged;
+        },
+    });
 
     assert.match(report, /PR — unknown/);
     assert.doesNotMatch(report, /Implementation merged/);
