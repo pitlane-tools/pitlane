@@ -359,7 +359,7 @@ If subsequent work fixes the defect incidentally, the agent updates or closes th
 
 ## Completion
 
-Once the feature has passed human review, the agent completes the work required to integrate and release it.
+Once the feature has passed human review, the agent completes the authorized integration and delivery work.
 
 ### Vision Update
 
@@ -369,9 +369,15 @@ Because the vision is intended to describe the project as it currently exists an
 
 The agent may consult me before making substantial changes to the vision.
 
+### Implementation Record
+
+After acceptance and the vision update, set the proposal to `implemented` in the original feature pull request before merging it. This records the accepted implementation, not integration or publication. Keep the human's acceptance and any pending changeset and release visible in the proposal or pull request. Verify the updated integration candidate; do not open a follow-up pull request solely to change the proposal status. Work for which the human declined a proposal has no status to set and gets no invented proposal.
+
+Confirm the status record is in the pull request revision, not only the local checkout, before marking a draft pull request ready or merging. If an earlier pull request already merged, inspect its merged revision before concluding a local `accepted` status means the record is missing. Ask the human how to reconcile an absent record rather than editing the merged pull request or opening a status-only pull request.
+
 ### Merge
 
-The agent merges the pull request into the project's main branch.
+The agent merges the accepted pull request into the project's main branch after fresh checks on its latest revision and, when the work has a proposal, confirmation that the revision contains its `implemented` record. If the pull request remains draft, reconcile its readiness report, mark it ready, and verify the latest revision before merging.
 
 The merge should preserve enough information for future humans or agents to recover:
 
@@ -386,7 +392,7 @@ The proposal and relevant pull request history therefore form part of the long-t
 
 ### Release
 
-Package changes are captured with their implementation in `.changeset/*.md` notes containing the affected packages, semver intent, and consumer-facing explanation. Feature pull requests leave versions and numbered changelog sections unchanged. Accepted work may be merged and remain unreleased; its notes wait for a human request.
+Package changes are captured with their implementation in `.changeset/*.md` notes containing the affected packages, semver intent, and consumer-facing explanation. Feature pull requests leave versions and numbered changelog sections unchanged. Accepted implementation may be merged and remain unreleased; its notes wait for a human request. `implemented` is the pre-merge implementation record, not evidence of a release. Track any required release separately until authorized and performed.
 
 On request, the agent reviews the complete `vp run changeset:status` plan with me, including computed dependent bumps. `vp run changeset:version` then consumes the pending notes, updates versions and changelogs, and refreshes the lockfile. The preparation is committed and reviewed under the normal repository rules. Preparing versions does not authorize publication.
 
@@ -402,11 +408,9 @@ This allows work across multiple repositories to be developed against previews w
 
 ### Cleanup
 
-Finally, the agent removes development state that is no longer useful.
+After the required delivery, the agent removes temporary files and preview configuration and prunes stale feature branches only with the relevant authorization. A merge-only change needs no fabricated release.
 
-This includes pruning stale feature branches locally and remotely in both the primary project and dependent projects, removing obsolete preview configuration, and cleaning up other temporary artifacts created during development.
-
-Cleanup concludes the feature process.
+Branch deletion and published-artifact teardown require explicit human confirmation. Cleanup is separate from merging and from setting `implemented`.
 
 ## Process Summary
 
@@ -416,7 +420,7 @@ At the project level:
 
 For each feature:
 
-**branch → draft pull request → grounding and ontology review when needed → baseline study → proposal → tests → guides → code → validation → excellence pass → inline reviews → cross-artifact review → adversarial review → preview → ready pull request → human review → revision or acceptance → vision update → merge → release → dependent updates → cleanup**
+**human opts into proposal when wanted → branch → draft pull request → grounding and ontology review when needed → baseline study → proposal when approved → tests → guides → code → validation → excellence pass → inline reviews → cross-artifact review → adversarial review → preview → ready pull request → human review → revision or acceptance → vision update → implemented record in feature pull request when it has a proposal → merge → authorized release when requested → dependent updates → authorized cleanup**
 
 The central invariant of the process is that no single artifact defines the feature by itself.
 

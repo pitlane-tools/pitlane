@@ -5,7 +5,7 @@ description: Use after a human has reviewed a pull request and the accepted chan
 
 # Completing a Feature
 
-**Phase 5.** Complete work in this order: **process feedback → record policies and decisions → update the vision → merge → release when the human asks → dependent-repo updates → cleanup**.
+**Phase 5.** Complete work in this order: **process feedback → record policies and decisions → update the vision → record `implemented` in the feature PR when there is a proposal → merge → release when the human asks → dependent-repo updates → authorized cleanup**.
 
 Some work reaching this phase has no proposal, because the human declined one. Then the agreed request and pull-request scope is what completion is measured against, every step below that sets a proposal status is skipped, and none of them is a reason to write a proposal after the fact.
 
@@ -65,15 +65,19 @@ A release is the event that makes the vision wrong, and never in only one place.
 
 Consult the human before a substantial rewrite. Do not turn a narrow completion change into a new vision exercise.
 
-## 4. Merge
+## 4. Record the accepted implementation
 
-Merge only after human acceptance. Preserve the record of what was proposed, what was implemented, why decisions were made, what review found, and how the final state differs from earlier revisions.
+After human acceptance and the vision update, set an existing proposal to `implemented` in the original feature pull request. This records accepted implementation, not a merged PR or a published version. Record acceptance and any pending changeset and release in the proposal or PR, commit and push the status record, and obtain fresh checks on the integration candidate. Never open a follow-up PR solely to move this status. When the human declined a proposal, skip the status transition and do not invent a proposal.
+
+Confirm the status record is in the pull request revision before marking a draft PR ready or merging; a local file or unpushed commit is not proof. For an already merged PR, inspect its merged revision whether the local proposal reads `accepted` or `implemented`; neither local status proves what merged. If the record is absent, ask the human how to reconcile it while keeping the release visible. Do not amend the merged PR or open a status-only PR.
+
+## 5. Merge
+
+Merge only after human acceptance and fresh checks on the latest pull request revision. If an accepted PR remains draft, follow the Phase 5 recovery in `reviewing-an-implementation`: verify and repair readiness evidence without rolling `accepted` or `implemented` back to `active-review`. Confirm the implementation record when the work has a proposal, mark the PR ready, and verify the latest revision before merging. Preserve the record of what was proposed, what was implemented, why decisions were made, what review found, and how the final state differs from earlier revisions.
 
 The history shows both strategies, and the split is deliberate. Squash is the common case: `a4f462e crawler: static prerendering (#6)` and `2617cd3 chore: move every package onto remix@3.0.0-rc.1 (#12)` each have one parent. `c97d28a theme: schema-tree authoring, replacing the DTCG document (#9)` has two, and its body says why: “Merged rather than squashed. Each commit records a design decision or a defect found while implementing, and the branch is being pruned, so the history lives here.” `git show --no-patch --format=%p <commit>` tells them apart — one hash for a squash, two for a merge. `.agents/skills/releasing-pitlane-packages/SKILL.md` § “2. Land the PR so the intent outlives the branch” owns the choice. Either way, do not leave the reasoning only on a branch that is about to be pruned.
 
-The human sets `accepted` when they accept the work. Set `implemented` only after it is merged **and** released — not before, because an unshipped proposal marked implemented misrepresents the record. Accepted, merged, and unreleased is a normal resting state here rather than a step someone skipped: the changeset note sits in `.changeset/` until the human asks for a version, the proposal stays `accepted`, and the completion report says exactly that — the behavior is on `main`, the release is pending. Never manufacture a release to clear a status, and never report one that has not happened.
-
-## 5. Release — only when the human asks
+## 6. Release — only when the human asks
 
 Merging does not begin a release, and pending changesets do not accumulate into one. What the merge must carry is the capture: a changeset note under `.changeset/` for every package whose consumers see a difference, naming those packages and the semver level, written with `vp run changeset` and committed under the scope of the work it describes. Nothing on the branch edits a `version` field or writes a `CHANGELOG.md` section — preparation generates both, later, and only on request.
 
@@ -81,13 +85,15 @@ When the human does ask, `.agents/skills/releasing-pitlane-packages/SKILL.md` is
 
 **Never publish without explicit human confirmation.** Approval to merge is not approval to release, and a request to prepare a version is not approval to publish it.
 
-## 6. Update dependent repositories
+The implementation record does not complete a required release. Keep pending changesets and delivery visible in the proposal or PR until the authorized release happens; do not claim a version shipped while it is still pending.
+
+## 7. Update dependent repositories
 
 A dependent's preview dependency is a `pkg.pr.new` URL — or a tarball override — in its manifest. Replace it with the published range everywhere it appears, lockfile included, and mark the PR ready only after CI is green against the published package rather than against the preview it used to install. `.agents/skills/releasing-pitlane-packages/SKILL.md` § “4. Move dependents onto the published version” lists the edits each dependent needs and the npm propagation and release-age gates that make an early move fail.
 
-## 7. Clean up
+## 8. Clean up
 
-After release and dependent updates, remove temporary files, tear down preview configuration and published prerelease artifacts, and prune the feature branch locally and remotely.
+After the required delivery and dependent updates, remove temporary files and preview configuration and prune feature branches only with the required authorization. Merge-only work needs no fabricated release.
 
 > **Explicit human confirmation required:** Branch deletion, force-push, and tearing down published prerelease artifacts are the most destructive operations in this process. Ask before any of them, even when cleanup appears routine.
 
@@ -103,12 +109,13 @@ Cleanup runs when confidence is highest. Treat it as a separate destructive oper
 - You merged without preserving why the final state differs.
 - A package's consumers see a difference and no changeset note describes it.
 - You edited a version or hand-wrote a changelog entry instead of writing a note.
-- You reported work as released, or set `implemented`, while its version is still pending.
+- You treated `implemented` as proof a pending version was released.
 - You wrote a proposal at completion for work the human declined one for.
 - You released because the PR merged.
 - A dependent PR still uses a preview version after release.
-- A preview or prerelease artifact outlives its PR.
+- A preview or prerelease artifact outlives its PR without a tracked, authorized teardown plan.
 - You deleted a branch, force-pushed, or tore down a published prerelease artifact without explicit human confirmation.
+- You waited until after merge to move `implemented` and opened a bookkeeping-only PR.
 
 Any of these means stop and return to the relevant ordered step.
 

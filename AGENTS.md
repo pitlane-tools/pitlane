@@ -88,7 +88,7 @@ proposal consent, when a proposal is wanted → branch → draft PR
        → tests → guides → code → validation
        → excellence pass → inline reviews → cross-artifact review → adversarial review
        → preview → readiness report
-       → human review → revision → vision update → merge → release → cleanup
+       → human review → revision → vision update → implemented record in feature PR when it has a proposal → merge → authorized release when requested → cleanup
 ```
 
 **Scale the process to the change.** The loop is written for substantial work — new or changed behavior, anything a reasonable person could build differently. A typo, a dead link, or a bug whose correct behavior was never in question does not need a proposal; fixing it is faster than describing it.
@@ -167,7 +167,7 @@ Their verdict sets the status: `returned-for-revisions` to send it back, `accept
 
 ### 5. Completion and release
 
-Update `VISION.md` if the change altered what Pitlane is, merge, release, update dependent repositories, then clean up. The release mechanics are `.agents/skills/releasing-pitlane-packages/`; a package the starters depend on adds `.agents/skills/adopting-packages-into-templates/`. Phase skill: `.agents/skills/completing-a-feature/`.
+Update `VISION.md` if the change altered what Pitlane is. When the accepted feature has a proposal, record `implemented` in its original pull request before merge and verify that revision; work without a proposal has no status to set. Then merge and complete any separately authorized release, update dependent repositories, and perform authorized cleanup. The release mechanics are `.agents/skills/releasing-pitlane-packages/`; a package the starters depend on adds `.agents/skills/adopting-packages-into-templates/`. Phase skill: `.agents/skills/completing-a-feature/`.
 
 ## Reframing hard problems
 
