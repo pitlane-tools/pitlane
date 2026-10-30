@@ -37,10 +37,7 @@ bun = "1.3.9"
 # `cf` is a devDependency of the `docs/cloudflare` workspace package rather than the
 # root, because it is pinned to the Worker's own config; its bin directory is listed
 # so `mise run docs:serve` and the deploy workflows can call `cf` by name.
-_.path = [
-    "{{config_root}}/node_modules/.bin",
-    "{{config_root}}/docs/cloudflare/node_modules/.bin",
-]
+_.path = ["{{config_root}}/node_modules/.bin", "{{config_root}}/docs/cloudflare/node_modules/.bin"]
 
 # Secrets are resolved by fnox and granted per task with `secrets = [...]`.
 # Never list a secret in `[env]` — that would export it to every process.
