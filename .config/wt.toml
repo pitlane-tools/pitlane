@@ -1,0 +1,23 @@
+# Worktrunk project hooks. Shared with everyone who clones the repository;
+# personal settings (worktree-path, commit generation) belong in
+# ~/.config/worktrunk/config.toml instead.
+#
+# A project hook needs interactive approval the first time it runs and again
+# whenever its command changes. Automated callers pass `wt switch --create … --yes`.
+
+# `pre-*` hooks block: a failure aborts the operation. Each worktree is a new path,
+# so mise has to trust it before any mise command in it will run.
+[[pre-start]]
+trust = "mise trust --yes"
+
+[[pre-start]]
+tools = "mise install"
+
+# `post-*` hooks run in the background with their output logged
+# (`wt config state logs`). `copy-ignored` copies gitignored build caches listed in
+# .worktreeinclude — a reflink on APFS, so it costs nothing and skips a cold build.
+[[post-start]]
+copy = "wt step copy-ignored"
+
+[[post-start]]
+setup = "mise run setup"

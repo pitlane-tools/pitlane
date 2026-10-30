@@ -1,0 +1,41 @@
+#:schema https://fnox.jdx.dev/schema.json
+# Secrets live here by name only; values stay in 1Password or the macOS Keychain.
+#
+# Tasks opt in individually with `secrets = ["NAME"]` in mise.toml. A secret never
+# reaches `[env]`, the interactive shell, mise shims, or a task's dependencies, and
+# mise redacts granted values in task output.
+#
+# Pitlane needs no secret locally: the gate, the package suites and the documentation
+# build all run offline, and everything that publishes or deploys runs in GitHub
+# Actions from repository secrets — npm through Trusted Publishing (OIDC) in
+# `publish.yml`, Cloudflare through `CLOUDFLARE_API_TOKEN` in `deploy.yml` and
+# `preview.yml`. Add a provider item and a `secrets = [...]` grant together, never
+# one without the other.
+#
+# Stop the upward config search at this repository.
+root = true
+
+# Secrets reach `fnox exec` (which is how mise runs a granted task) and nothing else.
+env = "exec"
+
+# A secret that cannot be resolved is a hard error, not a silently empty variable.
+# Fork pull requests that legitimately have no credentials set FNOX_IF_MISSING=ignore.
+if_missing = "error"
+
+# 1Password: the shared source of truth. Read-only — create and edit items in
+# 1Password itself, never with `fnox set`. Needs the `op` CLI, which mise installs.
+# In CI, authenticate with a scoped service account token in OP_SERVICE_ACCOUNT_TOKEN.
+[providers.op]
+type = "1password"
+vault = "VAULT"
+# account = "my.1password.com"
+
+# macOS Keychain: writable, for a value that only ever exists on this machine
+# (`fnox set NAME --provider keychain`). Not usable on CI runners — they have no
+# desktop session — so anything CI needs belongs in the `op` provider instead.
+[providers.keychain]
+type = "keychain"
+service = "pitlane"
+
+# Names only; nothing here is ever a value. Pitlane ships none.
+[secrets]

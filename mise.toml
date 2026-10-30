@@ -1,0 +1,346 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+# mise owns the task graph. Every other tool is invoked from a task here, so the
+# local gate and the CI gate cannot drift apart.
+#
+# `secrets` on a task is rejected by mise < 2026.10.4.
+min_version = "2026.10.4"
+
+[settings]
+# Required for `[secrets.fnox]` task grants.
+# A global or local-only setting does not travel to CI, so it is committed here.
+experimental = true
+# Keep mise.lock current as tools change; `mise lock --platform …` regenerates it.
+lockfile = true
+
+[tools]
+# hk's version must match the `amends`/`import` URLs in hk.pkl — bump both together.
+hk = "2.8.1"
+fnox = "1.42.1"
+"1password" = "2.41.1" # provides `op`, the 1Password CLI fnox shells out to
+gh = "2.103.2"
+actionlint = "1.7.12"
+node = "26.12.1" # 26 or newer: every tools/*.ts runs on native type stripping
+pnpm = "12.6.0" # matches `packageManager` in package.json; keep the two in step
+worktrunk = "0.81.0" # provides `wt`
+# Beads is not in the mise registry; the GitHub release backend installs the same
+# binary `brew install beads` does. Pin it: an older `bd` refuses to open a newer DB.
+"github:gastownhall/beads" = "1.3.2" # provides `bd`
+
+[env]
+# Locally installed CLIs — oxfmt, oxlint, tsdown, tsc, vite, vitest, vale, changeset —
+# without a `pnpm exec` prefix. They are devDependencies, never global installs.
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+# Secrets are resolved by fnox and granted per task with `secrets = [...]`.
+# Never list a secret in `[env]` — that would export it to every process.
+# This block must exist: without it `mise tasks validate` rejects a grant.
+[secrets.fnox]
+# profile = "dev"
+
+# ── The uniform surface ──────────────────────────────────────────────────────
+
+[tasks.setup]
+description = "Idempotent first-run bootstrap: dependencies, work tracker, git hooks"
+depends = ["deps:install"]
+run = [
+    # `--skip-agents` stops bd from writing its own agent-instruction files; AGENTS.md
+    # documents the work tracker itself.
+    # `--skip-hooks` is load-bearing: without it `bd init` points core.hooksPath at
+    # .beads/hooks, and every hook hk installs is then ignored by git.
+    "bd init --init-if-missing --non-interactive --prefix pitlane --skip-agents --skip-hooks",
+    # Commit `.beads/issues.jsonl` so the work graph is reviewable in a diff.
+    "bd config set export.auto true",
+    # hk owns every git hook, beads included (see hk.pkl). Never run `bd hooks install`.
+    "hk install --mise",
+    # The vendored Remix skills used to be refreshed by a `postinstall` script. The
+    # repository has no `scripts` block any more, so the refresh happens here instead
+    # — and still not on a CI runner, which has no reason to re-fetch upstream docs.
+    '[ -n "$CI" ] || mise run update-remix-skills',
+]
+
+[tasks.check]
+description = "The single blocking gate: formatting, lint, types, records, policies, docs"
+alias = "c"
+# `hk check --all` runs every step in hk.pkl: whitespace, newlines, merge conflicts,
+# actionlint, Oxfmt, Oxlint, and the `tsc` step (which calls `mise run typecheck`).
+# Formatting, linting and type checking are therefore already in this gate — adding
+# them to `depends` would only run them twice. If you remove a step from hk.pkl, add
+# it back here.
+#
+# The per-package suites are not here: they boot real Vite servers, workerd and
+# Chromium, and `.github/workflows/test.yml` runs them as a matrix. `mise run test`
+# runs them all locally when you want them.
+depends = ["docs:build", "docs:test", "docs:api:test", "tools:test", "omp:test", "policies"]
+run = ["hk check --all", "mise run validate"]
+
+[tasks.validate]
+description = "Check proposals, policies and decisions against the record rules"
+run = "node tools/validate.ts"
+
+[tasks.status]
+description = "Where the work stands: current phase, next action, who acts"
+run = "node tools/status.ts"
+
+[tasks.fmt]
+alias = "f"
+description = "Format with Oxfmt; accepts file paths"
+run = "oxfmt"
+
+[tasks.lint]
+alias = "l"
+description = "Lint with Oxlint (type-aware) and apply safe fixes"
+# Type-aware rules and the `pitlane/no-bundler-imports` plugin read the generated
+# reference index, so the pages have to exist before Oxlint resolves the docs project.
+depends = ["docs:api"]
+run = "oxlint --fix"
+
+[tasks.typecheck]
+description = "Typecheck the three TypeScript projects with tsc"
+# Three projects, because they hold their sources to different rules: the root program
+# covers the repository's own tooling, `docs/` is compiled by Vite, and `.typedoc/` is
+# the one workspace package on TypeScript 6 (see AGENTS.md).
+depends = ["docs:api"]
+run = ["tsc", "tsc --project docs/tsconfig.json", "tsc --project .typedoc/tsconfig.json"]
+
+[tasks."tools:test"]
+description = "The record and policy tooling's own node:test suites"
+# The glob form, not `node --test tools/`: it names exactly what runs and does not
+# depend on the runner's directory-discovery rules.
+run = "node --test 'tools/*.test.ts' 'tools/policies/*.test.ts' 'tools/lint/*.test.ts'"
+
+[tasks."omp:test"]
+description = "The Oh My Pi `workflow` tool's own tests"
+# Vitest rather than `node --test`: these suites mock OMP's native-loading modules
+# with `vi.mock`/`vi.hoisted`, which `node:test` has no equivalent for. `--dir`
+# scopes Vitest to that tree so it never collects a package's suite.
+run = "vitest run --dir .omp/tools"
+
+[tasks.policies]
+description = "The repository policies in tools/policies/, over built packages and docs"
+# Reads built declarations, so the published packages build first.
+depends = ["build"]
+run = "node tools/policies.ts"
+
+[tasks.changeset]
+description = "Describe this change for the changelog (`mise run changeset -- --empty` when nothing releasable changed)"
+# One command, so `mise run changeset -- --empty` reaches Changesets. The note it
+# writes is formatted by `mise run fmt` and by hk's pre-commit step; Changesets'
+# own formatter is turned off in `.changeset/config.json`.
+run = "changeset add"
+
+[tasks."changeset:status"]
+description = "Inspect pending packages and bump levels"
+run = "changeset status"
+
+[tasks."changeset:version"]
+description = "Apply pending changesets: bump package versions and write changelogs"
+# Wraps `changeset version` to apply .changeset/release.json: manual packages release
+# only when a note names them, and prerelease channels stay on their channel.
+run = [
+    "node tools/version.ts",
+    "oxfmt",
+    "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile",
+]
+
+# ── Packages ─────────────────────────────────────────────────────────────────
+# One task per publishable package, each in its own directory, each bundling with
+# tsdown from that package's `tsdown.config.ts`. `depends` encodes the workspace
+# dependency graph, so `mise run build:pitlane` builds what it needs first and
+# `mise run build` builds everything in order.
+#
+# `sources`/`outputs` let mise skip a package whose sources have not changed since
+# its last build, which is what keeps the gate cheap.
+
+[tasks.build]
+alias = "b"
+description = "Build every publishable package"
+depends = ["build:*"]
+
+[tasks."build:assets"]
+description = "Build @pitlane/assets"
+dir = "packages/assets"
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:content"]
+description = "Build @pitlane/content"
+dir = "packages/content"
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:crawler"]
+description = "Build @pitlane/crawler"
+dir = "packages/crawler"
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:data-table-d1"]
+description = "Build @pitlane/data-table-d1"
+dir = "packages/data-table-d1"
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:theme"]
+description = "Build @pitlane/theme"
+dir = "packages/theme"
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:vite-plugin-fetch-server"]
+description = "Build @pitlane/vite-plugin-fetch-server"
+dir = "packages/vite-plugin-fetch-server"
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:vite-plugin-remix"]
+description = "Build @pitlane/vite-plugin-remix"
+dir = "packages/vite-plugin-remix"
+# Its fixtures resolve the sibling packages through their published exports.
+depends = ["build:assets", "build:crawler", "build:vite-plugin-fetch-server"]
+sources = ["src/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*"]
+run = "tsdown"
+
+[tasks."build:pitlane"]
+description = "Build the pitlane umbrella and its installed documentation"
+dir = "packages/pitlane"
+# The umbrella re-exports every package and copies their guides, so they all build first.
+depends = [
+    "build:assets",
+    "build:content",
+    "build:crawler",
+    "build:data-table-d1",
+    "build:theme",
+    "build:vite-plugin-fetch-server",
+    "build:vite-plugin-remix",
+]
+sources = ["src/**/*", "scripts/**/*", "tsdown.config.ts", "package.json"]
+outputs = ["dist/**/*", "INDEX.md"]
+# The installed documentation goes after the bundle, which would otherwise empty
+# dist/ under the READMEs it just wrote.
+run = ["tsdown", "node scripts/check-dist.ts", "node scripts/docs.ts"]
+
+[tasks."pitlane:generate"]
+description = "Regenerate the umbrella's re-export modules and exports map"
+dir = "packages/pitlane"
+run = ["node scripts/generate.ts", "oxfmt package.json"]
+
+[tasks.test]
+alias = "t"
+description = "Run every package's Vitest suite"
+depends = ["test:*"]
+
+[tasks."test:assets"]
+description = "Vitest for @pitlane/assets"
+dir = "packages/assets"
+run = "vitest run"
+
+[tasks."test:content"]
+description = "Vitest for @pitlane/content"
+dir = "packages/content"
+# The runtime fixtures import content through its published exports.
+depends = ["build:content"]
+run = "vitest run"
+
+[tasks."test:crawler"]
+description = "Vitest for @pitlane/crawler"
+dir = "packages/crawler"
+run = "vitest run"
+
+[tasks."test:data-table-d1"]
+description = "Vitest for @pitlane/data-table-d1"
+dir = "packages/data-table-d1"
+run = "vitest run"
+
+[tasks."test:theme"]
+description = "Vitest for @pitlane/theme"
+dir = "packages/theme"
+run = "vitest run"
+
+[tasks."test:vite-plugin-fetch-server"]
+description = "Vitest for @pitlane/vite-plugin-fetch-server"
+dir = "packages/vite-plugin-fetch-server"
+run = "vitest run"
+
+[tasks."test:vite-plugin-remix"]
+description = "Vitest for @pitlane/vite-plugin-remix"
+dir = "packages/vite-plugin-remix"
+# The fixtures load the plugin through a real Vite config resolve, so the sibling
+# packages have to exist as built output rather than as a source alias.
+depends = ["build:assets", "build:crawler", "build:vite-plugin-fetch-server"]
+run = "vitest run"
+
+[tasks."test:pitlane"]
+description = "Vitest for the pitlane umbrella"
+dir = "packages/pitlane"
+depends = ["build:pitlane"]
+run = "vitest run"
+
+# ── Documentation ────────────────────────────────────────────────────────────
+
+[tasks."deps:install"]
+description = "Install npm dependencies with the pinned pnpm"
+run = "pnpm install --frozen-lockfile"
+
+[tasks."docs:packages"]
+description = "Build the reader's workspace dependencies"
+depends = ["build:assets", "build:content", "build:theme", "build:vite-plugin-remix"]
+
+[tasks."docs:api"]
+description = "Generate the package reference pages with TypeDoc"
+dir = ".typedoc"
+depends = ["docs:packages"]
+# One process for every package: each run merges into the same
+# docs/.generated/reference*.json files, so they cannot be built separately.
+run = "node build.ts"
+
+[tasks."docs:api:test"]
+description = "The TypeDoc theme's own tests"
+dir = ".typedoc"
+run = "node --test plugin.test.ts"
+
+[tasks."docs:mdx"]
+description = "Typecheck the authored MDX with its pinned language server"
+depends = ["docs:packages"]
+run = ["node --test packages/mdx-checker/check.test.ts", "node packages/mdx-checker/check.ts"]
+
+[tasks."docs:build"]
+description = "Build the documentation site"
+dir = "docs"
+depends = ["docs:api", "docs:mdx"]
+run = "vite build"
+
+[tasks."docs:dev"]
+description = "Serve the documentation site with hot reload"
+dir = "docs"
+depends = ["docs:api"]
+run = "vite dev --port 1337"
+
+[tasks."docs:test"]
+description = "Verify the built documentation under Cloudflare's local runtime"
+depends = ["docs:build"]
+run = "node docs/test.ts"
+
+[tasks."docs:serve"]
+description = "Serve the last build's published files under Cloudflare's local runtime"
+dir = "docs/cloudflare"
+run = "cf dev --port 1337"
+
+[tasks."docs:prose"]
+description = "Sync the Vale styles and lint the published prose"
+run = [
+    # The package's own postinstall; exits early once the binary is present.
+    "node node_modules/@vvago/vale/dist/index.cjs",
+    "vale sync",
+    "vale docs/app/content/_partials docs/app/content/deployment docs/app/content/guides",
+]
+
+[tasks."update-remix-skills"]
+description = "Refresh the vendored Remix agent skills from upstream"
+run = "sh tools/update-remix-skills.sh"
