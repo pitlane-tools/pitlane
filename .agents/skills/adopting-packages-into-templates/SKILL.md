@@ -29,7 +29,7 @@ Release order: publish the package, then merge the templates branch.
 4. **Verify against a local tarball.** The package is unpublished, so build one:
 
     ```sh
-    cd packages/<name> && vp run build && pnpm pack --pack-destination /tmp
+    mise run build:<name> && cd packages/<name> && pnpm pack --pack-destination /tmp
     ```
 
     Add an override to the templates' ROOT `pnpm-workspace.yaml`, install, and build every template:
@@ -62,7 +62,7 @@ A concrete miss: three `mix={[...]}` arrays failed to typecheck, the branded `cs
 
 ## Know what CI actually gates
 
-`ci.yml` runs `vp build` for every template. **The templates are never typechecked**, so latent type errors accumulate there invisibly. Do not treat a `tsc` delta as an acceptance gate, and do not fix unrelated pre-existing type errors inside the adoption commits. Report them.
+The templates repository's `ci.yml` builds every template. **The templates are never typechecked**, so latent type errors accumulate there invisibly. Do not treat a `tsc` delta as an acceptance gate, and do not fix unrelated pre-existing type errors inside the adoption commits. Report them.
 
 ## Common mistakes
 

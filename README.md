@@ -33,7 +33,7 @@ npm add pitlane
 ```ts
 // vite.config.ts
 import { remix } from "pitlane/vite-plugin-remix";
-import { defineConfig } from "vite"; // or "vite-plus"
+import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [remix()],
@@ -92,19 +92,18 @@ demos/                        # example apps run by hand: content-vite, content-
 
 ### Development
 
-The repo is a pnpm workspace run through [Vite+](https://viteplus.dev). Formatting, linting, and repo-level tasks are declared in the root `vite.config.ts`; per-package tasks run from the package directory. Install Vite+ globally, then:
+The repo is a pnpm workspace whose toolchains and tasks are owned by [mise](https://mise.jdx.dev). `mise.toml` and `mise.lock` pin Node, pnpm, and every other tool, and each task invokes Oxfmt, Oxlint, Vitest, tsdown, TypeDoc, Vale, and `tsc` directly — there is no wrapper and no `scripts` block. [hk](https://hk.jdx.dev) owns the git hooks, which `mise run setup` installs.
 
 ```sh
-vp install                  # node from .node-version, pnpm from packageManager, then dependencies and omp
+mise run setup                   # toolchains, dependencies, work tracker, git hooks
 
-vp run docs:dev             # docs site (typedoc + vite) on http://localhost:1337
-vp run check                # the full gate: docs build and tests, record validation, vp check, tsc
-vp run docs:prose           # downloads vale on first run, then lints the hand-written docs
-vp run                      # list every task
+mise run docs:dev                # docs site (TypeDoc + Vite) on http://localhost:1337
+mise run check                   # the full gate: formatting, lint, types, records, policies, docs
+mise run docs:prose              # downloads Vale on first run, then lints the hand-written docs
+mise tasks                       # list every task
 
-cd packages/vite-plugin-remix # per-package tests and build
-vp test
-vp run build
+mise run test:vite-plugin-remix  # one package's tests
+mise run build:vite-plugin-remix # one package's build
 ```
 
 ## License

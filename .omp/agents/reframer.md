@@ -21,4 +21,4 @@ Return:
 6. What would falsify your diagnosis.
 7. A recommended strategic direction.
 
-Do not edit tests, guides, or code, and do not change product intent. Your result goes back to the strategist, who decides whether to revisit the grounding, the ontology, the proposal, the architecture, or the implementation. A change to intent goes to the human first.
+Do not edit tests, guides, or code, and do not change product intent. Your result goes back to the primary agent, which decides whether to revisit the grounding, the ontology, the proposal, the architecture, or the implementation. A change to intent goes to the human first.

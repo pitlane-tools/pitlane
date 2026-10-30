@@ -73,7 +73,7 @@ Choose the smallest independently useful slice. A proposal with a broad motivati
 
 8. **Author the proposal.** Fill the template from the grounding, baseline, answers, and selected approach. State behavior and boundaries plainly. Record rejected approaches and why they lost. Keep unresolved questions as markers rather than inventing answers.
 
-9. **File unrelated defects.** If discovery reveals a defect outside this proposal's scope, file it as a GitHub issue. Discovering a defect is never a reason to expand the proposal or forget it. Use [`.agents/skills/tracking-defects/`](../tracking-defects/) for the judgment and filing process.
+9. **File unrelated defects.** If discovery reveals a defect outside this proposal's scope, file it in Beads. Discovering a defect is never a reason to expand the proposal or forget it. Use [`.agents/skills/tracking-work/`](../tracking-work/) for the judgment and filing process.
 
 10. **Self-review.** Before showing the human, check:
     - every template section and frontmatter field is complete;
@@ -114,7 +114,7 @@ Then enter Phase 3 — Implementation with `implementing-a-proposal`.
 | A record conflicts with the change | Surface it; the human chooses revision or supersession. |
 | An unknown detail has no clarification marker | Ask or add the marker. |
 | Preview names no exercisable artifact for a behavior change | Choose and record one before approval. |
-| A newly discovered defect expands scope | File a GitHub issue; keep the proposal bounded. |
+| A newly discovered defect expands scope | File a Beads item; keep the proposal bounded. |
 | Existing code suggests the design | Treat it as evidence, not authority; settle intent in the proposal. |
 
 **Do not use the existing implementation to teach yourself the domain when independent domain knowledge is available. Ground yourself first, then inspect the implementation as a specimen.**
