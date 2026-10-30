@@ -1,0 +1,167 @@
+/// hk owns every git hook in this repository.
+///
+/// Install them with `mise run setup` (which runs `hk install --mise`). Never run
+/// `bd hooks install`: it points `core.hooksPath` at `.beads/hooks`, which disables
+/// every hook hk installed. Beads instead runs as hk steps below, calling the same
+/// `bd hooks run <hook>` entry point beads' own shims call.
+///
+/// This replaces the hand-linked `.agents/hooks/commit-msg` the repository used to
+/// install. A checkout that still has `core.hooksPath` pointing at `.agents/hooks`
+/// must clear it once: `git config --unset core.hooksPath && mise run setup`.
+///
+/// The hk version here must match the `hk` pin in mise.toml. Bump both together.
+amends "package://github.com/jdx/hk/releases/download/v2.8.1/hk@2.8.1#/Config.pkl"
+
+import "package://github.com/jdx/hk/releases/download/v2.8.1/hk@2.8.1#/Builtins.pkl"
+
+/// Files another tool owns and rewrites. `bd` regenerates `.beads/metadata.json`
+/// and `.beads/issues.jsonl`, and it writes `metadata.json` with no trailing
+/// newline, which `newlines` would otherwise fail on after every `mise run setup`.
+exclude = List(
+    ".beads/**",
+    // Vendored verbatim from remix-run/remix and other upstreams; keep them diffable.
+    ".agents/docs/**",
+    ".agents/skills/remix/**",
+    // Generated: TypeDoc pages, the reference index, package bundles, the umbrella's
+    // installed documentation, and the examples installed from packed tarballs.
+    "docs/app/content/api/**",
+    "docs/.generated/**",
+    "packages/*/dist/**",
+    "packages/pitlane/guides/**",
+    "packages/pitlane/INDEX.md",
+    "packages/assets/tests/compat/**",
+    "packages/assets/examples/**",
+    "demos/*/dist/**"
+)
+
+/// Formatters and linters. `check`, `fix` and `pre-commit` all share this set, so a
+/// clean `hk check --all` in CI means a clean pre-commit locally.
+local linters = new Mapping<String, Step> {
+    // Two trailing spaces are a hard line break in Markdown, which is why
+    // .editorconfig sets `trim_trailing_whitespace = false` for `*.md`. Trimming
+    // them would silently rewrite authored prose.
+    ["trailing_whitespace"] = (Builtins.trailing_whitespace) {
+        exclude = List("**/*.md", "**/*.mdx")
+    }
+
+    // Fixtures assert exact bytes, and the icons are single-line minified SVG as
+    // their source emitted them; a final newline would change what both are.
+    ["newlines"] = (Builtins.newlines) {
+        exclude = List(
+            "docs/public/**",
+            "packages/content/src/fixtures/**",
+            "packages/content/tests/fixtures/**",
+            "packages/*/tests/fixtures/**"
+        )
+    }
+
+    ["check_merge_conflict"] = Builtins.check_merge_conflict
+
+    // The workflows are part of the gate: `actionlint` is pinned in mise.toml, so
+    // the hook, `mise run check` and CI all check them with the same version.
+    ["actionlint"] = Builtins.actionlint
+
+    // Oxfmt formats far more than TypeScript — it also owns JSON, JSONC, YAML,
+    // TOML, Markdown and CSS in this repository, including fenced code blocks
+    // inside Markdown. Settings live in .oxfmtrc.jsonc.
+    ["oxfmt"] = (Builtins.oxfmt) {
+        exclude = List(
+            "**/pnpm-lock.yaml",
+            "**/package-lock.json",
+            "pnpm-workspace.yaml",
+            "**/*.mdx",
+            "**/app/content/**",
+            "docs/superpowers/**",
+            ".agents/skills/copyediting/**",
+            ".agents/skills/write-better-prose/**",
+            "packages/content/src/fixtures/**",
+            "packages/content/tests/fixtures/**"
+        )
+    }
+
+    // `--deny-warnings` is the builtin's default, so a rule set to "warn" in
+    // .oxlintrc.jsonc still blocks a commit. If you add a rule you only want
+    // advisory, make it advisory for the hook too rather than leaving the hook red.
+    ["oxlint"] = (Builtins.ox_lint) {
+        exclude = List(".omp/**", "packages/assets/examples/**")
+    }
+
+    // Type checking runs through the mise task rather than `tsc` directly: the type
+    // program reads `docs/.generated/`, which `mise run docs:api` writes, and three
+    // separate projects are checked. One definition of how to type-check this
+    // repository, used by the hook, CI, and a person at a terminal.
+    ["tsc"] {
+        glob = List("**/*.ts", "**/*.tsx", "**/tsconfig.json")
+        check = "mise run typecheck"
+        exclusive = true
+    }
+}
+
+/// `bd hooks run` exits 3 when the beads database is not initialized. Beads' own
+/// shims treat that as success so a fresh clone can commit before `mise run setup`
+/// has run; these steps do the same.
+hooks {
+    ["check"] {
+        steps = linters
+    }
+
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+
+    ["pre-commit"] {
+        fix = true
+        stage = true
+        stash = "git"
+        steps = (linters) {
+            ["beads"] {
+                check = "bd hooks run pre-commit || [ $? -eq 3 ]"
+                exclusive = true
+            }
+        }
+    }
+
+    ["commit-msg"] {
+        steps {
+            ["scoped-commit"] {
+                check = "node tools/check-scoped-commit.ts {{commit_msg_file}}"
+            }
+        }
+    }
+
+    ["prepare-commit-msg"] {
+        steps {
+            ["beads"] {
+                check = "bd hooks run prepare-commit-msg {{hook_args}} || [ $? -eq 3 ]"
+            }
+        }
+    }
+
+    ["pre-push"] {
+        steps {
+            ["check"] {
+                check = "mise run check"
+            }
+            ["beads"] {
+                check = "bd hooks run pre-push {{hook_args}} || [ $? -eq 3 ]"
+            }
+        }
+    }
+
+    ["post-checkout"] {
+        steps {
+            ["beads"] {
+                check = "bd hooks run post-checkout {{hook_args}} || [ $? -eq 3 ]"
+            }
+        }
+    }
+
+    ["post-merge"] {
+        steps {
+            ["beads"] {
+                check = "bd hooks run post-merge {{hook_args}} || [ $? -eq 3 ]"
+            }
+        }
+    }
+}
