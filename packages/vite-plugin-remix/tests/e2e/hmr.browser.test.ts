@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { startDevServer, type DevServer } from "./harness.ts";
 
@@ -30,7 +30,7 @@ const MUTABLE = ["fn-counter.tsx", "arrow-counter.tsx", "document.tsx"];
 
 // The browser suite runs wherever Playwright's Chromium is installed (CI runs
 // `playwright install chromium`; locally, run it once). Skip cleanly otherwise
-// so `vp test` stays green on machines without a browser.
+// so `mise run test:vite-plugin-remix` stays green on machines without a browser.
 let browserInstalled = existsSync(chromium.executablePath());
 
 describe.skipIf(!browserInstalled)("HMR in the browser", () => {

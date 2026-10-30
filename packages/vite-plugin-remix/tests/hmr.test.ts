@@ -1,6 +1,6 @@
 import type { Plugin, ResolvedConfig } from "vite";
 
-import { describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vitest";
 
 import { componentHmr, serverDataHmr } from "../src/hmr.ts";
 import { clientEntryTransform } from "../src/transform.ts";

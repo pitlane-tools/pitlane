@@ -1,18 +1,6 @@
-import { defineConfig } from "vite-plus";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-    pack: [
-        {
-            entry: { index: "src/index.ts" },
-            dts: true,
-        },
-    ],
-    run: {
-        tasks: {
-            dev: { command: "vp pack --watch" },
-            build: { command: "rm -rf dist && vp pack" },
-        },
-    },
     test: {
         include: ["tests/**/*.test.ts"],
         // Each test boots real Vite dev servers in child processes (see

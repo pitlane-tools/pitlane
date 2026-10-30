@@ -70,6 +70,7 @@ Pass tokens to `css()` inline at each element through the `mix` prop. Token-mapp
 
 ```tsx
 import { css } from "@pitlane/theme";
+
 import { t } from "./theme.ts";
 
 <article

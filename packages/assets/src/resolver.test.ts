@@ -1,7 +1,7 @@
 import type { AssetServer } from "remix/assets";
 
 import * as fc from "fast-check";
-import { afterEach, describe, expect, expectTypeOf, it } from "vite-plus/test";
+import { afterEach, describe, expect, expectTypeOf, it } from "vitest";
 
 import type { BuildAssetsManifest, DevAssetsManifest } from "./types.ts";
 

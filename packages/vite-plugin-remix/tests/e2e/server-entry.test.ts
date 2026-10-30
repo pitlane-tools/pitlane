@@ -3,7 +3,7 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createBuilder } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { serveFixture } from "./harness.ts";
 

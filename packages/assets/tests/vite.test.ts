@@ -9,7 +9,7 @@ import {
     isRunnableDevEnvironment,
     version as viteVersion,
 } from "vite";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ASSETS_MANIFEST_FILE, assets } from "../src/vite-plugin.ts";
 

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { resolveConfig, type InlineConfig, type Plugin } from "vite";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vitest";
 
 import { remix, type RemixPluginOptions } from "../src/index.ts";
 

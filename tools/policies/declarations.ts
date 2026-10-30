@@ -12,7 +12,7 @@ export function check(root: string): string[] {
         let files = declarationFiles(join(root, directory, "dist"));
         if (files.length === 0) {
             violations.push(
-                `${directory}/dist: no built declarations to check; run \`vp run build\` in ${directory} first (policy.0010)`,
+                `${directory}/dist: no built declarations to check; run \`mise run build\` first (policy.0010)`,
             );
             continue;
         }

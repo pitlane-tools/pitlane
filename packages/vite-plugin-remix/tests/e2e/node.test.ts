@@ -3,7 +3,7 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createBuilder, preview, type Plugin } from "vite";
-import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { remix } from "../../src/index.ts";
 import { serveFixture } from "./harness.ts";
@@ -17,7 +17,7 @@ const PLATFORM_PREVIEW_PORT = 7313;
 
 // The fixture's server entry serves static files from "./dist/client", so
 // build and preview run with the fixture as cwd — the same shape as running
-// vite/vp inside a real project. (Dev runs chdir in its own harness process.)
+// vite inside a real project. (Dev runs chdir in its own harness process.)
 let previousCwd = process.cwd();
 
 beforeAll(async () => {

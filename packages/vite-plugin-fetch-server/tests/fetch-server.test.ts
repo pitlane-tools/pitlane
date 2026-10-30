@@ -6,7 +6,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { resolveConfig } from "vite";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { fetchServer } from "../src/index.ts";
 import {
@@ -54,6 +54,8 @@ describe("proposal 0005: fetchServer request bridge", () => {
             let response = await fetch(`${server.origin}/echo?x=1&y=two`, {
                 method,
                 headers: { "x-fixture": "sent" },
+                // `method` is one of POST, PUT or DELETE; the rule cannot see that.
+                // oxlint-disable-next-line unicorn/no-invalid-fetch-options
                 body: `payload for ${method}`,
             });
 

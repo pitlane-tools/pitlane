@@ -3,7 +3,6 @@ import type { ExecutorOptions } from "@oh-my-pi/pi-coding-agent/task/executor";
 import {
     getActiveSkills as defaultGetActiveSkills,
     type CustomToolContext,
-    Settings,
     type Skill,
 } from "@oh-my-pi/pi-coding-agent";
 import {
@@ -12,7 +11,7 @@ import {
     type AgentProgress,
     type SingleResult,
 } from "@oh-my-pi/pi-coding-agent/task";
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OmpWorkflowAgent, type OmpWorkflowAgentDependencies } from "./agent.js";
 import { WorkflowAgentFailure, type WorkflowAgentRequest } from "./workflow.js";
@@ -80,6 +79,16 @@ vi.mock("@oh-my-pi/pi-coding-agent/task", () => ({
 vi.mock("@oh-my-pi/pi-coding-agent/task/executor", () => ({
     runSubprocess: vi.fn(),
 }));
+// The real setting handles live in a module that loads `pi-utils` (crashes under
+// vitest). These stand-ins read a setting's value from the context's settings
+// double by id, as the real handles read it from a `Settings` instance.
+vi.mock("@oh-my-pi/pi-coding-agent/task/settings", () => {
+    let handle = (id: string) => ({ get: (settings: Record<string, unknown>) => settings[id] });
+    return {
+        cfgTaskDisabledAgents: handle("task.disabledAgents"),
+        cfgTaskAgentModelOverrides: handle("task.agentModelOverrides"),
+    };
+});
 // The real MCP manager loads `pi-utils` (crashes under vitest). This empty
 // stand-in mirrors the only surface the adapter relies on: a fresh manager has no
 // tools, so passing it disables MCP for the child and yields zero proxy tools.
@@ -211,10 +220,10 @@ interface ContextOptions {
 }
 
 function makeContext(options: ContextOptions = {}): CustomToolContext {
-    let settings = Settings.isolated({
+    let settings: Record<string, unknown> = {
         "task.disabledAgents": options.disabledAgents ?? [],
         "task.agentModelOverrides": options.agentModelOverrides ?? {},
-    });
+    };
     return {
         sessionManager: {
             getArtifactsDir: () => options.artifactsDir ?? null,

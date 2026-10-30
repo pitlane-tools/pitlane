@@ -39,9 +39,9 @@
 - f88326c: `pitlane` is now the umbrella package: one install that re-exports every `@pitlane/*` package under a `pitlane/*` subpath, with the same exports.
 
     ```ts
+    import { createContent } from "pitlane/content";
     import { remix } from "pitlane/dev";
     import { createTheme } from "pitlane/theme";
-    import { createContent } from "pitlane/content";
     ```
 
     The subpaths are `pitlane/dev`, `pitlane/dev/runtime`, `pitlane/dev/assets`, `pitlane/theme`, `pitlane/theme/schema`, `pitlane/theme/default`, `pitlane/theme/dtcg`, `pitlane/content`, `pitlane/content/loaders`, `pitlane/content/vite`, `pitlane/content/hot`, `pitlane/content/satteri`, `pitlane/crawler`, `pitlane/data-table-d1`, and `pitlane/data-table-d1/migrations`. List `pitlane/dev/assets` in `tsconfig.json`'s `types` in place of `@pitlane/dev/assets`.

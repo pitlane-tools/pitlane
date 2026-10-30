@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, createLogger, type Logger, type Plugin, resolveConfig } from "vite";
 import satteri from "vite-plugin-satteri";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { headings } from "../src/satteri.ts";
 import { contentLayer } from "../src/vite-plugin.ts";
@@ -45,7 +45,7 @@ async function buildFixture(
         root: fixture,
         logLevel: "silent",
         // The fixture imports the package by name; point that at this source
-        // tree so a build under test never depends on a prior `vp pack`.
+        // tree so a build under test never depends on a prior package build.
         resolve: {
             alias: {
                 "@pitlane/content/loaders": fileURLToPath(

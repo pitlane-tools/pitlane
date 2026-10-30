@@ -11,7 +11,7 @@ import type { PrebuiltCollections } from "./types.ts";
  *
  * The manifest is **assigned to a global** rather than exported, because a
  * bundler that can see an exported value folds it into whatever reads it —
- * `vp pack` does — so a published build would carry `null` forever and leave
+ * tsdown does — so a published build would carry `null` forever and leave
  * `contentLayer()` with nothing to replace.
  *
  * The assignment is what keeps this module in the graph at all: a module with

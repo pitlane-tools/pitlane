@@ -201,8 +201,8 @@ Alternatives, if the flag is unwelcome:
 
 ## Our workaround
 
-`patches/@voidzero-dev__vite-plus-core@1.0.0.patch` (pnpm `patchedDependencies` in `pnpm-workspace.yaml`) applies the closed-flag fix to the built `dist/vite/node/module-runner.js` that ships in Vite+ core. It is the same three edits shown above, written against the bundled output. Vite+ core 1.0.0 bundles Vite 8.3.1, so it carries the same bug.
+`patches/vite@8.3.5.patch` (pnpm `patchedDependencies` in `pnpm-workspace.yaml`) applies the closed-flag fix to the built `dist/node/module-runner.js` that ships in Vite. It is the same three edits shown above, written against the bundled output. The patch was written against `@voidzero-dev/vite-plus-core@1.0.0` while the workspace aliased `vite` to Vite+ core; the repository depends on upstream `vite` now, and 8.3.5 still carries the bug, so the patch moved with it.
 
-Every workspace's `vite` is aliased to `@voidzero-dev/vite-plus-core`, because `vp pack` refuses any other `vite`, so the one patch reaches every dev server in the repo. pnpm fails the install if the patch stops matching the resolved version, so a Vite+ bump surfaces this file rather than silently dropping the fix. The CI jobs that run the `@pitlane/dev` and `@pitlane/content` suites against upstream Vite 8 install it unpatched; those suites never exercise the restart path.
+Every workspace declares the same `vite`, so the one patch reaches every dev server in the repo. pnpm fails the install if the patch stops matching the resolved version, so a Vite bump surfaces this file rather than silently dropping the fix. The CI jobs that run suites against an upstream Vite spec other than the pinned one install it unpatched; those suites never exercise the restart path.
 
-Delete the patch, drop the `patchedDependencies` entry from `pnpm-workspace.yaml`, and run `pnpm install` once the fix lands upstream and in a Vite+ release.
+Delete the patch, drop the `patchedDependencies` entry from `pnpm-workspace.yaml`, and run `pnpm install` once the fix lands upstream.

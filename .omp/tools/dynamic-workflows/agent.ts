@@ -115,7 +115,8 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
             throw new Error(`Unknown agent "${request.agent}". Available: ${available}`);
         }
 
-        let disabledAgents = context.settings ? cfgTaskDisabledAgents.get(context.settings) : [];
+        let settings = context.settings;
+        let disabledAgents = settings ? cfgTaskDisabledAgents.get(settings) : [];
         if (disabledAgents.includes(profile.name)) {
             throw new Error(
                 `Agent "${profile.name}" is disabled in settings. Enable it via /agents, or use a different agent type.`,
@@ -139,9 +140,7 @@ export class OmpWorkflowAgent implements WorkflowAgentRunner {
         }
         let safeProfile: AgentDefinition = { ...profile, spawns: undefined, tools };
 
-        let settingsModels = context.settings
-            ? cfgTaskAgentModelOverrides.get(context.settings)
-            : {};
+        let settingsModels = settings ? cfgTaskAgentModelOverrides.get(settings) : {};
         let modelOverride = request.model ?? settingsModels[profile.name];
 
         let index = ++this.#index;

@@ -34,7 +34,7 @@ export function exportShape(source: string, filename: string): ExportShape {
  * name itself the way the app imports it, as `@pitlane/content`'s errors do.
  */
 export function stubSource(target: string, owner: string, shape: ExportShape): string {
-    let lines = ["// Generated from manifest.json by `vp run generate`. Do not edit."];
+    let lines = ["// Generated from manifest.json by `mise run pitlane:generate`. Do not edit."];
     if (shape.kind === "ambient") {
         lines.push(`/// <reference types=${JSON.stringify(target)} />`);
     } else {

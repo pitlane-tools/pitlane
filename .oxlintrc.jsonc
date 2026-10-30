@@ -1,0 +1,72 @@
+{
+    "$schema": "node_modules/oxlint/configuration_schema.json",
+    "ignorePatterns": [
+        ".agents/docs/**",
+        "node_modules/**",
+        "packages/*/dist/**",
+        // Installed through packed tarballs, with their own toolchains.
+        "packages/assets/tests/compat/**",
+        "packages/assets/examples/**",
+        "demos/*/dist/**",
+        // TypeScript's `include` globs skip dot-directories, so `.omp/` is outside
+        // this project's type program and the type-aware rules below would have
+        // nothing to resolve it against. Oxfmt still formats it.
+        ".omp/**"
+    ],
+    "options": {
+        // Type-aware rules run through oxlint-tsgolint (a devDependency).
+        "typeAware": true,
+        "typeCheck": true
+    },
+    // `tools/lint/pitlane.ts` is this repository's own rule set; policy.0006 is
+    // enforced there rather than in prose (see .agents/rules/enforcement-hierarchy.md).
+    "jsPlugins": [
+        "eslint-plugin-perfectionist",
+        "eslint-plugin-prefer-let",
+        "./tools/lint/pitlane.ts"
+    ],
+    "rules": {
+        "typescript/no-floating-promises": "allow",
+        "typescript/unbound-method": "allow",
+        "perfectionist/sort-jsx-props": "warn",
+        "import/extensions": [
+            "error",
+            "ignorePackages",
+            {
+                "cjs": "always",
+                "cts": "always",
+                "js": "always",
+                "jsx": "always",
+                "mjs": "always",
+                "mts": "always",
+                "ts": "always",
+                "tsx": "always"
+            }
+        ],
+        "eslint/prefer-const": "off",
+        "prefer-let/prefer-let": [2, { "forceUpperCaseConst": true }]
+    },
+    "overrides": [
+        {
+            "files": ["packages/*/src/**/*.{ts,tsx}"],
+            "excludeFiles": [
+                "packages/vite-plugin-*/**",
+                "**/*.test.{ts,tsx}",
+                "**/*.test-d.ts",
+                "**/fixtures/**"
+            ],
+            "rules": {
+                "pitlane/no-bundler-imports": [
+                    "error",
+                    {
+                        "pluginModules": [
+                            "packages/assets/src/vite-plugin.ts",
+                            "packages/assets/src/vite/**",
+                            "packages/content/src/vite-plugin.ts"
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

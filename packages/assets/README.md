@@ -77,8 +77,8 @@ As published, `@pitlane/assets/manifest` exports `{ mode: "unavailable" }`. A re
 Other bundlers produce a manifest with `createAssetManifest(build)` from `@pitlane/assets/build`. It takes a normalized description of the emitted chunks, their modules, static and dynamic imports, and stylesheets, and computes preloads, stylesheet lists, and public URLs:
 
 ```ts
-import { createAssetManifest } from "@pitlane/assets/build";
 import { createAssetResolver } from "@pitlane/assets";
+import { createAssetManifest } from "@pitlane/assets/build";
 
 let manifest = createAssetManifest({
     base: "/",

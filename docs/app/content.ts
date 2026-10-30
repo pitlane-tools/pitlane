@@ -6,7 +6,7 @@ import { reference } from "./reference.ts";
 
 /**
  * The published corpus: the authored guides and deployment pages, and the
- * API reference `vp run docs:api` generates.
+ * API reference `mise run docs:api` generates.
  *
  * `contentLayer()` compiles every body during the build through the Sätteri
  * plugins the Vite config registers: MDX to a component, Markdown to HTML.

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createContent } from "../content.ts";
 import { file } from "./file.ts";

@@ -85,7 +85,7 @@ test("policy.0010: a published package without built declarations fails rather t
         ".agents/dependencies.json": ledger,
     });
     assert.deepEqual(check(root), [
-        "packages/widget/dist: no built declarations to check; run `vp run build` in packages/widget first (policy.0010)",
+        "packages/widget/dist: no built declarations to check; run `mise run build` first (policy.0010)",
     ]);
 });
 

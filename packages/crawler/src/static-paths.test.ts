@@ -1,5 +1,5 @@
 import { form, get, post, route } from "remix/routes";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vitest";
 
 import { staticPaths } from "./static-paths";
 

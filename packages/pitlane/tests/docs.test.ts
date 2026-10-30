@@ -1,4 +1,4 @@
-import { expect, it } from "vite-plus/test";
+import { expect, it } from "vitest";
 
 import { installedReadmes } from "../scripts/docs.ts";
 import { parseManifest } from "../scripts/manifest.ts";

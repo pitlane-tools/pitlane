@@ -1,0 +1,58 @@
+{
+    "$schema": "node_modules/oxfmt/configuration_schema.json",
+    "ignorePatterns": [
+        // Vendored upstream documentation; keep it diffable against its source.
+        ".agents/docs/**",
+        ".agents/skills/copyediting/**",
+        ".agents/skills/remix/**",
+        ".agents/skills/write-better-prose/**",
+        "docs/superpowers/**",
+        "node_modules/**",
+        // pnpm rewrites these itself, so oxfmt would only fight it.
+        "*-lock.yaml",
+        "pnpm-workspace.yaml",
+        // Oxfmt parses MDX as Markdown and escapes executable expressions.
+        "**/*.mdx",
+        "**/app/content/**",
+        "packages/content/src/fixtures/**",
+        "packages/content/tests/fixtures/**",
+        "packages/*/dist/**",
+        "packages/assets/tests/compat/**",
+        "demos/*/dist/**",
+        // Generated: the umbrella's installed documentation and the reference index.
+        "packages/pitlane/guides/**",
+        "packages/pitlane/INDEX.md",
+        "docs/.generated/**",
+        "pitlane.md"
+    ],
+    "printWidth": 100,
+    "tabWidth": 4,
+    "arrowParens": "avoid",
+    "sortPackageJson": true,
+    "sortImports": {
+        "groups": [
+            "type-import",
+            ["value-builtin", "value-external"],
+            "type-internal",
+            "value-internal",
+            ["type-parent", "type-sibling", "type-index"],
+            ["value-parent", "value-sibling", "value-index"],
+            "unknown"
+        ],
+        "partitionByComment": true
+    },
+    "overrides": [
+        {
+            "files": ["**/*.md", "**/*.mdx"],
+            "options": { "proseWrap": "never" }
+        },
+        {
+            "files": ["**/*.jsonc"],
+            "options": { "trailingComma": "none" }
+        },
+        {
+            "files": ["**/.vscode/**"],
+            "options": { "trailingComma": "all" }
+        }
+    ]
+}
