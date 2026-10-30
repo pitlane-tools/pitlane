@@ -25,11 +25,22 @@ worktrunk = "0.81.0" # provides `wt`
 # Beads is not in the mise registry; the GitHub release backend installs the same
 # binary `brew install beads` does. Pin it: an older `bd` refuses to open a newer DB.
 "github:gastownhall/beads" = "1.3.2" # provides `bd`
+# One `.omp/tools/dynamic-workflows` test loads the workflow tool through Oh My Pi's
+# real custom-tool loader, and that loader only runs on Bun. Pinning it here is what
+# makes `mise run omp:test` work on a fresh clone and on a CI runner.
+bun = "1.3.9"
 
 [env]
 # Locally installed CLIs — oxfmt, oxlint, tsdown, tsc, vite, vitest, vale, changeset —
 # without a `pnpm exec` prefix. They are devDependencies, never global installs.
-_.path = ["{{config_root}}/node_modules/.bin"]
+#
+# `cf` is a devDependency of the `docs/cloudflare` workspace package rather than the
+# root, because it is pinned to the Worker's own config; its bin directory is listed
+# so `mise run docs:serve` and the deploy workflows can call `cf` by name.
+_.path = [
+    "{{config_root}}/node_modules/.bin",
+    "{{config_root}}/docs/cloudflare/node_modules/.bin",
+]
 
 # Secrets are resolved by fnox and granted per task with `secrets = [...]`.
 # Never list a secret in `[env]` — that would export it to every process.
