@@ -638,9 +638,10 @@ function Component() {
 The `Image` and `Picture` components emit optimized, correctly-sized markup and defer transformation to the configured image adapter. Adapters: `@pitlane/image-cloudflare` (Cloudflare Images), `@pitlane/image-netlify` (Netlify Image CDN), `@pitlane/image-vercel` (Vercel Image Optimization).
 
 ```tsx
-import robinImage from "#/assets/images/robin.png?url";
-import parrotImage from "#/assets/images/parrot.png?url";
 import { Image, Picture } from "pitlane/image";
+
+import parrotImage from "#/assets/images/parrot.png?url";
+import robinImage from "#/assets/images/robin.png?url";
 
 <Image src={robinImage} width={400} height={300} alt="A robin on a nest." />;
 <Picture
@@ -1005,25 +1006,23 @@ The window-global local-store runtime owns the foreground connection. One window
 
 ```ts
 // entry.server.tsx
+import { createD1Database } from "@pitlane/data-table-d1";
 import { env } from "cloudflare:workers";
-
-import { createRouter } from "remix/router";
+import { R2FileStorage } from "pitlane/file-storage-cloudflare-r2";
+import { createJobs, Scheduler, createJobQueue, createScheduledJobs } from "pitlane/job";
+import { CloudflareQueueAdapter } from "pitlane/job-scheduler-cloudflare";
+import { createKVSessionStorage } from "pitlane/session-storage-cloudflare-kv";
 import { asyncContext } from "remix/async-context-middleware";
 import { createCookie } from "remix/cookie";
 import { formData } from "remix/form-data-middleware";
 import { methodOverride } from "remix/method-override-middleware";
+import { createRouter } from "remix/router";
 import { staticFiles } from "remix/static-middleware";
 
-import { createD1Database } from "@pitlane/data-table-d1";
-import { R2FileStorage } from "pitlane/file-storage-cloudflare-r2";
-import { createKVSessionStorage } from "pitlane/session-storage-cloudflare-kv";
-import { createJobs, Scheduler, createJobQueue, createScheduledJobs } from "pitlane/job";
-import { CloudflareQueueAdapter } from "pitlane/job-scheduler-cloudflare";
-
-import { routes } from "~/routes.ts";
-import home from "~/home.tsx";
 import contacts from "~/contacts.tsx";
+import home from "~/home.tsx";
 import { jobs } from "~/jobs.ts";
+import { routes } from "~/routes.ts";
 
 let cookie = createCookie("__session", {
     secrets: ["s3cr3t"],

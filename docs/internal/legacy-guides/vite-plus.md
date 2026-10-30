@@ -37,8 +37,8 @@ Pitlane does not replace Vite+ commands such as `dev`, `build`, `check`, or `tes
 Pitlane plugins live in the same `vite.config.ts` file as the rest of your Vite+ configuration:
 
 ```ts
-import { defineConfig } from "vite-plus";
 import { remix, platform } from "pitlane/dev";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
     plugins: [

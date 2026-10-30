@@ -12,8 +12,8 @@ Pitlane configuration starts in `vite.config.ts`.
 `remix()` configures the Remix build for Vite+:
 
 ```ts
-import { defineConfig } from "vite-plus";
 import { remix } from "pitlane/dev";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
     plugins: [
@@ -34,8 +34,8 @@ All options are optional. The plugin configures the SSR and client Vite environm
 `platform()` is the source of truth for Cloudflare resources:
 
 ```ts
-import { defineConfig } from "vite-plus";
 import { remix, platform } from "pitlane/dev";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
     plugins: [
