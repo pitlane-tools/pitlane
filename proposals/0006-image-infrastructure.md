@@ -1,5 +1,5 @@
 ---
-id: proposal.0005
+id: proposal.0006
 title: Image Infrastructure
 authors: [Mark Malstrom]
 status: draft
