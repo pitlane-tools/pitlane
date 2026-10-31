@@ -1,4 +1,4 @@
-import { Callout, NoBuild, Vite } from "../../components/documentation.tsx";
+import { NoBuild, Vite } from "../../components/documentation.tsx";
 
 # Prerendering
 
@@ -404,12 +404,6 @@ export default defineConfig({
 ```
 
 Nothing there names the runtime twice. `@cloudflare/vite-plugin` already supplies a preview server that boots workerd with the app's real bindings, so the pages written to `dist/client` come from the runtime that will serve them. `env` reads resolve, and `navigator.userAgent` says `Cloudflare-Workers`. The same holds for any platform plugin that contributes a preview server.
-
-<Callout kind="warning" title="Not in the current release">
-
-This path works with `@cloudflare/vite-plugin` 1.x. Version 2.0, the one the [Cloudflare guide](/deploy/cloudflare) installs, writes the Build Output its preview server reads at the end of the build, and the current release, `pitlane@1.0.0-alpha.2`, prerenders before that. Until a release with the fix is published, the build stops with `Build Output Specification: no root config found`.
-
-</Callout>
 
 One thing does change on this path. `getStaticPaths()` normally reads the `routes` export off the built bundle, and that bundle is the thing that will not load. So the build follows the export back to its source instead:
 
