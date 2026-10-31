@@ -380,12 +380,12 @@ export default defineConfig({
 });
 ```
 
-With it, the built handler imports nothing but the runtime's own modules, such as `node:sqlite`. Cloudflare's plugin already builds Workers this way, because a Worker has no `node_modules` to import from. On a target that runs a server process, such as [Railway](/deploy/railway) or [Deno Deploy](/deploy/deno-deploy), it is a choice, and both answers have consequences.
+With it, the built handler imports nothing but the runtime's own modules, such as `node:sqlite`. Cloudflare's plugin already builds Workers this way, because a Worker has no `node_modules` to import from. On a target that runs a server process, such as [Railway](/deploy/railway), it is a choice, and both answers have consequences.
 
 Bundling everything means:
 
 - The deployed app needs `dist/` and nothing from `node_modules`, so a production image skips the dependency install and is smaller.
-- Development packages, such as `@pitlane/dev` and Vite, never reach production, whichever `package.json` field lists them.
+- Development packages, such as `@pitlane/vite-plugin-remix` and Vite, never reach production, whichever `package.json` field lists them.
 - The versions that run are the ones the build resolved, with no second install that could resolve differently.
 
 Leaving packages external means:
