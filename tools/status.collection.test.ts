@@ -7,6 +7,14 @@ import test, { type TestContext } from "node:test";
 
 let statusScript = new URL("./status.ts", import.meta.url).pathname;
 
+// A git hook exports GIT_DIR, GIT_INDEX_FILE and GIT_WORK_TREE, and they point at the
+// real repository. Inheriting them would make every fixture `git` call — and the status
+// run itself — operate on this checkout instead of the temporary one, so the gate running
+// from `pre-push` would rewrite the developer's repository. Strip them.
+const ENV = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+);
+
 type Git = (...arguments_: string[]) => string;
 
 function statusWithPullRequests(
@@ -34,9 +42,9 @@ function statusWithPullRequests(
                 "user.email=test@example.com",
                 ...arguments_,
             ],
-            { encoding: "utf8" },
+            { encoding: "utf8", env: ENV },
         ).trim();
-    execFileSync("git", ["init", "-q", "-b", "feature", root]);
+    execFileSync("git", ["init", "-q", "-b", "feature", root], { env: ENV });
     git("commit", "--allow-empty", "-qm", "fixture");
     if (options.originHead)
         git(
@@ -74,7 +82,7 @@ function statusWithPullRequests(
         cwd: root,
         encoding: "utf8",
         env: {
-            ...process.env,
+            ...ENV,
             PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
             TEST_PULL_REQUESTS: JSON.stringify(
                 pullRequests.map(pullRequest => ({

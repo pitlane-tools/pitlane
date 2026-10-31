@@ -23,8 +23,8 @@ Each `@pitlane/*` package is available under a `pitlane/*` subpath, with the sam
 | `pitlane/data-table-d1`, `pitlane/data-table-d1/migrations` | [`@pitlane/data-table-d1`](https://pitlane.tools/package/data-table-d1/): the Cloudflare D1 driver for Remix's data-table |
 
 ```ts
-import { remix } from "pitlane/vite-plugin-remix";
 import { createAssetResolver } from "pitlane/assets";
+import { remix } from "pitlane/vite-plugin-remix";
 ```
 
 `pitlane` depends on an exact version of every package it re-exports. It is released by hand when enough package changes have accumulated, so a package's newest release can be ahead of the version the umbrella pins. Bare `pitlane` has no exports; import a subpath.

@@ -1,6 +1,6 @@
 ---
 name: reframing-a-problem
-description: Use when repeated fixes produce contradictions, an implementation cannot satisfy grounded domain constraints, or an implementer returns NEEDS_STRATEGY because the problem formulation may be wrong.
+description: Use when repeated fixes produce contradictions, an implementation cannot satisfy grounded domain constraints, or a delegated slice reports that the evidence contradicts the proposal's model, because the problem formulation may be wrong.
 ---
 
 # Reframing a Problem
@@ -13,8 +13,8 @@ Typical signals:
 - the implementation seems to require violating grounded domain constraints;
 - several locally reasonable approaches fail for apparently unrelated reasons;
 - the current abstraction makes a simple domain concept unusually difficult;
-- the strategist or implementer can describe symptoms but no coherent causal model;
-- a `NEEDS_STRATEGY` result indicates the proposal's conceptual model may be wrong.
+- the agent can describe symptoms but no coherent causal model;
+- a delegated slice reports that the evidence contradicts the proposal's model.
 
 Approach the problem independently.
 
@@ -45,4 +45,4 @@ Return:
 
 Do not silently modify product intent. Do not default to writing code.
 
-The strategist checks the diagnosis against its evidence and determines whether to revisit grounding, ontology, architecture, or the proposal. A change to product intent requires human review of the revised proposal before implementation resumes.
+The primary agent checks the diagnosis against its evidence and determines whether to revisit grounding, ontology, architecture, or the proposal. A change to product intent requires human review of the revised proposal before implementation resumes.

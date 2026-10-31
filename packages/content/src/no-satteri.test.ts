@@ -1,5 +1,5 @@
 import * as s from "remix/data-schema";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vitest";
 
 describe("rendering Markdown without satteri installed", () => {
     it("rejects rather than rendering the body", async () => {

@@ -1,0 +1,9 @@
+# What `wt step copy-ignored` carries into a new worktree. A path is copied only if
+# it is both gitignored and listed here, so this file is an allowlist of build caches
+# that are expensive to recreate and safe to share.
+
+node_modules
+
+# The Vale binary and its synced styles. `mise run docs:prose` downloads them from
+# GitHub's API without a token, and a cold worktree would spend that rate limit again.
+.vale

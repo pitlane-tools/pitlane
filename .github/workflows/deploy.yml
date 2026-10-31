@@ -17,27 +17,30 @@ jobs:
             - name: 📥 Checkout code
               uses: actions/checkout@v4
 
-            # Repo-level tasks (`docs:api`, `docs:build`) come from the root
-            # vite.config.ts, and the Node and pnpm versions from .node-version
-            # and `packageManager`, so CI runs the same task definitions as a
-            # developer's checkout.
+            # Repo-level tasks (`docs:api`, `docs:build`, `docs:test`) come from
+            # mise.toml, which also pins Node, pnpm and the rest of the
+            # toolchain, so CI runs the same task definitions as a developer's
+            # checkout.
             - name: 🧰 Setup toolchain
-              uses: voidzero-dev/setup-vp@v1.21.1
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # This job holds the production Cloudflare deploy token, so it
+                  # restores no cache: a lower-trust workflow could otherwise
+                  # plant files in one and have them run here with the
+                  # credential in scope.
+                  cache: false
 
             - name: 📦 Install dependencies
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Build and verify documentation
-              run: vp run docs:test
+              run: mise run docs:test
 
             - name: ☁️ Deploy Worker
               # Worker name and account are pinned in docs/cloudflare/cloudflare.config.ts
               # so a repository rename can never redirect deploys to a new worker.
               working-directory: docs/cloudflare
-              run: vp exec cf deploy
+              run: mise exec -- cf deploy
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CF_SEND_TELEMETRY: "false"

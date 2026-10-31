@@ -71,13 +71,17 @@ function collectAnchors(
 
 // VitePress's default heading normalization; existing inbound fragments depend on these rules.
 export function legacySlug(title: string): string {
-    return title
-        .normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[\u0000-\u001f]/g, "")
-        .replace(/[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g, "-")
-        .replace(/-{2,}/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .replace(/^(\d)/, "_$1")
-        .toLowerCase();
+    return (
+        title
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            // Stripping control characters is the point of this step, not an accident.
+            // oxlint-disable-next-line no-control-regex
+            .replace(/[\u0000-\u001f]/g, "")
+            .replace(/[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g, "-")
+            .replace(/-{2,}/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .replace(/^(\d)/, "_$1")
+            .toLowerCase()
+    );
 }

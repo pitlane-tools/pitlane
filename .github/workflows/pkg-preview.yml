@@ -36,53 +36,19 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
-              with:
-                  node-version-file: .node-version
-                  cache: true
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
-            # Each build runs from inside its package, which is the form that
-            # resolves the toolchain the global `vp` provides. A root-level
-            # `vp run build --filter …` reports "Task not found" and exits 0,
-            # which would publish an empty dist with the job still green.
-            #
-            # Publish workspace dependencies together so pkg.pr.new rewrites
-            # workspace ranges to installable preview URLs.
-            - name: Build @pitlane/content
-              working-directory: packages/content
-              run: vp run build
-
-            - name: Build @pitlane/crawler
-              working-directory: packages/crawler
-              run: vp run build
-
-            - name: Build @pitlane/assets
-              working-directory: packages/assets
-              run: vp run build
-
-            - name: Build @pitlane/vite-plugin-fetch-server
-              working-directory: packages/vite-plugin-fetch-server
-              run: vp run build
-
-            - name: Build @pitlane/vite-plugin-remix
-              working-directory: packages/vite-plugin-remix
-              run: vp run build
-
-            - name: Build @pitlane/theme
-              working-directory: packages/theme
-              run: vp run build
-
-            - name: Build @pitlane/data-table-d1
-              working-directory: packages/data-table-d1
-              run: vp run build
-
-            - name: Build pitlane
-              working-directory: packages/pitlane
-              run: vp run build
+            # `mise run build` is every publishable package, each built in its
+            # own directory and in dependency order, which is what the eight
+            # separate steps this replaces were doing by hand. Workspace
+            # dependencies are published alongside their dependents so
+            # pkg.pr.new rewrites workspace ranges to installable preview URLs.
+            - name: Build every publishable package
+              run: mise run build
 
             - name: Publish previews to pkg.pr.new
               run: npx pkg-pr-new publish './packages/assets' './packages/content' './packages/crawler' './packages/vite-plugin-fetch-server' './packages/vite-plugin-remix' './packages/theme' './packages/data-table-d1' './packages/pitlane'

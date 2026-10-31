@@ -33,16 +33,17 @@
         }
     },
     "scripts": {
-        "prepublishOnly": "vp run build"
+        "prepublishOnly": "mise run build:vite-plugin-fetch-server"
     },
     "dependencies": {
         "@remix-run/node-fetch-server": "^1.0.0"
     },
     "devDependencies": {
         "@types/node": "^25.5.0",
+        "tsdown": "^0.23.4",
         "typescript": "^7.0.2",
-        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
-        "vite-plus": "^1.0.0"
+        "vite": "^8.3.5",
+        "vitest": "^5.0.5"
     },
     "peerDependencies": {
         "vite": ">=8.1.0"

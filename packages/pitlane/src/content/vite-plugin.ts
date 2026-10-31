@@ -1,4 +1,4 @@
-// Generated from manifest.json by `vp run generate`. Do not edit.
+// Generated from manifest.json by `mise run pitlane:generate`. Do not edit.
 export * from "@pitlane/content/vite-plugin";
 
 let reached = Symbol.for("pitlane.umbrella.packages");

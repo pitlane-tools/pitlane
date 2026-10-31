@@ -44,7 +44,7 @@
 
 ## Defects discovered and deferred
 
-<!-- List agreed defects outside this proposal's scope, filed as linked GitHub issues; say None if there were none. -->
+<!-- List agreed defects outside this proposal's scope, filed as linked Beads items; say None if there were none. -->
 
 - None.
 

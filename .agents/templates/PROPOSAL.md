@@ -20,7 +20,7 @@ Lifecycle:
 - `awaiting-implementation` — Phase 3 implementation may begin.
 - `active-review` — Phase 4 human evaluation; readiness is posted and the pull request is ready.
 - `returned-for-revisions` — Phase 4 human feedback returned the work to Phase 2 or Phase 3.
-- `accepted` — Phase 5 vision update and final implementation record are underway.
+- `accepted` — Phase 5 vision update, merge, and any requested release are underway.
 - `implemented` — the accepted implementation and final records are committed in the feature pull request before merge. Merge and any requested release remain separate.
 - `rejected` — the human declined the change; retained as a record.
 - `withdrawn` — the author pulled it; retained as a record.
@@ -168,7 +168,7 @@ belongs elsewhere unless this change requires it.
 
 <!--
 Name deliberate exclusions and why. Defects discovered while writing this proposal that fall outside
-scope are filed as GitHub issues, not folded in; use .agents/skills/tracking-defects/.
+scope are filed in Beads, not folded in; use .agents/skills/tracking-work/.
 -->
 
 - <Excluded work and reason it is excluded.>

@@ -152,6 +152,7 @@ The document is the remix CLI template's, plus one stylesheet link. Nothing in i
 ```tsx
 // app/document.tsx
 import type { Handle, RemixNode } from "remix/component";
+
 import { ImportMap } from "remix/component/server";
 
 import { scriptEntry, stylesheetHref } from "./assets.ts";

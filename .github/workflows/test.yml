@@ -13,9 +13,9 @@ concurrency:
     group: test-${{ github.ref }}
     cancel-in-progress: true
 
-# Package tasks (test, build) are defined per package in `vite.config.ts`;
-# repo-level tasks are defined in the root `vite.config.ts`. Both run through
-# Vite+, with Node from .node-version and pnpm from `packageManager`.
+# Every task lives in `mise.toml`, and mise also pins Node, pnpm and the rest of
+# the toolchain, so CI runs the same definitions a developer's checkout does.
+# `jdx/mise-action` installs those pinned tools and caches them itself.
 jobs:
     test:
         name: ${{ matrix.package }}
@@ -25,46 +25,43 @@ jobs:
             matrix:
                 include:
                     - package: "@pitlane/assets"
-                      directory: packages/assets
+                      pkg: assets
                     - package: "@pitlane/vite-plugin-fetch-server"
-                      directory: packages/vite-plugin-fetch-server
+                      pkg: vite-plugin-fetch-server
                     - package: "@pitlane/content"
-                      directory: packages/content
+                      pkg: content
                     - package: "@pitlane/crawler"
-                      directory: packages/crawler
+                      pkg: crawler
                     - package: "@pitlane/vite-plugin-remix"
-                      directory: packages/vite-plugin-remix
+                      pkg: vite-plugin-remix
                     - package: "@pitlane/data-table-d1"
-                      directory: packages/data-table-d1
+                      pkg: data-table-d1
                     - package: "@pitlane/theme"
-                      directory: packages/theme
+                      pkg: theme
                     - package: "pitlane"
-                      directory: packages/pitlane
+                      pkg: pitlane
                     # Exercise the supported minimum as well as current Vite.
                     - package: "@pitlane/assets (Vite 8.1)"
-                      directory: packages/assets
+                      pkg: assets
                       vite: "8.1.0"
                     - package: "@pitlane/assets (Vite 8)"
-                      directory: packages/assets
+                      pkg: assets
                       vite: "^8"
                     - package: "@pitlane/vite-plugin-fetch-server (Vite 8.1)"
-                      directory: packages/vite-plugin-fetch-server
+                      pkg: vite-plugin-fetch-server
                       vite: "8.1.0"
                     - package: "@pitlane/vite-plugin-fetch-server (Vite 8)"
-                      directory: packages/vite-plugin-fetch-server
+                      pkg: vite-plugin-fetch-server
                       vite: "^8"
                     - package: "@pitlane/vite-plugin-remix (Vite 8.1)"
-                      directory: packages/vite-plugin-remix
+                      pkg: vite-plugin-remix
                       vite: "8.1.0"
                     - package: "@pitlane/content (Vite 8)"
-                      directory: packages/content
+                      pkg: content
                       vite: "^8"
                     - package: "@pitlane/vite-plugin-remix (Vite 8)"
-                      directory: packages/vite-plugin-remix
+                      pkg: vite-plugin-remix
                       vite: "^8"
-        defaults:
-            run:
-                working-directory: ${{ matrix.directory }}
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -72,44 +69,38 @@ jobs:
             # The upstream variants re-resolve the workspace's `latest`
             # specifiers, so they neither restore nor save the shared cache,
             # keeping its contents matched to the lockfile.
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
                   cache: ${{ !matrix.vite }}
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             # Browser tests must run rather than silently skip missing Chromium.
+            # `npx` resolves Playwright from the package that depends on it.
             - name: Install Playwright Chromium
-              if: matrix.directory == 'packages/vite-plugin-remix' || matrix.directory == 'packages/assets'
+              if: matrix.pkg == 'vite-plugin-remix' || matrix.pkg == 'assets'
+              working-directory: packages/${{ matrix.pkg }}
               run: npx playwright install --with-deps chromium
 
-            - name: Build Remix plugin dependencies
-              if: matrix.directory == 'packages/vite-plugin-remix'
-              working-directory: .
-              run: vp run --filter '@pitlane/vite-plugin-remix^...' build
-
-            # The runtime fixture imports content through its published exports.
-            - name: Build content for runtime fixtures
-              if: matrix.directory == 'packages/content'
-              run: vp run build
-
-            # Builds above ran on Vite+ core, which `vp pack` requires. Workspace
-            # packages are symlinked, so each loads `vite` from its own
-            # devDependency; the suite and every workspace package it reaches
-            # must swap together, or guards such as `isRunnableDevEnvironment`
-            # (an `instanceof`) reject the suite's environments. The manifest is
-            # rewritten because `vp add -E vite@8.1.0` still saves `^8.1.0`. The
-            # first install already ran every lifecycle script; rerunning them
-            # here downloads Vale's binary from the GitHub API again, which the
-            # runners' shared, unauthenticated rate limit answers with 403.
+            # Workspace packages are symlinked, so each loads `vite` from its own
+            # devDependency; the suite and every workspace package it reaches must
+            # swap together, or guards such as `isRunnableDevEnvironment` (an
+            # `instanceof`) reject the suite's environments. The manifests are
+            # rewritten by hand because `pnpm add -E vite@8.1.0` still saves
+            # `^8.1.0`. The first install already ran every lifecycle script;
+            # rerunning them here downloads Vale's binary from the GitHub API
+            # again, which the runners' shared, unauthenticated rate limit answers
+            # with 403.
             - name: Use upstream Vite 8
               if: matrix.vite
+              working-directory: packages/${{ matrix.pkg }}
               env:
                   VITE_SPEC: ${{ matrix.vite }}
               run: |
+                  # the node script is single-quoted on purpose: ${…} is JavaScript
+                  # shellcheck disable=SC2016
                   pnpm ls --filter "{.}..." --depth -1 --json | node -e '
                   const fs = require("node:fs");
                   for (const { path } of JSON.parse(fs.readFileSync(0, "utf8"))) {
@@ -121,15 +112,18 @@ jobs:
                       console.log(`${manifest.name}: vite@${process.env.VITE_SPEC}`);
                   }
                   '
-                  vp install --no-frozen-lockfile --ignore-scripts
+                  pnpm install --no-frozen-lockfile --ignore-scripts
 
             # A green upstream run proves nothing unless the suite and every
             # workspace package it loads resolved one copy of the requested Vite.
             - name: Confirm upstream Vite
               if: matrix.vite
+              working-directory: packages/${{ matrix.pkg }}
               env:
                   VITE_SPEC: ${{ matrix.vite }}
               run: |
+                  # the node script is single-quoted on purpose: ${…} is JavaScript
+                  # shellcheck disable=SC2016
                   pnpm ls --filter "{.}..." --depth -1 --json | node -e '
                   const fs = require("node:fs");
                   const { createRequire } = require("node:module");
@@ -158,14 +152,22 @@ jobs:
                   }
                   '
 
+            # `test:<pkg>` runs from the package's directory and declares the
+            # workspace builds its fixtures load through published exports, so the
+            # dependency pre-builds this job used to run are part of the task.
             - name: Run tests
-              run: vp test
+              env:
+                  PKG: ${{ matrix.pkg }}
+              run: mise run "test:$PKG"
 
-            # `vp pack` refuses any `vite` but Vite+ core, so the upstream
-            # variants test without building.
+            # Every variant builds. The old `if: !matrix.vite` guard existed only
+            # because the retired packer refused any `vite` but Vite+ core;
+            # tsdown bundles the package from its own sources and works with any
+            # `vite`, so an upstream row proves the build too.
             - name: Build package
-              if: ${{ !matrix.vite }}
-              run: vp run build
+              env:
+                  PKG: ${{ matrix.pkg }}
+              run: mise run "build:$PKG"
 
     asset-compatibility:
         name: Assets examples (${{ matrix.vite }})
@@ -173,15 +175,18 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                vite: ["8.1.0", "^8", "npm:@voidzero-dev/vite-plus-core@1.0.0"]
+                # The third entry pinned Vite+ core, back when the workspace
+                # aliased `vite` to it. The repository depends on upstream Vite
+                # now, so that row has nothing left to prove and `latest` takes
+                # its place: supported minimum, current major, and whatever npm
+                # ships today — which is how the next major breaking the assets
+                # pipeline surfaces here first rather than in a reader's project.
+                vite: ["8.1.0", "^8", "latest"]
         steps:
             - uses: actions/checkout@v4
-            - uses: voidzero-dev/setup-vp@v1.21.1
-              with:
-                  node-version-file: .node-version
-                  cache: true
-            - run: vp install --frozen-lockfile
-            - run: vp run --filter '@pitlane/vite-plugin-remix...' build
+            - uses: jdx/mise-action@v5
+            - run: mise run deps:install
+            - run: mise run build:vite-plugin-remix
             - name: Install the isolated examples
               working-directory: packages/assets/tests/compat
               env:
@@ -199,12 +204,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: voidzero-dev/setup-vp@v1.21.1
-              with:
-                  node-version-file: .node-version
-                  cache: true
-            - run: vp install --frozen-lockfile
-            - run: vp run --filter @pitlane/assets build
+            - uses: jdx/mise-action@v5
+            - run: mise run deps:install
+            - run: mise run build:assets
             - name: Pack the consumer artifact
               working-directory: packages/assets
               run: pnpm pack --pack-destination "$RUNNER_TEMP/assets-package"
@@ -226,12 +228,12 @@ jobs:
                 example: [react-router, vue-router, solid-router, preact-islands, lit-islands]
         steps:
             - uses: actions/checkout@v4
-            - uses: voidzero-dev/setup-vp@v1.21.1
-              with:
-                  node-version-file: .node-version
-                  cache: true
-            - run: vp install --frozen-lockfile
-            - run: vp run --filter @pitlane/assets --filter @pitlane/vite-plugin-fetch-server build
+            - uses: jdx/mise-action@v5
+            - run: mise run deps:install
+            - name: Build the consumer packages
+              run: |
+                  mise run build:assets
+                  mise run build:vite-plugin-fetch-server
             - name: Pack the consumer artifacts
               run: |
                   (cd packages/assets && pnpm pack --pack-destination "$RUNNER_TEMP/assets-package")
@@ -251,53 +253,75 @@ jobs:
                   npx playwright install --with-deps chromium
                   npm run check
 
-    policies:
-        name: Policies must hold
+    # `mise run check` is the one definition of the blocking gate: formatting,
+    # lint, types, the record validator, the record and policy tooling's own
+    # suites, the repository policies over the built packages, and the
+    # documentation build. The `pre-push` hook runs the same task, so the local
+    # gate and this one cannot drift apart. The heavy per-package suites stay in
+    # the matrix above rather than in the gate.
+    check:
+        name: Check
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
-
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  fetch-depth: 0
 
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
+
+            # Oxfmt, Oxlint, tsc, TypeDoc, Vale and the package bundler are all
+            # devDependencies, so the gate needs them installed.
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
-            # Builds the published packages first, since some checks read
-            # their built declarations.
-            - name: Check the repository policies
-              run: vp run policies
+            - name: Run the gate
+              run: mise run check
 
-            # Type-aware lint reads docs/.generated/, which docs:api writes.
-            - name: Generate the package reference
-              run: vp run docs:api
-
-            # The per-file policies, such as policy.0006, are Oxlint rules.
-            - name: Lint the source policies
-              run: vp lint
-
-    record:
-        name: The record must validate
+    commits:
+        name: Commit messages
+        if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
-
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # The script reads every commit in the pull request; a shallow
+                  # clone has none of them.
+                  fetch-depth: 0
 
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
+
+            - name: Validate pull request commit messages
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: node tools/check-pr-commits.ts "$BASE_SHA" "$HEAD_SHA"
+
+    # Every pull request carries its own release note. There is no exemption:
+    # pitlane has no automated version pull request to consume changesets — a
+    # human cuts the tag and the GitHub Release that publish.yml reacts to.
+    changeset:
+        name: Changeset
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
+
+            # The script reads the changeset status through the Changesets CLI.
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
-            - name: Validate the record
-              run: vp run validate
-
-            - name: Test the record tooling
-              run: vp run tools:test
+            - name: Require a changeset
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: node tools/require-changeset.ts "$BASE_SHA" "$HEAD_SHA"

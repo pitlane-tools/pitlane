@@ -6,9 +6,9 @@
         "#/*": "./app/*"
     },
     "scripts": {
-        "dev": "vp dev",
-        "build": "vp build",
-        "preview": "vp preview"
+        "dev": "vite dev",
+        "build": "vite build",
+        "preview": "vite preview"
     },
     "dependencies": {
         "@pitlane/assets": "workspace:*",
@@ -19,8 +19,7 @@
         "@pitlane/vite-plugin-remix": "workspace:*",
         "@types/node": "^25.5.0",
         "satteri": "^0.10.5",
-        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
-        "vite-plugin-satteri": "^0.3.5",
-        "vite-plus": "^1.0.0"
+        "vite": "^8.3.5",
+        "vite-plugin-satteri": "^0.3.5"
     }
 }

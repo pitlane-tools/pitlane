@@ -2,21 +2,23 @@
     "name": "pitlane",
     "private": true,
     "type": "module",
-    "scripts": {
-        "postinstall": "[ -n \"$CI\" ] || vp run update-remix-skills"
-    },
     "devDependencies": {
         "@changesets/cli": "^3.0.3",
         "@oh-my-pi/pi-coding-agent": "latest",
-        "@oxlint/plugins": "^1.87.0",
+        "@oxlint/plugins": "^1.90.0",
         "@types/node": "^25.5.0",
         "@vvago/vale": "^3.23.0",
         "eslint-plugin-perfectionist": "^5.10.0",
         "eslint-plugin-prefer-let": "^4.2.2",
+        "oxc-parser": "^0.153.0",
+        "oxfmt": "^0.75.0",
+        "oxlint": "^1.90.0",
+        "oxlint-tsgolint": "^7.0.2005",
         "remix": "3.0.0",
+        "tsdown": "^0.23.4",
         "typescript": "^7.0.2",
-        "vite": "npm:@voidzero-dev/vite-plus-core@^1.0.0",
-        "vite-plus": "^1.0.0"
+        "vite": "^8.3.5",
+        "vitest": "^5.0.5"
     },
     "packageManager": "pnpm@12.6.0"
 }

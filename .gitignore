@@ -1,17 +1,48 @@
+# macOS
+.DS_Store
+
+# Node
+# No trailing slash: worktrees link node_modules from the main checkout.
 node_modules
 .vite
-.DS_Store
-.superpowers/
+dist
 packages/*/dist
 demos/*/dist
+.superpowers/
+
+# mise — machine-local overrides and their lockfiles. mise.toml and mise.lock are committed.
+mise.local.toml
+mise.*.local.toml
+.mise.local.toml
+.mise/locks/mise.local/
+
+# hk — machine-local hook overrides. hk.pkl is committed.
+hk.local.pkl
+
+# fnox — machine-local secret overrides. fnox.toml is committed; it holds no values.
+fnox.local.toml
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*
+
 # The pitlane package's installed documentation, which its build writes.
 packages/pitlane/guides
 packages/pitlane/INDEX.md
+
+# Vale's binary and its synced styles.
 .vale/
-dist
+
+# Cloudflare and the documentation site's generated input
 .wrangler
 .cloudflare
 docs/app/content/api
 docs/.generated
 docs/.index
+
+# Tests
 .vitest/
+coverage/

@@ -349,8 +349,8 @@ Bun.serve({
 
 ```ts
 // vite.config.ts
-import { remix } from "@pitlane/vite-plugin-remix";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { remix } from "@pitlane/vite-plugin-remix";
 import { defineConfig } from "vite";
 
 export default defineConfig({

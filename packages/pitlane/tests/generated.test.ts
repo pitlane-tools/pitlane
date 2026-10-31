@@ -1,12 +1,11 @@
 import { globSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { expect, it } from "vite-plus/test";
+import { expect, it } from "vitest";
 
 import { generateUmbrella } from "../scripts/generate.ts";
 
 const PACKAGE = resolve(import.meta.dirname, "..");
-const STALE =
-    "The umbrella is stale: run `vp run generate` in packages/pitlane and commit the result.";
+const STALE = "The umbrella is stale: run `mise run pitlane:generate` and commit the result.";
 
 it("commits exactly what the generator produces from manifest.json", () => {
     let umbrella = generateUmbrella(PACKAGE);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vitest";
 
 import {
     parseWorkflowScript,
@@ -33,7 +33,9 @@ describe("parseWorkflowScript", () => {
     });
 
     it("rejects returns nested in class static blocks", () => {
-        expect(() => parseWorkflowScript(`${header}\nclass C { static { return; } }`)).toThrow();
+        expect(() => parseWorkflowScript(`${header}\nclass C { static { return; } }`)).toThrow(
+            /return.*class static/i,
+        );
     });
 
     it("rejects semantic errors other than the intentional top-level return", () => {

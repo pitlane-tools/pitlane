@@ -28,32 +28,19 @@ Write an imperative, present-tense description: `add`, `fix`, `remove` — not `
 
 Do not write Conventional Commits `type(scope):` subjects. Scoped Commits lead with the area being changed.
 
-The allowed scopes are:
+The allowed scopes are the entries in [`.agents/commit-scopes`](../commit-scopes) — process scopes first, then the packages and other real areas of this repository — plus `<NNNN>-<slug>` for work implementing that real proposal, such as `0007-export-queue`. That file is the only list; do not memorize a second one.
 
-| Scope | Use for |
-| --- | --- |
-| `proposal` · `policy` · `decision` | The corresponding record type |
-| `guides` · `docs` | Pages under `docs/app/content/guides/`, and the published site |
-| `tools` · `ci` | The record tooling and workflows |
-| `agents` · `skills` · `rules` · `templates` · `hooks` | Agent process infrastructure |
-| `readme` · `vision` | Project overview and direction |
-| `treewide` | A genuinely repository-wide change with no narrower home |
-| `<NNNN>-<slug>` | Work implementing that real proposal, such as `0007-export-queue` |
-
-Product scopes — the packages and the other real areas of this repository — live in [`.agents/commit-scopes`](../commit-scopes), one scope per line. That file is the list; the `commit-msg` hook reads it, so it is not restated here. Add a scope there when a new package or area appears.
-
-Prefer the narrowest scope that accurately describes the change; use `treewide` only for a true sweep.
+Prefer the narrowest scope that accurately describes the change; use `treewide` only for a true sweep. A change that needs a scope the file does not have adds the scope to the file in the same commit.
 
 Examples:
 
-- `dev: instrument only exports shaped like Remix components`
 - `theme: resolve a reference embedded in composite CSS text`
 - `guides: reflow the option tables in the Vite plugin guide`
 - `proposal: split token authoring from DTCG interchange`
 - `hooks: enforce scoped commit subjects`
-- `0003-token-composition: reject a duplicate scale key` — valid only once `proposals/0003-token-composition.md` exists; the hook checks for the file
+- `0003-token-composition: reject a duplicate scale key` — valid only once `proposals/0003-token-composition.md` exists; the check looks for the file
 
-Mechanical merge, revert, fixup, and squash commits are exempt. The `commit-msg` hook enforces ordinary subjects and scopes.
+Mechanical merge, revert, fixup, and squash commits are exempt. hk runs `node tools/check-scoped-commit.ts` as its `commit-msg` step, so every commit is checked regardless of which harness, editor, or human made it, and CI checks every commit in a pull request.
 
 ## Pull request titles
 
@@ -61,18 +48,18 @@ A pull request title uses the same `<scope>: <description>` shape, but its scope
 
 - A proposal pull request is scoped to the package it proposes to change or create, even when that package does not exist yet: `theme: build theme bundler optimization through Airfoil`, `routing: file system routing and virtual file routes`. Never title a pull request `proposal:` — every proposal pull request would share that scope, which says nothing. `proposal:` stays correct for the individual _commits_ that edit the record.
 - One scope per title, never a comma-separated list: the package the work is mainly about. A package and its adapters take the parent's name — `image: image infrastructure packages` covers `@pitlane/image-cloudflare` too. Use `treewide` only for a genuine repository-wide sweep. Two unrelated changes that seem to need two scopes belong in two pull requests.
-- Work with no package, such as repository tooling, uses the scope of that area from the tables above: `tooling: adopt Changesets with on-request releases`.
+- Work with no package, such as repository tooling, uses the scope of that area: `tooling: adopt Changesets with on-request releases`.
 - Never leave a title unscoped, and never use a bare `Fix …` subject.
 
-The title is not checked by the `commit-msg` hook, so a speculative package name there is fine; commits still use scopes the hook accepts until the package is added to `.agents/commit-scopes`.
+The title is not checked by the `commit-msg` hook, so a speculative package name there is fine; commits still use scopes the check accepts until the package is added to `.agents/commit-scopes`.
 
 ## Release commits
 
 A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` and `.agents/skills/releasing-pitlane-packages/SKILL.md` own the mechanics; three of their rules are commit-message rules and belong here:
 
-- A commit that implements a feature or a fix never carries a version bump. Work that changes what a package's consumers see adds a changeset note under `.changeset/` — write it with `vp run changeset` — and commits it alongside the work, under the scope of that work. The note names the packages and the semver intent; nothing hand-edits a `version` field or writes a numbered `## x.y.z` section into a `CHANGELOG.md`.
+- A commit that implements a feature or a fix never carries a version bump. Work that changes what a package's consumers see adds a changeset note under `.changeset/` — write it with `mise run changeset` — and commits it alongside the work, under the scope of that work. The note names the packages and the semver intent; nothing hand-edits a `version` field or writes a numbered `## x.y.z` section into a `CHANGELOG.md`. Work that releases nothing still carries a note: `mise run changeset -- --empty`, because CI rejects a pull request that adds none.
 
-- `release:` is reserved for version-only commits, which are prepared only when the human asks for one. Such a commit holds exactly what `vp run changeset:version` produced — the generated changelog sections, the changeset notes it consumed, the rewritten package manifests, and the refreshed lockfile — and nothing else. A commit that also changes code or prose takes the scope of what it changes. Both such commits so far bumped several packages at once:
+- `release:` is reserved for version-only commits, which are prepared only when the human asks for one. Such a commit holds exactly what `mise run changeset:version` produced — the generated changelog sections, the changeset notes it consumed, the rewritten package manifests, and the refreshed lockfile — and nothing else. A commit that also changes code or prose takes the scope of what it changes. Both such commits so far bumped several packages at once:
 
     ```text
     release: @pitlane/dev@0.2.0 and @pitlane/theme@0.2.0
@@ -90,7 +77,8 @@ A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` 
 
 ## Commit hooks and history
 
-- If a pre-commit hook fails, the commit did not happen. Fix the issue, re-stage, then create a new commit.
+- hk owns every git hook; `mise run setup` installs them with `hk install --mise`. Never run another tool's hook installer — `bd hooks install` included — and never set `core.hooksPath` by hand.
+- If a hook fails, the commit did not happen. Fix the issue, re-stage, then create a new commit.
 - Never bypass hooks with `--no-verify` unless the human explicitly asks.
 - Default to a new commit. Amend only when the previous commit is local, the correction belongs to the same logical change, and amending makes history clearer.
 - Never rewrite pushed history. Correct it with a new commit. A force-push is a history rewrite and requires explicit human confirmation.
@@ -98,11 +86,11 @@ A release is a tag plus a GitHub release on `main`, never a commit. `AGENTS.md` 
 ## Never commit
 
 - Secrets: environment files, credentials, tokens, and keys.
-- Build output and generated artifacts the project does not track.
+- Build output and generated artifacts the project does not track, including everything under `docs/app/content/api/`.
 - Personal editor configuration unless the human explicitly asks.
 - Large binaries unless the project explicitly tracks them.
 
-If an unexpected secret appears in `git status`, stop and warn the human.
+If an unexpected secret appears in `git status`, stop and warn the human. Secrets reach tasks through Fnox grants in `mise.toml`, never through a tracked file.
 
 ## Frequency
 
@@ -124,7 +112,7 @@ All three must hold:
 
 - **No decision.** Intent already exists — a proposal promised the behavior, or the correct outcome was never in question. A change to how a package behaves fails this by definition, whatever its size.
 - **Nothing to review.** The change is mechanical or factual, not a judgement someone could reasonably have made differently.
-- **Verified by the gate.** `vp run check`, or the narrower task covering the change, passes — and passing is the whole proof, with no judgement left over.
+- **Verified by the gate.** `mise run check`, or the narrower task covering the change, passes — and passing is the whole proof, with no judgement left over.
 
 Anything failing one of the three goes through a pull request. When it is genuinely unclear, open one: an unnecessary pull request costs seconds, and a skipped one costs a merged decision nobody saw. A human asking for a pull request is always right and never has to justify it.
 

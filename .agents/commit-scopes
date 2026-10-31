@@ -1,12 +1,40 @@
-# Product scopes accepted by .agents/hooks/commit-msg, one per line. Blank
-# lines and `#` comment lines are ignored. A trailing comment on a scope line
-# is not: the hook compares the whole trimmed line, so `dev  # ...` would stop
-# matching `dev`.
+# Allowed commit scopes, one per line. Blank lines and `#` comment lines are
+# ignored. A trailing comment on a scope line is not: `tools/check-scoped-commit.ts`
+# compares the whole trimmed line, so `theme  # ...` would stop matching `theme`.
 #
-# The process scopes are built into the hook and need no entry here: proposal,
-# policy, decision, guides, docs, tools, ci, agents, skills, rules, templates,
-# hooks, readme, vision, treewide. Neither does a real
-# proposals/<NNNN>-<slug>.md filename, used as `0007-export-queue: ...`.
+# This file is the only list. The check has no built-in scopes; it also accepts
+# the name of a real proposal file — `proposals/<NNNN>-<slug>.md` is the scope
+# `<NNNN>-<slug>` — so feature work needs no entry here.
+#
+# Prefer the narrowest scope that accurately describes the change. Add a scope
+# in the same commit that first needs it.
+
+# The record
+proposal
+policy
+decision
+
+# Documentation: pages under docs/app/content/, and the published site
+guides
+docs
+
+# Repository tooling and automation
+tools
+ci
+
+# Agent process infrastructure
+agents
+skills
+rules
+templates
+hooks
+
+# Project overview and direction
+readme
+vision
+
+# A genuinely repository-wide change with no narrower home
+treewide
 
 # Implemented packages, packages/<name>
 assets
@@ -29,7 +57,7 @@ demos
 # Cloudflare Workers static-asset hosting, docs/cloudflare
 worker
 
-# .typedoc/, which generates every page under docs/package/
+# .typedoc/, which generates every page under docs/app/content/api/
 typedoc
 
 # packages/mdx-checker, the headless MDX typecheck harness behind docs:mdx
@@ -39,8 +67,8 @@ mdx-checker
 # takes the scope of what it changes.
 release
 
-# The repo toolchain itself: the root vite.config.ts (format, lint, and task
-# definitions), .node-version, tsconfig.json
+# The repo toolchain itself: mise.toml, hk.pkl, fnox.toml, .oxfmtrc.jsonc,
+# .oxlintrc.jsonc, tsconfig.json
 tooling
 
 # Dependency upgrades, and housekeeping with no narrower home

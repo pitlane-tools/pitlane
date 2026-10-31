@@ -1,96 +1,50 @@
 ---
 name: reviewing-an-implementation
-description: Use when an implementation has fresh validation evidence and needs its Phase 3 comparison, independent refutational review, human-exercisable preview, and ready-for-review handoff. The contract may be an approved proposal or the agreed request and pull-request scope when the human declined a proposal.
+description: Use when an implemented proposal has fresh validation evidence and needs its self-check, independent refutational review, human-exercisable preview, and ready-for-review handoff.
 ---
 
 # Reviewing an Implementation
 
-**Phase 3 — Implementation.** Compare the independent representations before asking a human to review the changed behavior. This procedure owns the confirmatory review, adversarial dispatch, preview, and readiness handoff. It does not decide whether the human accepts the work.
+**Phase 3 — Implementation.** Check the work against the proposal, have an agent without your context try to break it, then hand it to the human. This procedure does not decide whether the human accepts the work.
 
-## Inputs and order
+Begin after applicable validation has fresh evidence under [`.agents/rules/verification.md`](../../rules/verification.md). Proceed in this order:
 
-Read these together before review. Add the current vision, policies, and decisions when they constrain the change.
-
-| Input | Read |
-| --- | --- |
-| Intent | Current proposal, or the agreed request and pull-request scope when the human declined one |
-| Executable behavior | Changed tests |
-| Human-facing behavior | Affected guides |
-| Concrete behavior | Implementation |
-
-Proceed in this order:
-
-1. Cross-artifact review.
-2. Dispatch `adversarial-review`; consume its report.
+1. Self-check.
+2. Dispatch [`adversarial-review`](../adversarial-review/SKILL.md); consume its report.
 3. Produce the preview.
 4. Post the readiness report and make the pull request ready together.
 
-Begin after applicable validation has fresh evidence under `.agents/rules/verification.md`, and after the excellence pass and the ordered inline reviews in `implementing-a-proposal` have no open findings. A substantive fix made here re-enters those gates before the cross-artifact review runs again.
+## 1. Self-check
 
-## 1. Cross-artifact review
+Read the proposal, the changed tests, the affected guides, and the diff together. For each observable behavior in Detailed design — including boundary cases, errors, defaults, and side effects that could disagree — confirm that it is tested, described where a user would look when it is user-facing, and implemented. Then look the other way: anything implemented that the proposal and guides do not describe is scope creep or a gap in the proposal.
 
-This is a comparison of representations, not a code-quality review. Build a behavior inventory before judging alignment.
+Then ask whether this is the implementation that should remain. Does its structure fit the domain the proposal describes, or does it leak implementation conveniences into a package's public surface? Is there a simpler realization that expresses the proposal better, or complexity inherited from the baseline that no longer earns its place?
 
-### Build the behavior inventory
-
-Use one row per observable behavior. The four evidence columns are proposal, tests, guides, and code. Tick a source only when it explicitly covers the behavior. Investigate every row that is not fully ticked.
-
-| Behavior                 | Proposal | Tests | Guides | Code |
-| ------------------------ | -------- | ----- | ------ | ---- |
-| Reject malformed records | ✓        | ✓     | ✓      | ✓    |
-| Preserve input order     | ✓        | ✓     | —      | ✓    |
-
-Keep boundary cases, errors, defaults, and observable side effects as separate rows when they can disagree. Do not tick a source because it probably implies the behavior.
-
-### Make all six checks
-
-For every inventory row, establish all of these:
-
-1. Tests cover what the proposal promises.
-2. Guides describe what the tests exercise.
-3. Code implements what the proposal and guides describe.
-4. No documented behavior is missing from the implementation.
-5. No implemented behavior is absent from the proposal and guides — this catches scope creep.
-6. Implementation details have not silently changed scope or intent.
-
-### Confirm the release note
-
-When the change alters what a package's consumers see, `.changeset/` on this branch holds a note for it: the right package names, a semver level the behavior justifies, and prose someone deciding whether to upgrade can read. A missing note is a gap like any other row, and so is one that names the wrong packages or understates the level. A branch that bumped a `version` field or wrote a `CHANGELOG.md` section instead is itself the finding; preparation generates both, on request, and not here.
-
-That note is what a future release would ship. It is not a release, and nothing in the review describes the change as released or versioned.
-
-### Resolve every gap
-
-Each non-full row resolves in exactly one way.
+Resolve each disagreement in exactly one way:
 
 | Resolution | Use when | Action |
 | --- | --- | --- |
-| Fix the wrong artifact | Intent has not changed | Correct the tests, guides, or code, then recheck the row. |
-| Revise the proposal | Intent or scope changed | Discuss with the human first. Then derive affected tests, guides, and code again. |
-| Record the divergence | It remains deliberate for human review | Name the behavior, affected sources, impact, and reason in the readiness report. |
+| Fix the wrong artifact | Intent has not changed | Correct the tests, guides, or code, and rerun the affected gates. |
+| Revise the proposal | Intent or scope changed | Discuss with the human first, then derive the affected artifacts again. |
+| Record the divergence | It remains deliberate for human review | Name the behavior, sources, impact, and reason in the readiness report. |
 
-You MAY edit tests, guides, and code to remove a disagreement. You MUST NOT revise a proposal without the human; that is a design change.
+You may edit tests, guides, and code. You must not revise a proposal without the human.
 
-Record the inventory, each gap, and its resolution. `ALIGNED` requires a fully ticked inventory. A record with deliberate gaps is `DIVERGENCES RECORDED`; a human design decision is `REVISION REQUIRED`.
+## 2. Independent review
 
-## 2. Dispatch and consume adversarial review
+Dispatch the `adversary` agent: fresh context, and a different model by virtue of its role in `.omp/config.yml`. Give it the proposal, the commit range, and the commands that verify the work. Tell it to try to show the work is not done — behavior missing or wrong relative to the proposal, edge cases the tests miss, invariants covered only by examples, tests that would still pass with a broken implementation, security or data-loss risks — to confirm findings by running code, to ignore style, naming, and formatting, and to report without editing.
 
-Dispatch a separate subagent with fresh context for the `adversarial-review` skill. Pitlane does not vendor that skill; it is dispatched by name and the harness supplies it at user level. Use the strongest available portability rung: different model family, then different model, then a fresh-context run. Supply the current proposal, tests, guides, and implementation. The adversary reports only; it never edits the artifacts.
+Do not replace this dispatch with your own review. Consume its report:
 
-If the harness does not provide the skill, the dispatch contract in this section is the whole requirement: a fresh-context subagent on the strongest available different model, given the proposal, tests, guides, and implementation, reporting only, looped until its verdict is `CONVERGED`, with declined findings preserved for the readiness report.
+| Report item | Response |
+| --- | --- |
+| Confirmed defect inside the proposal's scope | Fix it and refresh the affected evidence. Run the review once more only when the fix was substantial. |
+| Suspicion | Verify it or drop it; never fix it blind. |
+| Proposal gap | Surface it to the human; do not silently choose an interpretation. |
+| Finding outside the proposal's scope | Never widen the change to fix it. Decline it with reasoning, or file it through [`tracking-work`](../tracking-work/SKILL.md). |
+| Declined finding | Preserve it with reasoning for the readiness report. |
 
-Do not replace this dispatch with your own review. The adversary attacks un-enumerated edges, test quality, interpretation, security surface, and proposal gaps from a refute-by-default stance.
-
-Consume its report before continuing:
-
-| Report item      | Response                                                                  |
-| ---------------- | ------------------------------------------------------------------------- |
-| Confirmed defect | Fix it, refresh affected evidence, and repeat the required review stages. |
-| Suspicion        | Verify it or drop it; never fix it blind.                                 |
-| Proposal gap     | Surface it to the human; do not silently choose an interpretation.        |
-| Declined finding | Preserve it with reasoning for the readiness report.                      |
-
-Repeat the adversarial stage after a defect fix. Continue until its verdict is `CONVERGED`. A disputed finding does not disappear because you decline it.
+A disputed finding does not disappear because you decline it.
 
 ## 3. Produce the preview
 
@@ -101,58 +55,42 @@ A preview is **the cheapest realistic artifact through which the human can exerc
 | Cheapest    | Do not stand up production infrastructure merely for review.              |
 | Realistic   | Do not substitute screenshots, transcripts, or descriptions for behavior. |
 
-Reviewing prose is not reviewing behavior. Pitlane has exactly two preview mechanisms, and both already run in CI on every push to a branch other than `main`:
+Reviewing prose is not reviewing behavior. This repository has exactly two mechanisms, and both already run in CI on every push to a branch other than `main`:
 
 | What the change touches | Preview |
 | --- | --- |
-| A package's behavior | the pkg.pr.new build from `pkg-preview.yml`: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
-| The docs site, or a guide | the Cloudflare Workers preview version that `preview.yml` uploads and comments on the pull request |
+| A package's behavior | the pkg.pr.new build: `npm i https://pkg.pr.new/pitlane-tools/pitlane/@pitlane/<name>@<sha>` |
+| The docs site, or any guide | the Workers preview URL that `preview.yml` comments on the pull request |
 
-Because both previews already exist for the branch, this step confirms rather than builds: install the package build or open the docs preview from the branch's own run, see the changed behavior in it, and link it with what to try. Preview the surface the proposal changed; do not produce both by habit. A pure refactor with no exercisable surface produces no preview. State that plainly in the readiness report rather than fabricating one.
+So this step confirms rather than builds: install the package build in an empty directory, or open the preview URL, exercise the changed behavior there, and link it with what to try. A green workflow is not evidence, per [`.agents/rules/verification.md`](../../rules/verification.md). A change touching both surfaces links both; a pure refactor with no exercisable surface produces no preview, and the readiness report says so plainly rather than fabricating one.
 
-**The human must be able to open or install it directly.** A downloadable build artifact is not a preview — reviewing it would mean unzipping a file and starting a local server, which is enough friction that the change gets reviewed as prose instead. The one exception is a command-line tool, where installing the binary is the real act. If your preview step ends in "upload artifact" for anything else, it is not finished.
-
-Verify the preview installs or renders before linking it; a green workflow is not evidence, per `.agents/rules/verification.md`. Each mechanism has its own failure mode. `pkg-preview.yml` builds each package from inside its own directory and publishes the packages in a single `pkg-pr-new publish` — `@pitlane/vite-plugin-remix` imports crawler, assets, and the fetch-server plugin at runtime, and naming them in the same invocation is what rewrites its `workspace:^` ranges to resolvable pkg.pr.new URLs; a publish that omits a dependency ships the `workspace:` specifier verbatim and every install fails with `EUNSUPPORTEDPROTOCOL` while the job stays green. `preview.yml` fails the job when `cf previews deploy` reports no preview URL, and the URL it comments is a Worker Preview that routes no production traffic — merging the pull request is what publishes. The comment carries the branch URL, which follows later pushes, and the URL pinned to that commit. It edits its own previous comment on each push instead of stacking a new one, so the link to report is the one that comment currently carries.
-
-Build from the pull-request revision. Give repository-accessible humans a stable link or installation location; they must not build the artifact themselves. The readiness report links it and states required setup, what to try, and the expected result. A bare URL is insufficient. Keep the preview's lifetime tied to the pull request.
-
-Neither preview is private. A pkg.pr.new build is installable by anyone holding the URL, and the uploaded Workers version is reachable by anyone who opens it; state that public status in the readiness report rather than implying review access is restricted. A prerelease published to a public registry is public forever, which is why a preview is never published to npm — pkg.pr.new is what previews packages here. Teardown belongs to Phase 5 cleanup through `completing-a-feature`.
+A pkg.pr.new build is installable by anyone with the URL, and the Workers preview version is reachable, so neither is private — but neither is a release either. Keep the preview's lifetime tied to the pull request.
 
 ## 4. Report readiness and mark ready
 
-Compose the pull-request comment from `.agents/templates/READINESS_REPORT.md`. Fill every template section and add the cross-artifact inventory verdict, divergences, and resolutions.
-
-When the human declined a proposal, use the PR number in the report title. In the Proposal section, state that decision, link the agreed request or pull-request scope, and assess completeness against that scope. Do not invent a proposal ID or link.
+Compose the pull-request comment from [`.agents/templates/READINESS_REPORT.md`](../../templates/READINESS_REPORT.md). Fill every template section and add the self-check's recorded divergences and their resolutions.
 
 | Report section | Required content |
 | --- | --- |
 | Proposal | State `FULLY` implemented only when every promised behavior exists. For `PARTIALLY`, name completed and omitted behavior, limitations, and reason. Silent partial implementation is not allowed. |
-| What was built | Delivered behavior, not internals. Name the pending release note and the semver level it claims; do not report a version that has not been prepared. |
-| How to exercise it | Preview link or honest absence, setup, actions, and expected results. |
+| What was built | Delivered behavior, not internals. |
+| How to exercise it | The preview install command or URL, or an honest absence, plus setup, actions, and expected results. |
 | Validation performed | Every command actually run in this session and its observed result, per `.agents/rules/verification.md`. Never report an unrun gate as passing. |
 | Adversarial findings adopted | Each accepted or fixed finding, or `- None.` |
 | Adversarial findings declined, with reasoning | Every declined finding and why it was declined, or `- None.` This section is always present. |
-| Defects discovered and deferred | Each deliberate, out-of-scope defect as a linked GitHub issue from `tracking-defects`, or `- None.` |
+| Defects discovered and deferred | Each deliberate, out-of-scope defect as a linked Beads item from `tracking-work`, or `- None.` |
 | Remaining limitations | Known behavior gaps or `- None.` |
 | What to look at first | The first behavior, preview action, or diff the human should inspect. |
 
 Declined adversarial findings keep the independent review useful. Do not quietly omit a narrow, uncomfortable, or disputed finding.
 
-### Post from the authenticated identity
+### Posting the comment
 
-No service account is configured in this repository: nothing in `.github/workflows/` or the repository documentation provisions a bot token or GitHub App installation token for posting. Confirm the authenticated identity, post from it, and say so in the report: `Posted from <identity>; no service account is configured.` Do not imply bot authorship.
+This repository configures no service account, so post from the authenticated `gh` identity and say so in the report: `Posted from <identity>; no service account is configured.` Do not imply bot authorship.
 
 ```sh
-gh auth status
 gh pr comment <pr-number> --body-file readiness-report.md
 gh pr ready <pr-number>
-```
-
-If a service account is configured later, confirm its identity the same way and post with its token instead.
-
-```sh
-GH_TOKEN="$SERVICE_ACCOUNT_TOKEN" gh pr comment <pr-number> --body-file readiness-report.md
-GH_TOKEN="$SERVICE_ACCOUNT_TOKEN" gh pr ready <pr-number>
 ```
 
 ### Make the coupled transition into Phase 4
@@ -163,24 +101,17 @@ At the end of Phase 3, these three actions form one transition and MUST NOT be s
 2. Post the readiness report.
 3. Flip the pull request from draft to ready with `gh pr ready <pr-number>`.
 
-When the human declined a proposal for this work, the transition is two actions rather than three: post the readiness report and flip the pull request to ready. There is no status to move, and writing a proposal to have one to move is the wrong repair.
-
-Do not leave the proposal, report, and pull-request state disagreeing. Ready means the work is human-reviewable, not correct or accepted. Never set `accepted`; only the human may do so in Phase 4, which starts Phase 5 completion.
-
-### Recover an already accepted draft pull request
-
-The coupled `active-review` transition above is the normal end of Phase 3, not a status to replay after the human has accepted the work. If an accepted PR remains draft, preserve its `accepted` or `implemented` proposal status. In Phase 5, confirm the readiness report, preview, acceptance evidence, and latest integration checks; repair missing or stale review evidence before continuing. Set `implemented` in the original feature PR if it has a proposal and that status has not yet been recorded, push it, and confirm the PR revision contains it before marking the PR ready. Do not invent a proposal when the human declined one. Readiness recovery never grants merge authority; if the record cannot be reconciled, ask the human rather than merging.
+Work for which the human declined a proposal has no status to set: post the report and mark the pull request ready without inventing one. Do not leave the proposal, report, and pull-request state disagreeing. Ready means the work is human-reviewable, not correct or accepted. Never set `accepted`; only the human may do so in Phase 4, which starts Phase 5 completion.
 
 ## Red flags
 
-- You reviewed code quality instead of comparing representations.
-- A behavior-inventory row is not fully ticked and has no recorded resolution.
+- Your self-check reviewed style instead of comparing the proposal, tests, guides, and code.
+- A disagreement between them has no recorded resolution.
+- You widened the change to fix a finding outside the proposal.
 - You changed proposal intent without the human.
 - You skipped independent adversarial review or dropped a declined finding.
-- The preview is fabricated, public by accident, detached from the pull request, or a bare URL.
-- A package's consumers see a difference and nothing in `.changeset/` describes it.
-- The report calls the change released or versioned while only a note is pending.
-- The report claims a validation gate was not run.
-- You marked the pull request ready without the readiness report, or — where a proposal exists — without its status.
+- The preview is fabricated, detached from the pull request, or a bare URL.
+- The report claims a validation gate you did not run.
+- You marked the pull request ready without the proposal status and report.
 
 Correct the record before handoff.

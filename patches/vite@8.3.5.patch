@@ -1,8 +1,8 @@
-diff --git a/dist/vite/node/module-runner.js b/dist/vite/node/module-runner.js
-index a87f386edf90e482c0809877a58eb7f967f05a94..2f03b626e8ad263e44911afdf7fd20aed5932d2e 100644
---- a/dist/vite/node/module-runner.js
-+++ b/dist/vite/node/module-runner.js
-@@ -459,6 +459,12 @@ var HMRContext = class {
+diff --git a/dist/node/module-runner.js b/dist/node/module-runner.js
+index 884015a943b54a114b2bc69353f3d7fd6f3356b2..6c3e3c293d6832be733bf78f490d2bd16d52d832 100644
+--- a/dist/node/module-runner.js
++++ b/dist/node/module-runner.js
+@@ -473,6 +473,12 @@ var HMRContext = class {
  	customListenersMap = /* @__PURE__ */ new Map();
  	ctxToListenersMap = /* @__PURE__ */ new Map();
  	currentFirstInvalidatedBy;
@@ -15,7 +15,7 @@ index a87f386edf90e482c0809877a58eb7f967f05a94..2f03b626e8ad263e44911afdf7fd20ae
  	constructor(logger, transport, importUpdatedModule) {
  		this.logger = logger, this.transport = transport, this.importUpdatedModule = importUpdatedModule;
  	}
-@@ -518,6 +524,10 @@ var HMRContext = class {
+@@ -532,6 +538,10 @@ var HMRContext = class {
  			}
  		}
  		return () => {
@@ -26,7 +26,7 @@ index a87f386edf90e482c0809877a58eb7f967f05a94..2f03b626e8ad263e44911afdf7fd20ae
  			try {
  				this.currentFirstInvalidatedBy = firstInvalidatedBy;
  				for (let { deps, fn } of qualifiedCallbacks) fn(deps.map((dep) => dep === acceptedPath ? fetchedModule : void 0));
-@@ -1144,7 +1154,7 @@ var ModuleRunner = class {
+@@ -1153,7 +1163,7 @@ var ModuleRunner = class {
  	* This method doesn't stop the HMR connection.
  	*/
  	async close() {

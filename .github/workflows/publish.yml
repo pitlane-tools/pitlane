@@ -19,11 +19,13 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # A job holding a publish credential restores no cache: a
+                  # lower-trust workflow that can write to the default branch
+                  # could otherwise plant files in one.
+                  cache: false
 
             - name: Verify release tag matches package version
               run: |
@@ -35,21 +37,20 @@ jobs:
                   fi
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             # The browser tests fail rather than skip without Chromium.
             - name: Install Playwright Chromium
               run: npx playwright install --with-deps chromium
 
-            - name: Build Remix plugin dependencies
-              working-directory: .
-              run: vp run --filter '@pitlane/vite-plugin-remix^...' build
-
+            # `test:vite-plugin-remix` declares the sibling builds its fixtures
+            # load through published exports, so the dependency pre-build this
+            # job used to run is part of the task.
             - name: Run tests
-              run: vp test
+              run: mise run test:vite-plugin-remix
 
             - name: Build package
-              run: vp run build
+              run: mise run build:vite-plugin-remix
 
             - name: Authenticate with npm
               # First publishes need a token: create a granular automation
@@ -77,11 +78,12 @@ jobs:
             # those ranges to the versions they resolved to. npm still performs
             # the publish, so OIDC and provenance are unchanged.
             #
-            # The version is pinned to the root `packageManager` so the packed
-            # output matches what a local `pnpm pack` produces.
+            # The version is pinned to the root `packageManager` — and to `pnpm`
+            # in mise.toml — so the packed output matches what a local
+            # `pnpm pack` produces. Bump all three together.
             - name: Pack with pnpm
               run: |
-                  npx --yes pnpm@11.17.0 pack --pack-destination .
+                  npx --yes pnpm@12.6.0 pack --pack-destination .
                   if tar -xzOf ./*.tgz package/package.json | grep -q '"workspace:'; then
                       echo "Packed tarball still declares a workspace: dependency" >&2
                       exit 1
@@ -100,11 +102,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               env:
@@ -115,17 +117,17 @@ jobs:
                   test "$RELEASE_TAG" = "$name@$version"
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             # The browser tests fail rather than skip without Chromium.
             - name: Install Playwright Chromium
               run: npx playwright install --with-deps chromium
 
             - name: Run tests
-              run: vp test
+              run: mise run test:assets
 
             - name: Build package
-              run: vp run build
+              run: mise run build:assets
 
             - name: Authenticate with npm
               # See publish-vite-plugin-remix: a token for the first publish,
@@ -140,8 +142,9 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
@@ -156,11 +159,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               env:
@@ -171,13 +174,13 @@ jobs:
                   test "$RELEASE_TAG" = "$name@$version"
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Run tests
-              run: vp test
+              run: mise run test:vite-plugin-fetch-server
 
             - name: Build package
-              run: vp run build
+              run: mise run build:vite-plugin-fetch-server
 
             - name: Authenticate with npm
               # See publish-vite-plugin-remix: a token for the first publish,
@@ -192,8 +195,9 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
@@ -208,11 +212,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               run: |
@@ -224,13 +228,13 @@ jobs:
                   fi
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Run tests
-              run: vp test
+              run: mise run test:crawler
 
             - name: Build package
-              run: vp run build
+              run: mise run build:crawler
 
             - name: Authenticate with npm
               # First publishes need a token: create a granular automation
@@ -251,8 +255,9 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
@@ -267,11 +272,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               run: |
@@ -283,13 +288,13 @@ jobs:
                   fi
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Run tests
-              run: vp test
+              run: mise run test:data-table-d1
 
             - name: Build package
-              run: vp run build
+              run: mise run build:data-table-d1
 
             - name: Authenticate with npm
               # First publishes need a token: create a granular automation
@@ -310,11 +315,13 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
+
     publish-theme:
         if: startsWith(github.event.release.tag_name, '@pitlane/theme@')
         runs-on: ubuntu-latest
@@ -325,11 +332,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               run: |
@@ -341,13 +348,13 @@ jobs:
                   fi
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Run tests
-              run: vp test
+              run: mise run test:theme
 
             - name: Build package
-              run: vp run build
+              run: mise run build:theme
 
             - name: Authenticate with npm
               # Same fallback as publish-vite-plugin-remix: NPM_TOKEN covers the first
@@ -362,8 +369,9 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
@@ -378,11 +386,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               run: |
@@ -394,13 +402,13 @@ jobs:
                   fi
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Build package
-              run: vp run build
+              run: mise run build:content
 
             - name: Run tests
-              run: vp test
+              run: mise run test:content
 
             - name: Authenticate with npm
               # First publication is manual; later releases use Trusted Publishing.
@@ -414,8 +422,9 @@ jobs:
                       echo "::notice::No NPM_TOKEN secret — relying on npm Trusted Publishing (OIDC)."
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
@@ -430,11 +439,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               env:
@@ -448,19 +457,20 @@ jobs:
                   fi
 
             - name: Install
-              run: vp install --frozen-lockfile
+              run: mise run deps:install
 
             - name: Run tests
-              run: vp test
+              run: mise run test:pitlane
 
             - name: Build package
-              run: vp run build
+              run: mise run build:pitlane
 
             # Only pnpm rewrites `workspace:*` to
             # the exact versions the umbrella pins.
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
               run: |
-                  npx --yes pnpm@11.17.0 pack --pack-destination .
+                  npx --yes pnpm@12.6.0 pack --pack-destination .
                   if tar -xzOf ./*.tgz package/package.json | grep -q '"workspace:'; then
                       echo "Packed tarball still declares a workspace: dependency" >&2
                       exit 1
@@ -473,11 +483,15 @@ jobs:
             - name: Wait until every pinned package is installable
               run: |
                   tar -xzOf ./*.tgz package/package.json > packed.json
+                  # the node script is single-quoted on purpose: ${…} is JavaScript
+                  # shellcheck disable=SC2016
                   node -e '
                   const { dependencies } = require("./packed.json");
                   for (const [name, version] of Object.entries(dependencies))
                       console.log(`https://registry.npmjs.org/${name}/-/${name.split("/")[1]}-${version}.tgz`);
                   ' | while read -r tarball; do
+                      # the loop counts attempts rather than reading the index
+                      # shellcheck disable=SC2034
                       for attempt in $(seq 1 40); do
                           if curl -sfI "$tarball" > /dev/null; then
                               echo "Installable: $tarball"
@@ -517,11 +531,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Vite+
-              uses: voidzero-dev/setup-vp@v1.21.1
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
               with:
-                  node-version-file: .node-version
-                  cache: true
+                  # No cache in a job that publishes; see publish-vite-plugin-remix.
+                  cache: false
 
             - name: Verify release tag matches package version
               env:
@@ -534,8 +548,9 @@ jobs:
                       exit 1
                   fi
 
+            # Pinned to the root `packageManager`; see publish-vite-plugin-remix.
             - name: Pack with pnpm
-              run: npx --yes pnpm@11.17.0 pack --pack-destination .
+              run: npx --yes pnpm@12.6.0 pack --pack-destination .
 
             - name: Publish to npm with provenance
               run: npm publish ./*.tgz --provenance --access public --tag latest
