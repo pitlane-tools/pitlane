@@ -21,7 +21,7 @@ Lifts the adversarial-refinement idea from VDD. Adapted to this repo: Phase 3, a
 **Do NOT use this skill for:**
 
 - Replacing the self-check. This runs after it, not instead of it. A refutational pass on code that does not match the proposal wastes the adversary's attention on the wrong layer.
-- Style. Naming, formatting, and taste are out of scope; report behavior, test, security, and proposal-fidelity findings only.
+- Style and look and feel. Naming, formatting, code taste, and an interface's look and feel are out of scope; report behavior, test, security, and proposal-fidelity findings only.
 - Trivial edits (a renamed constant, a typo). Nothing to break.
 
 ## Why a separate stage
@@ -50,7 +50,7 @@ Five lenses. Spend the most effort on the first — it is the one confirmatory r
 2. **Test quality.** Would this test still pass if the behavior were subtly wrong? Look for tautologies, assertions on implementation detail instead of observed behavior, over-mocking that tests the mock, fixtures that dodge the hard case, and **the missing test** — the scenario the proposal implies but the suite never exercises.
 3. **Proposal fidelity under interpretation.** The code may satisfy the letter of a clause while violating its intent. Name the ambiguity and the interpretation the code chose.
 4. **Security surface.** Unvalidated boundary input, injection vectors, authorization assumed rather than checked.
-5. **Proposal gaps the implementation reveals.** Implemented behavior that no proposal clause covers — either scope creep to cut, or a real behavior the proposal should capture. Route the latter back to the proposal, not into silent acceptance.
+5. **Proposal gaps the implementation reveals.** Implemented behavior that no proposal clause covers — either scope creep to cut, or a real behavior the proposal should capture. Route the latter back to the proposal, not into silent acceptance. Look and feel the proposal leaves open is not a gap, and neither is a look-and-feel detail the proposal pinned that the human has since changed through polish; a broken accessibility commitment, or a look-and-feel choice that changes what a user can do or find out, is.
 
 ## Verify before you report — no fabricated flaws
 

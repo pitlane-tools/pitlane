@@ -107,6 +107,7 @@ they clarify the pitch. This is an overview, not a complete specification.
 <!--
 Specify behavior, interfaces, data, failures, boundary cases, and operational constraints.
 Someone who is not the author must be able to implement it without asking questions; tests derive from this section.
+For a user interface, specify what the user can do, find out, and is told; leave its look and feel to the running UI.
 -->
 
 - When <trigger or input>, <actor or system> <required behavior>.

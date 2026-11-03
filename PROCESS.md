@@ -46,7 +46,7 @@ Future work may supersede a decision, but should do so explicitly rather than ac
 
 A _proposal_ describes a specific change to the project in enough detail to serve as the specification for its implementation.
 
-Proposals record the motivation, intended behavior, scope, and relevant design decisions of a feature. They remain part of the project's history after implementation. A future proposal may revise or supersede an earlier proposal. They live in `proposals/`.
+Proposals record the motivation, intended behavior, scope, and relevant design decisions of a feature. They describe what a feature does, not its look and feel. They remain part of the project's history after implementation. A future proposal may revise or supersede an earlier proposal. They live in `proposals/`.
 
 Records are numbered `<NNNN>-<slug>.md` and carry `id`, `status`, and `title` frontmatter. `.agents/templates/` holds the canonical shape of each, and `mise run validate` enforces it. None of them is published: `docs/` is what [pitlane.tools](https://pitlane.tools) builds, and the record sits outside it.
 
@@ -123,11 +123,21 @@ Substantial feature work proceeds through five phases:
 
 The process is iterative. Findings during implementation or review may cause the proposal itself to change, at which point the implementation is reevaluated against the revised proposal.
 
-The full feature loop applies to changes that decide new behavior or resolve a meaningful design choice. A correction whose intent is already established, such as an unambiguous bug fix or a dead link, may be handled directly. If investigation uncovers a design choice, return to proposal development before implementing it.
+The full feature loop applies to changes that decide new behavior or resolve a meaningful design choice. A correction whose intent is already established, such as an unambiguous bug fix or a dead link, may be handled directly. Polishing an interface's look and feel is handled directly too, as described under _Look and feel_ below. If investigation uncovers a design choice, return to proposal development before implementing it.
 
 The primary agent owns domain understanding, conceptual modeling, and proposal intent, and it usually implements the work itself. It delegates only independent slices that can run in parallel, and it uses a reframer when the problem formulation no longer explains the evidence. An independent adversary tries to falsify the finished work and reports findings without editing it.
 
-Before entering the proposal path for a change, the agent asks the human whether they want a proposal, even if the request sounds like a feature or asks for one. An explicit yes for this change authorizes its proposal and later revisions, not future proposals. A no rules out the proposal and its draft pull request: proceed directly when intent is already clear, or clarify and narrow the work before implementation when a consequential design choice remains. This question precedes branch creation and pull-request preparation so unnecessary draft pull requests are not opened.
+Before entering the proposal path for a change, the agent asks the human whether they want a proposal, even if the request sounds like a feature or asks for one. Look-and-feel polish never enters that path, so it needs no question. An explicit yes for this change authorizes its proposal and later revisions, not future proposals. A no rules out the proposal and its draft pull request: proceed directly when intent is already clear, or clarify and narrow the work before implementation when a consequential design choice remains. This question precedes branch creation and pull-request preparation so unnecessary draft pull requests are not opened.
+
+### Look and feel
+
+A proposal specifies what a feature does: what a user can do, what they can find out, the states and outcomes they observe, the errors they are told about, and any guarantee the project makes about their data, privacy, accessibility, or platform requirements I have chosen. Its _look and feel_ is how the interface looks and how it is operated: layout, sizes, spacing, typography, color, iconography, motion, grouping and placement, which control presents a choice, what activating an element opens, and the wording of labels and messages. I decide look and feel by looking at the running UI, not by approving prose, so it is never recorded in a proposal and changing it never needs one.
+
+Two cases sit close to the line. What a message must convey is what the feature does; its words are look and feel unless the exact words are themselves a requirement, such as legal text, text a user must type or match, or a term the project's vocabulary fixes. An accessibility commitment is what the feature does; how a screen meets it is look and feel, and polish never breaks the commitment. The same line holds for a command-line or terminal interface: its colors, alignment, progress display, and help-text wording are look and feel, while its commands, flags, exit codes, and machine-readable output are what it does, as is a package's public API.
+
+The test is whether a sentence would need to change if the screen were redesigned while the feature did the same thing. When a change could be either, the agent asks me which in one line before acting. A change that removes something a user could do or find out is what the feature does. A look-and-feel detail an earlier proposal happens to pin, such as a sidebar width, is still look and feel: polish may change it, and the proposal stays as the history of what was decided then.
+
+_Polish_ is the work of refining look and feel with me on the running UI, and the `polishing-a-ui` skill describes it. During implementation, the agent chooses the look and feel a proposal leaves open to fit the project's existing interface and its platform's conventions. During human review, look-and-feel feedback is applied while the proposal stays `active-review`. Between proposals, polish needs no proposal question: the agent makes the changes I direct and lands them the way the project lands other changes made without a proposal. A request that would change what the feature does stops polish and takes the proposal path. A look-and-feel convention I keep applying may become a policy after we discuss it.
 
 ### Agent orchestration
 
@@ -201,11 +211,11 @@ Passing the quality gates is necessary but not sufficient for the feature to be 
 
 ### Self-Check
 
-Once the implementation passes its automated checks, the agent reads the proposal, tests, guides, and code together to find disagreement between the representations: tests that miss promised behavior, guides that describe something the tests do not exercise, code that implements behavior the proposal does not describe, or details that quietly changed scope or intent. It also asks whether this is the implementation that should remain — whether its structure expresses the proposal's model or leaks implementation conveniences into a package's public surface. It fixes what it finds, or records a deliberate divergence for the human.
+Once the implementation passes its automated checks, the agent reads the proposal, tests, guides, and code together to find disagreement between the representations: tests that miss promised behavior, guides that describe something the tests do not exercise, code that implements behavior the proposal does not describe, or details that quietly changed scope or intent. Look and feel the proposal leaves open is not such a disagreement, and neither is a look-and-feel detail the proposal pinned that I have since changed through polish. It also asks whether this is the implementation that should remain — whether its structure expresses the proposal's model or leaks implementation conveniences into a package's public surface. It fixes what it finds, or records a deliberate divergence for the human.
 
 ### Adversarial Review
 
-The implementation is then reviewed once, independently, by a subagent with fresh context and preferably a different model. It receives the proposal and the work, and tries to falsify the claim that the work is done: missing or wrong behavior, weak or misleading tests, invariants covered only by examples, regressions, and security risks. It ignores style and reports without editing.
+The implementation is then reviewed once, independently, by a subagent with fresh context and preferably a different model. It receives the proposal and the work, and tries to falsify the claim that the work is done: missing or wrong behavior, weak or misleading tests, invariants covered only by examples, regressions, and security risks. It ignores style and look and feel, and reports without editing.
 
 The primary agent fixes confirmed defects inside the proposal's scope. A finding outside that scope is never a reason to widen the change: it is declined with reasoning or filed in Beads. Declined findings are preserved for human review rather than silently discarded. The adversarial reviewer does not decide whether the feature is acceptable.
 
@@ -238,7 +248,9 @@ I leave general or inline pull request comments describing changes I want the ag
 
 I then instruct the agent to process the review feedback. Additional context may be supplied directly to the agent when it does not belong in a pull request comment.
 
-If the feedback changes the intended design rather than merely correcting its implementation, the agent updates the proposal first.
+If the feedback changes what the feature does, or a design decision the proposal records, rather than merely correcting its implementation, the agent updates the proposal first.
+
+Feedback on look and feel alone is applied while the work stays in review: the agent changes the code, runs the quality gates, pushes, and refreshes the preview, without editing the proposal, changing its status, posting another readiness report, or repeating the adversarial review. Feedback that mixes both is split, and only the part that changes what the feature does or a recorded design decision goes back through the proposal.
 
 The agent then repeats the affected tests, guides, code, validation, self-check, and adversarial review against the revised proposal as necessary.
 

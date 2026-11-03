@@ -11,11 +11,12 @@ Run both at the start of every session and whenever you are unsure where the wor
 
 ## Does this change need a proposal?
 
-Ask one question: **does this change decide something?**
+Ask one question: **does this change decide something?** Look and feel — how an interface looks and how it is operated — is the exception: the human decides it by looking at the running UI, not in a proposal.
 
 - Intent already exists — a proposal promises the behavior, or it is obvious (a typo, a dead link, an unambiguous bug): implement it directly, saying which.
+- The human is shaping look and feel — layout, sizes, spacing, type, color, motion, which control presents a choice, how it is operated, and wording whose exact words are not themselves a requirement: make the changes directly with [`polishing-a-ui`](.agents/skills/polishing-a-ui/), saying so first.
 - It decides something: ask "do you want a proposal for this change?" and wait for an explicit yes. Only then branch, push, open a **draft** pull request, and write it with [`writing-a-proposal`](.agents/skills/writing-a-proposal/). Consent covers this change and its revisions, not the next.
-- A small fix that turns out to decide something stops and asks.
+- A small fix that turns out to decide something, or polish that turns out to change what the feature does, stops and asks.
 
 Proposal status is the human's: they set `awaiting-implementation`, `accepted`, `returned-for-revisions`, and `rejected`. You set `active-review` at handoff and `implemented` in the accepted pull request before merge ([`completing-a-feature`](.agents/skills/completing-a-feature/)).
 
@@ -36,7 +37,7 @@ Work inline by default; delegate only independent slices on separate files, or a
 
 ## Rules
 
-- **Stay inside the proposal.** Behavior it does not describe is not built; an out-of-scope defect becomes a Beads item ([Work tracking](#work-tracking)).
+- **Stay inside the proposal.** Behavior it does not describe is not built; an out-of-scope defect becomes a Beads item ([Work tracking](#work-tracking)). Look and feel is not behavior a proposal must describe: choose what the proposal leaves open to fit the project's existing interface and its platform's conventions, and let the human refine it on the running UI.
 - **Raise ambiguity** rather than choosing silently.
 - **Never substitute planning for understanding** ([`grounding-a-problem`](.agents/skills/grounding-a-problem/)): agent synthesis stays inference until verified.
 - **Never silently encode an ontology decision** ([`ontology-review`](.agents/skills/ontology-review/)).
