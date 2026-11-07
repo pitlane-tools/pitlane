@@ -153,7 +153,10 @@ function indexModules(
             for (let href of closure.preloads) preloads.add(href);
             for (let href of closure.stylesheets) stylesheets.add(href);
         }
-        modules[key] = { preloads: [...preloads], stylesheets: [...stylesheets] };
+        modules[key] = {
+            preloads: environment.role === "client" ? [...preloads] : [],
+            stylesheets: [...stylesheets]
+        };
     }
     return modules;
 }
