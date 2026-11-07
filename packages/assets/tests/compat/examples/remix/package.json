@@ -9,7 +9,7 @@
     },
     "dependencies": {
         "@pitlane/assets": "candidate",
-        "remix": "3.0.0"
+        "remix": "3.2.0"
     },
     "devDependencies": {
         "@pitlane/vite-plugin-remix": "candidate",

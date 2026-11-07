@@ -416,7 +416,7 @@ dist/
 | ----------- | ---------------------- |
 | `vite`      | 8.1 and the latest 8.x |
 | `vite-plus` | 1.0                    |
-| `remix`     | 3.0.0                  |
+| `remix`     | 3.2.0                  |
 | Node        | 26 (CI)                |
 
 Each `@pitlane/vite-plugin-remix` release records the exact Remix version it was verified against. The supported Node range is `^20.19.0 || >=22.12.0`. The transform runs identically on generic Vite and Vite+.
