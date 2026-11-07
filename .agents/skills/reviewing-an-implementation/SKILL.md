@@ -16,7 +16,7 @@ Begin after applicable validation has fresh evidence under [`.agents/rules/verif
 
 ## 1. Self-check
 
-Read the proposal, the changed tests, the affected guides, and the diff together. For each observable behavior in Detailed design — including boundary cases, errors, defaults, and side effects that could disagree — confirm that it is tested, described where a user would look when it is user-facing, and implemented. Then look the other way: anything implemented that the proposal and guides do not describe is scope creep or a gap in the proposal.
+Read the proposal, the changed tests, the affected guides, and the diff together. For each observable behavior in Detailed design — including boundary cases, errors, defaults, and side effects that could disagree — confirm that it is tested, described where a user would look when it is user-facing, and implemented. Then look the other way: anything implemented that the proposal and guides do not describe is scope creep or a gap in the proposal. Look and feel the proposal leaves open is neither, and neither is a look-and-feel detail the proposal pinned that the human has since changed through polish.
 
 Then ask whether this is the implementation that should remain. Does its structure fit the domain the proposal describes, or does it leak implementation conveniences into a package's public surface? Is there a simpler realization that expresses the proposal better, or complexity inherited from the baseline that no longer earns its place?
 
@@ -32,7 +32,7 @@ You may edit tests, guides, and code. You must not revise a proposal without the
 
 ## 2. Independent review
 
-Dispatch the `adversary` agent: fresh context, and a different model by virtue of its role in `.omp/config.yml`. Give it the proposal, the commit range, and the commands that verify the work. Tell it to try to show the work is not done — behavior missing or wrong relative to the proposal, edge cases the tests miss, invariants covered only by examples, tests that would still pass with a broken implementation, security or data-loss risks — to confirm findings by running code, to ignore style, naming, and formatting, and to report without editing.
+Dispatch the `adversary` agent: fresh context, and a different model by virtue of its role in `.omp/config.yml`. Give it the proposal, the commit range, and the commands that verify the work. Tell it to try to show the work is not done — behavior missing or wrong relative to the proposal, edge cases the tests miss, invariants covered only by examples, tests that would still pass with a broken implementation, security or data-loss risks — to confirm findings by running code, to ignore style, naming, formatting, and look and feel, and to report without editing.
 
 Do not replace this dispatch with your own review. Consume its report:
 
@@ -102,6 +102,10 @@ At the end of Phase 3, these three actions form one transition and MUST NOT be s
 3. Flip the pull request from draft to ready with `gh pr ready <pr-number>`.
 
 Work for which the human declined a proposal has no status to set: post the report and mark the pull request ready without inventing one. Do not leave the proposal, report, and pull-request state disagreeing. Ready means the work is human-reviewable, not correct or accepted. Never set `accepted`; only the human may do so in Phase 4, which starts Phase 5 completion.
+
+### Look-and-feel feedback in review
+
+While the proposal is `active-review`, apply feedback that touches only look and feel with [`polishing-a-ui`](../polishing-a-ui/SKILL.md): change the code, run the gates, push, refresh the preview, and say what changed. Do not edit the proposal, change its status, post another readiness report, or rerun the adversarial review. Feedback that changes what the feature does, or a design decision the proposal records, goes through the proposal first, after the human returns the work with `returned-for-revisions`. Split feedback that mixes both.
 
 ## Red flags
 

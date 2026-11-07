@@ -1,5 +1,7 @@
 ## Proposal
 
+<!-- No proposal? Say why instead: a correction whose intent already exists, or look-and-feel polish. Then check only the phase items that apply. -->
+
 - Implements: <!-- [proposal.NNNN](../proposals/NNNN-slug.md) -->
 
 ## Summary
