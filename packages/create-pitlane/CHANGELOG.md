@@ -1,5 +1,11 @@
 # create-pitlane
 
+## 0.0.2
+
+### Patch Changes
+
+- 48db1fe: The template list no longer names `railway-deno` or `deno-deploy`. Both were removed from pitlane-tools/templates, so `giget` can no longer scaffold them.
+
 ## 0.0.1
 
 Published 2026-09-21. [npm](https://www.npmjs.com/package/create-pitlane/v/0.0.1) · [GitHub release](https://github.com/pitlane-tools/pitlane/releases/tag/create-pitlane%400.0.1) · [Source](https://github.com/pitlane-tools/pitlane/commit/f18bf6633e09ef3475c654f018554fb8feee85b3).

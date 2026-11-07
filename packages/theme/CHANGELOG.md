@@ -1,5 +1,11 @@
 # @pitlane/theme
 
+## 0.5.1
+
+### Patch Changes
+
+- 81804f5: The API reference and installed declarations now document every public export and the methods on the interfaces you implement or call: the `Collection`, `Entry`, loader, and builder methods of `@pitlane/content`, `CrawlTarget.fetch`, the `D1Binding` methods, and `font.family()` and `font.weight()`. No behavior changed.
+
 ## 0.5.0
 
 ### Minor Changes

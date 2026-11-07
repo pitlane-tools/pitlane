@@ -1,5 +1,12 @@
 # @pitlane/content
 
+## 0.4.1
+
+### Patch Changes
+
+- 81804f5: The API reference and installed declarations now document every public export and the methods on the interfaces you implement or call: the `Collection`, `Entry`, loader, and builder methods of `@pitlane/content`, `CrawlTarget.fetch`, the `D1Binding` methods, and `font.family()` and `font.weight()`. No behavior changed.
+- 25aa6a1: The README no longer lists Deno among the hosts the runtime loaders cover, now that Pitlane has stopped documenting Deno as a target. The loaders behave the same.
+
 ## 0.4.0
 
 ### Minor Changes

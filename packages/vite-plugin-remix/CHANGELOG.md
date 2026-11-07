@@ -1,5 +1,18 @@
 # @pitlane/vite-plugin-remix
 
+## 0.9.1
+
+### Patch Changes
+
+- 43917ef: The Cloudflare Workers recipe now uses `cloudflare.config.ts` and `cf deploy`, with exact pins for `cf@1.0.0-beta.17` and `@cloudflare/vite-plugin@2.0.0-beta.v.0`. Static assets come from Vite's client build, so the Worker configuration no longer names an assets directory. This updates the deployment instructions without changing plugin behavior.
+- ad842e8: `remix({ prerender })` now works beside `@cloudflare/vite-plugin` 2.0, the beta that Cloudflare's `cf` CLI builds with. That plugin writes the Build Output its preview server reads only at the end of the build, so prerendering failed with `Build Output Specification: no root config found`. Prerendering now waits for that output, and nothing else about the configuration `remix()` produces has changed, so `@cloudflare/vite-plugin` 1.x keeps working as before.
+- e9ee6ca: The README and the `remix()` reference no longer offer Deno as a production runtime or link to the Deno Deploy guide, which pitlane.tools no longer publishes. Deno is joining Cloudflare: Deno Deploy is shutting down, and the runtime gets only maintenance releases for one more year. The plugin's behavior is unchanged.
+- Updated dependencies [81804f5]
+- Updated dependencies [43917ef]
+    - @pitlane/crawler@0.3.1
+    - @pitlane/assets@0.2.1
+    - @pitlane/vite-plugin-fetch-server@0.1.1
+
 ## 0.9.0
 
 ### Minor Changes
