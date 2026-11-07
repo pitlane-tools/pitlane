@@ -13,7 +13,7 @@
     "dependencies": {
         "@pitlane/assets": "workspace:*",
         "@pitlane/theme": "workspace:*",
-        "remix": "3.0.0"
+        "remix": "3.2.0"
     },
     "devDependencies": {
         "@pitlane/vite-plugin-remix": "workspace:*",

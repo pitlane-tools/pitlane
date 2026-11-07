@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test, { type TestContext } from "node:test";
 
-let statusScript = new URL("./status.ts", import.meta.url).pathname;
+let statusScript = path.join(import.meta.dirname, "status.ts");
 
 // A git hook exports GIT_DIR, GIT_INDEX_FILE and GIT_WORK_TREE, and they point at the
 // real repository. Inheriting them would make every fixture `git` call — and the status

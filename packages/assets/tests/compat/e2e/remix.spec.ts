@@ -1,5 +1,5 @@
 // The upstream remix example's behavior (e2e/island.test.ts, Remix half)
-// re-expressed against released remix@3.0.0 through @pitlane/vite-plugin-remix:
+// re-expressed against released Remix through @pitlane/vite-plugin-remix:
 // clientEntry() islands, render({ assets }), frames, and server-update HMR.
 import { type Page, expect, test } from "@playwright/test";
 import { type Fixture, useFixture } from "./fixture.ts";

@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join, posix } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { markdownToMdast, type MdastNode } from "satteri";
 
 import {
@@ -233,7 +234,7 @@ test("the index lists every guide under its group and every export beside its RE
 test("the installed export writes every published guide as plain Markdown whose local links resolve", async () => {
     let out = await mkdtemp(join(tmpdir(), "pitlane-installed-"));
     try {
-        let readme = new URL("vite-plugin-remix/README.md", PACKAGES).pathname;
+        let readme = fileURLToPath(new URL("vite-plugin-remix/README.md", PACKAGES));
         let guides = await exportInstalled({
             out,
             packages: [
