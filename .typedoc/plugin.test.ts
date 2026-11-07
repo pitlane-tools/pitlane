@@ -12,7 +12,7 @@ import { Application } from "typedoc";
 
 import type { ReferenceEntry } from "./lib/manifest.ts";
 
-let fixture = new URL("./fixtures/reexports/", import.meta.url).pathname;
+let fixture = path.join(import.meta.dirname, "fixtures", "reexports");
 let entryPoints = ["index", "loaders", "hot"].map(name => path.join(fixture, "src", `${name}.ts`));
 
 function temporaryRoot(t: TestContext): string {
