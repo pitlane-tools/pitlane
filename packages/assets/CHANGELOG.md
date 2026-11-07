@@ -1,5 +1,11 @@
 # @pitlane/assets
 
+## 0.2.1
+
+### Patch Changes
+
+- 43917ef: Rebuild with the repository's current Vite 8 and tsdown toolchain as part of the coordinated package release. These packages have no runtime behavior or public API changes since their previous releases.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
     "name": "@pitlane/data-table-d1",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Cloudflare D1 database driver for Remix.",
     "keywords": [
         "cloudflare",
