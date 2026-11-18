@@ -15,9 +15,9 @@ export function sourceKey(root: string, id: string): string {
 
 export function inputPath(root: string, key: string): string {
     let path = key.split("#")[0];
-    if (path.startsWith("file://")) return fileURLToPath(path);
+    if (path.startsWith("file://")) return normalizePath(fileURLToPath(path));
     if (path.startsWith("file:")) path = path.slice(5);
-    return resolve(root, path.replace(/^\/+/, ""));
+    return normalizePath(resolve(root, path.replace(/^\/+/, "")));
 }
 
 export function fileModule(id: string): boolean {
