@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as s from "remix/data-schema";
 import * as coerce from "remix/data-schema/coerce";
@@ -71,7 +72,7 @@ describe("loaders.glob", () => {
     it("reports the file path of every entry it produced", async () => {
         let [entry] = await collect(glob({ pattern: "hello.md", base: `${fixtures}/blog` }));
 
-        expect(entry!.filePath).toBe(`${fixtures}/blog/hello.md`);
+        expect(entry!.filePath).toBe(join(fixtures, "blog", "hello.md"));
     });
 
     it("takes a computed pattern, because nothing about it is read statically", async () => {
@@ -174,28 +175,28 @@ describe("loaders.glob", () => {
         let loader = glob({ pattern: "**/*.md", base: `${fixtures}/blog` });
         await collect(loader);
 
-        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog`]);
+        expect(loader.watchedPaths?.()).toEqual([join(fixtures, "blog")]);
     });
 
     it("watches the pattern's own directory rather than the whole of base", async () => {
         let loader = glob({ pattern: "src/fixtures/blog/**/*.md" });
         await collect(loader);
 
-        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog`]);
+        expect(loader.watchedPaths?.()).toEqual([join(fixtures, "blog")]);
     });
 
     it("unions the directories of an array of patterns", async () => {
         let loader = glob({ pattern: ["src/fixtures/blog/**/*.md", "src/fixtures/data/*.yml"] });
         await collect(loader);
 
-        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog`, `${fixtures}/data`]);
+        expect(loader.watchedPaths?.()).toEqual([join(fixtures, "blog"), join(fixtures, "data")]);
     });
 
     it("watches the containing directory of a pattern that names one file", async () => {
         let loader = glob({ pattern: "nested/second.mdx", base: `${fixtures}/blog` });
         await collect(loader);
 
-        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/blog/nested`]);
+        expect(loader.watchedPaths?.()).toEqual([join(fixtures, "blog", "nested")]);
     });
 });
 
@@ -204,7 +205,7 @@ describe("loaders.glob parse failures", () => {
         let loader = glob({ pattern: "bad-frontmatter.md", base: `${fixtures}/broken` });
 
         await expect(collect(loader)).rejects.toThrow(
-            new RegExp(`Failed to parse "${fixtures}/broken/bad-frontmatter\\.md"`),
+            `Failed to parse "${join(fixtures, "broken", "bad-frontmatter.md")}"`,
         );
     });
 
@@ -212,7 +213,7 @@ describe("loaders.glob parse failures", () => {
         let loader = glob({ pattern: "bad.json", base: `${fixtures}/broken` });
 
         await expect(collect(loader)).rejects.toThrow(
-            new RegExp(`Failed to parse "${fixtures}/broken/bad\\.json"`),
+            `Failed to parse "${join(fixtures, "broken", "bad.json")}"`,
         );
     });
 });

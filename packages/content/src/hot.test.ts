@@ -95,7 +95,7 @@ describe("watchCollections", () => {
         expect(hmr.watched).toEqual([]);
 
         await content.blog.getCollection();
-        expect(hmr.watched).toEqual([path.join("/project", "content/one.md")]);
+        expect(hmr.watched).toEqual([path.resolve("/project", "content/one.md")]);
     });
 
     it("reloads the collection a changed file belongs to", async () => {
@@ -112,7 +112,7 @@ describe("watchCollections", () => {
         blog.edit([{ id: "one", data: { title: "Edited" }, filePath: "content/one.md" }]);
         let emitted = await hmr.report({
             event: "change",
-            filePath: path.join("/project", "content/one.md"),
+            filePath: path.resolve("/project", "content/one.md"),
         });
 
         expect(emitted).toEqual([{ type: "reload" }]);
@@ -141,7 +141,7 @@ describe("watchCollections", () => {
 
         await hmr.report({
             event: "change",
-            filePath: path.join("/project", "content/blog/one.md"),
+            filePath: path.resolve("/project", "content/blog/one.md"),
         });
         await content.blog.getCollection();
         await content.notes.getCollection();
@@ -165,11 +165,11 @@ describe("watchCollections", () => {
         blog.edit([{ id: "one", data: { title: "One" }, filePath: "content/one.md" }]);
         await hmr.report({
             event: "unlink",
-            filePath: path.join("/project", "content/two.md"),
+            filePath: path.resolve("/project", "content/two.md"),
         });
         await content.blog.getCollection();
 
-        expect(hmr.watched).toEqual([path.join("/project", "content/one.md")]);
+        expect(hmr.watched).toEqual([path.resolve("/project", "content/one.md")]);
     });
 
     it("surfaces a broken reload at the next read, not at the watcher", async () => {
@@ -186,7 +186,7 @@ describe("watchCollections", () => {
         blog.edit([{ id: "one", data: { title: 42 }, filePath: "content/one.md" }]);
         let emitted = await hmr.report({
             event: "change",
-            filePath: path.join("/project", "content/one.md"),
+            filePath: path.resolve("/project", "content/one.md"),
         });
 
         expect(emitted).toEqual([{ type: "reload" }]);
@@ -211,7 +211,7 @@ describe("watchCollections", () => {
 
         let emitted = await hmr.report({
             event: "change",
-            filePath: path.join("/project", "app/server.ts"),
+            filePath: path.resolve("/project", "app/server.ts"),
         });
         await content.blog.getCollection();
 
@@ -251,8 +251,8 @@ describe("watchCollections", () => {
         await content.notes.getCollection();
 
         let emitted = await hmr.report(
-            { event: "change", filePath: path.join("/project", "content/blog/one.md") },
-            { event: "change", filePath: path.join("/project", "content/notes/two.md") },
+            { event: "change", filePath: path.resolve("/project", "content/blog/one.md") },
+            { event: "change", filePath: path.resolve("/project", "content/notes/two.md") },
         );
         await content.blog.getCollection();
         await content.notes.getCollection();

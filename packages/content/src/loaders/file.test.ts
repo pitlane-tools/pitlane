@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
@@ -93,7 +94,7 @@ describe("loaders.file", () => {
         let loader = file(`${fixtures}/authors.json`);
         await collect(loader);
 
-        expect(loader.watchedPaths?.()).toEqual([`${fixtures}/authors.json`]);
+        expect(loader.watchedPaths?.()).toEqual([join(fixtures, "authors.json")]);
     });
 
     it("refuses an extension it has no parser for, naming the option that fixes it", async () => {
@@ -113,7 +114,7 @@ describe("loaders.file", () => {
             {
                 id: "note",
                 data: { text: "not a content format" },
-                filePath: `${fixtures}/notes.txt`,
+                filePath: join(fixtures, "notes.txt"),
             },
         ]);
     });
@@ -144,21 +145,19 @@ describe("loaders.file", () => {
 describe("loaders.file parse failures", () => {
     it("names the file whose JSON will not parse", async () => {
         await expect(collect(file(`${fixtures}/broken/bad.json`))).rejects.toThrow(
-            new RegExp(`Failed to parse "${fixtures}/broken/bad\\.json"`),
+            `Failed to parse "${join(fixtures, "broken", "bad.json")}"`,
         );
     });
 
     it("names the file whose YAML will not parse", async () => {
         await expect(collect(file(`${fixtures}/broken/bad.yaml`))).rejects.toThrow(
-            new RegExp(`Failed to parse "${fixtures}/broken/bad\\.yaml"`),
+            `Failed to parse "${join(fixtures, "broken", "bad.yaml")}"`,
         );
     });
 
     it("says what a parser must return when the file parses to null", async () => {
         await expect(collect(file(`${fixtures}/broken/null.json`))).rejects.toThrow(
-            new RegExp(
-                `Parsing "${fixtures}/broken/null\\.json" produced null; loaders\\.file needs`,
-            ),
+            `Parsing "${join(fixtures, "broken", "null.json")}" produced null; loaders.file needs`,
         );
     });
 });
