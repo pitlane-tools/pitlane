@@ -7,5 +7,12 @@
     ],
     "tsconfig": "../packages/data-table-d1/tsconfig.json",
     "out": "../docs/app/content/api/data-table-d1",
-    "entryModule": "@pitlane/data-table-d1"
+    "entryModule": "@pitlane/data-table-d1",
+    // D1Database inherits `exec()` from remix/data-table's Database, whose
+    // comment links SqlStatement. Remix's reference documents that type.
+    "externalSymbolLinkMappings": {
+        "@remix-run/data-table": {
+            "SqlStatement": "https://docs.remix.run/api/data-table/type/SqlStatement/"
+        }
+    }
 }

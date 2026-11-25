@@ -28,7 +28,7 @@ Every push to a branch also builds installable package previews, for example: `n
 npm add pitlane
 ```
 
-`pitlane` goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets` and `pitlane/theme`. It needs `remix@^3.0.0` and `vite@>=8.1.0` as peers. For a lean production install, add the scoped packages instead (`@pitlane/vite-plugin-remix` as a dev dependency, runtime packages as dependencies) and import from `@pitlane/<name>`.
+`pitlane` goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets` and `pitlane/theme`. It needs `remix@^3.3.0` and `vite@>=8.1.0` as peers. For a lean production install, add the scoped packages instead (`@pitlane/vite-plugin-remix` as a dev dependency, runtime packages as dependencies) and import from `@pitlane/<name>`.
 
 ```ts
 // vite.config.ts

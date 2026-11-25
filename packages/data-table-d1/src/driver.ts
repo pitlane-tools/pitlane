@@ -1,4 +1,5 @@
 import type {
+    ColumnDefinition,
     DataManipulationRequest,
     DataManipulationResult,
     DatabaseDriver,
@@ -14,7 +15,8 @@ import type { D1Binding, D1Meta, D1Result } from "./d1.ts";
 import type { D1StatementObserver } from "./observer.ts";
 
 import { report } from "./observer.ts";
-import { compileSqliteOperation } from "./sql-compiler.ts";
+import { compileSqliteOperation, quoteIdentifier } from "./sql-compiler.ts";
+import { bindValues, decodeSqliteValue } from "./values.ts";
 
 type Operation = DataManipulationRequest["operation"];
 
@@ -103,6 +105,15 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
         return CAPABILITIES;
     }
 
+    /**
+     * Decodes a value a table query read: JSON text, integer booleans, and
+     * timestamp text become what was written. `Database` calls this for
+     * query and `returning` rows; `exec()` rows keep the stored values.
+     */
+    decodeValue(value: unknown, column: ColumnDefinition): unknown {
+        return decodeSqliteValue(value, column);
+    }
+
     async execute(request: DataManipulationRequest): Promise<DataManipulationResult> {
         let { operation } = request;
 
@@ -116,7 +127,7 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
         }
 
         let statement = compileSqliteOperation(operation);
-        let values = statement.values.map(value => (value === undefined ? null : value));
+        let values = bindValues(statement.values);
         let result = await this.#d1
             .prepare(statement.text)
             .bind(...values)
@@ -190,9 +201,7 @@ export class D1DatabaseDriver implements DatabaseDriver<"sqlite"> {
 
         let results = await this.#d1.batch(
             statements.map(statement =>
-                this.#d1
-                    .prepare(statement.text)
-                    .bind(...statement.values.map(value => (value === undefined ? null : value))),
+                this.#d1.prepare(statement.text).bind(...bindValues(statement.values)),
             ),
         );
 
@@ -371,8 +380,4 @@ function isWrite(kind: Operation["kind"]): boolean {
         kind === "delete" ||
         kind === "upsert"
     );
-}
-
-function quoteIdentifier(value: string): string {
-    return `"${value.replace(/"/g, '""')}"`;
 }

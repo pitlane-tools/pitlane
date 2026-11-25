@@ -14,6 +14,8 @@ let recent = await db.query(Post).orderBy({ createdAt: "desc" }).limit(10).all()
 
 `db` is a `Database` from `remix/data-table`, so queries, persistence, migrations, and schema inspection use the same API as the SQLite and Postgres drivers. `transaction()` is the exception: D1 has no interactive transactions, so it throws unless you opt into the non-atomic mode described in [What D1 cannot do](#what-d1-cannot-do).
 
+Rows read the same as through Remix's SQLite driver: `json()` columns come back parsed, `boolean()` columns as `true` or `false`, and `timestamp()` columns as `Date` objects. A `Date` is stored as UTC text in SQLite's `current_timestamp` format, such as `2026-06-01 12:00:00`, and binds the same way in raw `sql` statements and `batch()`.
+
 ## Install
 
 ```sh
@@ -22,7 +24,7 @@ npm install @pitlane/data-table-d1
 vp add @pitlane/data-table-d1
 ```
 
-Requires `remix@^3.0.0` as a peer. The D1 binding is typed structurally, so `@cloudflare/workers-types` is optional.
+Requires `remix@^3.3.0` as a peer. The D1 binding is typed structurally, so `@cloudflare/workers-types` is optional.
 
 ## Why this package exists
 
@@ -135,9 +137,9 @@ Its sibling [`@pkg/data-table-sqlstorage`](https://github.com/sergiodxa/monorepo
 
 ## Provenance
 
-`src/sql-compiler.ts` is vendored verbatim from [`@remix-run/data-table-sqlite@0.6.0`](https://www.npmjs.com/package/@remix-run/data-table-sqlite) (MIT, Copyright (c) 2025 Shopify Inc.; the licence is in `LICENSE.remix`). Only its two import specifiers changed, from the private `@remix-run/data-table*` package names to the public `remix/*` subpaths, so a future upstream revision diffs cleanly against it.
+`src/sql-compiler.ts` is vendored from [`@remix-run/data-table-sqlite@1.1.0`](https://www.npmjs.com/package/@remix-run/data-table-sqlite), the version `remix@3.3.0` ships (MIT, Copyright (c) 2025 Shopify Inc.; the licence is in `LICENSE.remix`). Only its import specifiers changed, from the private `@remix-run/data-table*` package names to the public `remix/*` subpaths. The rest differs only by this repository's formatter, so a future upstream revision diffs cleanly against it.
 
-It is vendored because `@remix-run/data-table-sqlite` exports exactly `createSqliteDatabase` and `SqliteDatabase`. `compileSqliteOperation` is internal, reached by its own driver through a relative import, and there is no `@remix-run/data-table-d1`. If upstream exposes the compiler or ships a D1 dialect, this file goes away.
+The file assembles statements from the clause compilers in `remix/data-table/sql-helpers`, which every driver shares. It is vendored because `@remix-run/data-table-sqlite` exports exactly `createSqliteDatabase` and `SqliteDatabase`. `compileSqliteOperation` is internal, reached by its own driver through a relative import, and there is no `@remix-run/data-table-d1`. If upstream exposes the compiler or ships a D1 dialect, this file goes away.
 
 ## Documentation
 
