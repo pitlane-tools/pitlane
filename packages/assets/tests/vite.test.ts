@@ -7,6 +7,7 @@ import {
     createBuilder,
     createServer,
     isRunnableDevEnvironment,
+    normalizePath,
     version as viteVersion,
 } from "vite";
 import { afterEach, describe, expect, it } from "vitest";
@@ -136,8 +137,8 @@ describe("proposal 0005: Vite asset integration", () => {
             expect(module.script.importMap).toEqual({ imports: {} });
             expect(module.css).toMatch(/^\/assets\/page-[\w-]+\.css$/);
             expect(module.stylesheets).toEqual([expect.stringMatching(/^\/assets\/.*\.css$/)]);
-            expect(clientModules).toContain(join(root, "app/browser.ts"));
-            expect(clientModules).not.toContain(join(root, "app/entry.ts"));
+            expect(clientModules).toContain(normalizePath(join(root, "app/browser.ts")));
+            expect(clientModules).not.toContain(normalizePath(join(root, "app/entry.ts")));
             expect(clientModules).not.toContain("node:fs");
             for (let href of [module.script.href, module.css, ...module.stylesheets]) {
                 await expect(
@@ -195,6 +196,11 @@ export default { fetch: () => Response.json({ href }) };`,
         configured.assetsInclude = [/__proto__$/];
 
         if (mode === "build") {
+            // Vite names assets `[name]-[hash].[ext]`, which leaves an extensionless
+            // asset a trailing dot that Windows drops from the file it writes.
+            configured.environments!.client.build!.rolldownOptions = {
+                output: { assetFileNames: "assets/[name]-[hash][extname]" },
+            };
             let module = await build(root, {}, configured);
             expect(await readFile(join(root, "dist/client", module.href), "utf8")).toBe(
                 "opaque asset",
@@ -602,7 +608,10 @@ export const script = await createAssetResolver(manifest).getScriptEntry("app/br
         });
         let enabled = await build(root, { chunkImportMap: true });
         expect(Object.values(enabled.script.importMap.imports)).toContain(enabled.script.href);
-        expect(await readdir(join(root, "dist/client"), { recursive: true })).toEqual(
+        let files = (await readdir(join(root, "dist/client"), { recursive: true })).map(file =>
+            normalizePath(file),
+        );
+        expect(files).toEqual(
             expect.arrayContaining(
                 Object.values<string>(enabled.script.importMap.imports).map(href => href.slice(1)),
             ),
@@ -626,7 +635,9 @@ export const script = await createAssetResolver(manifest).getScriptEntry("app/br
         let root = await fixture();
         let module = await build(root, { chunkImportMap: true });
         expect(module.css).toMatch(/^\/assets\/page-[\w-]+\.css$/);
-        let files = await readdir(join(root, "dist/client"), { recursive: true });
+        let files = (await readdir(join(root, "dist/client"), { recursive: true })).map(file =>
+            normalizePath(file),
+        );
         for (let href of Object.values<string>(module.script.importMap.imports)) {
             expect(files).toContain(href.slice(1));
         }
