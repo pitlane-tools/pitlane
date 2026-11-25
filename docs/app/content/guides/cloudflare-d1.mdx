@@ -27,6 +27,8 @@ let post = await db.create(Post, { title: "Hello" }, { returnRow: true });
 let recent = await db.query(Post).orderBy({ createdAt: "desc" }).limit(10).all();
 ```
 
+Rows read the same as through Remix's SQLite driver. `json()` columns come back parsed, `boolean()` columns as `true` or `false`, and `timestamp()` columns as `Date` objects. A `Date` is stored as UTC text in SQLite's `current_timestamp` format, such as `2026-06-01 12:00:00`, and raw `sql` statements bind it the same way.
+
 ## Setup
 
 Declare the binding in `cloudflare.config.ts`:
@@ -53,7 +55,7 @@ Install `pitlane` as a dependency, since the app imports the driver at run time.
 
 <InstallGroup alternatives={installation} />
 
-The driver also installs on its own as `@pitlane/data-table-d1`. Import from `@pitlane/data-table-d1` in place of `pitlane/data-table-d1` if you install it that way. [The `pitlane` package](/guides/umbrella) compares the two.
+The driver also installs on its own as `@pitlane/data-table-d1`. Import from `@pitlane/data-table-d1` in place of `pitlane/data-table-d1` if you install it that way. [The `pitlane` package](/guides/umbrella) compares the two. Either way, the driver requires `remix@^3.3.0`.
 
 Nothing else is required. Now you can start using the D1 database in your Cloudflare Workers Remix app!
 

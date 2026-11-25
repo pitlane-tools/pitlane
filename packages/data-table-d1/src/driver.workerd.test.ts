@@ -36,6 +36,25 @@ let Ledger = table({
     },
 });
 
+let Setting = table({
+    name: "setting",
+    columns: {
+        id: c.integer().primaryKey(),
+        data: c.json(),
+        enabled: c.boolean(),
+        changed_at: c.timestamp(),
+    },
+});
+
+let Counter = table({
+    name: "counter",
+    columns: {
+        id: c.integer().primaryKey(),
+        label: c.text().notNull(),
+        hits: c.integer().notNull(),
+    },
+});
+
 let mf: Miniflare;
 let db: D1Database;
 
@@ -254,5 +273,81 @@ describe("batch against real workerd", () => {
 
     it("does nothing for an empty batch", async () => {
         expect(await db.batch([])).toEqual([]);
+    });
+});
+
+// `data-table` promises rows the same shape on every driver: it encodes JSON on
+// write, and the driver decodes what SQLite stores as text or integers.
+describe("column values against real workerd", () => {
+    beforeAll(async () => {
+        await db.executeScript(
+            "create table setting (id integer primary key, data text, enabled integer, changed_at text)",
+        );
+    });
+
+    it("reads json columns back as the values written, strings included", async () => {
+        await db.create(Setting, { id: 1, data: { theme: "dark" } });
+        await db.create(Setting, { id: 2, data: "dark" });
+
+        expect((await db.find(Setting, 1))?.data).toEqual({ theme: "dark" });
+        expect((await db.find(Setting, 2))?.data).toBe("dark");
+    });
+
+    it("reads boolean columns as booleans", async () => {
+        await db.create(Setting, { id: 3, enabled: true });
+        await db.create(Setting, { id: 4, enabled: false });
+
+        expect((await db.find(Setting, 3))?.enabled).toBe(true);
+        expect((await db.find(Setting, 4))?.enabled).toBe(false);
+    });
+
+    it("writes Dates to timestamp columns, reads them back, and filters on them", async () => {
+        let changedAt = new Date("2026-06-01T12:00:00.250Z");
+        await db.create(Setting, { id: 5, changed_at: changedAt });
+
+        let found = await db.query(Setting).where({ changed_at: changedAt }).first();
+        expect(found?.id).toBe(5);
+        expect(found?.changed_at).toEqual(changedAt);
+    });
+
+    it("binds Dates in raw and batched statements as SQLite timestamps", async () => {
+        await db.batch([
+            sql`insert into setting (id, changed_at) values (${6}, ${new Date("2026-06-01T12:00:00Z")})`,
+        ]);
+        await db.exec(
+            sql`insert into setting (id, changed_at) values (${7}, ${new Date("2026-06-01T12:00:00.5Z")})`,
+        );
+
+        let stored = await db.exec("select changed_at from setting where id in (6, 7) order by id");
+        expect(stored.rows).toEqual([
+            { changed_at: "2026-06-01 12:00:00" },
+            { changed_at: "2026-06-01 12:00:00.500" },
+        ]);
+    });
+});
+
+describe("compiled statements against real workerd", () => {
+    beforeAll(async () => {
+        await db.executeScript(
+            "create table counter (id integer primary key, label text not null, hits integer not null)",
+        );
+    });
+
+    it("upserts a separate update object into the columns it names", async () => {
+        await db.create(Counter, { id: 1, label: "home", hits: 1 });
+
+        await db.query(Counter).upsert({ id: 1, label: "home", hits: 1 }, { update: { hits: 2 } });
+
+        expect(await db.find(Counter, 1)).toEqual({ id: 1, label: "home", hits: 2 });
+    });
+
+    it("rejects an order direction other than asc or desc", async () => {
+        // A direction read from a query string is only a string at run time.
+        let direction = "desc, (select 1)" as "desc";
+
+        await expect(db.query(Counter).orderBy("id", direction).all()).rejects.toHaveProperty(
+            "cause.message",
+            expect.stringContaining("order by direction"),
+        );
     });
 });
