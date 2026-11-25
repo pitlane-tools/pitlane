@@ -1,5 +1,5 @@
 import { globSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { expect, it } from "vitest";
 
 import { generateUmbrella } from "../scripts/generate.ts";
@@ -10,7 +10,9 @@ const STALE = "The umbrella is stale: run `mise run pitlane:generate` and commit
 it("commits exactly what the generator produces from manifest.json", () => {
     let umbrella = generateUmbrella(PACKAGE);
 
-    let committed = globSync("src/**/*.ts", { cwd: PACKAGE }).sort();
+    let committed = globSync("src/**/*.ts", { cwd: PACKAGE })
+        .map(file => file.split(sep).join("/"))
+        .sort();
     expect(committed, STALE).toEqual([...umbrella.files.keys()].sort());
     for (let [path, contents] of umbrella.files) {
         expect(readFileSync(join(PACKAGE, path), "utf8"), `${STALE} (${path})`).toBe(contents);
