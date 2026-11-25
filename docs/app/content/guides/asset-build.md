@@ -113,7 +113,7 @@ A `file`, stylesheet, or asset value that is relative resolves against `base`, w
 
 ## What the generator computes
 
-For every module in every environment, it records the module's preloads and stylesheets:
+The generator records preloads and stylesheets for every module in the client environment, and stylesheets for every module in a server environment:
 
 - Preloads start with the chunk holding the module, followed by every chunk reachable through static `imports`, shallowest first. Chunks at the same depth keep the order your `imports` lists give them. Each URL appears once.
 - Stylesheets come from the `stylesheets` of the same chunks, with a dependency's listed before those of the chunk importing it. Each URL appears once.
@@ -122,6 +122,8 @@ For every module in every environment, it records the module's preloads and styl
 - A module in several chunks gets the union of every chunk's results, so report every chunk that contains it.
 
 A browser entry's preloads always start with its own entry chunk, even when your `modules` lists leave the entry module out.
+
+A server module's `preloads` list is empty. Browsers never load a server's chunks, and the resolver reads preloads only from the client graph.
 
 Environments stay separate. A server environment's graph never contributes to the client's metadata, and a module that appears only in a server graph never becomes a browser entry. That is what lets an app ask for a server module's stylesheets without compiling the server module for the browser.
 
