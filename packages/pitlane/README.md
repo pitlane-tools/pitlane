@@ -8,7 +8,7 @@ Build tooling, runtime packages, and provider integrations that you can also ado
 npm install pitlane
 ```
 
-`remix@^3.0.0` and `vite@>=8.1.0` are peer dependencies. `satteri@^0.10.5` is an optional one, needed only for Markdown and MDX content.
+`remix@^3.3.0` and `vite@>=8.1.0` are peer dependencies. `satteri@^0.10.5` is an optional one, needed only for Markdown and MDX content.
 
 Each `@pitlane/*` package is available under a `pitlane/*` subpath, with the same exports:
 
