@@ -1,5 +1,12 @@
 # @pitlane/assets
 
+## 0.2.2
+
+### Patch Changes
+
+- 91e6dad: Server-environment modules in a build's asset manifest now have an empty `preloads` list, and their stylesheets are unchanged. The resolver only ever read preloads from the client graph, and a server module's preloads named server chunks that browsers never load. They still made up most of the manifest: on one large Remix app deployed as a Cloudflare Worker, `__pitlane_assets_manifest.js` dropped from 8.7 MB to 1.5 MB. The server parses that file when it starts, so cold starts get faster. An integration that calls `createAssetManifest` and reads a server module's `preloads` itself now gets an empty list.
+- e0cd88b: `vite dev` no longer fails to start on Windows with `[assets] Could not analyze "src/entry.browser.ts" for the "client" development asset manifest: There is a new version of the pre-bundle for "C:\…\src\entry.browser.ts", a page reload is going to ask for it.` A browser entry named by a project-relative key, such as `getScriptEntry("src/entry.browser.ts")`, resolved to a backslash path on Windows, which Vite's module graph does not recognize, so building the development asset manifest failed. Browser entries now resolve to the forward-slash module IDs Vite uses. Upgrade if you develop on Windows; macOS and Linux behave as before.
+
 ## 0.2.1
 
 ### Patch Changes
