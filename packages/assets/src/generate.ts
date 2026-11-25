@@ -16,9 +16,11 @@ const CHUNK_LISTS = ["modules", "imports", "dynamicImports", "stylesheets"] as c
  * Converts a bundler's normalized output into the manifest
  * `createAssetResolver` reads.
  *
- * It walks each environment's static chunk graph to record, for every source
- * module, its `modulepreload` URLs (its chunk first, then dependencies
- * shallowest first) and stylesheets (a dependency's before its importer's).
+ * It walks each environment's static chunk graph to record every source
+ * module's stylesheets (a dependency's before its importer's) and, in the
+ * client environment, its `modulepreload` URLs (its chunk first, then
+ * dependencies shallowest first). A server environment's modules get empty
+ * preloads, because browsers never load a server's chunks.
  * Dynamic imports are validated and never followed. It reads no files,
  * invents no edges, and generates no import map; `serverEnvironment` is left
  * for the integration to set per server.
@@ -155,7 +157,7 @@ function indexModules(
         }
         modules[key] = {
             preloads: environment.role === "client" ? [...preloads] : [],
-            stylesheets: [...stylesheets]
+            stylesheets: [...stylesheets],
         };
     }
     return modules;

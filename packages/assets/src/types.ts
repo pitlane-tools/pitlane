@@ -25,7 +25,10 @@ export interface ScriptEntry {
 
 /** The JavaScript and CSS one source module requires in one environment. */
 export interface AssetMetadata {
-    /** Public URLs of the chunks holding the module and their static JavaScript dependencies. */
+    /**
+     * Public URLs of the chunks holding the module and their static JavaScript
+     * dependencies. Empty in a server environment, whose chunks browsers never load.
+     */
     preloads: string[];
     /** Public URLs of the stylesheets those chunks require. */
     stylesheets: string[];

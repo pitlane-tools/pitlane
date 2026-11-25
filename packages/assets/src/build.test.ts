@@ -534,6 +534,28 @@ describe("proposal 0005: traversal invariants", () => {
         );
     });
 
+    it("gives a server environment's modules the same stylesheets and no preloads", () => {
+        fc.assert(
+            fc.property(graph, chunks => {
+                let asServer = createAssetManifest({
+                    base: "/",
+                    environments: { client: client(), ssr: server({ chunks }) },
+                });
+                let asClient = manifestOf(chunks).environments.client!.modules;
+
+                expect(asServer.environments.ssr!.modules).toEqual(
+                    Object.fromEntries(
+                        Object.entries(asClient).map(([key, { stylesheets }]) => [
+                            key,
+                            { preloads: [], stylesheets },
+                        ]),
+                    ),
+                );
+            }),
+            { seed: 5, numRuns: 200 },
+        );
+    });
+
     it("is deterministic for identical input", () => {
         fc.assert(
             fc.property(graph, chunks => {
