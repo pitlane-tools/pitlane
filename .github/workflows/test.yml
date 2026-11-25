@@ -169,6 +169,50 @@ jobs:
                   PKG: ${{ matrix.pkg }}
               run: mise run "build:$PKG"
 
+    # The same suites on macOS and Windows, against the workspace's own Vite:
+    # the upstream rows above already cover version compatibility. Windows
+    # resolves paths with backslashes and drive letters while Vite keys modules
+    # by forward-slash IDs, so path handling that passes on Linux can still
+    # fail there, and only a Windows runner shows it.
+    platforms:
+        name: ${{ matrix.pkg }} (${{ matrix.os }})
+        runs-on: ${{ matrix.os }}
+        defaults:
+            run:
+                shell: bash
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [macos-latest, windows-latest]
+                pkg:
+                    - assets
+                    - vite-plugin-fetch-server
+                    - content
+                    - crawler
+                    - vite-plugin-remix
+                    - data-table-d1
+                    - theme
+                    - pitlane
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup toolchain
+              uses: jdx/mise-action@v5
+
+            - name: Install
+              run: mise run deps:install
+
+            - name: Install Playwright Chromium
+              if: matrix.pkg == 'vite-plugin-remix' || matrix.pkg == 'assets'
+              working-directory: packages/${{ matrix.pkg }}
+              run: npx playwright install chromium
+
+            - name: Run tests
+              env:
+                  PKG: ${{ matrix.pkg }}
+              run: mise run "test:$PKG"
+
     asset-compatibility:
         name: Assets examples (${{ matrix.vite }})
         runs-on: ubuntu-latest
