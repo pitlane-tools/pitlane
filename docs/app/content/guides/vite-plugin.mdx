@@ -16,7 +16,7 @@ This guide covers living with [`remix()`](/package/vite-plugin-remix/function/re
 
 <InstallGroup alternatives={installation} />
 
-The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets`. It requires `remix@^3.0.0` and `vite@>=8.1` as peer dependencies. The underlying `@pitlane/vite-plugin-remix` package also installs on its own, with the same peers. An app using it directly adds `@pitlane/assets` to `dependencies` for the resolver. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8.1 and later** (Rolldown) and **Vite+ 1.0 and later** (`vp`) with `remix@3.0.0`. Vite 7 and 8.0 are not supported, and neither are the Vite+ 0.x releases built on them.
+The `pitlane` package goes in `dependencies` because app code imports runtime subpaths such as `pitlane/assets`. It requires `remix@^3.0.0` and `vite@>=8.1` as peer dependencies. The underlying `@pitlane/vite-plugin-remix` package also installs on its own, with the same peers. An app using it directly adds `@pitlane/assets` to `dependencies` for the resolver. The [Pitlane package guide](/guides/umbrella) compares the two. The tested matrix is **Vite 8.1 and later** (Rolldown) and **Vite+ 1.0 and later** (`vp`) with `remix@3.3.0`. Vite 7 and 8.0 are not supported, and neither are the Vite+ 0.x releases built on them.
 
 ### Upgrading from `pitlane/dev`
 
@@ -374,7 +374,7 @@ dist/
 | ----------- | -------------------------- |
 | `vite`      | 8.1 and the latest 8.x     |
 | `vite-plus` | 1.0                        |
-| `remix`     | 3.2.0                      |
+| `remix`     | 3.3.0                      |
 | Node        | 24 LTS, 26                 |
 
 Each `@pitlane/vite-plugin-remix` release records the exact Remix version it was verified against. The transform runs identically on generic Vite and Vite+.
