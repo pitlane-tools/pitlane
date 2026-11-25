@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { expect, it } from "vitest";
 
 import { installedReadmes } from "../scripts/docs.ts";
@@ -22,14 +23,14 @@ it("mirrors each re-exported package's README beside its compiled subpaths, list
         {
             name: "@pitlane/crawler",
             description: "Crawls routes",
-            readme: "/repo/packages/crawler/README.md",
+            readme: join("/repo/packages/crawler", "README.md"),
             path: "dist/crawler/README.md",
             exports: ["pitlane/crawler"],
         },
         {
             name: "@pitlane/assets",
             description: "Asset URLs",
-            readme: "/repo/packages/assets/README.md",
+            readme: join("/repo/packages/assets", "README.md"),
             path: "dist/assets/README.md",
             exports: ["pitlane/assets", "pitlane/assets/manifest", "pitlane/assets/vite-plugin"],
         },

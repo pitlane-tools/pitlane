@@ -7,6 +7,7 @@ import {
     createRunnableDevEnvironment,
     createServer,
     isRunnableDevEnvironment,
+    normalizePath,
     parseSync,
 } from "vite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -286,7 +287,8 @@ async function request(server: ViteDevServer, environment = "ssr", entry = "/app
     return runnableEnvironment.runner.import(entry);
 }
 
-let outside = (project: Fixture, name: string) => `/@fs${join(project.directory, name)}`;
+let outside = (project: Fixture, name: string) =>
+    `/@fs/${normalizePath(join(project.directory, name)).replace(/^\//, "")}`;
 let executed = () => globalThis.__devSnapshotExecuted ?? [];
 
 /**

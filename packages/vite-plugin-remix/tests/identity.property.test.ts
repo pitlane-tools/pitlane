@@ -2,8 +2,9 @@ import type { Rolldown } from "vite";
 
 import fc from "fast-check";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { normalizePath } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { clientEntryTransform } from "../src/transform.ts";
@@ -14,9 +15,10 @@ type TransformHandler = (
     id: string,
 ) => Rolldown.TransformResult | Promise<Rolldown.TransformResult>;
 
-// Uppercase root segments: the generated lowercase segments can never walk
-// back into the root, so every generated `../` survives in the key.
-const ROOT = "/Checkout/Site/App";
+// Every root segment holds a `.`, which no generated segment does, so no
+// generated `../` can walk back into the root, not even on Windows, where
+// paths compare without case. The root is drive-qualified there, as Vite's is.
+const ROOT = normalizePath(resolve("/checkout.d/site.d/app.d"));
 
 let scratch: string;
 let modules = 0;
@@ -90,7 +92,7 @@ describe("proposal 0005: portable island identity", () => {
                 environment,
                 environment,
                 async (key, name, first, second) => {
-                    let id = new URL(key, pathToFileURL(`${ROOT}/`)).pathname;
+                    let id = normalizePath(fileURLToPath(new URL(key, pathToFileURL(`${ROOT}/`))));
                     let expected = `file:${key}#${name}`;
 
                     expect(await entryIdOf(first, id, name)).toBe(expected);
