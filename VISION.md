@@ -1,6 +1,6 @@
 ---
 title: Pitlane Vision
-updated: 2026-11-06
+updated: 2026-11-25
 ---
 
 # Pitlane Vision
@@ -137,6 +137,8 @@ Pitlane mirrors Remix's packaging. Every capability, adapter, and feature ships 
 
 `pitlane@1.0.0-alpha.3` rolls up the assets 0.2 and Remix Vite plugin 0.9 improvements with the subsequent patch releases. It includes browser-boundary enforcement, incremental development manifests, protection against copying server-only artifacts into client output, configurable build directories, platform-owned preview serving, and prerendering with Cloudflare's Vite plugin 2.0. Installed documentation covers the `cf` deployment and D1 migration workflows and the six remaining deployment templates. This package set is verified against Remix 3.2.0 while retaining the `^3.0.0` peer range.
 
+`pitlane@1.0.0-alpha.4` moves the package set to Remix 3.3 and raises the umbrella's peer to `remix@^3.3.0`, because `@pitlane/data-table-d1@0.4.0` builds its SQL from the clause compilers Remix 3.3 first exports. That driver now reads rows the same as Remix's SQLite driver. The release also carries `@pitlane/assets@0.2.2`, whose production manifests drop preloads for server-environment modules, and fixes `vite dev` on Windows for project-relative browser entries.
+
 An app that imports a runtime subpath depends on `pitlane` in production, and the umbrella installs every package, so `@pitlane/vite-plugin-remix` and its Vite peer reach production installs too. `remix` makes the same trade for its CLI and test runner. Keeping development-only packages such as `@pitlane/vite-plugin-remix` out of production while preserving one namespace is open for later design, for example by making them optional peers of the umbrella or by splitting a development umbrella from a runtime one.
 
 Code samples in this document import a package that exists as `@pitlane/<name>`, and keep `pitlane/<name>` for a planned one: the subpath it will have in the umbrella.
@@ -196,7 +198,7 @@ The tooling extraction in proposal 0005 shipped alongside this sequence; it does
     3. `@pitlane/cache-vercel`
 8. `@pitlane/crawler` — shipped at 0.3.1. Prerendering itself ships as `remix({ prerender })` in `@pitlane/vite-plugin-remix`. It runs the crawler, so there is no separate `@pitlane/prerender` package.
 9. Remix capability adapters
-    1. `@pitlane/data-table-d1` — shipped at 0.3.1.
+    1. `@pitlane/data-table-d1` — shipped at 0.4.0, which requires Remix 3.3.
     2. `@pitlane/data-table-netlify-database`
     3. `@pitlane/file-storage-cloudflare-r2`
     4. `@pitlane/file-storage-netlify-blobs`
@@ -225,7 +227,7 @@ The tooling extraction in proposal 0005 shipped alongside this sequence; it does
 
 ## `@pitlane/assets` — framework-neutral asset resolution
 
-Released at 0.1.0 in proposal 0005; current release 0.2.1. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
+Released at 0.1.0 in proposal 0005; current release 0.2.2. `createAssetResolver(manifest)` resolves project-relative source keys through `getScriptEntry`, `getHref`, `getPreloads`, `getStylesheets`, and `getImportMap`. The resolver imports neither Vite nor Remix. Its published `/manifest` module explicitly reports that no manifest is available until a build integration supplies one.
 
 `@pitlane/assets/vite-plugin` supplies development snapshots and production manifests. It registers browser inputs from supported literal resolver calls, explicit `include` entries, configured client inputs, and development plugin registrations. Stylesheet lookup reads the client graph and the current server graph without turning server modules into browser entries. Setting `allowFiles` (with `allowPackages` and `denyFiles`, read as `remix/assets` reads them) turns on a browser boundary that fails builds and dev requests for files outside it. `ASSETS_MANIFEST_FILE` names the manifest module each server build writes, for hosts that fold it into a single-module bundle. `@pitlane/assets/build` exposes `createAssetManifest` for other bundlers; the Rsbuild example demonstrates that boundary.
 
@@ -1181,7 +1183,7 @@ Pitlane's model-facing surface is its source, documentation, target templates, a
 
 `@pitlane/dev` was the initial Pitlane release: the provider-agnostic `remix()` Vite plugin. `@pitlane/theme`, `@pitlane/data-table-d1`, `@pitlane/crawler`, and `@pitlane/content` followed it on their own tags. Content collections shipped at 0.1.0. The `pitlane@1.0.0-alpha.1` umbrella first combined those five scoped packages through matching subpaths. Proposal 0005 added the assets and Fetch-server packages and replaced `@pitlane/dev` with `@pitlane/vite-plugin-remix`. The remaining packages ship independently in the [planned package sequence](#planned-package-sequence), and no later package is required to make an earlier one complete.
 
-The coordinated release set is `@pitlane/assets@0.2.1`, `@pitlane/content@0.4.1`, `@pitlane/crawler@0.3.1`, `@pitlane/data-table-d1@0.3.1`, `@pitlane/theme@0.5.1`, `@pitlane/vite-plugin-fetch-server@0.1.1`, `@pitlane/vite-plugin-remix@0.9.1`, `create-pitlane@0.0.2`, and `pitlane@1.0.0-alpha.3`. The umbrella pins those seven scoped versions exactly. Each package has its own tag and GitHub Release, which triggers npm Trusted Publishing through `publish.yml`; the umbrella follows its dependencies. The current template catalog has six targets, with the Deno targets removed.
+The current release set is `@pitlane/assets@0.2.2`, `@pitlane/content@0.4.1`, `@pitlane/crawler@0.3.1`, `@pitlane/data-table-d1@0.4.0`, `@pitlane/theme@0.5.1`, `@pitlane/vite-plugin-fetch-server@0.1.1`, `@pitlane/vite-plugin-remix@0.9.1`, `create-pitlane@0.0.2`, and `pitlane@1.0.0-alpha.4`. The umbrella pins those seven scoped versions exactly and requires `remix@^3.3.0`. Each package has its own tag and GitHub Release, which triggers npm Trusted Publishing through `publish.yml`; the umbrella follows its dependencies. The current template catalog has six targets, with the Deno targets removed.
 
 ### Explicit non-goals
 
